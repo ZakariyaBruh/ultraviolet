@@ -66,12 +66,12 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
         {showNow && (
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-signal"
+            className="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-ice"
             style={{ left: `calc(64px + (100% - 116px) * ${nowPct / 100})` }}
             initial={false}
             animate={{ opacity: 1 }}
           >
-            <span className="fig absolute -top-4 -translate-x-1/2  bg-signal px-1 text-xs leading-4 text-[#000]">
+            <span className="fig absolute -top-4 -translate-x-1/2  bg-ice px-1 text-xs leading-4 text-ground">
               {pad(d.getHours())}:{pad(d.getMinutes())}
             </span>
           </motion.div>
@@ -98,7 +98,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
                   <div key={h} className="relative h-full border-l border-[var(--rule)] px-px" role="cell" aria-label={m > 0 ? `${pad(h)}:00, ${Math.round(m)} minutes` : undefined}>
                     {m > 0 && (
                       <motion.div
-                        className="absolute left-px top-1/2 h-3 -translate-y-1/2  bg-signal"
+                        className="absolute left-px top-1/2 h-3 -translate-y-1/2 bg-ice"
                         initial={{ width: 0 }}
                         animate={{ width: `calc(${(m / 60) * 100}% - 2px)` }}
                         transition={{ type: 'spring', stiffness: 320, damping: 32, delay: 0.06 + (h - from) * 0.01 }}

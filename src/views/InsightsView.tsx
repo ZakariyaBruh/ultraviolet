@@ -22,16 +22,17 @@ import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
 
-const SIGNAL = '#ff5a1f'
 const VIOLET = '#ffc400'
 const PINK = '#9a958a'
 
 function ScoreRing({ score }: { score: number }) {
   return (
-    <div className="shrink-0" role="img" aria-label={`Attention score ${score} of 100`}>
-      <div className="dot text-[56px] leading-none text-ink">{score}</div>
-      <div className="mt-2 grid w-[120px] grid-cols-10 gap-[2px]" aria-hidden>
-        {Array.from({ length: 100 }, (_, i) => <i key={i} className={`aspect-square ${i < score ? 'bg-signal' : 'bg-ink/15'}`} />)}
+    <div className="w-[132px] shrink-0" role="img" aria-label={`Attention score ${score} of 100`}>
+      <div className="dot text-[44px] font-light leading-none text-ink">{score}<span className="ml-1 text-base text-ink-3">/100</span></div>
+      <div className="relative mt-3 h-3" aria-hidden>
+        <div className="absolute inset-x-0 top-1/2 h-px bg-ink/30" />
+        {Array.from({ length: 11 }, (_, i) => <i key={i} className="absolute top-1/2 h-1.5 w-px -translate-y-1/2 bg-ink/40" style={{ left: `${i * 10}%` }} />)}
+        <div className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-ice" style={{ width: `${score}%` }} />
       </div>
     </div>
   )
@@ -45,7 +46,7 @@ function Part({ value, label, note, weight }: { value: number; label: string; no
         <span className="fig text-[13px] text-ink-2">{Math.round(value * weight)} of {weight}</span>
       </div>
       <div className="mt-1.5 h-1.5 rounded-full bg-ink/10">
-        <motion.div className="h-full bg-signal" initial={{ width: 0 }} animate={{ width: `${value * 100}%` }} transition={{ type: 'spring', stiffness: 90, damping: 20, delay: 0.15 }} />
+        <motion.div className="h-full bg-ice" initial={{ width: 0 }} animate={{ width: `${value * 100}%` }} transition={{ type: 'spring', stiffness: 90, damping: 20, delay: 0.15 }} />
       </div>
       <div className="mt-1 text-[13px] text-ink-2">{note}</div>
     </div>
@@ -62,6 +63,7 @@ const TABS = [
 
 export function InsightsView() {
   const s = useStore()
+  const SIGNAL = s.settings.theme === 'light' ? '#2447c9' : '#8fd8ff'
   const wide = useMedia('(min-width: 1024px)')
   const [tab, setTab] = useState('today')
   const [half, setHalf] = useState('day')

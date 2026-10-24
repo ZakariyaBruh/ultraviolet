@@ -19,27 +19,26 @@ import type { View } from '@/components/app/Shell'
 
 const LENGTHS = [15, 25, 45, 60]
 
-/** A text-mode window: a spinning ASCII torus behind the clock, and a row of cells that fill as the session goes. */
+/** Retro ground (ASCII torus in a CRT window) under a futuristic clock: wide light numerals and a hairline progress rule. */
 function FrictionDial({ progress, left, running, paused, live }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean }) {
   const level = useStore((s) => s.settings.motion)
-  const CELLS = 32
-  const filled = Math.round(progress * CELLS)
   return (
-    <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[min(100%,440px)] shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
-      <div className="hud flex w-full items-center justify-between">
+    <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
+      <div className="hud relative z-10 flex w-full items-center justify-between">
         <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}</span>
-        <span>{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
+        <span className="text-ice">{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
       </div>
-      <div className="pointer-events-none absolute inset-0 grid place-items-center text-signal opacity-70" aria-hidden>
-        <AsciiSolid cols={58} rows={26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-xs sm:text-xs" />
+      <div className="crt pointer-events-none absolute inset-3 grid place-items-center overflow-hidden text-signal opacity-60" aria-hidden>
+        <AsciiSolid cols={58} rows={26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[6px] sm:text-[8px] lg:text-[10px]" />
       </div>
-      <div className="dot relative bg-ground/80 px-3 py-1 text-[clamp(3.2rem,10.5vw,6.2rem)] text-ink" role="timer" aria-label={`${fmtClock(left)} left`}>
+      <div className="dot relative z-10 text-[clamp(2.2rem,6.4vw,3.9rem)] font-light text-ink [text-shadow:0_0_12px_var(--ground),0_0_3px_var(--ground)]" role="timer" aria-label={`${fmtClock(left)} left`}>
         {fmtClock(left)}
       </div>
-      <div className="relative flex w-full gap-[3px]" aria-hidden>
-        {Array.from({ length: CELLS }, (_, i) => (
-          <i key={i} className={`h-2 flex-1 ${i < filled ? 'bg-signal' : 'bg-ink/20'} ${running && i === filled && level >= 1 ? 'animate-[blink_1s_steps(2)_infinite]' : ''}`} />
-        ))}
+      <div className="relative z-10 h-3 w-full" aria-hidden>
+        <div className="absolute inset-x-0 top-1/2 h-px bg-ink/30" />
+        {Array.from({ length: 21 }, (_, i) => <i key={i} className={`absolute top-1/2 w-px -translate-y-1/2 bg-ink/40 ${i % 5 === 0 ? 'h-3' : 'h-1.5'}`} style={{ left: `${i * 5}%` }} />)}
+        <div className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-ice transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
+        <div className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 border border-ice bg-black" style={{ left: `${progress * 100}%` }} />
       </div>
     </Glass>
   )
@@ -89,7 +88,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       {!wide && (
         <div>
           <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
-          <h1 className="dot text-[34px]">FOCUS</h1>
+          <h1 className="dot text-[1.6rem] font-bold">FOCUS</h1>
           <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
         </div>
       )}
@@ -97,7 +96,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         {wide && (
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }} className="min-w-0 self-center">
             <div className="hud mb-2 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
-            <h1 className="dot text-[40px]">FOCUS</h1>
+            <h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1>
             <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
             <Panel className="grid gap-4 p-5">
               <Readout label="Blocked today" value={<AnimatedNumber value={blocked} />} note="scroll attempts" />

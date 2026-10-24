@@ -12,7 +12,7 @@ function Orbit({ items }: { items: MediaItem[] }) {
   return (
     <Panel className="grid h-[360px] place-content-center justify-items-center gap-3 overflow-hidden">
       <AsciiSolid cols={46} rows={20} speed={on ? 2 : 0.5} className="text-[9px] text-signal" />
-      <p className="dot text-2xl text-ink">{on ? 'ON AIR' : items.length ? 'STANDBY' : 'NO SIGNAL'}</p>
+      <p className="dot text-xl font-bold text-ink">{on ? 'ON AIR' : items.length ? 'STANDBY' : 'NO SIGNAL'}</p>
     </Panel>
   )
 }

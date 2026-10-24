@@ -31,7 +31,7 @@ function Brand({ compact }: { compact?: boolean }) {
   return (
     <button onClick={() => useUI.getState().set({ landing: true })} aria-label="Friction, show the front page" className="flex min-h-11 items-center gap-2 text-ink">
       <Mark size={compact ? 24 : 22} />
-      <span className="dot text-[19px] uppercase">Friction</span>
+      <span className="dot text-[15px] font-bold uppercase">Friction</span>
       {live && <span className="live-dot" role="status" aria-label="Session running" />}
     </button>
   )

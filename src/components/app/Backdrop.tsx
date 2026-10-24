@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { DotMorph } from '@/components/app/DotMorph'
+import { FieldLines } from '@/components/app/FieldLines'
 import { SpeedWarp } from '@/components/ui/speed-warp'
 import { usePlayer, video } from '@/lib/player'
 import { useStore } from '@/lib/store'
@@ -36,7 +36,7 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
           <div className="absolute inset-0 bg-black/60" />
         </>
       ) : (
-        <DotMorph level={level} />
+        <FieldLines level={level} />
       )}
       {level >= 1 && running && (
         <div className={`absolute inset-0 opacity-60 ${light ? 'invert' : ''}`}>
