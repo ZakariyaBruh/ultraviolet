@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { LineImage } from '@/components/app/LineImage'
 import { useMedia } from '@/lib/hooks'
 
@@ -13,11 +12,11 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, y: -24, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-[1.35]">
         <LineImage still={reduced} focus={wide ? [0.68, 0.5] : [0.5, 0.52]} className="absolute inset-0 size-full" />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-5 sm:px-8">
-          <span className="font-mono text-[11px] uppercase tracking-[0.18em]">Friction / 01</span>
-          <span className="hidden font-mono text-[11px] uppercase tracking-[0.18em] sm:block">No account / No server / No AI</span>
+          <span className="font-mono text-xs uppercase tracking-[0.18em]">Friction / 01</span>
+          <span className="hidden font-mono text-xs uppercase tracking-[0.18em] sm:block">No account / No server / No AI</span>
         </div>
       </div>
 
@@ -33,7 +32,6 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
           </motion.h1>
         </div>
         <div className="flex min-w-0 flex-col justify-end gap-4 ">
-          {wide && <AsciiSolid cols={60} rows={28} speed={0.8} still={reduced} className="hidden text-[8px] text-[#ff5a1f] xl:block" />}
           <p className="max-w-[44ch] text-[15px] leading-[22px]">
             Scrolling has no friction. That is the whole problem. Stay on one radio station or one live channel and every scroll you skip gets counted.
           </p>
@@ -41,7 +39,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
             <button onClick={onEnter} autoFocus className="h-12 bg-[#ff5a1f] px-7 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-black transition-colors hover:bg-[#ff7a45]">
               Enter
             </button>
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#bdb9ac]">Everything stays in this browser</span>
+            <span className="font-mono text-xs uppercase tracking-[0.14em] text-[#bdb9ac]">Everything stays in this browser</span>
           </div>
         </div>
       </div>

@@ -66,7 +66,7 @@ export function Logo({ item, size = 40 }: { item: Pick<MediaItem, 'logo' | 'name
     .join('')
     .toUpperCase()
   return (
-    <div className="relative grid shrink-0 place-items-center overflow-hidden rounded-[10px] bg-ink/10 text-[11px] font-medium text-ink-2 ring-1 ring-ink/10" style={{ width: size, height: size }}>
+    <div className="relative grid shrink-0 place-items-center overflow-hidden rounded-[10px] bg-ink/10 text-xs font-medium text-ink-2 ring-1 ring-ink/10" style={{ width: size, height: size }}>
       {initials}
       {item.logo && (
         <img src={item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 size-full bg-ink/90 object-contain p-1" onError={(e) => (e.currentTarget.style.display = 'none')} />
@@ -127,14 +127,14 @@ export function MediaRow({ item, queue, index = 0 }: { item: MediaItem; queue: M
 export function Transport({ compact = false }: { compact?: boolean }) {
   const { current, status } = usePlayer()
   const queueLen = usePlayer((s) => s.queue.length)
-  const size = compact ? 'size-9' : 'size-11'
+  const size = compact ? 'size-11 md:size-9' : 'size-11'
   const base = 'grid place-items-center rounded-full text-ink transition-colors hover:bg-ink/10 disabled:opacity-35'
   return (
     <div className="flex items-center gap-1.5">
       <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size)} onClick={() => step(-1)} disabled={queueLen < 2} aria-label="Previous">
         <SkipBack className="size-4" />
       </motion.button>
-      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, '!bg-ink !text-[#000] hover:!bg-white')} onClick={toggle} disabled={!current} aria-label={status === 'playing' ? 'Pause' : 'Play'}>
+      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, '!bg-ink !text-ground hover:!bg-white')} onClick={toggle} disabled={!current} aria-label={status === 'playing' ? 'Pause' : 'Play'}>
         {status === 'playing' ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
       </motion.button>
       <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size)} onClick={() => step(1)} disabled={queueLen < 2} aria-label="Next">

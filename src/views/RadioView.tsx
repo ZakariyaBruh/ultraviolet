@@ -1,17 +1,18 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Browser } from '@/components/app/Browser'
 import { Panel } from '@/components/app/shared'
-import { CircularOrbit } from '@/components/ui/circular-orbit'
+import { AsciiSolid } from '@/components/app/AsciiSolid'
+import { usePlayer } from '@/lib/player'
 import { FOCUS_TAGS, searchStations, stationToMedia } from '@/lib/radio'
 import type { MediaItem } from '@/lib/store'
 
-/** Station logos circle the title: the directory's most-listened stations for the genre you are on. */
+/** A text-mode slate: the torus spins while a station is on, and says so in plain words. */
 function Orbit({ items }: { items: MediaItem[] }) {
-  const logos = useMemo(() => items.filter((i) => i.logo).slice(0, 8), [items])
-  if (logos.length < 4) return null
+  const on = usePlayer((s) => s.current?.kind === 'radio' && s.status === 'playing')
   return (
-    <Panel className="grid h-[360px] place-items-center overflow-hidden">
-      <CircularOrbit title="On air" radius={120} speed={0.5} items={logos.map((l) => ({ id: l.id, src: l.logo!, alt: l.name, size: 46 }))} titleClassName="!text-3xl !font-semibold !tracking-tight !text-ink" />
+    <Panel className="grid h-[360px] place-content-center justify-items-center gap-3 overflow-hidden">
+      <AsciiSolid cols={46} rows={20} speed={on ? 2 : 0.5} className="text-[9px] text-signal" />
+      <p className="dot text-2xl text-ink">{on ? 'ON AIR' : items.length ? 'STANDBY' : 'NO SIGNAL'}</p>
     </Panel>
   )
 }

@@ -118,7 +118,7 @@ export type AppState = Data & Actions & Live
 export const DEFAULT_SETTINGS: Settings = {
   dailyGoalMin: 90,
   sessionMin: 25,
-  motion: 2,
+  motion: 1,
   volume: 0.8,
   guard: true,
   theme: 'dark',

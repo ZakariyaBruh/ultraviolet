@@ -29,7 +29,7 @@ const TABS: View[] = ['focus', 'radio', 'tv', 'insights']
 function Brand({ compact }: { compact?: boolean }) {
   const live = useStore((s) => !!s.session && !s.session.paused)
   return (
-    <button onClick={() => useUI.getState().set({ landing: true })} aria-label="Friction, show the front page" className="flex items-center gap-2 text-ink">
+    <button onClick={() => useUI.getState().set({ landing: true })} aria-label="Friction, show the front page" className="flex min-h-11 items-center gap-2 text-ink">
       <Mark size={compact ? 24 : 22} />
       <span className="dot text-[19px] uppercase">Friction</span>
       {live && <span className="live-dot" role="status" aria-label="Session running" />}
@@ -48,14 +48,14 @@ export function BarTools() {
   const notifications = useMemo(() => events.slice(0, 30).map((e) => ({ id: e.id, message: e.text, timestamp: new Date(e.t), read: e.read })), [events])
   return (
     <div className="flex items-center gap-1.5">
-      <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-10 place-items-center text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
+      <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         <Search className={ic} />
       </button>
-      <button onClick={() => { const st = useStore.getState(); st.setSettings({ theme: st.settings.theme === 'dark' ? 'light' : 'dark' }) }} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="grid size-10 place-items-center text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
+      <button onClick={() => { const st = useStore.getState(); st.setSettings({ theme: st.settings.theme === 'dark' ? 'light' : 'dark' }) }} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         {theme === 'dark' ? <Sun className={ic} /> : <Moon className={ic} />}
       </button>
       <NotificationBell notifications={notifications} onMarkAsRead={mark} onMarkAllAsRead={markAll} />
-      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-9 place-items-center bg-signal text-sm font-semibold text-black">
+      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-11 place-items-center bg-signal md:size-9 text-sm font-semibold text-black">
         {(name ?? 'You')[0].toUpperCase()}
       </button>
     </div>
@@ -97,7 +97,7 @@ export function Shell({ view, onChange, children }: { view: View; onChange: (v: 
 
       <main
         id="canvas"
-        className={cn('absolute inset-0 overflow-hidden px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[92px]' : 'pb-[calc(138px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
+        className={cn('absolute inset-0 overflow-hidden px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[108px]' : 'pb-[calc(138px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
       >
         <div className="mx-auto h-full w-full max-w-[1240px]">{children}</div>
       </main>

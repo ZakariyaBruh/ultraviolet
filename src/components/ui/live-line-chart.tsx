@@ -299,7 +299,7 @@ export function LiveLineChart({
             </p>
             {delta !== null && (
               <p className={`mt-1.5 text-[12px] tabular-nums ${muted}`}>
-                <span className={delta >= 0 ? "text-emerald-500" : "text-rose-500"}>
+                <span className={"text-ink"}>
                   {delta >= 0 ? "▲" : "▼"} {pctText(Math.abs(delta))}
                 </span>{" "}
                 over the last {winS >= 120 ? `${Math.round(winS / 60)} min` : `${winS}s`}
@@ -314,8 +314,8 @@ export function LiveLineChart({
             className={`inline-flex h-9 items-center gap-2 rounded-full bg-black/[0.04] pl-3 pr-3.5 text-[12px] font-medium text-neutral-600 transition-[background-color,transform] duration-150 active:scale-[0.97] dark:bg-white/[0.05] dark:text-neutral-300 sm:h-8 [@media(hover:hover)]:hover:bg-black/[0.07] dark:[@media(hover:hover)]:hover:bg-white/[0.09] ${focus}`}
           >
             <span className="relative flex h-2 w-2">
-              {!paused && !reduce && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />}
-              <span className={cx("relative h-2 w-2 rounded-full", paused ? "bg-amber-400" : "bg-emerald-500")} />
+              {!paused && !reduce && <span className="absolute inset-0 animate-ping bg-signal/70" />}
+              <span className={cx("relative h-2 w-2", paused ? "bg-ink-3" : "bg-signal")} />
             </span>
             {paused ? "Paused" : "Live"}
           </button>

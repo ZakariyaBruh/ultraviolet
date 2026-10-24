@@ -44,7 +44,7 @@ export function PlayerIsland() {
         )}
         <Transport compact />
         {current?.kind === 'tv' && (
-          <button type="button" onClick={() => set({ theatre: true })} aria-label="Theatre mode" className="grid size-9 place-items-center rounded-full text-ink hover:bg-ink/10">
+          <button type="button" onClick={() => set({ theatre: true })} aria-label="Theatre mode" className="grid size-11 place-items-center md:size-9 text-ink hover:bg-ink/10">
             <Maximize2 className="size-4" />
           </button>
         )}

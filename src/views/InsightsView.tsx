@@ -6,7 +6,6 @@ import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/activity-feed'
 import { ActivityHeatmap } from '@/components/ui/activity-heatmap'
 import { AdvancedDataTable } from '@/components/ui/advanced-data-table'
-import { AnimatedNumber } from '@/components/ui/animated-number'
 import { BarChart } from '@/components/ui/bar-chart'
 import { DatePicker } from '@/components/ui/date-picker'
 import { DonutChart } from '@/components/ui/donut-chart'
@@ -28,19 +27,11 @@ const VIOLET = '#ffc400'
 const PINK = '#9a958a'
 
 function ScoreRing({ score }: { score: number }) {
-  const R = 44
-  const C = 2 * Math.PI * R
   return (
-    <div className="relative aspect-square w-[140px] shrink-0">
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={R} fill="none" stroke="var(--rule)" strokeWidth="3" />
-        <motion.circle cx="50" cy="50" r={R} fill="none" stroke={SIGNAL} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - score / 100) }} transition={{ type: 'spring', stiffness: 50, damping: 18, delay: 0.1 }} style={{ }} />
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <div className="fig text-[34px] leading-9"><AnimatedNumber value={score} /></div>
-          <div className="hud">of 100</div>
-        </div>
+    <div className="shrink-0" role="img" aria-label={`Attention score ${score} of 100`}>
+      <div className="dot text-[56px] leading-none text-ink">{score}</div>
+      <div className="mt-2 grid w-[120px] grid-cols-10 gap-[2px]" aria-hidden>
+        {Array.from({ length: 100 }, (_, i) => <i key={i} className={`aspect-square ${i < score ? 'bg-signal' : 'bg-ink/15'}`} />)}
       </div>
     </div>
   )
@@ -174,9 +165,9 @@ export function InsightsView() {
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                       <h2 className="text-base font-semibold">{offset === 0 ? 'Today' : parseKey(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</h2>
                       <div className="flex w-full min-w-0 items-center justify-between gap-1.5 sm:w-auto">
-                        <button aria-label="Previous day" disabled={offset >= 89} onClick={() => setOffset((o) => o + 1)} className="grid size-10 place-items-center rounded-full bg-ink/[0.06] text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronLeft className="size-4" /></button>
+                        <button aria-label="Previous day" disabled={offset >= 89} onClick={() => setOffset((o) => o + 1)} className="grid size-11 place-items-center bg-ink/[0.06] md:size-10 text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronLeft className="size-4" /></button>
                         <DatePicker value={parseKey(day)} onChange={(d) => d && setOffset(Math.max(0, Math.round((+parseKey(dateKey()) - +parseKey(dateKey(d))) / 864e5)))} placeholder="Pick a day" align="end" />
-                        <button aria-label="Next day" disabled={offset <= 0} onClick={() => setOffset((o) => o - 1)} className="grid size-10 place-items-center rounded-full bg-ink/[0.06] text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronRight className="size-4" /></button>
+                        <button aria-label="Next day" disabled={offset <= 0} onClick={() => setOffset((o) => o - 1)} className="grid size-11 place-items-center bg-ink/[0.06] md:size-10 text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronRight className="size-4" /></button>
                       </div>
                     </div>
                     <Listings day={day} />

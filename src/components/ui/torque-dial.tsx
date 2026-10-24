@@ -268,11 +268,11 @@ export const TorqueDial: React.FC<TorqueDialProps> = ({
           transition={isDragging ? { duration: 0 } : motionTransitions.springSnappy}
           className={cn(
             'relative rounded-full bg-[#141414] border border-[#1F1F1F] shadow-xs flex items-center justify-center',
-            isDragging && 'border-[#3B82F6]/60 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+            isDragging && 'border-signal/60'
           )}
         >
           {/* Top Indicator Pip / Notch */}
-          <span className="absolute top-2 w-1.5 h-3 rounded-full bg-[#3B82F6] shadow-xs" />
+          <span className="absolute top-2 w-1.5 h-3 rounded-full bg-signal shadow-xs" />
           {/* Center tactile metallic ring */}
           <div className="w-4 h-4 rounded-full bg-[#0E0E0E] border border-[#1F1F1F]" />
         </motion.div>
@@ -281,11 +281,11 @@ export const TorqueDial: React.FC<TorqueDialProps> = ({
       {/* Numeric Value Display */}
       {showValue && (
         <div className="mt-3 text-center">
-          <div className="text-sm font-mono font-semibold text-[#FAFAFA] tracking-tight">
+          <div className="text-sm font-mono font-semibold text-ink tracking-tight">
             {value}
             {unit}
           </div>
-          <span className="text-[10px] font-mono text-[#8f98ae]">{label}</span>
+          <span className="text-xs font-mono text-ink-3">{label}</span>
         </div>
       )}
     </div>

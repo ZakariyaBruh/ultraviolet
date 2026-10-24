@@ -71,7 +71,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
             initial={false}
             animate={{ opacity: 1 }}
           >
-            <span className="fig absolute -top-4 -translate-x-1/2  bg-signal px-1 text-[10px] leading-4 text-[#000]">
+            <span className="fig absolute -top-4 -translate-x-1/2  bg-signal px-1 text-xs leading-4 text-[#000]">
               {pad(d.getHours())}:{pad(d.getMinutes())}
             </span>
           </motion.div>
@@ -131,7 +131,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
                     />
                   ))}
                 </AnimatePresence>
-                {n > MAX_TICKS && <span className="fig text-[10px] text-ink-2">+{n - MAX_TICKS}</span>}
+                {n > MAX_TICKS && <span className="fig text-xs text-ink-2">+{n - MAX_TICKS}</span>}
               </div>
             )
           })}

@@ -6,7 +6,6 @@ import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LiquidToggle } from '@/components/ui/liquid-toggle'
-import { StretchSwitch } from '@/components/ui/stretch-switch'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
@@ -45,7 +44,7 @@ function Focus() {
           <TorqueDial label="Session length" value={s.sessionMin} min={10} max={90} step={5} unit="min" onChange={(v) => set({ sessionMin: v })} size={wide ? 150 : 112} />
         </div>
       </div>
-      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle offLabel="Scroll guard off" onLabel="Scroll guard on" value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
+      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle accentColor="#ff5a1f" offLabel="Scroll guard off" onLabel="Scroll guard on" value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
     </Panel>
   )
 }
@@ -61,7 +60,7 @@ function Look() {
       <Row title="Theme" hint="Dark is the default">
         <Seg id="set-theme" value={s.theme} onChange={(v) => set({ theme: v as typeof s.theme })} tabs={[{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }]} />
       </Row>
-      <Row title="Sound volume"><StretchSwitch label="Sound" checked={s.volume > 0} onChange={(c) => set({ volume: c ? 0.7 : 0 })} /></Row>
+      <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => set({ volume: Number(e.target.value) })} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>
   )
 }

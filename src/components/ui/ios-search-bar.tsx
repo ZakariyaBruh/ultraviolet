@@ -71,7 +71,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
     >
       <div
         className={cn(
-          'relative w-full flex items-center h-10 px-3.5 rounded-full border transition-all duration-200',
+          'relative w-full flex items-center h-11 px-3.5 rounded-sm border transition-all duration-200',
           isFocused
             ? 'bg-[#141414] border-[#4A4A4A] shadow-xs'
             : 'bg-[#0E0E0E] border-[#1F1F1F] hover:border-[#4A4A4A]'
@@ -110,7 +110,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
               aria-label="Clear search"
-              className="p-1 rounded-full bg-[#141414] text-[#8f98ae] hover:text-white hover:bg-[#1F1F1F] transition-colors shrink-0 ml-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white cursor-pointer"
+              className="p-1 rounded-sm bg-raised text-ink-3 hover:text-ink hover:bg-raised-2 transition-colors shrink-0 ml-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white cursor-pointer"
             >
               <X className="w-3 h-3" />
             </motion.button>

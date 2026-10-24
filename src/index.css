@@ -189,7 +189,7 @@ button { cursor: pointer; }
 button:not(:disabled):active { scale: 0.98; }
 button { transition-property: color, background-color, border-color, scale, opacity; transition-duration: 140ms; }
 .fig { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.hud { font-family: var(--font-mono); font-size: 11px; line-height: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.hud { font-family: var(--font-mono); font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
 /* dot-matrix display type: headings and the big numerals only */
 .dot { font-family: var(--font-dot); font-weight: 800; letter-spacing: 0.02em; line-height: 1; }
 

@@ -30,10 +30,10 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
         <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}</span>
         <span>{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
       </div>
-      <div className="pointer-events-none absolute inset-0 grid place-items-center text-signal opacity-45" aria-hidden>
-        <AsciiSolid cols={58} rows={26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[8px] sm:text-[10px]" />
+      <div className="pointer-events-none absolute inset-0 grid place-items-center text-signal opacity-70" aria-hidden>
+        <AsciiSolid cols={58} rows={26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-xs sm:text-xs" />
       </div>
-      <div className="dot relative bg-ground px-3 py-1 text-[clamp(3.2rem,10.5vw,6.2rem)] text-ink" role="timer" aria-label={`${fmtClock(left)} left`}>
+      <div className="dot relative bg-ground/80 px-3 py-1 text-[clamp(3.2rem,10.5vw,6.2rem)] text-ink" role="timer" aria-label={`${fmtClock(left)} left`}>
         {fmtClock(left)}
       </div>
       <div className="relative flex w-full gap-[3px]" aria-hidden>
@@ -120,7 +120,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                 </div>
                 <div className="flex items-center gap-1.5" role="group" aria-label="Session length">
                   {LENGTHS.map((m) => (
-                    <button key={m} onClick={() => setSettings({ sessionMin: m })} aria-pressed={sessionMin === m} className={`fig h-9 px-3.5 text-[13px] transition-colors ${sessionMin === m ? 'bg-ink text-ground' : 'text-ink-2 ring-1 ring-ink/25 hover:bg-ink/10'}`}>
+                    <button key={m} onClick={() => setSettings({ sessionMin: m })} aria-pressed={sessionMin === m} className={`fig h-11 px-3.5 md:h-9 text-[13px] transition-colors ${sessionMin === m ? 'bg-ink text-ground' : 'text-ink-2 ring-1 ring-ink/25 hover:bg-ink/10'}`}>
                       {m}m
                     </button>
                   ))}
@@ -174,8 +174,8 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                 </button>
               )}
               <div className="mt-3 flex gap-2">
-                <button className="h-9 flex-1 border border-ink/30 text-[13px] text-ink hover:bg-ink/10" onClick={() => go('radio')}><Radio className="mr-1.5 inline size-3.5" />Browse radio</button>
-                <button className="h-9 flex-1 border border-ink/30 text-[13px] text-ink hover:bg-ink/10" onClick={() => go('tv')}>Browse TV</button>
+                <button className="h-11 flex-1 border md:h-9 border-ink/30 text-[13px] text-ink hover:bg-ink/10" onClick={() => go('radio')}><Radio className="mr-1.5 inline size-3.5" />Browse radio</button>
+                <button className="h-11 flex-1 border md:h-9 border-ink/30 text-[13px] text-ink hover:bg-ink/10" onClick={() => go('tv')}>Browse TV</button>
               </div>
             </Panel>
           </motion.div>

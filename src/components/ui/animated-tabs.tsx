@@ -77,8 +77,8 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
               className={cn(
                 'relative text-xs sm:text-sm font-medium transition-colors focus-ring select-none flex items-center gap-2 cursor-pointer',
                 isGlass
-                  ? 'px-4 py-1.5 rounded-sm'
-                  : 'px-3.5 py-1.5 rounded-md',
+                  ? 'px-4 py-2.5 sm:py-1.5 rounded-sm'
+                  : 'px-3.5 py-2.5 sm:py-1.5 rounded-md',
                 isActive
                   ? 'text-text-primary font-medium dark:text-[#FAFAFA]'
                   : 'text-text-muted hover:text-text-secondary dark:text-[#b4bccf] dark:hover:text-[#eef2fb]'

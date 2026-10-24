@@ -70,7 +70,7 @@ export function DotMorph({ level }: { level: 0 | 1 | 2 }) {
             if (d < 120) v = Math.min(1, v + (1 - d / 120) * 0.8)
           }
           const s = 1.2 + v * 3.4
-          ctx.fillStyle = v > 0.93 ? `rgba(${sig},0.75)` : `rgba(${ink},${0.05 + v * 0.2})`
+          ctx.fillStyle = v > 0.97 ? `rgba(${sig},0.5)` : `rgba(${ink},${0.025 + v * 0.1})`
           ctx.fillRect(x - s / 2, y - s / 2, s, s)
         }
       }
