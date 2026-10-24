@@ -93,7 +93,6 @@ interface Actions {
   startSession: (goalMin: number, source: MediaKind | 'silent', title: string) => void
   setSessionSource: (source: MediaKind | 'silent', title: string) => void
   tick: (sec?: number) => void
-  addUrge: () => void
   addLapse: () => void
   togglePause: () => void
   endSession: (completed: boolean) => void
@@ -285,7 +284,7 @@ export const useStore = create<AppState>()(
         if (elapsed >= a.goalMin * 60) get().endSession(true)
       },
 
-      addUrge: () => {
+      addLapse: () => {
         const s = get()
         const now = new Date()
         const key = dateKey(now)
@@ -293,19 +292,10 @@ export const useStore = create<AppState>()(
         row[now.getHours()] += 1
         set({
           urgeLog: { ...s.urgeLog, [key]: row },
-          session: s.session ? { ...s.session, urges: s.session.urges + 1 } : null,
-        })
-        get().log('blocked', s.session ? `Scroll blocked during ${s.session.title}` : 'Scroll blocked')
-      },
-
-      addLapse: () => {
-        const s = get()
-        const key = dateKey()
-        set({
           lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
-          session: s.session ? { ...s.session, lapses: s.session.lapses + 1 } : null,
+          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1 } : null,
         })
-        get().log('wander', 'You left the tab mid-session')
+        get().log('wander', s.session ? `You left the tab during ${s.session.title}` : 'You left the tab mid-session')
       },
 
       togglePause: () =>

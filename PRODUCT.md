@@ -13,13 +13,13 @@ Vite + React 19 + TypeScript + Tailwind v4 + shadcn (base-nova) + Motion. EasyUI
 Primary: doomscrollers breaking a scrolling habit, who open it when they sit down to work, study or read and want to stay put. Secondary: students and remote workers who already do long focus blocks.
 
 ## Product Purpose
-Friction (formerly Anti-Scroll) replaces the feed with one calm screen: internet radio and live IPTV as the thing you stay with, a session timer, and honest measurement of every urge to scroll. Success after a week is longer unbroken sessions and fewer scroll reflexes.
+Friction (formerly Anti-Scroll) replaces the feed with one calm screen: internet radio and live IPTV as the thing you stay with, a session timer, and honest measurement of every time you drift away. Success after a week is longer unbroken sessions and fewer drifts.
 
 ## Positioning
-The only focus tool that treats a swallowed scroll gesture as the unit of progress, and keeps sound/TV (not silence) as the anchor. A neighbouring Pomodoro timer or lo-fi player cannot truthfully copy "the site does not scroll at all."
+The only focus tool whose own site never scrolls and is navigated by tuning a dial, with sound or TV (not silence) as the anchor. A neighbouring Pomodoro timer or lo-fi player cannot truthfully copy that.
 
 ## Operating Context
-Opened at the start of a work or study block, on a phone or laptop. The page never scrolls vertically; wheel, swipe and scroll keys are intercepted and counted. Audio from Radio Browser; video from public iptv-org HLS streams, some of which are dead or geo-blocked. Leaving the tab mid-session is logged as a "wandering".
+Opened at the start of a work or study block, on a phone or laptop. The page never scrolls; screens fit the display and you move by dial, link, drag or key. Audio from Radio Browser; video from public iptv-org HLS streams, some of which are dead or geo-blocked. Leaving the tab mid-session is logged as a "wandering".
 
 ## Capabilities and Constraints
 - Radio: radio-browser.info directory, HTTPS streams only. TV: iptv-org category playlists via hls.js.
@@ -34,7 +34,7 @@ Name: Friction ("Put the friction back"). Must use EasyUI components heavily. Th
 No real user data, testimonials or customers. A "Load demo history" button produces clearly labelled fake history so charts can be previewed; never present it as real.
 
 ## Product Principles
-1. The unit of progress is a scroll you did not do.
+1. The unit of progress is an unbroken minute; the thing counted against you is a drift, leaving the tab mid-session.
 2. One thing at a time: one sound or channel, one timer.
 3. Measure honestly; never invent proof or streaks.
 4. Motion is the product's pulse, but it answers what the person does and never blocks them.

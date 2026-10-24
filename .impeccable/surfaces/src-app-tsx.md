@@ -2,19 +2,19 @@
 version: 1
 slug: "src-app-tsx"
 primary_target: "src/App.tsx"
-related_targets: ["src/components/app/Landing.tsx"]
+related_targets: ["src/components/app/Landing.tsx","src/components/app/Tuner.tsx"]
 ---
 
 ## Direction contract
 
-THESIS: One machine, two eras on the same black screen. Retro is the instrument's body: ASCII, phosphor-amber mono, CRT scanlines, a boot log. Futuristic is its mind: ultra-wide extended display type with a moving weight axis, smooth flowing contour fields, thin precision lines. It refuses the category default (calm timer, soft glass cards) and last round's mistake of being 90% retro.
+THESIS: A broadcast station for people who want to stay put. The site never scrolls, so the way around is the one thing that is fully authored: a radio dial you drag, press or arrow along, and a front door you must hold to open. It refuses the Nothing-phone look it had drifted into (mono caps, dot matrix, one red-orange accent on black) and the category default of a calm timer app.
 
-OWN-WORLD: Black ground, bone ink. Two temperatures: warm CRT amber-orange (#ff5a1f) for everything retro (terminal windows, ASCII, labels, action), cold ice (#8fd8ff, light theme #2447c9) for everything futuristic (contour field, progress line, display accents). Unbounded for display and numerals, Geist Mono for all UI text. Flat ruled plates with corner ticks, square corners, no blur or glow. Retro zones carry scanlines; futuristic zones carry none. Product mark: a ring with an amber square notch.
+OWN-WORLD: Test-card broadcast meets slow futurism. Blue-black ground (TV just switched off), bone ink, one broadcast yellow for action and the needle, the colour-bar strip as the single place full spectrum lives (plus the landing image's sphere). Proportional grotesk (Hanken) for reading, Barlow Condensed uppercase for idents and labels, Unbounded wide display for the wordmark, titles and the clock. Ice-blue contour field and data. Amber CRT ident windows with scanlines for retro; everything else is clean and wide for future. Light theme: paper ground, ink, blue signal.
 
-STORY: Visitor reads a terminal booting ("feed: disabled"), sees the lines of the feed part around one vivid point, presses Enter, and is inside a quiet instrument whose clock is crisp and whose ground is slowly flowing topography. Success: they lock in a session.
+STORY: Visitor meets a station ident typing itself out, the lines of the feed parting around one bright point, and a button that only opens if you hold it. Inside, the dial at the bottom is the nav. They lock in a session; success is longer unbroken sessions with fewer drifts.
 
-FIRST VIEWPORT: Full-bleed hairline image (white lines parting around a spectrum sphere). Left: a solid black CRT terminal window typing a 6-line boot log in amber mono. Bottom band: FRICTION in Unbounded at about 9vw whose weight animates 200 to 800, one sentence, and an ice-white ENTER button. Pointer coordinates read out in the top-right in mono. Phone: image on top, terminal over its lower left, wordmark and button below.
+FIRST VIEWPORT: Colour-bar strip across the top edge. Full-bleed hairline image with the sphere right of centre; bottom-left an ident window typing six lines in amber condensed type. Bottom band: FRICTION in Unbounded at about 8vw with its weight animating, one paragraph that says the site never scrolls, a hold-to-tune-in button that fills as you hold, and a plain row of direct links. Phone: image, ident over its lower half, wordmark, copy, button, links.
 
-FORM: Retro-futurist split by function (structure retro, motion and display futuristic); user-pinned, seed: none (pinned direction, no roll).
+FORM: Broadcast test card and station tuner, user-directed retro x futuristic with Nothing-avoidance; seed: 92b4ba09ef973776 (candidate 7 of my list, adapted to the pins).
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

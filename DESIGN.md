@@ -1,19 +1,21 @@
 # Design: Friction
 
-Retro-futurist, dark first. Direction set by the user: 3D ASCII, dot matrix, speed warp, morphing dots; a harsh line image with one vivid focal point on the landing page; dark means black, with a light toggle.
+A broadcast station for staying put. Retro (a test card, an ident, CRT scanlines, ASCII) against futuristic (wide display type, flowing contour lines, smooth physics), without borrowing the monospace-and-dots look of a phone brand.
 
-## Landing
-Hard white hairlines on black (`LineImage`) part around one hard-edged sphere of colour. That sphere and the lines nearest it are the only spectrum colour anywhere in the product. Below: the wordmark in Doto (dot-matrix), one sentence, one button. The landing is black in both themes.
+## Navigation is the idea
+The site never scrolls. You move by tuning:
+- **Landing (`/`)** opens only if you hold the button. Letting go early drains it.
+- **The dial** sits at the bottom of every screen: seven stations on a frequency band. Drag the needle, press a station, or use the arrow keys. Letting go snaps to the nearest station and a quarter second of static covers the cut.
+- Every screen has its own address (`/focus`, `/radio`, `/tv`, `/insights`, `/debrief`, `/lab`, `/settings`); a subdomain label such as `radio.` also maps to a screen.
 
-## App
-- **Ground**: pure black `#000` (light: paper `#efece1`). `DotMorph` draws a dot matrix that morphs between rings, a wave, a pulsing disc and a lattice. Speed warp runs while a session is live. A live TV channel replaces the dots.
-- **Surfaces**: flat, 1px ruled, corner registration ticks on the floating layer (`.glass`), a faint dot grid on content panels (`.material`). No blur, no gradient, no glow, radius 1-4px.
-- **Colour**: bone ink `#f1eee4`, one heat colour `#ff5a1f` (light `#d93a05`) for live state, progress and the primary action, amber `#ffc400` as the second chart hue. Everything else is ink at different strengths.
-- **Type**: Geist Mono for all UI text; Doto 800 (`.dot`) for the wordmark, page titles and the clock. Captions are uppercase mono (`.hud`).
-- **3D ASCII**: `AsciiSolid` is a rotating torus in text. It is the timer's ground, the empty TV screen and the Debrief ornament. Its spin follows session state.
+## Colour
+Ground `#05070c`, ink `#f3f1ea`. One action colour, broadcast yellow `#ffd23f` (light theme: blue `#1f3bff`): buttons, the needle, the ident window. Ice `#7fd3ff` for the contour field and all data. The colour-bar strip and the landing sphere are the only full-spectrum things.
+
+## Type
+Hanken Grotesk for reading. Barlow Condensed, uppercase, tracked, for labels and idents. Unbounded for the wordmark, titles and the clock; its weight is animated on the landing. Geist Mono only inside ASCII art.
+
+## Surfaces
+Flat, ruled, 1-4px corners, registration ticks on floating plates. Retro windows (ident, the Focus dial's ASCII torus) carry scanlines. Futuristic areas never do. No blur, gradient, or glow in the app.
 
 ## Motion
-Calm / Lively / Lots plus `prefers-reduced-motion`. Pulses and blinks use stepped timing to read as a display, not a UI toolkit. Exits are faster than entrances and use ease-in.
-
-## Layout
-One screen, no vertical scroll. Desktop: floating bar with the navigation. Phone: top bar, bottom tab bar (Focus, Radio, TV, Insights, More) and the player above it.
+Calm / Lively / Lots plus reduced motion. Stepped timing for retro (typing, blink, static), smooth springs for futuristic (needle, contour field). Static on station change; no more than 300ms for anything you trigger.

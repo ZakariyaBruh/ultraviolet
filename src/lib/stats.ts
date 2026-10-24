@@ -59,7 +59,7 @@ export function weekdayShort(key: string) {
   return parseKey(key).toLocaleDateString(undefined, { weekday: 'short' })
 }
 
-/** 0–100. Focus vs goal, streak, and how often you reached for the scroll while focusing. */
+/** 0–100. Focus vs goal, streak, and how often you drifted while focusing. */
 export function attentionScore(s: Pick<AppState, 'focusLog' | 'urgeLog' | 'settings'>): number {
   const today = dateKey()
   const focus = dayTotal(s.focusLog, today)
@@ -78,7 +78,7 @@ export function totals(s: Pick<AppState, 'focusLog' | 'urgeLog' | 'lapseLog'>) {
   return { focus, urges, lapses }
 }
 
-/** Blocked scrolls per focused hour, or null when there was too little focus to say. */
+/** Drifts per focused hour, or null when there was too little focus to say. */
 export function blockedPerHour(focusMin: number, blocked: number): number | null {
   return focusMin >= 10 ? Math.round((blocked / (focusMin / 60)) * 10) / 10 : null
 }
@@ -101,6 +101,6 @@ export function scoreParts(s: Pick<AppState, 'focusLog' | 'urgeLog' | 'settings'
   return [
     { label: 'Daily goal', note: `${Math.round(focus)} of ${s.settings.dailyGoalMin} min`, weight: 55, value: goal },
     { label: 'Streak', note: `${Math.min(7, streak(s.focusLog))} of 7 days`, weight: 25, value: run },
-    { label: 'Calm', note: per === null ? 'no focus yet, counts as half' : `${Math.round(per * 10) / 10} blocked per hour`, weight: 20, value: calm },
+    { label: 'Calm', note: per === null ? 'no focus yet, counts as half' : `${Math.round(per * 10) / 10} drifts per hour`, weight: 20, value: calm },
   ]
 }

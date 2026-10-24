@@ -77,11 +77,11 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const step = session ? 2 : current ? 2 : 1
 
   const finding = session
-    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} scroll${session.urges === 1 ? '' : 's'} blocked.`
+    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} drift${session.urges === 1 ? '' : 's'}.`
     : held >= goal
-      ? `Daily goal of ${goal} min met. ${blocked} scrolls blocked today.`
+      ? `Daily goal of ${goal} min met. ${blocked} drifts today.`
       : held > 0
-        ? `${Math.round(held)} of ${goal} min today, ${blocked} scrolls blocked.`
+        ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts.`
         : 'Nothing held yet today. Choose a length, tune in, lock in.'
 
   return (
@@ -100,7 +100,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             <h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1>
             <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
             <Panel className="grid gap-4 p-5">
-              <Readout label="Blocked today" value={<AnimatedNumber value={blocked} />} note="scroll attempts" />
+              <Readout label="Drifts today" value={<AnimatedNumber value={blocked} />} note="times you left" />
               <div className="h-px bg-ink/10" />
               <Readout label="Held today" value={<AnimatedNumber value={Math.round(held)} />} unit="min" note={`of ${goal} min goal`} />
               <div className="h-px bg-ink/10" />
@@ -116,7 +116,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             {!session ? (
               <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <div className="flex items-center gap-2">
-                  <button onClick={start} className="h-12 bg-signal px-7 text-[13px] font-semibold uppercase tracking-[0.14em] text-black hover:brightness-110">Lock in · {sessionMin} min</button>
+                  <button onClick={start} className="h-12 bg-signal px-7 text-[13px] font-semibold uppercase tracking-[0.14em] text-on-signal hover:brightness-110">Lock in · {sessionMin} min</button>
                 </div>
                 <div className="flex items-center gap-1.5" role="group" aria-label="Session length">
                   {LENGTHS.map((m) => (
@@ -187,7 +187,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
           <Panel className="px-5 pb-3 pt-4">
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="text-base font-semibold">Today</h2>
-              <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, blocked scrolls underneath</span>
+              <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, drifts underneath</span>
             </div>
             <Listings />
           </Panel>
@@ -195,7 +195,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       )}
       {!wide && (
         <div className="grid grid-cols-3 gap-2">
-          {[{ l: 'Blocked', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'Streak', v: days, u: 'd' }].map((r) => (
+          {[{ l: 'Drifts', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'Streak', v: days, u: 'd' }].map((r) => (
             <Panel key={r.l} className="px-3 py-2.5">
               <div className="hud">{r.l}</div>
               <div className="fig mt-0.5 text-2xl text-ink"><AnimatedNumber value={r.v} />{r.u && <span className="ml-1 text-sm text-ink-2">{r.u}</span>}</div>

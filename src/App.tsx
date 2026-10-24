@@ -3,19 +3,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
 import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
-import { NAV, Shell, type View } from '@/components/app/Shell'
-import { UrgeLayer } from '@/components/app/UrgeLayer'
+import { Shell } from '@/components/app/Shell'
+import { StaticBurst } from '@/components/app/StaticBurst'
+import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { SpotlightSearch } from '@/components/ui/spotlight-search'
 import { UndoToast } from '@/components/ui/undo-toast'
 import { fx_say, quickPlay } from '@/lib/actions'
 import { buildSearchItems, PRESETS } from '@/lib/commands'
-import { useScrollGuard, useSessionEngine } from '@/lib/engine'
+import { useSessionEngine } from '@/lib/engine'
 import { useFx } from '@/lib/fx'
 import { useTheme } from '@/lib/theme'
 import { usePlayer } from '@/lib/player'
 import { useStore } from '@/lib/store'
-import { FlaskConical, ClipboardList, Settings as Cog } from 'lucide-react'
 import { useUI } from '@/lib/ui'
 import { FocusView } from '@/views/FocusView'
 import { DebriefView } from '@/views/DebriefView'
@@ -30,8 +30,8 @@ function Placeholder({ name }: { name: string }) {
 }
 
 export default function App() {
-  const fromHash = () => { const h = location.hash.slice(1) as View; return NAV.some((n) => n.id === h) ? h : 'focus' }
-  const [view, setView] = useState<View>(fromHash)
+  const [route, setRoute] = useState<Route>(routeFromLocation)
+  const view = (route === 'home' ? 'focus' : route) as View
   const prev = useRef(0)
   const dir = useRef(1)
   const reduced = !!useReducedMotion()
@@ -39,26 +39,28 @@ export default function App() {
   const notice = useFx((s) => s.notice)
   const ui = useUI()
   const profile = useStore((s) => s.profile)
-  const seen = useStore((s) => s.seenIntro)
-  const landing = useUI((s) => s.landing)
 
-  useScrollGuard()
   useSessionEngine()
   useTheme()
 
-  const change = (v: View) => {
-    const i = NAV.findIndex((n) => n.id === v)
+  const go = (r: Route) => {
+    const i = VIEWS.indexOf(r as View)
     dir.current = i >= prev.current ? 1 : -1
-    prev.current = i
-    setView(v)
-    if (location.hash !== `#${v}`) history.pushState(null, '', `#${v}`)
+    if (i >= 0) prev.current = i
+    setRoute(r)
+    if (location.pathname !== hrefFor(r)) history.pushState(null, '', hrefFor(r))
   }
+  const change = (v: View) => go(v)
 
   useEffect(() => {
-    const pop = () => { const v = fromHash(); const i = NAV.findIndex((n) => n.id === v); dir.current = i >= prev.current ? 1 : -1; prev.current = i; setView(v) }
+    const pop = () => { const r = routeFromLocation(); const i = VIEWS.indexOf(r as View); dir.current = i >= prev.current ? 1 : -1; if (i >= 0) prev.current = i; setRoute(r) }
     addEventListener('popstate', pop)
     return () => removeEventListener('popstate', pop)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    document.title = route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`
+  }, [route])
 
   // ⌘K / Ctrl K opens search from anywhere
   useEffect(() => {
@@ -84,12 +86,13 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      <AnimatePresence>{(!seen || landing) && <Landing key="landing" onEnter={() => { useStore.getState().markIntroSeen(); ui.set({ landing: false }) }} />}</AnimatePresence>
+      {route === 'home' ? <Landing onEnter={() => go('focus')} onGo={(v) => go(v)} /> : (<>
       <Backdrop reduced={reduced} />
-      <Shell view={view} onChange={change}>
+      <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
-          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 18 * d, filter: 'blur(6px)' }} animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, x: -12 * d, filter: 'blur(4px)', transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}>
+          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 24 * d }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 * d, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
             <FitView watch={view}>
+            {level >= 1 && <StaticBurst />}
             {view === 'focus' && <FocusView go={change} />}
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
@@ -102,8 +105,7 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </Shell>
-
-      <UrgeLayer />
+      </>)}
 
       <SpotlightSearch open={ui.searchOpen} onOpenChange={(o) => ui.set({ searchOpen: o })} onClose={() => ui.set({ searchOpen: false })} items={items} placeholder="Search screens, stations, actions, components" />
 
@@ -132,23 +134,6 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
-      <Sheet open={ui.moreOpen} onOpenChange={(o) => ui.set({ moreOpen: o })}>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>More</SheetTitle>
-            <SheetDescription>Everything else in Friction.</SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <ul>
-              {([['debrief', 'Debrief', <ClipboardList key="c" className="size-5" />], ['lab', 'Lab', <FlaskConical key="l" className="size-5" />], ['settings', 'Settings', <Cog key="s" className="size-5" />]] as const).map(([id, label, icon]) => (
-                <li key={id}>
-                  <button onClick={() => { ui.set({ moreOpen: false }); change(id) }} className="flex h-12 w-full items-center gap-3 border-b border-ink/10 text-left text-[15px] text-ink last:border-b-0">{icon}{label}</button>
-                </li>
-              ))}
-            </ul>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
 
       <Sheet open={ui.profileOpen} onOpenChange={(o) => ui.set({ profileOpen: o })}>
         <SheetContent side="bottom">

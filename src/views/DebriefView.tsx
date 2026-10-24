@@ -30,8 +30,8 @@ export function DebriefView() {
       ? [{ k: 'Status', v: 'Nothing to read yet. Lock in for one session, even 15 minutes, and this page fills in with what actually happened.' }]
       : [
           { k: 'Score', v: `${attentionScore(s)} of 100 today.` },
-          { k: 'Today', v: `${Math.round(focus)} min held, ${Math.round(blocked)} scrolls blocked${per !== null ? `, ${per} per focused hour` : ''}.` },
-          { k: 'Worst hour', v: hours[worst] > 0 ? `You reach for the scroll most around ${hr(worst)}: ${hours[worst]} blocked in total. Put a session there.` : 'No scroll attempts logged yet.' },
+          { k: 'Today', v: `${Math.round(focus)} min held, ${Math.round(blocked)} drifts${per !== null ? `, ${per} per focused hour` : ''}.` },
+          { k: 'Worst hour', v: hours[worst] > 0 ? `You drift most around ${hr(worst)}: ${hours[worst]} times in total. Put a session there.` : 'No drifts logged yet.' },
           { k: 'Best hour', v: best[bestH] > 0 ? `Your longest holds land around ${hr(bestH)}. Do the hard thing then.` : 'Not enough focus yet.' },
           { k: 'Streak', v: run > 0 ? `${run} day${run === 1 ? '' : 's'} of 10+ minutes. ${focus >= 10 ? 'Today keeps it alive.' : 'Today needs 10 minutes to keep it.'}` : 'No streak yet. One day of 10+ minutes starts it.' },
           { k: 'Next', v: left === 0 ? `Goal of ${s.settings.dailyGoalMin} min met. Stop when it stops being easy.` : `${left} min to your goal of ${s.settings.dailyGoalMin}. One ${Math.min(45, Math.max(15, left))}-minute block does it.` },

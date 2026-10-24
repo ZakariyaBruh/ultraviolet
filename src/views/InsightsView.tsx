@@ -62,7 +62,7 @@ const TABS = [
 
 export function InsightsView() {
   const s = useStore()
-  const SIGNAL = s.settings.theme === 'light' ? '#2447c9' : '#8fd8ff'
+  const SIGNAL = s.settings.theme === 'light' ? '#0a6e8a' : '#7fd3ff'
   const wide = useMedia('(min-width: 1024px)')
   const [tab, setTab] = useState('today')
   const [half, setHalf] = useState('day')
@@ -81,7 +81,7 @@ export function InsightsView() {
   const cal = useMemo(() => calendarData(s.urgeLog), [s.urgeLog])
   const sessions = s.sessions
 
-  const finding = wkNow !== null && wkPrev !== null ? `${wkNow} scrolls blocked per focused hour this week, against ${wkPrev} the week before.` : wkNow !== null ? `${wkNow} scrolls blocked per focused hour this week. Last week had too little focus to compare.` : 'Ten focused minutes in a day is enough to start comparing weeks.'
+  const finding = wkNow !== null && wkPrev !== null ? `${wkNow} drifts per focused hour this week, against ${wkPrev} the week before.` : wkNow !== null ? `${wkNow} drifts per focused hour this week. Last week had too little focus to compare.` : 'Ten focused minutes in a day is enough to start comparing weeks.'
 
 
   const hourBars = Array.from({ length: 24 }, (_, h) => ({ label: String(h).padStart(2, '0'), blocked: Math.round(Object.values(s.urgeLog).reduce((a, r) => a + (r[h] ?? 0), 0)) }))
@@ -114,7 +114,7 @@ export function InsightsView() {
   const trendSlides = [
     <div key="t1" className="grid h-full min-h-0 content-start gap-4 lg:grid-cols-2">
       <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Minutes held per day</h2><p className="mb-2 text-[13px] text-ink-2">Last 14 days.</p><BarChart data={bars14} series={[{ key: 'held', label: 'Minutes held', color: SIGNAL }]} height={200} /></Panel>
-      <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Blocked per focused hour</h2><p className="mb-2 text-[13px] text-ink-2">Falling is the goal. Days under 10 minutes show no bar.</p><BarChart data={rate14} series={[{ key: 'rate', label: 'Blocked per hour', color: PINK }]} height={200} /></Panel>
+      <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Drifts per focused hour</h2><p className="mb-2 text-[13px] text-ink-2">Falling is the goal. Days under 10 minutes show no bar.</p><BarChart data={rate14} series={[{ key: 'rate', label: 'Drifts per hour', color: PINK }]} height={200} /></Panel>
       <Panel className="min-w-0 p-5 lg:col-span-2"><InteractiveAreaChart data={area} defaultRange="30D" title="Minutes held" height={150} /></Panel>
     </div>,
     <div key="t2" className="grid h-full min-h-0 content-start gap-4 lg:grid-cols-2">
@@ -126,7 +126,7 @@ export function InsightsView() {
       <Panel className="max-h-[360px] min-w-0 overflow-hidden p-3">
         <SmartComparison
           plans={[{ id: 'this', name: 'This week', tagline: 'Last 7 days', price: `${Math.round(tw)}`, billingPeriod: 'min', featured: true }, { id: 'last', name: 'Last week', tagline: 'Days 8–14', price: `${Math.round(lw)}`, billingPeriod: 'min' }]}
-          categories={[{ id: 'h', title: 'Habit', features: [{ id: 'f1', name: 'Minutes held', values: { this: `${Math.round(tw)}`, last: `${Math.round(lw)}` } }, { id: 'f2', name: 'Scrolls blocked', values: { this: `${Math.round(twU)}`, last: `${Math.round(lwU)}` } }, { id: 'f3', name: 'Blocked per focused hour', values: { this: `${wkNow ?? '–'}`, last: `${wkPrev ?? '–'}` } }] }]}
+          categories={[{ id: 'h', title: 'Habit', features: [{ id: 'f1', name: 'Minutes held', values: { this: `${Math.round(tw)}`, last: `${Math.round(lw)}` } }, { id: 'f2', name: 'Scrolls blocked', values: { this: `${Math.round(twU)}`, last: `${Math.round(lwU)}` } }, { id: 'f3', name: 'Drifts per focused hour', values: { this: `${wkNow ?? '–'}`, last: `${wkPrev ?? '–'}` } }] }]}
         />
       </Panel>
     </div>,
@@ -160,8 +160,8 @@ export function InsightsView() {
                   {wide && (
                     <Panel className="min-w-0 p-5">
                       <h2 className="text-base font-semibold">When you reach for it</h2>
-                      <p className="mb-2 text-[13px] text-ink-2">Scrolls blocked by hour of day, all time.</p>
-                      <BarChart data={hourBars} series={[{ key: 'blocked', label: 'Blocked', color: SIGNAL }]} height={150} />
+                      <p className="mb-2 text-[13px] text-ink-2">Times you left, by hour of day, all time.</p>
+                      <BarChart data={hourBars} series={[{ key: 'blocked', label: 'Drifts', color: SIGNAL }]} height={150} />
                     </Panel>
                   )}
                 </div>
@@ -176,7 +176,7 @@ export function InsightsView() {
                   <div className="mt-5 grid gap-4">{parts.map((p) => <Part key={p.label} {...p} />)}</div>
                   {wide && (
                     <div className="mt-5 border-t border-ink/10 pt-3">
-                      <div className="mb-1 flex items-baseline justify-between text-sm"><span>Steadiness, last 45 s</span><span className="text-[13px] text-ink-2">Falls 9 per blocked scroll</span></div>
+                      <div className="mb-1 flex items-baseline justify-between text-sm"><span>Steadiness, last 45 s</span><span className="text-[13px] text-ink-2">Falls 9 each time you drift</span></div>
                       <LiveLineChart source={(push) => { const t = setInterval(() => push(getPulse()), 1000); return () => clearInterval(t) }} initial={[getPulse()]} windowSeconds={45} height={96} color={SIGNAL} domain={[0, 100]} formatValue={(n) => `${Math.round(n)}`} ariaLabel="Live steadiness" />
                     </div>
                   )}
@@ -187,7 +187,7 @@ export function InsightsView() {
             {tab === 'patterns' && (
               <div className="grid h-full min-h-0 content-start gap-4">
                 <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">When you lock in</h2><p className="mb-2 text-[13px] text-ink-2">Minutes focused by weekday and hour, last 10 weeks.</p><ActivityHeatmap mode="hours" matrix={matrix} color={SIGNAL} unit="focused minutes" ariaLabel="Weekday by hour, focused minutes" /></Panel>
-                <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Scrolls blocked, by day</h2><p className="mb-2 text-[13px] text-ink-2">Brighter is more attempts. Fewer is better.</p><ActivityHeatmap mode="calendar" data={cal} weeks={53} weekStart={1} color={PINK} unit="blocked scrolls" ariaLabel="Daily blocked scrolls" /></Panel>
+                <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Drifts, by day</h2><p className="mb-2 text-[13px] text-ink-2">Brighter is more drifts. Fewer is better.</p><ActivityHeatmap mode="calendar" data={cal} weeks={53} weekStart={1} color={PINK} unit="blocked scrolls" ariaLabel="Daily blocked scrolls" /></Panel>
               </div>
             )}
 
@@ -220,14 +220,14 @@ export function InsightsView() {
                           { id: 'title', header: 'Session', accessorKey: 'title', sortable: true, priority: 'high' },
                           { id: 'started', header: 'Started', accessorKey: 'started', priority: 'low' },
                           { id: 'held', header: 'Held (min)', accessorKey: 'held', sortable: true, align: 'right', priority: 'high' },
-                          { id: 'blocked', header: 'Blocked', accessorKey: 'blocked', sortable: true, align: 'right', priority: 'medium' },
+                          { id: 'blocked', header: 'Drifts', accessorKey: 'blocked', sortable: true, align: 'right', priority: 'medium' },
                           { id: 'result', header: 'Result', accessorKey: 'result', filterable: true, filterOptions: [{ label: 'Completed', value: 'Completed' }, { label: 'Ended early', value: 'Ended early' }], priority: 'medium' },
                         ]}
                       />
                     </Panel>
                   ) : (
                     <Panel className="h-full overflow-hidden p-4">
-                      <InteractiveTimeline items={sessions.slice(0, 5).map((x) => ({ id: x.id, title: x.title, timestamp: new Date(x.start).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }), status: x.completed ? 'completed' : 'failed', description: `${Math.round(x.focusSec / 60)} of ${x.goalMin} min held`, metrics: [{ label: 'Held', value: `${Math.round(x.focusSec / 60)}m` }, { label: 'Blocked', value: String(x.urges) }] }))} />
+                      <InteractiveTimeline items={sessions.slice(0, 5).map((x) => ({ id: x.id, title: x.title, timestamp: new Date(x.start).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }), status: x.completed ? 'completed' : 'failed', description: `${Math.round(x.focusSec / 60)} of ${x.goalMin} min held`, metrics: [{ label: 'Held', value: `${Math.round(x.focusSec / 60)}m` }, { label: 'Drifts', value: String(x.urges) }] }))} />
                     </Panel>
                   )}
                 </div>

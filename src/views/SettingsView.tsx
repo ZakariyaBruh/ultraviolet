@@ -4,7 +4,6 @@ import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
-import { LiquidToggle } from '@/components/ui/liquid-toggle'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
 import { setVolume } from '@/lib/player'
@@ -43,7 +42,6 @@ function Focus() {
           <TorqueDial label="Session length" value={s.sessionMin} min={10} max={90} step={5} unit="min" onChange={(v) => set({ sessionMin: v })} size={wide ? 150 : 112} />
         </div>
       </div>
-      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle accentColor="#ff5a1f" offLabel="Scroll guard off" onLabel="Scroll guard on" value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
     </Panel>
   )
 }
@@ -94,9 +92,9 @@ function Help() {
   return (
     <Panel className="rounded-3xl p-4" data-allow-scroll>
       <FAQ variant="separated" items={[
-        { id: '1', question: 'What counts as a blocked scroll?', answer: 'A wheel turn, vertical swipe or scroll key the app swallowed while the guard was on.' },
+        { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
         { id: '2', question: 'Where is my data?', answer: 'In localStorage and IndexedDB in this browser. There is no account and no server.' },
-        { id: '3', question: 'Why does a lapse happen?', answer: 'Leaving the tab for six seconds or more during a session is logged as a lapse.' },
+        { id: '3', question: 'Does the site scroll?', answer: 'No. Every screen fits the display. You move by tuning the dial, dragging, or pressing keys.' },
       ]} />
       <div className="mt-3 flex gap-2">
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>

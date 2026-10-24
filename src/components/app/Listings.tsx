@@ -16,7 +16,7 @@ const MAX_TICKS = 6
 
 /**
  * The day as a programme guide: sources down the side, hours across.
- * A blue block is focused time in that hour; an ink tick is a scroll that was blocked.
+ * A blue block is focused time in that hour; an ink tick is a drift.
  */
 export function Listings({ day = dateKey(), className }: { day?: string; className?: string }) {
   const sourceLog = useStore((s) => s.sourceLog[day])
@@ -115,7 +115,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
         })}
 
         <div role="row" className="grid h-8 items-center border-y border-[var(--rule)]" style={{ gridTemplateColumns: cols }}>
-          <span className="text-[13px] text-ink-2" role="rowheader">Blocked</span>
+          <span className="text-[13px] text-ink-2" role="rowheader">Drifts</span>
           {hours.map((h) => {
             const n = Math.round(urges?.[h] ?? 0)
             return (
