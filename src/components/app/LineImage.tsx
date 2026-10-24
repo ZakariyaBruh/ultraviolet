@@ -95,11 +95,12 @@ export function LineImage({ focus = [0.66, 0.5], still = false, className = '' }
       target.current = { x: Math.min(0.85, Math.max(0.15, (e.clientX - r.left) / r.width)), y: Math.min(0.75, Math.max(0.3, (e.clientY - r.top) / r.height)) }
     }
     resize()
-    addEventListener('resize', resize)
+    const ro = new ResizeObserver(() => { resize(); if (still) draw(3000) })
+    ro.observe(c)
     addEventListener('pointermove', onMove, { passive: true })
     if (still) draw(3000)
     else raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); removeEventListener('resize', resize); removeEventListener('pointermove', onMove) }
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('pointermove', onMove) }
   }, [focus, still])
   return <canvas ref={ref} role="img" aria-label="Hairlines of white on black parting around one bright sphere of colour" className={className} />
 }

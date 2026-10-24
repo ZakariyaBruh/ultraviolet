@@ -26,3 +26,4 @@ dist-ssr
 # local tool output
 .taste-skill/inspect/
 .impeccable/review/
+.vercel
