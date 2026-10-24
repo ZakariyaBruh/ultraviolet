@@ -3,14 +3,13 @@ import { motion } from 'motion/react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { OrbitalLoadingRing } from '@/components/ui/orbital-loading-ring'
-import { SpotlightCard } from '@/components/ui/spotlight-card'
-import { cn } from '@/lib/utils'
 import { play, step, toggle, usePlayer, video } from '@/lib/player'
 import { useStore, type MediaItem } from '@/lib/store'
+import { cn } from '@/lib/utils'
 
 export function Eq({ playing, className }: { playing: boolean; className?: string }) {
   return (
-    <span aria-hidden className={cn('eq text-lime-300', !playing && 'paused', className)}>
+    <span aria-hidden className={cn('eq', !playing && 'paused', className)}>
       <i />
       <i />
       <i />
@@ -19,7 +18,7 @@ export function Eq({ playing, className }: { playing: boolean; className?: strin
   )
 }
 
-/** Segmented control (EasyUI animated tabs, used without panels). */
+/** Segmented control: EasyUI animated tabs used without panels. */
 export function Seg({
   tabs,
   value,
@@ -27,7 +26,7 @@ export function Seg({
   id,
   className,
 }: {
-  tabs: { id: string; label: ReactNode; icon?: ReactNode; badge?: string | number }[]
+  tabs: { id: string; label: string; badge?: string | number }[]
   value: string
   onChange: (id: string) => void
   id: string
@@ -35,14 +34,53 @@ export function Seg({
 }) {
   return (
     <AnimatedTabs
-      tabs={tabs.map((t) => ({ id: t.id, label: t.label as string, icon: t.icon, badge: t.badge }))}
+      tabs={tabs}
       activeTab={value}
       onChange={onChange}
       layoutId={id}
-      variant="glass"
+      variant="default"
       renderContent={false}
       className={className}
     />
+  )
+}
+
+export function Panel({ children, className, ...rest }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('panel', className)} {...rest}>
+      {children}
+    </div>
+  )
+}
+
+export function PageHeader({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
+  return (
+    <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold leading-8 tracking-[-0.01em] text-ink">{title}</h1>
+        {sub && <p className="mt-0.5 text-sm text-ink-2">{sub}</p>}
+      </div>
+      {children && <div className="flex items-center gap-2">{children}</div>}
+    </header>
+  )
+}
+
+/** Greyscale test bars: the "no signal" screen. */
+export function TestBars({ className }: { className?: string }) {
+  const tones = ['#e9ebef', '#d9dce2', '#c6cad2', '#b1b6c0', '#9aa0ac', '#848b98', '#6d7482']
+  return (
+    <div aria-hidden className={cn('flex h-full w-full', className)}>
+      {tones.map((t, i) => (
+        <motion.div
+          key={t}
+          className="h-full flex-1 origin-bottom"
+          style={{ background: t }}
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ delay: i * 0.04, duration: 0.35, ease: [0.2, 0, 0, 1] }}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -60,30 +98,29 @@ export function VideoSurface({ className }: { className?: string }) {
   }, [])
   const isTv = current?.kind === 'tv'
   return (
-    <div className={cn('relative overflow-hidden rounded-2xl bg-black/60 scanlines', className)}>
+    <div className={cn('relative overflow-hidden rounded-md bg-[#e9ebef]', className)}>
       <div ref={host} className="absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover" />
-      {(!isTv || status === 'loading') && (
-        <div className="absolute inset-0 z-[3] grid place-items-center bg-black/55 backdrop-blur-sm">
-          {isTv ? (
-            <OrbitalLoadingRing size={84} label="Tuning" />
-          ) : (
-            <div className="text-center text-sm text-white/60">
-              <div className="font-display text-base text-white/80">No signal</div>
-              Pick a channel to put it on air
-            </div>
-          )}
+      {!isTv && (
+        <div className="absolute inset-0 z-[3]">
+          <TestBars />
+          <div className="absolute inset-x-0 bottom-0 bg-surface/90 px-3 py-2 text-[13px] text-ink">No signal. Choose a channel on TV.</div>
+        </div>
+      )}
+      {isTv && status === 'loading' && (
+        <div className="absolute inset-0 z-[3] grid place-items-center bg-surface/80">
+          <OrbitalLoadingRing size={72} label="Tuning" />
         </div>
       )}
       {isTv && status === 'error' && (
-        <div className="absolute inset-0 z-[3] grid place-items-center bg-black/70 p-4 text-center text-sm text-fuchsia-200">
-          {error ?? 'Stream unavailable'} — hopping to the next channel…
+        <div className="absolute inset-0 z-[3] grid place-items-center bg-surface/90 p-4 text-center text-sm text-ink">
+          {error ?? 'Stream unavailable'}. Trying the next channel.
         </div>
       )}
     </div>
   )
 }
 
-export function Logo({ item, size = 44 }: { item: Pick<MediaItem, 'logo' | 'name'>; size?: number }) {
+export function Logo({ item, size = 40 }: { item: Pick<MediaItem, 'logo' | 'name'>; size?: number }) {
   const initials = item.name
     .split(/\s+/)
     .slice(0, 2)
@@ -92,7 +129,7 @@ export function Logo({ item, size = 44 }: { item: Pick<MediaItem, 'logo' | 'name
     .toUpperCase()
   return (
     <div
-      className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-violet-600/60 to-fuchsia-600/40 font-display text-xs font-bold text-white/90"
+      className="relative grid shrink-0 place-items-center overflow-hidden rounded-[4px] bg-raised text-[11px] font-medium text-ink-2"
       style={{ width: size, height: size }}
     >
       {initials}
@@ -102,7 +139,7 @@ export function Logo({ item, size = 44 }: { item: Pick<MediaItem, 'logo' | 'name
           alt=""
           loading="lazy"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 h-full w-full bg-[#150d2b] object-contain p-1"
+          className="absolute inset-0 h-full w-full bg-white object-contain p-1"
           onError={(e) => (e.currentTarget.style.display = 'none')}
         />
       )}
@@ -110,7 +147,8 @@ export function Logo({ item, size = 44 }: { item: Pick<MediaItem, 'logo' | 'name
   )
 }
 
-export function MediaCard({ item, queue, index = 0 }: { item: MediaItem; queue: MediaItem[]; index?: number }) {
+/** One listing: logo, name, meta, favourite. Reads like a row in a programme guide. */
+export function MediaRow({ item, queue, index = 0 }: { item: MediaItem; queue: MediaItem[]; index?: number }) {
   const current = usePlayer((s) => s.current)
   const status = usePlayer((s) => s.status)
   const fav = useStore((s) => s.favorites.some((f) => f.id === item.id))
@@ -118,49 +156,43 @@ export function MediaCard({ item, queue, index = 0 }: { item: MediaItem; queue: 
   const isCurrent = current?.id === item.id
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 24, scale: 0.94, rotateX: -12 }}
-      animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22, delay: index * 0.035 }}
-      whileHover={{ y: -3 }}
-      className="min-h-0 min-w-0"
-      style={{ perspective: 800 }}
+      layout="position"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}
+      transition={{ duration: 0.22, ease: [0.2, 0, 0, 1], delay: Math.min(index, 11) * 0.025 }}
+      className={cn(
+        'group relative flex h-14 min-w-0 items-center gap-3 rounded-md border border-transparent bg-surface px-3 transition-colors hover:border-[var(--control)]',
+        isCurrent && 'border-signal/60 bg-signal-soft/50',
+      )}
     >
-      <SpotlightCard
-        spotlightColor="rgba(168,85,247,0.35)"
-        className={cn(
-          'group relative h-full rounded-2xl !border-white/10 !bg-white/[0.04] p-0 backdrop-blur-md',
-          isCurrent && 'uv-border !border-transparent',
-        )}
+      <button
+        type="button"
+        onClick={() => (isCurrent ? toggle() : play(item, queue))}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        aria-current={isCurrent ? 'true' : undefined}
       >
-        <button
-          type="button"
-          onClick={() => (isCurrent ? toggle() : play(item, queue))}
-          className="flex h-full w-full items-center gap-3 p-3 pr-11 text-left"
-          aria-label={`Play ${item.name}`}
-        >
-          <Logo item={item} />
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold text-white">{item.name}</span>
-              {isCurrent && <Eq playing={status === 'playing'} className="text-sm" />}
-            </span>
-            <span className="block truncate text-xs text-white/50">{item.meta || item.tags?.join(' · ')}</span>
+        <span className="sr-only">{isCurrent && status === 'playing' ? 'Pause ' : 'Play '}</span>
+        <Logo item={item} size={36} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium text-ink">{item.name}</span>
+            {isCurrent && <Eq playing={status === 'playing'} />}
           </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => toggleFavorite(item)}
-          aria-label={fav ? 'Remove favorite' : 'Add favorite'}
-          aria-pressed={fav}
-          className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-white/40 transition hover:bg-white/10 hover:text-fuchsia-300"
-        >
-          <motion.span key={String(fav)} initial={{ scale: 0.4, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 14 }}>
-            <Heart className={cn('h-4 w-4', fav && 'fill-fuchsia-400 text-fuchsia-400')} />
-          </motion.span>
-        </button>
-      </SpotlightCard>
+          <span className="block truncate text-[13px] text-ink-2">{item.meta || item.tags?.join(', ')}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => toggleFavorite(item)}
+        aria-label={fav ? `Remove ${item.name} from saved` : `Save ${item.name}`}
+        aria-pressed={fav}
+        className="grid size-11 shrink-0 place-items-center rounded-md text-ink-3 transition-colors hover:text-ink md:size-9"
+      >
+        <motion.span key={String(fav)} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 28 }}>
+          <Heart className={cn('size-4', fav && 'fill-ink text-ink')} />
+        </motion.span>
+      </button>
     </motion.div>
   )
 }
@@ -168,42 +200,43 @@ export function MediaCard({ item, queue, index = 0 }: { item: MediaItem; queue: 
 export function Transport({ compact = false }: { compact?: boolean }) {
   const { current, status } = usePlayer()
   const queueLen = usePlayer((s) => s.queue.length)
-  const btn =
-    'grid place-items-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/15 active:scale-90 disabled:opacity-30'
-  const size = compact ? 'h-9 w-9' : 'h-11 w-11'
+  const base = 'grid place-items-center rounded-full border border-[var(--control)] bg-surface text-ink transition-colors hover:bg-raised disabled:opacity-40 disabled:hover:bg-surface'
+  const size = compact ? 'size-9' : 'size-11'
   return (
-    <div className="flex items-center gap-2">
-      <button className={cn(btn, size)} onClick={() => step(-1)} disabled={queueLen < 2} aria-label="Previous">
-        <SkipBack className="h-4 w-4" />
-      </button>
+    <div className="flex items-center gap-1.5">
+      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, compact && 'max-[359px]:hidden')} onClick={() => step(-1)} disabled={queueLen < 2} aria-label="Previous">
+        <SkipBack className="size-4" />
+      </motion.button>
       <motion.button
-        whileTap={{ scale: 0.88 }}
-        className={cn(btn, size, 'bg-lime-300 !text-black hover:!bg-lime-200')}
+        whileTap={{ scale: 0.95 }}
+        className={cn(base, size, '!border-ink !bg-ink !text-white hover:!bg-[#2a2a2a]')}
         onClick={toggle}
         disabled={!current}
         aria-label={status === 'playing' ? 'Pause' : 'Play'}
       >
-        {status === 'playing' ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
+        {status === 'playing' ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
       </motion.button>
-      <button className={cn(btn, size)} onClick={() => step(1)} disabled={queueLen < 2} aria-label="Next">
-        <SkipForward className="h-4 w-4" />
-      </button>
+      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, compact && 'max-[359px]:hidden')} onClick={() => step(1)} disabled={queueLen < 2} aria-label="Next">
+        <SkipForward className="size-4" />
+      </motion.button>
     </div>
   )
 }
 
-export function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('glass rounded-3xl', className)}>{children}</div>
-}
-
-export function ViewHeader({ kicker, title, children }: { kicker: string; title: string; children?: ReactNode }) {
+/** Divided KPI strip: label over figure, no tiles, no icons. */
+export function Strip({ cells, compact = false }: { cells: { label: string; value: ReactNode; unit?: string; note?: ReactNode }[]; compact?: boolean }) {
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-lime-300/90">{kicker}</div>
-        <h1 className="font-display text-2xl font-extrabold text-white sm:text-3xl">{title}</h1>
-      </div>
-      {children}
-    </header>
+    <dl className={cn('grid gap-y-4 sm:auto-cols-fr sm:grid-flow-col sm:grid-cols-none sm:divide-x sm:divide-[var(--rule)]', compact ? 'auto-cols-fr grid-flow-col divide-x divide-[var(--rule)]' : 'grid-cols-2')}>
+      {cells.map((c) => (
+        <div key={c.label} className={cn('min-w-0 sm:px-4 sm:first:pl-0 sm:last:pr-0', compact && 'px-3 first:pl-0 last:pr-0')}>
+          <dt className="truncate text-[13px] text-ink-2">{c.label}</dt>
+          <dd className={cn('mt-1 flex items-baseline gap-1 font-normal text-ink', compact ? 'text-[22px] leading-7 sm:text-[26px] sm:leading-8' : 'text-[26px] leading-8')}>
+            <span className="fig">{c.value}</span>
+            {c.unit && <span className="text-sm text-ink-2">{c.unit}</span>}
+          </dd>
+          {c.note && <dd className={cn('mt-0.5 truncate text-[13px] text-ink-2', compact && 'hidden sm:block')}>{c.note}</dd>}
+        </div>
+      ))}
+    </dl>
   )
 }

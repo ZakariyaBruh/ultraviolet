@@ -12,41 +12,37 @@ function Screen() {
   const idx = tv ? queue.findIndex((q) => q.id === tv.id) : -1
   const upNext = idx >= 0 ? queue.slice(idx + 1, idx + 5) : []
   return (
-    <div className="grid gap-3">
-    <Panel className="flex flex-col gap-3 p-3">
-      <VideoSurface className="mx-auto aspect-video max-h-[19dvh] w-full lg:max-h-none" />
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {tv && <Logo item={tv} size={36} />}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 truncate text-sm font-semibold text-white">
-              {tv?.name ?? 'Off air'} {tv && <Eq playing={status === 'playing'} className="text-sm" />}
+    <div className="grid gap-4">
+      <Panel className={`items-center gap-3 p-3 lg:flex lg:flex-col lg:items-stretch ${tv ? 'flex' : 'hidden'}`}>
+        <VideoSurface className="aspect-video w-24 shrink-0 sm:w-40 lg:w-full" />
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-1 lg:flex-none">
+          <div className="flex min-w-0 items-center gap-3">
+            {tv && <span className="hidden min-[400px]:block"><Logo item={tv} size={32} /></span>}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 truncate text-sm font-medium text-ink">
+                {tv?.name ?? 'Off air'} {tv && <Eq playing={status === 'playing'} />}
+              </div>
+              <div className="truncate text-[13px] text-ink-2">{tv?.meta || 'Public streams, some go offline'}</div>
             </div>
-            <div className="truncate text-xs text-white/50">{tv?.meta || 'Live channels, public streams'}</div>
           </div>
+          <Transport compact />
         </div>
-        <Transport compact />
-      </div>
-    </Panel>
-    {upNext.length > 0 && (
-      <Panel className="hidden gap-1.5 p-3 lg:grid">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-violet-200/70">Up next</div>
-        {upNext.map((u, i) => (
-          <motion.button
-            key={u.id}
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.07, type: 'spring', stiffness: 260, damping: 22 }}
-            whileHover={{ x: 4 }}
-            onClick={() => play(u)}
-            className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-2 py-1.5 text-left hover:bg-white/10"
-          >
-            <Logo item={u} size={30} />
-            <span className="min-w-0 truncate text-sm text-white/80">{u.name}</span>
-          </motion.button>
-        ))}
       </Panel>
-    )}
+      {upNext.length > 0 && (
+        <Panel className="hidden p-3 lg:block">
+          <h2 className="mb-1 px-1 text-sm font-semibold">Up next</h2>
+          <ul>
+            {upNext.map((u, i) => (
+              <motion.li key={u.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05, duration: 0.2 }}>
+                <button onClick={() => play(u)} className="flex h-11 w-full items-center gap-3 border-b border-[var(--rule)] px-1 text-left last:border-b-0 hover:bg-raised">
+                  <Logo item={u} size={28} />
+                  <span className="min-w-0 truncate text-sm text-ink">{u.name}</span>
+                </button>
+              </motion.li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </div>
   )
 }
@@ -56,13 +52,13 @@ export function TvView() {
   return (
     <Browser
       kind="tv"
-      kicker="Live IPTV"
-      title="Television, but finite"
+      title="TV"
+      sub="Live public channels from iptv-org. Dead streams are skipped automatically."
       chips={TV_CATEGORIES}
       initialChip="documentary"
       load={load}
       remoteSearch={false}
-      placeholder="Filter channels…"
+      placeholder="Filter channels"
       side={<Screen />}
     />
   )

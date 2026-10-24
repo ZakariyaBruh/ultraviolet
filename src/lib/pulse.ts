@@ -1,7 +1,7 @@
 import { useFx } from './fx'
 import { useStore } from './store'
 
-/** A live 0–100 "attention pulse": climbs while you are locked in, dips each time you reach for the scroll. */
+/** Steadiness, 0–100: climbs 1.5 a second while you are locked in, eases down while idle, and drops 9 for each blocked scroll. No noise is added. */
 let value = 50
 
 export const getPulse = () => value
@@ -9,8 +9,8 @@ export const getPulse = () => value
 if (typeof window !== 'undefined') {
   setInterval(() => {
     const s = useStore.getState().session
-    const drift = s && !s.paused ? 1.6 : -0.5
-    value = Math.min(100, Math.max(6, value + drift + (Math.random() - 0.5) * 1.4))
+    const drift = s && !s.paused ? 1.5 : -0.5
+    value = Math.min(100, Math.max(6, value + drift))
   }, 1000)
   useFx.subscribe((s, p) => {
     if (s.flash !== p.flash) value = Math.max(4, value - 9)

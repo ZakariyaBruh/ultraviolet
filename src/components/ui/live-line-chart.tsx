@@ -299,7 +299,7 @@ export function LiveLineChart({
             </p>
             {delta !== null && (
               <p className={`mt-1.5 text-[12px] tabular-nums ${muted}`}>
-                <span className={delta >= 0 ? "text-emerald-500" : "text-rose-500"}>
+                <span className={delta >= 0 ? "text-[#247b50]" : "text-[#c4242a]"}>
                   {delta >= 0 ? "▲" : "▼"} {pctText(Math.abs(delta))}
                 </span>{" "}
                 over the last {winS >= 120 ? `${Math.round(winS / 60)} min` : `${winS}s`}

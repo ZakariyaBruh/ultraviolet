@@ -16,7 +16,10 @@ export function useScrollGuard() {
     let startX = 0
     let swiped = false
 
+    const on = () => useStore.getState().settings.guard !== false
+
     const urge = (x: number, y: number) => {
+      if (!on()) return
       const now = performance.now()
       if (now - last < 450) return
       last = now
@@ -26,6 +29,7 @@ export function useScrollGuard() {
     }
 
     const wheel = (e: WheelEvent) => {
+      if (!on()) return
       if ((e.target as Element | null)?.closest?.(INTERACTIVE)) return
       if (Math.abs(e.deltaY) < 2) return
       e.preventDefault()
@@ -37,6 +41,7 @@ export function useScrollGuard() {
       swiped = false
     }
     const tm = (e: TouchEvent) => {
+      if (!on()) return
       if ((e.target as Element | null)?.closest?.(INTERACTIVE)) return
       const t = e.touches[0]
       const dy = t.clientY - startY
@@ -47,7 +52,7 @@ export function useScrollGuard() {
       if (e.cancelable) e.preventDefault()
     }
     const key = (e: KeyboardEvent) => {
-      if (!SCROLL_KEYS.has(e.key)) return
+      if (!on() || !SCROLL_KEYS.has(e.key)) return
       const el = e.target as Element | null
       if (el?.closest?.(INTERACTIVE) || el?.closest?.('button, [role="slider"], [role="tab"]')) return
       e.preventDefault()

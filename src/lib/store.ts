@@ -46,14 +46,19 @@ export interface Settings {
   /** 0 calm · 1 lively · 2 maximum */
   motion: 0 | 1 | 2
   volume: number
-  cursor: boolean
+  /** swallow and count scroll gestures (on by default) */
+  guard: boolean
 }
 
 type HourLog = Record<string, number[]>
+export type SourceKey = MediaKind | 'silent'
+export type SourceLog = Record<string, Record<SourceKey, number[]>>
 
 interface Data {
   settings: Settings
   focusLog: HourLog
+  /** minutes per hour, split by what was playing */
+  sourceLog: SourceLog
   urgeLog: HourLog
   lapseLog: Record<string, number>
   sourceSecs: Record<MediaKind | 'silent', number>
@@ -93,12 +98,13 @@ export const DEFAULT_SETTINGS: Settings = {
   sessionMin: 25,
   motion: 2,
   volume: 0.8,
-  cursor: true,
+  guard: true,
 }
 
 const emptyData = (): Data => ({
   settings: { ...DEFAULT_SETTINGS },
   focusLog: {},
+  sourceLog: {},
   urgeLog: {},
   lapseLog: {},
   sourceSecs: { radio: 0, tv: 0, silent: 0 },
@@ -110,6 +116,8 @@ const emptyData = (): Data => ({
 })
 
 const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
+
+const zeros = () => new Array<number>(24).fill(0)
 
 const hours = (log: HourLog, key: string) => {
   const row = log[key]
@@ -192,8 +200,12 @@ export const useStore = create<AppState>()(
         const row = hours(s.focusLog, key)
         row[now.getHours()] += sec / 60
         const elapsed = a.elapsedSec + sec
+        const day = s.sourceLog[key] ?? { radio: zeros(), tv: zeros(), silent: zeros() }
+        const srcRow = (day[a.source] ?? zeros()).slice()
+        srcRow[now.getHours()] += sec / 60
         set({
           focusLog: { ...s.focusLog, [key]: row },
+          sourceLog: { ...s.sourceLog, [key]: { ...day, [a.source]: srcRow } },
           sourceSecs: { ...s.sourceSecs, [a.source]: s.sourceSecs[a.source] + sec },
           session: { ...a, elapsedSec: elapsed },
         })
@@ -314,6 +326,17 @@ function rng(seed: number) {
   }
 }
 
+function splitSources(f: number[], rand: () => number): Record<SourceKey, number[]> {
+  const out: Record<SourceKey, number[]> = { radio: zeros(), tv: zeros(), silent: zeros() }
+  f.forEach((m, h) => {
+    if (m <= 0) return
+    const r = rand()
+    const k: SourceKey = r < 0.46 ? 'radio' : r < 0.77 ? 'tv' : 'silent'
+    out[k][h] = m
+  })
+  return out
+}
+
 function makeDemo(): Data {
   const rand = rng(1337)
   const d = emptyData()
@@ -341,6 +364,7 @@ function makeDemo(): Data {
       }
       for (let h = 0; h < 24; h++) f[h] = Math.min(60, Math.round(f[h] * 10) / 10)
       d.focusLog[key] = f
+      d.sourceLog[key] = splitSources(f, rand)
       d.urgeLog[key] = u
       const lapses = Math.round(rand() * 3 * (1.3 - progress))
       if (lapses) d.lapseLog[key] = lapses
@@ -348,7 +372,7 @@ function makeDemo(): Data {
   }
   const kinds: (MediaKind | 'silent')[] = ['radio', 'tv', 'radio', 'silent']
   for (let i = 0; i < 18; i++) {
-    const end = Date.now() - i * 1000 * 60 * 60 * (5 + rand() * 20)
+    const end = Date.now() - (i + 1) * 1000 * 60 * 60 * (5 + rand() * 20)
     const goal = [15, 25, 25, 45, 60][Math.floor(rand() * 5)]
     const completed = rand() > 0.22
     const focusSec = Math.round(goal * 60 * (completed ? 1 : 0.3 + rand() * 0.5))

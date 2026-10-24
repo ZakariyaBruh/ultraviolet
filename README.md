@@ -3,11 +3,11 @@
 An attention-span trainer. One screen, no feed. Lock in with **internet radio** or **live IPTV**
 while the site swallows every scroll attempt and turns it into data.
 
-- **Focus** – session timer ring, "scrolls resisted" counter, streak, now-playing panel.
-- **Radio** – stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
-- **TV** – public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js.
-- **Insights** – attention score ring, live pulse, weekday×hour and daily heatmaps, trends, source split, session log.
-- **Pledge** – motion level (calm / lively / LOTS), goals, volume, export / import / reset.
+- **Focus**: a thin timer ring, a divided strip of blocked scrolls, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, blocked scrolls ticked underneath).
+- **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
+- **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
+- **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
+- **Settings**: session length, daily goal, volume, scroll guard on/off, motion level (Calm / Lively / Lots), export / import / erase.
 
 Nothing scrolls vertically: lists page, charts are slides. Wheel, swipe and scroll keys are
 intercepted, counted and shown as "resisted". Leaving the tab mid-session logs a "wandering".
@@ -21,7 +21,7 @@ Everything stays in the browser. No account, no backend.
 | Settings, focus / urge logs, sessions, favorites, recents | `localStorage` (`anti-scroll:v1`) |
 | Cached radio + channel lists | IndexedDB (6 h / 12 h TTL) |
 
-Pledge → *Load demo history* fills the charts with clearly-labelled fake data.
+Settings → Data → *Load demo history* fills the charts with clearly-labelled made-up data.
 
 ## Stack
 

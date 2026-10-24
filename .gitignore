@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# local tool output
+.taste-skill/inspect/
+.impeccable/review/

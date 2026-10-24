@@ -1,9 +1,10 @@
-import { Search } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { MediaRow, PageHeader, Seg } from '@/components/app/shared'
+import { IOSSearchBar } from '@/components/ui/ios-search-bar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SlidePagination } from '@/components/ui/slide-pagination'
-import { MediaCard, Seg, ViewHeader } from '@/components/app/shared'
-import { useGridFit } from '@/lib/hooks'
+import { useGridFit, useMedia } from '@/lib/hooks'
 import { useStore, type MediaItem, type MediaKind } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -21,8 +22,15 @@ function ChipRow({ children, label }: { children: ReactNode; label: string }) {
     return () => ro.disconnect()
   }, [])
   return (
-    <div ref={outer} data-allow-scroll role="group" aria-label={label} className="relative shrink-0 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-24px),transparent)]">
-      <motion.div ref={inner} drag={limit > 0 ? 'x' : false} dragConstraints={{ left: -limit, right: 0 }} dragElastic={0.18} className="flex w-max cursor-grab gap-1.5 px-3 py-0.5 active:cursor-grabbing">
+    <div
+      ref={outer}
+      data-allow-scroll
+      role="group"
+      aria-label={label}
+      className="fade-end shrink-0 overflow-hidden"
+      data-fit={limit === 0}
+    >
+      <motion.div ref={inner} drag={limit > 0 ? 'x' : false} dragConstraints={{ left: -limit, right: 0 }} dragElastic={0.12} className="flex w-max gap-1.5 py-0.5 active:cursor-grabbing">
         {children}
       </motion.div>
     </div>
@@ -31,8 +39,8 @@ function ChipRow({ children, label }: { children: ReactNode; label: string }) {
 
 interface Props {
   kind: MediaKind
-  kicker: string
   title: string
+  sub: ReactNode
   chips: readonly string[]
   initialChip: string
   load: (chip: string, query: string) => Promise<MediaItem[]>
@@ -42,10 +50,10 @@ interface Props {
   side?: ReactNode
 }
 
-export function Browser({ kind, kicker, title, chips, initialChip, load, remoteSearch, placeholder, side }: Props) {
+export function Browser({ kind, title, sub, chips, initialChip, load, remoteSearch, placeholder, side }: Props) {
   const favorites = useStore((s) => s.favorites).filter((f) => f.kind === kind)
   const recent = useStore((s) => s.recent).filter((f) => f.kind === kind)
-  const [tab, setTab] = useState<'discover' | 'favorites' | 'recent'>('discover')
+  const [tab, setTab] = useState<'discover' | 'saved' | 'recent'>('discover')
   const [chip, setChip] = useState(initialChip)
   const [q, setQ] = useState('')
   const [dq, setDq] = useState('')
@@ -53,7 +61,8 @@ export function Browser({ kind, kicker, title, chips, initialChip, load, remoteS
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [page, setPage] = useState(1)
   const [nonce, setNonce] = useState(0)
-  const { ref, per, cols } = useGridFit(230, 74, 10, 4)
+  const { ref, per, cols } = useGridFit(280, 56, 8, 3)
+  const tiny = useMedia('(max-width: 380px)')
 
   useEffect(() => {
     const t = setTimeout(() => setDq(q.trim()), 380)
@@ -74,7 +83,7 @@ export function Browser({ kind, kicker, title, chips, initialChip, load, remoteS
 
   useEffect(() => setPage(1), [chip, dq, tab, q])
 
-  const source = tab === 'favorites' ? favorites : tab === 'recent' ? recent : items
+  const source = tab === 'saved' ? favorites : tab === 'recent' ? recent : items
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
     if (!needle || (remoteSearch && tab === 'discover')) return source
@@ -85,102 +94,87 @@ export function Browser({ kind, kicker, title, chips, initialChip, load, remoteS
   const pages = Math.max(1, Math.ceil(filtered.length / perPage))
   const safePage = Math.min(page, pages)
   const slice = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const loading = state === 'loading' && tab === 'discover'
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3 lg:flex-row lg:gap-6">
+    <section className="flex h-full min-h-0 flex-col gap-4 lg:flex-row lg:gap-6">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        <ViewHeader kicker={kicker} title={title}>
+        <PageHeader title={title} sub={sub}>
           <Seg
             id={`tabs-${kind}`}
             value={tab}
             onChange={(id) => setTab(id as typeof tab)}
             tabs={[
               { id: 'discover', label: 'Discover' },
-              { id: 'favorites', label: 'Saved', badge: favorites.length || undefined },
+              { id: 'saved', label: 'Saved', badge: favorites.length || undefined },
               { id: 'recent', label: 'Recent' },
             ]}
           />
-        </ViewHeader>
+        </PageHeader>
 
-        <label className="glass flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-violet-400/70">
-          <Search className="h-4 w-4 text-white/50" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={placeholder}
-            aria-label={placeholder}
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
-          />
-        </label>
+        <IOSSearchBar value={q} onChange={setQ} onClear={() => setQ('')} placeholder={placeholder} collapsedWidth="100%" expandedWidth="100%" className="max-w-full" />
 
         {tab === 'discover' && (
           <ChipRow label="Categories">
-            {chips.map((c, i) => (
+            {chips.map((c) => (
               <motion.button
                 key={c}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.025 }}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => setChip(c)}
                 aria-pressed={chip === c}
                 className={cn(
-                  'relative shrink-0 rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors',
-                  chip === c ? 'text-black' : 'border border-white/10 bg-white/5 text-white/70 hover:text-white',
+                  'relative h-8 shrink-0 rounded-full border px-3 text-[13px] capitalize transition-colors',
+                  chip === c ? 'border-ink bg-ink text-white' : 'border-[var(--control)] bg-surface text-ink hover:border-ink',
                 )}
               >
-                {chip === c && (
-                  <motion.span layoutId={`chip-${kind}`} className="absolute inset-0 rounded-full bg-lime-300" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
-                )}
-                <span className="relative">{c}</span>
+                {c}
               </motion.button>
             ))}
           </ChipRow>
         )}
 
-        <div ref={ref} className="min-h-0 flex-1">
+        <div ref={ref} className="min-h-[56px] flex-1 overflow-hidden">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={`${tab}-${chip}-${dq}-${safePage}-${state}`}
-              className="grid h-full content-start gap-2.5"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '74px' }}
-              exit={{ opacity: 0, x: -30 }}
-              transition={{ duration: 0.18 }}
+              key={`${tab}-${chip}-${dq}-${safePage}-${loading}`}
+              className="grid h-full content-start gap-2"
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '56px' }}
+              exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}
             >
-              {state === 'loading' && tab === 'discover'
+              {loading
                 ? Array.from({ length: Math.min(perPage, 12) }, (_, i) => (
-                    <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: `shimmer-x 1.4s ${i * 0.08}s infinite` }} />
+                    <div key={i} className="flex h-14 items-center gap-3 rounded-md bg-surface px-3" aria-hidden>
+                      <Skeleton className="size-9 rounded-[4px]" />
+                      <div className="grid flex-1 gap-1.5">
+                        <Skeleton className="h-3 w-2/3 rounded-sm" />
+                        <Skeleton className="h-2.5 w-1/3 rounded-sm" />
+                      </div>
                     </div>
                   ))
-                : slice.map((it, i) => <MediaCard key={it.id} item={it} queue={filtered} index={i} />)}
+                : slice.map((it, i) => <MediaRow key={it.id} item={it} queue={filtered} index={i} />)}
               {state === 'error' && tab === 'discover' && (
-                <div className="col-span-full grid place-items-center gap-2 py-10 text-center text-sm text-white/60">
-                  Couldn’t reach the directory.
-                  <button className="rounded-full bg-lime-300 px-4 py-1.5 text-xs font-bold text-black" onClick={() => setNonce((n) => n + 1)}>
+                <div className="col-span-full grid place-items-center gap-3 rounded-md border border-dashed border-[var(--control)] py-8 text-center text-sm text-ink-2">
+                  Couldn’t load {kind === 'radio' ? 'stations' : 'channels'}. Check your connection.
+                  <button className="h-8 rounded-md bg-ink px-3 text-[13px] font-medium text-white" onClick={() => setNonce((n) => n + 1)}>
                     Try again
                   </button>
                 </div>
               )}
-              {state === 'ready' && slice.length === 0 && (
-                <div className="col-span-full py-10 text-center text-sm text-white/50">
-                  {tab === 'favorites' ? 'Tap the heart on anything you want to keep.' : tab === 'recent' ? 'Nothing played yet.' : 'No matches. Try another word.'}
-                </div>
-              )}
-              {tab !== 'discover' && slice.length === 0 && (
-                <div className="col-span-full py-10 text-center text-sm text-white/50">
-                  {tab === 'favorites' ? 'Tap the heart on anything you want to keep.' : 'Nothing played yet.'}
+              {!loading && state !== 'error' && slice.length === 0 && (
+                <div className="col-span-full rounded-md border border-dashed border-[var(--control)] py-8 text-center text-sm text-ink-2">
+                  {tab === 'saved' ? 'Nothing saved yet. Tap the heart on a listing to keep it here.' : tab === 'recent' ? 'Nothing played yet.' : 'No matches. Try another word or category.'}
                 </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="flex shrink-0 justify-center">
-          <SlidePagination pageCount={pages} page={safePage} onChange={setPage} siblingCount={1} />
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className="fig whitespace-nowrap text-[13px] text-ink-2">{filtered.length ? `${(safePage - 1) * perPage + 1}–${Math.min(safePage * perPage, filtered.length)} of ${filtered.length}` : '0 results'}</span>
+          <SlidePagination pageCount={pages} page={safePage} onChange={setPage} siblingCount={tiny ? 0 : 1} />
         </div>
       </div>
-      {side && <aside className="shrink-0 lg:w-[380px]">{side}</aside>}
+      {side && <aside className="shrink-0 lg:w-[360px]">{side}</aside>}
     </section>
   )
 }

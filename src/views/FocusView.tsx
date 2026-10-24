@@ -1,73 +1,119 @@
-import { Flame, Pause, Play, Square, Zap } from 'lucide-react'
+import { Pause, Play, Radio, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Eq, Logo, PageHeader, Panel, Strip, Transport, VideoSurface } from '@/components/app/shared'
+import { Listings } from '@/components/app/Listings'
 import { AnimatedNumber } from '@/components/ui/animated-number'
-import { GlitchText } from '@/components/ui/glitch-text'
 import { MagneticButton } from '@/components/ui/magnetic-button'
-import { MorphingBlob } from '@/components/ui/morphing-blob'
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { SplitButton } from '@/components/ui/split-button'
 import { TextScrambleDecoder } from '@/components/ui/text-scramble-decoder'
-import { ThinkingOrb } from '@/components/ui/thinking-orb'
-import { TorqueDial } from '@/components/ui/torque-dial'
-import { Eq, Logo, Panel, Seg, Transport, VideoSurface } from '@/components/app/shared'
-import { dateKey, fmtClock } from '@/lib/dates'
 import { fx_say, quickPlay } from '@/lib/actions'
-import { useSize } from '@/lib/hooks'
-import { play, stop, usePlayer } from '@/lib/player'
-import { useStore } from '@/lib/store'
+import { dateKey, fmtClock } from '@/lib/dates'
+import { play, usePlayer } from '@/lib/player'
 import { dayTotal, streak, sum } from '@/lib/stats'
-import type { View } from '@/components/app/Nav'
+import { useStore } from '@/lib/store'
+import type { View } from '@/components/app/Shell'
 
-const LINES = [
-  'The feed can wait.',
-  'One thing. Right now.',
-  'Boredom is a feature.',
-  'Eyes up. Ears on.',
-  'Your thumb can rest.',
-  'Depth beats distance.',
-]
+const LENGTHS = [15, 25, 45, 60]
 
 const PRESETS: { label: string; kind: 'radio' | 'tv'; tag: string }[] = [
   { label: 'Lo-fi', kind: 'radio', tag: 'lofi' },
   { label: 'Ambient', kind: 'radio', tag: 'ambient' },
-  { label: 'Classical', kind: 'radio', tag: 'classical' },
   { label: 'Documentaries', kind: 'tv', tag: 'documentary' },
-  { label: 'Relax TV', kind: 'tv', tag: 'relax' },
-  { label: 'Science TV', kind: 'tv', tag: 'science' },
+  { label: 'Science', kind: 'tv', tag: 'science' },
 ]
+
+function Ring({ progress, left, running, paused, ready }: { progress: number; left: number; running: boolean; paused: boolean; ready: boolean }) {
+  const lots = useStore((s) => s.settings.motion >= 2)
+  const R = 46
+  const secs = Math.floor(left) % 60
+  const ticks = useMemo(() => Array.from({ length: 60 }, (_, i) => i), [])
+  return (
+    <div className="relative aspect-square h-full max-h-[380px] min-h-[150px]">
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
+        {ticks.map((i) => (
+          <motion.line
+            key={i}
+            x1="50" y1="2" x2="50" y2={i % 5 === 0 ? 5.6 : 4.2}
+            transform={`rotate(${i * 6} 50 50)`}
+            strokeWidth={i % 5 === 0 ? 0.7 : 0.4}
+            initial={false}
+            animate={{ stroke: ready && i / 60 <= progress ? '#1d5fbf' : '#c9cdd6' }}
+            transition={{ duration: 0.3 }}
+          />
+        ))}
+        <circle cx="50" cy="50" r={R - 6} fill="none" stroke="var(--rule)" strokeWidth="1.2" />
+        <motion.circle
+          cx="50" cy="50" r={R - 6} fill="none" stroke="var(--signal)" strokeWidth="1.8" strokeLinecap="round"
+          strokeDasharray={2 * Math.PI * (R - 6)}
+          initial={false}
+          animate={{ strokeDashoffset: 2 * Math.PI * (R - 6) * (1 - Math.max(0.002, progress)) }}
+          transition={{ type: 'spring', stiffness: 70, damping: 20 }}
+        />
+      </svg>
+      {lots && (
+        <motion.div className="pointer-events-none absolute inset-[16%]" animate={{ rotate: -360 }} transition={{ duration: running ? 24 : 90, repeat: Infinity, ease: 'linear' }} aria-hidden>
+          <svg viewBox="0 0 100 100" className="size-full"><circle cx="50" cy="50" r="49" fill="none" stroke="var(--control)" strokeWidth="0.5" strokeDasharray="1.5 3" /><circle cx="50" cy="1" r="1.6" fill="var(--ink)" /></svg>
+        </motion.div>
+      )}
+      {/* the sweeping end-point */}
+      <motion.div className="absolute inset-0" initial={false} animate={{ rotate: progress * 360 }} transition={{ type: 'spring', stiffness: 70, damping: 20 }} aria-hidden>
+        <span className="absolute left-1/2 top-[8%] size-2.5 -translate-x-1/2 rounded-full bg-signal ring-4 ring-[var(--signal-soft)]" />
+      </motion.div>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <div className="fig flex items-baseline justify-center text-[44px] leading-[48px] text-ink" aria-live="off">
+            {fmtClock(left).split('').map((ch, i, arr) => {
+              const last = i === arr.length - 1
+              return (
+                <AnimatePresence mode="popLayout" key={arr.length - i} initial={false}>
+                  <motion.span
+                    key={last ? `${ch}-${secs}` : ch}
+                    initial={{ y: last ? 14 : 0, opacity: last ? 0 : 1 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -14, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+                    className="inline-block"
+                  >
+                    {ch}
+                  </motion.span>
+                </AnimatePresence>
+              )
+            })}
+          </div>
+          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[13px] text-ink-2">
+            {running && <span className="live-dot" />}
+            {!ready ? 'Ready' : paused ? 'Paused' : 'Locked in'}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function FocusView({ go }: { go: (v: View) => void }) {
   const session = useStore((s) => s.session)
   const sessionMin = useStore((s) => s.settings.sessionMin)
   const setSettings = useStore((s) => s.setSettings)
-  const urgesToday = useStore((s) => sum(s.urgeLog[dateKey()] ?? []))
-  const focusToday = useStore((s) => dayTotal(s.focusLog, dateKey()))
-  const days = useStore((s) => streak(s.focusLog))
   const goal = useStore((s) => s.settings.dailyGoalMin)
-  const recent = useStore((s) => s.recent)
+  const today = dateKey()
+  const blocked = useStore((s) => Math.round(sum(s.urgeLog[today] ?? [])))
+  const held = useStore((s) => dayTotal(s.focusLog, today))
+  const days = useStore((s) => streak(s.focusLog))
   const { current, status } = usePlayer()
-  const [line, setLine] = useState(0)
+  const recent = useStore((s) => s.recent)
   const [busy, setBusy] = useState<string | null>(null)
-  const [ringRef, ring] = useSize<HTMLDivElement>()
-
-  useEffect(() => {
-    const t = setInterval(() => setLine((l) => (l + 1) % LINES.length), 7000)
-    return () => clearInterval(t)
-  }, [])
+  const [tune, setTune] = useState(false)
 
   const total = (session?.goalMin ?? sessionMin) * 60
   const left = session ? Math.max(0, total - session.elapsedSec) : total
   const progress = session ? Math.min(1, session.elapsedSec / total) : 0
-  const sec = Math.floor(left) % 60
   const running = !!session && !session.paused
 
-  const orbState = !session ? 'breathing' : session.paused ? 'searching' : status === 'playing' ? 'listening' : 'working'
-  const ticks = useMemo(() => Array.from({ length: 60 }, (_, i) => i), [])
-
   const start = () => {
-    const src = current ? current.kind : 'silent'
-    useStore.getState().startSession(sessionMin, src, current?.name ?? 'Silent focus')
+    useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
     if (current && status === 'paused') play(current)
-    fx_say({ title: 'Locked in', description: `${sessionMin} minutes. Scrolling is disabled on this site.`, variant: 'success' })
   }
 
   const preset = async (p: (typeof PRESETS)[number]) => {
@@ -81,228 +127,155 @@ export function FocusView({ go }: { go: (v: View) => void }) {
     }
   }
 
+  const finding = session
+    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} scroll${session.urges === 1 ? '' : 's'} blocked this session.`
+    : held >= goal
+      ? `Daily goal of ${goal} min met. ${blocked} scrolls blocked today.`
+      : held > 0
+        ? `${Math.round(held)} of ${goal} min today, ${blocked} scrolls blocked.`
+        : 'Nothing held yet today. Lock in to start the first block.'
+
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3 lg:flex-row lg:gap-6">
-      {/* ───── Timer ───── */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-between gap-2">
-        <div className="text-center">
-          <GlitchText
-            as="h1"
-            text="ANTI-SCROLL"
-            variant="rgb-split"
-            intensity="medium"
-            color1="#c8ff3d"
-            color2="#ff3df2"
-            repeatDelay={3.2}
-            className="font-display text-[clamp(1.5rem,5.5vw,3rem)] font-black leading-none text-white"
-          />
-          <div className="mt-1 h-5 text-xs font-medium uppercase tracking-[0.3em] text-violet-200/70">
-            <TextScrambleDecoder key={line} text={LINES[line]} trigger="mount" duration={900} />
-          </div>
-        </div>
-
-        <div ref={ringRef} className="relative my-auto aspect-square h-[min(44dvh,80vw)] max-h-full min-h-[190px]">
-          <motion.div
-            className="absolute inset-0"
-            animate={running ? { scale: [1, 1.012, 1] } : { scale: 1 }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-              <defs>
-                <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#c8ff3d" />
-                  <stop offset="0.55" stopColor="#a855f7" />
-                  <stop offset="1" stopColor="#ff3df2" />
-                </linearGradient>
-                <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-                  <feGaussianBlur stdDeviation="1.6" result="b" />
-                  <feMerge>
-                    <feMergeNode in="b" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="2.2" />
-              {ticks.map((i) => (
-                <line
-                  key={i}
-                  x1="50"
-                  y1="2.5"
-                  x2="50"
-                  y2={i % 5 === 0 ? 6.2 : 4.6}
-                  stroke={i / 60 <= progress && session ? '#c8ff3d' : 'rgba(255,255,255,.22)'}
-                  strokeWidth={i % 5 === 0 ? 0.8 : 0.4}
-                  transform={`rotate(${i * 6} 50 50)`}
-                />
-              ))}
-              <motion.circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="url(#ring)"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-                filter="url(#glow)"
-                initial={false}
-                animate={{ pathLength: Math.max(0.004, progress) }}
-                transition={{ type: 'spring', stiffness: 60, damping: 18 }}
+    <section className="flex h-full min-h-0 flex-col gap-4">
+      <PageHeader title="Focus" sub={finding}>
+        {!session && (
+          <button onClick={() => setTune(true)} className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--control)] bg-surface px-3 text-sm text-ink hover:bg-raised lg:hidden">
+            <Radio className="size-4" /> Tune
+          </button>
+        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {!session ? (
+            <motion.div key="start" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+              <SplitButton
+                label={`Lock in · ${sessionMin} min`}
+                onClick={start}
+                variant="primary"
+                size="md"
+                options={LENGTHS.map((m) => ({ value: String(m), label: `${m} minutes`, onSelect: () => setSettings({ sessionMin: m }) }))}
               />
-            </svg>
-          </motion.div>
-
-          {/* two counter-rotating orbit rings */}
-          <motion.div className="absolute inset-[7%] rounded-full border border-dashed border-violet-300/20" animate={{ rotate: 360 }} transition={{ duration: running ? 40 : 160, repeat: Infinity, ease: 'linear' }}>
-            <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-lime-300 shadow-[0_0_14px_#c8ff3d]" />
-          </motion.div>
-          <motion.div className="absolute inset-[15%] rounded-full border border-fuchsia-400/20" animate={{ rotate: -360 }} transition={{ duration: running ? 26 : 110, repeat: Infinity, ease: 'linear' }}>
-            <span className="absolute -bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-fuchsia-400 shadow-[0_0_12px_#ff3df2]" />
-          </motion.div>
-
-          <div className="absolute inset-0 grid place-items-center">
-            <div className="absolute opacity-80 [&>div]:mix-blend-screen">
-              <ThinkingOrb state={orbState} size={Math.max(120, ring.w * 0.6)} dark speed={running ? 1.4 : 0.8} />
-            </div>
-            <div className="relative text-center">
-              <div className="tnum font-display text-[clamp(2.2rem,9vw,4.6rem)] font-black leading-none text-white drop-shadow-[0_0_24px_rgba(168,85,247,.8)]">
-                {fmtClock(left).split('').map((ch, i, arr) => (
-                  <AnimatePresence mode="popLayout" key={arr.length - i}>
-                    <motion.span
-                      key={ch + (i === arr.length - 1 ? sec : '')}
-                      initial={{ y: i === arr.length - 1 ? 16 : 0, opacity: i === arr.length - 1 ? 0 : 1 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -16, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                      className="inline-block"
-                    >
-                      {ch}
-                    </motion.span>
-                  </AnimatePresence>
-                ))}
-              </div>
-              <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-lime-300/90">
-                {!session ? 'ready' : session.paused ? 'paused' : 'locked in'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* stats */}
-        <div className="grid w-full max-w-md grid-cols-3 gap-2">
-          {[
-            { label: 'Resisted', node: <AnimatedNumber value={urgesToday} className="text-fuchsia-300" />, icon: <Zap className="h-3.5 w-3.5 text-fuchsia-300" /> },
-            { label: 'Day streak', node: <AnimatedNumber value={days} className="text-lime-300" />, icon: <Flame className="h-3.5 w-3.5 text-lime-300" /> },
-            { label: `Of ${goal}m goal`, node: <AnimatedNumber value={Math.round(focusToday)} suffix="m" className="text-violet-200" />, icon: null },
-          ].map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 220, damping: 20 }}
-              className="glass rounded-2xl px-3 py-2 text-center"
-            >
-              <div className="font-display text-xl font-extrabold leading-none">{s.node}</div>
-              <div className="mt-1 flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider text-white/50">
-                {s.icon}
-                {s.label}
-              </div>
             </motion.div>
-          ))}
-        </div>
+          ) : (
+            <motion.div key="live" className="flex items-center gap-2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+              <MagneticButton size="md" strength={0.2} onClick={() => useStore.getState().togglePause()} className="!bg-ink !text-white hover:!bg-[#2a2a2a]">
+                {session.paused ? <Play className="mr-1.5 size-3.5 fill-current" /> : <Pause className="mr-1.5 size-3.5 fill-current" />}
+                {session.paused ? 'Resume' : 'Pause'}
+              </MagneticButton>
+              <MagneticButton size="md" variant="outline" strength={0.2} onClick={() => useStore.getState().endSession(false)}>
+                <Square className="mr-1.5 size-3 fill-current" /> End
+              </MagneticButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </PageHeader>
 
-        {/* controls */}
-        <div className="flex w-full max-w-md items-center justify-center gap-4 pb-1">
-          <AnimatePresence mode="wait" initial={false}>
-            {!session ? (
-              <motion.div key="idle" className="flex items-center gap-5" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}>
-                <TorqueDial value={sessionMin} min={5} max={120} step={5} unit="m" size={84} label="Session length" onChange={(v) => setSettings({ sessionMin: v })} />
-                <MagneticButton size="lg" glow onClick={start} strength={0.35} className="!bg-lime-300 !text-black hover:!bg-lime-200">
-                  <Play className="mr-2 h-4 w-4 fill-current" /> Lock in
-                </MagneticButton>
-              </motion.div>
-            ) : (
-              <motion.div key="live" className="flex items-center gap-3" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}>
-                <MagneticButton size="lg" glow onClick={() => useStore.getState().togglePause()} className="!bg-lime-300 !text-black hover:!bg-lime-200">
-                  {session.paused ? <Play className="mr-2 h-4 w-4 fill-current" /> : <Pause className="mr-2 h-4 w-4 fill-current" />}
-                  {session.paused ? 'Resume' : 'Pause'}
-                </MagneticButton>
-                <MagneticButton size="lg" variant="outline" onClick={() => useStore.getState().endSession(false)}>
-                  <Square className="mr-2 h-3.5 w-3.5 fill-current" /> End
-                </MagneticButton>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ───── Now playing ───── */}
-      <aside className="flex min-h-0 shrink-0 flex-col gap-3 lg:w-[360px]">
-        <Panel className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3">
-          <div className="relative min-h-[110px] flex-1 overflow-hidden rounded-2xl">
-            <div className={current?.kind === 'tv' ? 'absolute inset-0' : 'invisible absolute inset-0'}>
-              <VideoSurface className="h-full w-full" />
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        {/* session */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }} className="min-h-0">
+          <Panel className="flex h-full min-h-0 flex-col gap-3 p-4 sm:p-5">
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Ring progress={progress} left={left} running={running} paused={!!session?.paused} ready={!!session} />
             </div>
-            {current?.kind !== 'tv' && (
-              <div className="absolute inset-0 grid place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-violet-950/60 to-fuchsia-950/40">
-                <MorphingBlob width={260} height={260} baseRadius={78} variance={22} speed={running ? 1.4 : 0.7} colors={['#a855f7', '#c8ff3d']} className="absolute inset-0 m-auto opacity-70" />
-                <div className="relative flex flex-col items-center gap-2">
-                  {current ? <Logo item={current} size={64} /> : <div className="font-display text-sm text-white/60">Silence is allowed too</div>}
-                  {current && <Eq playing={status === 'playing'} className="text-2xl" />}
+            <div className="rule pt-3">
+              <Strip
+                compact
+                cells={[
+                  { label: 'Blocked today', value: <AnimatedNumber value={blocked} />, note: 'scroll attempts' },
+                  { label: 'Held today', value: <AnimatedNumber value={Math.round(held)} />, unit: 'min', note: `of ${goal} min goal` },
+                  { label: 'Streak', value: <AnimatedNumber value={days} />, unit: days === 1 ? 'day' : 'days', note: '10+ min each day' },
+                ]}
+              />
+            </div>
+          </Panel>
+        </motion.div>
+
+        {/* now playing */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: 0.05 }} className="hidden min-h-0 lg:block">
+          <Panel className="flex h-full min-h-0 flex-col gap-3 p-3">
+            <div className="relative min-h-[120px] flex-1 overflow-hidden rounded-md">
+              <VideoSurface className="absolute inset-0" />
+              {current?.kind === 'radio' && (
+                <div className="absolute inset-0 z-[4] grid place-items-center bg-signal-soft">
+                  <div className="flex flex-col items-center gap-3">
+                    <Logo item={current} size={64} />
+                    <Eq playing={status === 'playing'} className="!h-5 [&>i]:!w-[3px]" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium text-ink">
+                  {current ? <TextScrambleDecoder key={current.id} text={current.name} trigger="mount" duration={700} className="!font-sans !text-sm !tracking-normal" /> : 'Nothing playing'}
+                </div>
+                <div className="truncate text-[13px] text-ink-2">
+                  {status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable' : current?.meta || 'Pick something below'}
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-white">{current?.name ?? 'Nothing playing'}</div>
-              <div className="truncate text-xs text-white/50">
-                {status === 'loading' ? 'Connecting…' : status === 'error' ? 'Stream unavailable' : current?.meta || 'Pick a station or channel'}
-              </div>
+              <Transport compact />
             </div>
-            <Transport compact />
-          </div>
-
-          {session && (
-            <Seg
-              id="src"
-              value={current?.kind ?? 'silent'}
-              onChange={(id) => id === 'radio' ? go('radio') : id === 'tv' ? go('tv') : stop()}
-              tabs={[{ id: 'radio', label: 'Radio' }, { id: 'tv', label: 'TV' }, { id: 'silent', label: 'Silent' }]}
-            />
-          )}
-
-          <div className="flex flex-wrap gap-1.5">
-            {PRESETS.map((p, i) => (
-              <motion.button
-                key={p.label}
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 + i * 0.05, type: 'spring', stiffness: 300, damping: 18 }}
-                whileHover={{ scale: 1.07, y: -2 }}
-                whileTap={{ scale: 0.92 }}
-                disabled={!!busy}
-                onClick={() => preset(p)}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-lime-300/60 hover:text-lime-200 disabled:opacity-50"
-              >
-                {busy === p.label ? 'Tuning…' : p.label}
-              </motion.button>
-            ))}
-          </div>
-
-          {recent.length > 0 && !session && (
-            <div className="hidden min-h-0 gap-1.5 overflow-hidden sm:flex sm:flex-wrap">
-              {recent.slice(0, 3).map((r) => (
-                <button key={r.id} onClick={() => play(r, recent)} className="flex max-w-full items-center gap-2 rounded-xl bg-white/5 px-2 py-1 text-left text-xs text-white/70 hover:bg-white/10">
-                  <Logo item={r} size={22} />
-                  <span className="truncate">{r.name}</span>
-                </button>
+            <ul className="rule" aria-label="Quick tune">
+              {PRESETS.map((p, i) => (
+                <motion.li key={p.label} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.04, duration: 0.2 }}>
+                  <button
+                    onClick={() => void preset(p)}
+                    disabled={!!busy}
+                    className="group flex h-9 w-full items-center justify-between border-b border-[var(--rule)] px-1 text-left text-sm text-ink transition-colors last:border-b-0 hover:bg-raised disabled:opacity-60"
+                  >
+                    <span>{busy === p.label ? 'Tuning…' : p.label}</span>
+                    <span className="text-[13px] text-ink-3">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
+                  </button>
+                </motion.li>
               ))}
+            </ul>
+            {recent.length > 0 && (
+              <button onClick={() => play(recent[0], recent)} className="truncate px-1 text-left text-[13px] text-ink-2 hover:text-ink">
+                Resume {recent[0].name}
+              </button>
+            )}
+            <div className="flex gap-3 px-1 text-[13px]">
+              <button className="text-ink underline decoration-[var(--control)] underline-offset-4 hover:decoration-ink" onClick={() => go('radio')}>Browse radio</button>
+              <button className="text-ink underline decoration-[var(--control)] underline-offset-4 hover:decoration-ink" onClick={() => go('tv')}>Browse TV</button>
             </div>
-          )}
+          </Panel>
+        </motion.div>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: 0.1 }} className="hidden shrink-0 [@media(min-height:780px)]:block">
+        <Panel className="px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-base font-semibold">Today</h2>
+            <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, scrolls blocked underneath</span>
+          </div>
+          <Listings />
         </Panel>
-      </aside>
+      </motion.div>
+      <Sheet open={tune} onOpenChange={setTune}>
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <SheetTitle>Tune in</SheetTitle>
+            <SheetDescription>Pick something to stay with, then lock in.</SheetDescription>
+          </SheetHeader>
+          <SheetBody>
+            <ul>
+              {PRESETS.map((p) => (
+                <li key={p.label}>
+                  <button
+                    onClick={() => { setTune(false); void preset(p) }}
+                    className="flex h-12 w-full items-center justify-between border-b border-[var(--rule)] text-left text-[15px] text-ink last:border-b-0"
+                  >
+                    <span>{p.label}</span>
+                    <span className="text-sm text-ink-2">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex gap-2">
+              <button className="h-11 flex-1 rounded-md border border-[var(--control)] text-sm" onClick={() => { setTune(false); go('radio') }}>Browse radio</button>
+              <button className="h-11 flex-1 rounded-md border border-[var(--control)] text-sm" onClick={() => { setTune(false); go('tv') }}>Browse TV</button>
+            </div>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
     </section>
   )
 }
-

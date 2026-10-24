@@ -1,51 +1,48 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { useEffect } from 'react'
 import { useFx, type Burst } from '@/lib/fx'
 
-const LINES = ['resisted', 'nice try', 'eyes up', 'not today', 'stay here', 'held the line', 'no feed']
-
-function Pop({ b }: { b: Burst }) {
+function Chip({ b }: { b: Burst }) {
   const drop = useFx((s) => s.drop)
   useEffect(() => {
-    const t = setTimeout(() => drop(b.id), 1100)
+    const t = setTimeout(() => drop(b.id), 900)
     return () => clearTimeout(t)
   }, [b.id, drop])
-  const x = Math.min(Math.max(b.x, 70), innerWidth - 70)
-  const y = Math.min(Math.max(b.y, 90), innerHeight - 120)
+  const x = Math.min(Math.max(b.x, 64), innerWidth - 64)
+  const y = Math.min(Math.max(b.y, 72), innerHeight - 120)
   return (
-    <div className="pointer-events-none fixed z-[70]" style={{ left: x, top: y }}>
-      <div style={{ animation: 'float-up 1100ms cubic-bezier(.2,.8,.2,1) forwards' }} className="-translate-x-1/2 text-center">
-        <div className="font-display text-xl font-black text-[#ff7cf5] drop-shadow-[0_0_12px_rgba(255,61,242,.9)]">+1</div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-fuchsia-200/90">
-          {LINES[b.id % LINES.length]}
-        </div>
-      </div>
-      {[...Array(10)].map((_, i) => {
-        const a = (i / 10) * Math.PI * 2
-        return (
-          <motion.span
-            key={i}
-            className="absolute left-0 top-0 h-1.5 w-1.5 rounded-full"
-            style={{ background: i % 2 ? '#c8ff3d' : '#ff3df2' }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-            animate={{ x: Math.cos(a) * 64, y: Math.sin(a) * 64, opacity: 0, scale: 0.2 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          />
-        )
-      })}
-    </div>
+    <motion.div
+      className="pointer-events-none fixed z-[70] -translate-x-1/2 rounded-full border border-[var(--control)] bg-surface px-2.5 py-1 text-[13px] font-medium text-ink float-lift"
+      style={{ left: x, top: y }}
+      initial={{ opacity: 0, y: 6, scale: 0.9 }}
+      animate={{ opacity: [0, 1, 1, 0], y: -26, scale: 1 }}
+      transition={{ duration: 0.9, times: [0, 0.15, 0.7, 1], ease: [0.2, 0, 0, 1] }}
+    >
+      Blocked <span className="fig text-ink-2">#{b.n}</span>
+    </motion.div>
   )
 }
 
-/** Edge flash + floating "+1" whenever a scroll attempt is swallowed. */
+/** A blocked scroll answers back: a chip where you tried, and the canvas recoils. */
 export function UrgeLayer() {
   const bursts = useFx((s) => s.bursts)
   const flash = useFx((s) => s.flash)
+
+  useEffect(() => {
+    if (!flash) return
+    const el = document.getElementById('canvas')
+    if (!el) return
+    el.classList.remove('recoil')
+    void el.offsetWidth
+    el.classList.add('recoil')
+    const t = setTimeout(() => el.classList.remove('recoil'), 400)
+    return () => clearTimeout(t)
+  }, [flash])
+
   return (
     <>
-      <AnimatePresence>{flash > 0 && <div key={flash} className="urge-flash" />}</AnimatePresence>
       {bursts.map((b) => (
-        <Pop key={b.id} b={b} />
+        <Chip key={b.id} b={b} />
       ))}
     </>
   )

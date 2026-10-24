@@ -10,13 +10,13 @@ export function RadioView() {
   return (
     <Browser
       kind="radio"
-      kicker="Internet radio"
-      title="Sound that holds you"
+      title="Radio"
+      sub="Internet stations from the Radio Browser directory, most listened first."
       chips={FOCUS_TAGS}
       initialChip="lofi"
       load={load}
       remoteSearch
-      placeholder="Search thousands of stations…"
+      placeholder="Search stations"
     />
   )
 }

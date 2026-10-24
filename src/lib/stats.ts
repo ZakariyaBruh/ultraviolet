@@ -77,3 +77,30 @@ export function totals(s: Pick<AppState, 'focusLog' | 'urgeLog' | 'lapseLog'>) {
   const lapses = Object.values(s.lapseLog).reduce((a, b) => a + b, 0)
   return { focus, urges, lapses }
 }
+
+/** Blocked scrolls per focused hour, or null when there was too little focus to say. */
+export function blockedPerHour(focusMin: number, blocked: number): number | null {
+  return focusMin >= 10 ? Math.round((blocked / (focusMin / 60)) * 10) / 10 : null
+}
+
+export function lastWeeks(log: Record<string, number[]>, endOffsetDays: number, days: number): number {
+  let t = 0
+  for (let i = endOffsetDays; i < endOffsetDays + days; i++) t += dayTotal(log, dateKey(daysAgo(i)))
+  return t
+}
+
+/** The three parts that make the attention score, each 0–1, with their weights. */
+export function scoreParts(s: Pick<AppState, 'focusLog' | 'urgeLog' | 'settings'>) {
+  const today = dateKey()
+  const focus = dayTotal(s.focusLog, today)
+  const goal = Math.min(1, focus / Math.max(1, s.settings.dailyGoalMin))
+  const run = Math.min(7, streak(s.focusLog)) / 7
+  const urges = dayTotal(s.urgeLog, today)
+  const per = focus > 1 ? urges / (focus / 60) : null
+  const calm = per === null ? 0.5 : 1 - Math.min(1, per / 30)
+  return [
+    { label: 'Daily goal', note: `${Math.round(focus)} of ${s.settings.dailyGoalMin} min`, weight: 55, value: goal },
+    { label: 'Streak', note: `${Math.min(7, streak(s.focusLog))} of 7 days`, weight: 25, value: run },
+    { label: 'Calm', note: per === null ? 'no focus yet, counts as half' : `${Math.round(per * 10) / 10} blocked per hour`, weight: 20, value: calm },
+  ]
+}

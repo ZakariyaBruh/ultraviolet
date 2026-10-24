@@ -37,6 +37,22 @@ if (audio) {
 if (video) {
   video.playsInline = true
   video.className = 'h-full w-full object-cover'
+  video.poster = barsPoster()
+}
+
+/** Greyscale test bars as a tiny data-URI poster, shown before any channel plays. */
+function barsPoster(): string {
+  const tones = ['#e9ebef', '#d9dce2', '#c6cad2', '#b1b6c0', '#9aa0ac', '#848b98', '#6d7482']
+  const c = document.createElement('canvas')
+  c.width = 112
+  c.height = 63
+  const g = c.getContext('2d')
+  if (!g) return ''
+  tones.forEach((t, i) => {
+    g.fillStyle = t
+    g.fillRect(i * 16, 0, 16, 63)
+  })
+  return c.toDataURL('image/png')
 }
 
 const active = () => (usePlayer.getState().current?.kind === 'tv' ? video : audio)
