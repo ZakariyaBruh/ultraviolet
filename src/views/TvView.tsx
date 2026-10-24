@@ -1,47 +1,46 @@
+import { Maximize2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useCallback } from 'react'
 import { Browser } from '@/components/app/Browser'
-import { Eq, Logo, Panel, Transport, VideoSurface } from '@/components/app/shared'
+import { Glass } from '@/components/app/glass'
+import { Logo } from '@/components/app/shared'
+import { StackUnfoldPanel } from '@/components/ui/stack-unfold-panel'
 import { fetchCategory, TV_CATEGORIES, type TvCategory } from '@/lib/iptv'
 import { play, usePlayer } from '@/lib/player'
+import { useUI } from '@/lib/ui'
 
-function Screen() {
+/** The channel itself is the backdrop. This side only says what is on and what is next. */
+function Stage() {
   const { current, status } = usePlayer()
   const queue = usePlayer((s) => s.queue)
+  const set = useUI((s) => s.set)
   const tv = current?.kind === 'tv' ? current : null
   const idx = tv ? queue.findIndex((q) => q.id === tv.id) : -1
-  const upNext = idx >= 0 ? queue.slice(idx + 1, idx + 5) : []
+  const next = idx >= 0 ? queue.slice(idx + 1, idx + 4) : []
   return (
-    <div className="grid gap-4">
-      <Panel className={`items-center gap-3 p-3 lg:flex lg:flex-col lg:items-stretch ${tv ? 'flex' : 'hidden'}`}>
-        <VideoSurface className="aspect-video w-24 shrink-0 sm:w-40 lg:w-full" />
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-1 lg:flex-none">
-          <div className="flex min-w-0 items-center gap-3">
-            {tv && <span className="hidden min-[400px]:block"><Logo item={tv} size={32} /></span>}
+    <div className="flex h-full min-h-0 flex-col justify-between">
+      <div className="flex justify-end">
+        {tv && (
+          <Glass clear radius={999} as="button" onClick={() => set({ theatre: true })} className="inline-flex h-11 items-center gap-2 px-4 text-sm text-ink">
+            <Maximize2 className="size-4" /> Theatre
+          </Glass>
+        )}
+      </div>
+      {!tv ? (
+        <div className="self-center rounded-3xl border border-dashed border-white/20 px-8 py-6 text-center text-sm text-ink-2">Pick a channel and it goes on air behind everything.</div>
+      ) : (
+        <div className="grid gap-3 self-end md:max-w-[360px]">
+          <Glass clear radius={22} className="flex items-center gap-3 p-3">
+            <Logo item={tv} size={44} />
             <div className="min-w-0">
-              <div className="flex items-center gap-2 truncate text-sm font-medium text-ink">
-                {tv?.name ?? 'Off air'} {tv && <Eq playing={status === 'playing'} />}
-              </div>
-              <div className="truncate text-[13px] text-ink-2">{tv?.meta || 'Public streams, some go offline'}</div>
+              <div className="truncate text-sm font-medium text-ink">{tv.name}</div>
+              <div className="truncate text-[13px] text-ink-2">{status === 'loading' ? 'Tuning…' : tv.meta}</div>
             </div>
-          </div>
-          <Transport compact />
+          </Glass>
+          {next.length > 0 && (
+            <div className="material p-2 [--r:20px]"><StackUnfoldPanel variant="minimal" cards={next.map((u, i) => ({ id: u.id, title: u.name, subtitle: `Up next ${i + 1}`, content: <button onClick={() => play(u)} className="text-sm text-signal hover:underline">Switch to {u.name}</button> }))} /></div>
+          )}
         </div>
-      </Panel>
-      {upNext.length > 0 && (
-        <Panel className="hidden p-3 lg:block">
-          <h2 className="mb-1 px-1 text-sm font-semibold">Up next</h2>
-          <ul>
-            {upNext.map((u, i) => (
-              <motion.li key={u.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05, duration: 0.2 }}>
-                <button onClick={() => play(u)} className="flex h-11 w-full items-center gap-3 border-b border-[var(--rule)] px-1 text-left last:border-b-0 hover:bg-raised">
-                  <Logo item={u} size={28} />
-                  <span className="min-w-0 truncate text-sm text-ink">{u.name}</span>
-                </button>
-              </motion.li>
-            ))}
-          </ul>
-        </Panel>
       )}
     </div>
   )
@@ -50,16 +49,8 @@ function Screen() {
 export function TvView() {
   const load = useCallback((cat: string) => fetchCategory(cat as TvCategory), [])
   return (
-    <Browser
-      kind="tv"
-      title="TV"
-      sub="Live public channels from iptv-org. Dead streams are skipped automatically."
-      chips={TV_CATEGORIES}
-      initialChip="documentary"
-      load={load}
-      remoteSearch={false}
-      placeholder="Filter channels"
-      side={<Screen />}
-    />
+    <motion.div className="h-full" initial={false}>
+      <Browser kind="tv" layout="rail" kicker="Live IPTV" title="TV" sub="Public channels from iptv-org. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="documentary" load={load} remoteSearch={false} placeholder="Filter channels" aside={<Stage />} />
+    </motion.div>
   )
 }

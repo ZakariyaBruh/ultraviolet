@@ -61,7 +61,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
     <div className={cn('flex flex-col gap-4', className)}>
       <div
         className={cn(
-          'flex max-w-full items-center gap-0.5 self-start select-none sm:gap-1',
+          'flex items-center gap-1 self-start select-none',
           isGlass
             ? 'p-1 rounded-full bg-surface-raised backdrop-blur-xl border border-border dark:bg-[#0E0E0E] dark:border-[#1F1F1F]'
             : 'p-1 rounded-lg bg-surface-raised border border-border dark:bg-[#0E0E0E] dark:border-[#1F1F1F]',
@@ -78,7 +78,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
                 'relative text-xs sm:text-sm font-medium transition-colors focus-ring select-none flex items-center gap-2 cursor-pointer',
                 isGlass
                   ? 'px-4 py-1.5 rounded-full'
-                  : 'px-2 py-2.5 sm:px-3.5 sm:py-1.5 rounded-md',
+                  : 'px-3.5 py-1.5 rounded-md',
                 isActive
                   ? 'text-text-primary font-medium dark:text-[#FAFAFA]'
                   : 'text-text-muted hover:text-text-secondary dark:text-[#6B6B6B] dark:hover:text-[#A1A1A1]'

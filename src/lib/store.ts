@@ -40,6 +40,21 @@ export interface ActiveSession {
   title: string
 }
 
+export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system'
+
+export interface EventRec {
+  id: string
+  t: number
+  kind: EventKind
+  text: string
+  read: boolean
+}
+
+export interface Profile {
+  name: string
+  since: number
+}
+
 export interface Settings {
   dailyGoalMin: number
   sessionMin: number
@@ -48,6 +63,8 @@ export interface Settings {
   volume: number
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
+  /** liquid: blur + refraction · frost: blur only · solid: opaque (also forced by Reduce Transparency) */
+  glass: 'liquid' | 'frost' | 'solid'
 }
 
 type HourLog = Record<string, number[]>
@@ -67,6 +84,8 @@ interface Data {
   recent: MediaItem[]
   seenIntro: boolean
   demo: boolean
+  profile: Profile | null
+  events: EventRec[]
 }
 
 interface Actions {
@@ -81,6 +100,10 @@ interface Actions {
   toggleFavorite: (item: MediaItem) => void
   pushRecent: (item: MediaItem) => void
   markIntroSeen: () => void
+  setProfile: (p: Profile | null) => void
+  log: (kind: EventKind, text: string) => void
+  markEventsRead: () => void
+  markEventRead: (id: string) => void
   loadDemo: () => void
   resetAll: () => void
   restore: (snapshot: Data) => void
@@ -99,6 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 2,
   volume: 0.8,
   guard: true,
+  glass: 'liquid',
 }
 
 const emptyData = (): Data => ({
@@ -113,9 +137,11 @@ const emptyData = (): Data => ({
   recent: [],
   seenIntro: false,
   demo: false,
+  profile: null,
+  events: [],
 })
 
-const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
+export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
 
 const zeros = () => new Array<number>(24).fill(0)
 
@@ -222,6 +248,7 @@ export const useStore = create<AppState>()(
           urgeLog: { ...s.urgeLog, [key]: row },
           session: s.session ? { ...s.session, urges: s.session.urges + 1 } : null,
         })
+        get().log('blocked', s.session ? `Scroll blocked during ${s.session.title}` : 'Scroll blocked')
       },
 
       addLapse: () => {
@@ -231,6 +258,7 @@ export const useStore = create<AppState>()(
           lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
           session: s.session ? { ...s.session, lapses: s.session.lapses + 1 } : null,
         })
+        get().log('wander', 'You left the tab mid-session')
       },
 
       togglePause: () =>
@@ -256,6 +284,7 @@ export const useStore = create<AppState>()(
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
         })
+        get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 
       toggleFavorite: (item) =>
@@ -270,9 +299,20 @@ export const useStore = create<AppState>()(
 
       markIntroSeen: () => set({ seenIntro: true }),
 
+      setProfile: (profile) => set({ profile }),
+
+      log: (kind, text) =>
+        set((s) => ({
+          events: [{ id: uid(), t: Date.now(), kind, text, read: false }, ...s.events].slice(0, 200),
+        })),
+
+      markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),
+
+      markEventRead: (id) => set((s) => ({ events: s.events.map((e) => (e.id === id ? { ...e, read: true } : e)) })),
+
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
@@ -395,3 +435,6 @@ function makeDemo(): Data {
   d.demo = true
   return d
 }
+
+// dev-only handle so screenshots and tests can seed data
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __store: typeof useStore }).__store = useStore

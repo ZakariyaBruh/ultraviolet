@@ -9,16 +9,22 @@ export interface SkeletonProps extends React.ComponentProps<"div"> {}
 /** A quiet block with a slow light sweep. Size it with className. */
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
-    <motion.div
+    <div
       aria-hidden
-      className={cn("rounded-md bg-raised", className)}
-      animate={{ opacity: [0.55, 1, 0.55] }}
-      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-      {...(props as object)}
-    />
+      className={cn("relative overflow-hidden rounded-md bg-neutral-200/70 dark:bg-neutral-800/70", className)}
+      {...props}
+    >
+      <motion.span
+        className="absolute inset-0 bg-[linear-gradient(90deg,transparent,var(--sk),transparent)] [--sk:rgb(255_255_255/0.65)] dark:[--sk:rgb(255_255_255/0.07)]"
+        initial={{ x: "-100%" }}
+        animate={{ x: "100%" }}
+        transition={{ duration: 1.6, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.2 }}
+      />
+    </div>
   );
 }
-const WIDTHS = ["100%", "92%", "84%", "96%"];
+
+const WIDTHS = ["100%", "94%", "98%", "88%"];
 
 export interface SkeletonTextProps {
   lines?: number;

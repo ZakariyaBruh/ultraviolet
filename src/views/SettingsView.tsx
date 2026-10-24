@@ -1,153 +1,125 @@
-import { Download, FlaskConical, Upload } from 'lucide-react'
-import { motion } from 'motion/react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
-import { useMedia } from '@/lib/hooks'
+import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
+import { CodeSnippetDeck } from '@/components/ui/code-snippet-deck'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
+import { DrawCheckbox } from '@/components/ui/draw-checkbox'
+import { FAQ } from '@/components/ui/faq'
 import { LiquidToggle } from '@/components/ui/liquid-toggle'
-import { SmoothAccordion } from '@/components/ui/smooth-accordion'
+import { SpringSelect } from '@/components/ui/spring-select'
+import { StretchSwitch } from '@/components/ui/stretch-switch'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
-import { useFx } from '@/lib/fx'
-import { setVolume } from '@/lib/player'
-import { snapshotData, useStore } from '@/lib/store'
+import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
+import { useMedia } from '@/lib/hooks'
+import { useUI } from '@/lib/ui'
 
-const RULES = [
-  { id: 'a', title: 'There is no feed', content: 'Nothing sits below the screen and nothing loads when you pull. Lists page, charts are tabs.' },
-  { id: 'b', title: 'Every scroll attempt is counted', content: 'A wheel turn, a swipe or a scroll key is swallowed and logged as a blocked scroll. Fewer per focused hour is the goal.' },
-  { id: 'c', title: 'Leaving is logged, not punished', content: 'If you switch away mid-session for longer than a few seconds, the timer waits and the absence is recorded as a wandering.' },
-  { id: 'd', title: 'Your data stays here', content: 'History lives in this browser. Radio and TV requests go to their public directories; nothing else leaves your device.' },
-]
+const snapshot = (s: AppState) => {
+  const o: Record<string, unknown> = {}
+  for (const k of DATA_KEYS) o[k] = s[k]
+  return o
+}
 
-function Row({ title, hint, children }: { title: string; hint: ReactNode; children: ReactNode }) {
+function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-3 border-b border-[var(--border)] py-6 first:pt-0 last:border-b-0 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:gap-10">
-      <div>
-        <h2 className="text-base font-medium text-ink">{title}</h2>
-        <p className="mt-1 text-sm text-ink-2">{hint}</p>
+    <div className="flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-2 last:border-b-0">
+      <div className="min-w-0">
+        <div className="text-[15px] text-ink">{title}</div>
+        {hint && <div className="text-xs text-ink-3">{hint}</div>}
       </div>
-      <Panel className="min-w-0 p-4">{children}</Panel>
-    </section>
+      <div className="shrink-0">{children}</div>
+    </div>
+  )
+}
+
+function Focus() {
+  const wide = useMedia('(min-width: 640px)')
+  const s = useStore((x) => x.settings)
+  const set = useStore((x) => x.setSettings)
+  return (
+    <Panel className="rounded-3xl p-5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-6">
+        <div className="flex flex-col items-center gap-1">
+          <TorqueDial label="Daily goal" value={s.dailyGoalMin} min={15} max={480} step={15} unit="min" onChange={(v) => set({ dailyGoalMin: v })} size={wide ? 150 : 112} />
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <TorqueDial label="Session length" value={s.sessionMin} min={10} max={90} step={5} unit="min" onChange={(v) => set({ sessionMin: v })} size={wide ? 150 : 112} />
+        </div>
+      </div>
+      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
+    </Panel>
+  )
+}
+
+function Look() {
+  const s = useStore((x) => x.settings)
+  const set = useStore((x) => x.setSettings)
+  return (
+    <Panel className="rounded-3xl p-5">
+      <Row title="Motion" hint="Calm is still. Lots turns on every effect.">
+        <Seg id="set-motion" value={String(s.motion)} onChange={(v) => set({ motion: Number(v) as 0 | 1 | 2 })} tabs={[{ id: '0', label: 'Calm' }, { id: '1', label: 'Lively' }, { id: '2', label: 'Lots' }]} />
+      </Row>
+      <Row title="Glass" hint="Reduce Transparency in your system forces Solid">
+        <SpringSelect value={s.glass} onChange={(v) => set({ glass: v as typeof s.glass })} options={[{ value: 'liquid', label: 'Liquid', description: 'Blur and refraction' }, { value: 'frost', label: 'Frost', description: 'Blur only' }, { value: 'solid', label: 'Solid', description: 'Opaque' }]} />
+      </Row>
+      <Row title="Sound volume"><StretchSwitch checked={s.volume > 0} onChange={(c) => set({ volume: c ? 0.7 : 0 })} /></Row>
+    </Panel>
+  )
+}
+
+function Data() {
+  const [confirmed, setConfirmed] = useState(false)
+  const json = JSON.stringify(snapshot(useStore.getState()), null, 2)
+  return (
+    <div className="grid min-h-0 gap-4 md:grid-cols-2">
+      <Panel className="rounded-3xl p-4">
+        <AnimatedFileUpload accept={['.json']} multiple={false} maxFiles={1} dropTitle="Import a backup" dropSubtitle="or browse for a .json file" onFilesSelected={async (files) => {
+          const ok = useStore.getState().importData(await files[0].text())
+          fx_say({ title: ok ? 'Backup imported' : 'Could not read that file', variant: ok ? 'success' : 'danger' })
+        }} />
+      </Panel>
+      <Panel className="flex flex-col gap-3 rounded-3xl p-4">
+        <CodeSnippetDeck snippets={[{ language: 'json', label: 'Export', filename: 'anti-scroll.json', code: json.slice(0, 600) + (json.length > 600 ? '\n…' : '') }]} />
+        <button className="h-11 rounded-full border border-white/15 text-sm text-ink" onClick={() => {
+          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: 'anti-scroll.json' })
+          a.click()
+        }}>Download backup</button>
+        <DrawCheckbox label="Everything stays in this browser" description="Nothing is sent anywhere. Clearing site data erases it." checked readOnly />
+        <DragToConfirm label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={() => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); fx_say({ title: 'All data erased', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
+      </Panel>
+    </div>
+  )
+}
+
+function Help() {
+  return (
+    <Panel className="rounded-3xl p-4" data-allow-scroll>
+      <FAQ variant="separated" items={[
+        { id: '1', question: 'What counts as a blocked scroll?', answer: 'A wheel turn, vertical swipe or scroll key the app swallowed while the guard was on.' },
+        { id: '2', question: 'Where is my data?', answer: 'In localStorage and IndexedDB in this browser. There is no account and no server.' },
+        { id: '3', question: 'Why does a lapse happen?', answer: 'Leaving the tab for six seconds or more during a session is logged as a lapse.' },
+      ]} />
+      <div className="mt-3 flex gap-2">
+        <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => useUI.getState().set({ tourOpen: true })}>Replay tour</button>
+        <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => { useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', variant: 'success' }) }}>Load demo data</button>
+      </div>
+    </Panel>
   )
 }
 
 export function SettingsView() {
-  const settings = useStore((s) => s.settings)
-  const setSettings = useStore((s) => s.setSettings)
-  const demo = useStore((s) => s.demo)
-  const file = useRef<HTMLInputElement>(null)
-  const [usage, setUsage] = useState('')
-  const [tab, setTab] = useState<'session' | 'sound' | 'display' | 'data' | 'about'>('session')
-  const wide = useMedia('(min-width: 768px)')
-
-  useEffect(() => {
-    navigator.storage?.estimate?.().then((e) => {
-      if (e.usage != null) setUsage(e.usage > 1e6 ? `${(e.usage / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(e.usage / 1e3))} KB`)
-    }).catch(() => undefined)
-  }, [demo])
-
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(snapshotData(), null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `anti-scroll-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-  }
-
-  const importJson = async (f?: File | null) => {
-    if (!f) return
-    const ok = useStore.getState().importData(await f.text())
-    fx_say(ok ? { title: 'History imported', variant: 'success' } : { title: 'That file could not be read', description: 'Choose a file exported from Anti-Scroll.', variant: 'danger' })
-  }
-
-  const reset = () => {
-    const before = snapshotData()
-    useStore.getState().resetAll()
-    useFx.getState().say({
-      title: 'All data erased',
-      description: 'History, saved listings and settings are gone from this browser.',
-      variant: 'danger',
-      undo: () => useStore.getState().restore(before),
-    })
-  }
-
-  const btn = 'inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--control)] bg-surface px-3 text-[13px] font-medium text-ink transition-colors hover:bg-raised'
-
+  const [tab, setTab] = useState('focus')
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4">
-      <PageHeader title="Settings" sub="Saved in this browser the moment you change them.">
-        <Seg id="set" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={(wide ? [{ id: 'session', label: 'Session' }] : [{ id: 'session', label: 'Focus' }, { id: 'sound', label: 'Sound' }]).concat([{ id: 'display', label: 'Display' }, { id: 'data', label: 'Data' }, { id: 'about', label: 'About' }])} />
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <PageHeader kicker="Settings" title="Make it yours">
+        <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Focus' }, { id: 'look', label: 'Look' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
       </PageHeader>
-
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}>
-          {(tab === 'session' || tab === 'sound') && (<>
-          {(wide || tab === 'session') && (
-          <Row title="Focus" hint="Your default session and the daily total the score is measured against.">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-              <div>
-                <div className="mb-1.5 text-sm font-medium">Session length</div>
-                <Seg id="sl" value={String(settings.sessionMin)} onChange={(id) => setSettings({ sessionMin: Number(id) })} tabs={[15, 25, 45, 60].map((m) => ({ id: String(m), label: `${m} min` }))} />
-              </div>
-              <div className="flex items-center gap-4">
-                <TorqueDial value={settings.dailyGoalMin} min={15} max={240} step={15} unit="m" size={88} label="Daily goal" onChange={(v) => setSettings({ dailyGoalMin: v })} />
-                <div className="text-sm text-ink-2">
-                  <div className="font-medium text-ink">Daily goal</div>
-                  About {Math.round(settings.dailyGoalMin / settings.sessionMin)} sessions of {settings.sessionMin} min.
-                </div>
-              </div>
-            </div>
-          </Row>
-          )}
-
-          {(wide || tab === 'sound') && (
-          <Row title="Sound" hint="Applies to radio and TV alike.">
-            <div className="flex items-center gap-4">
-              <TorqueDial value={Math.round(settings.volume * 100)} min={0} max={100} step={5} unit="%" size={88} label="Volume" onChange={(v) => setVolume(v / 100)} />
-              <div className="text-sm text-ink-2"><div className="font-medium text-ink">Volume</div>Turn the dial, or drag it.</div>
-            </div>
-          </Row>
-          )}
-          </>)}
-          {tab === 'display' && (
-          <Row title="Scroll guard and motion" hint="Block and count scroll gestures, and choose how much the screen moves. Your system's reduce-motion setting always wins.">
-            <div className="grid gap-5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="text-sm"><div className="font-medium text-ink">Block scroll gestures</div><div className="text-ink-2">Wheel, swipe and scroll keys are swallowed and counted.</div></div>
-                <LiquidToggle value={settings.guard !== false} onChange={(v) => setSettings({ guard: v })} showLabels={false} width={48} height={28} offLabel="Scroll guard off" onLabel="Scroll guard on" accentColor="#141414" />
-              </div>
-              <div>
-                <div className="mb-1.5 text-sm font-medium">Motion</div>
-                <Seg id="mo" value={String(settings.motion)} onChange={(id) => setSettings({ motion: Number(id) as 0 | 1 | 2 })} tabs={[{ id: '0', label: 'Calm' }, { id: '1', label: 'Lively' }, { id: '2', label: 'Lots' }]} />
-                <p className="mt-1.5 text-[13px] text-ink-2">Calm keeps only what answers a tap. Lively adds rolling figures and entrances. Lots adds the pointer-reactive dot field and a second orbit on the timer.</p>
-              </div>
-            </div>
-          </Row>
-
-          )}
-          {tab === 'data' && (
-          <Row title="Your data" hint={`Everything is stored on this device${usage ? `, ${usage} in use` : ''}. Export it, move it, or erase it.`}>
-            <div className="flex flex-wrap gap-2">
-              <button className={btn} onClick={exportJson}><Download className="size-3.5" />Export JSON</button>
-              <button className={btn} onClick={() => file.current?.click()}><Upload className="size-3.5" />Import</button>
-              <button className={btn} onClick={() => { useStore.getState().loadDemo(); fx_say({ title: 'Demo history loaded', description: 'Made-up data so the charts have something to show. Erase it any time.', variant: 'success' }) }}><FlaskConical className="size-3.5" />Load demo history</button>
-              <input ref={file} type="file" accept="application/json" hidden onChange={(e) => { void importJson(e.target.files?.[0]); e.target.value = '' }} />
-            </div>
-            <div className="mt-4 max-w-sm">
-              <div className="mb-1.5 text-sm"><span className="font-medium text-[#c4242a]">Erase all data</span> <span className="text-ink-2">Drag to confirm. You can undo for a few seconds.</span></div>
-              <DragToConfirm label="Drag to erase everything" confirmedLabel="Erased" actionType="delete" onConfirm={reset} size="md" />
-            </div>
-          </Row>
-
-          )}
-          {tab === 'about' && (
-          <Row title="How it works" hint="Four rules the screen keeps.">
-            <SmoothAccordion items={RULES} defaultOpen={['b']} />
-          </Row>
-          )}
-        </motion.div>
+      <div className="min-h-0 flex-1">
+        {tab === 'focus' && <Focus />}
+        {tab === 'look' && <Look />}
+        {tab === 'data' && <Data />}
+        {tab === 'help' && <Help />}
       </div>
-    </section>
+    </div>
   )
 }

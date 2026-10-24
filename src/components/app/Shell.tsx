@@ -1,97 +1,148 @@
-import { BarChart3, Radio, Settings, Target, Tv } from 'lucide-react'
-import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { BarChart3, Bot, FlaskConical, Home, Menu, Radio, Search, Settings, Tv, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useMemo, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
-import { NowPlaying } from '@/components/app/NowPlaying'
-import { Sidebar } from '@/components/ui/sidebar'
-import { cn } from '@/lib/utils'
+import { PlayerIsland } from '@/components/app/PlayerIsland'
+import { GlassIconButton } from '@/components/app/shared'
+import { Glass } from '@/components/app/glass'
+import { GlassNavbar } from '@/components/ui/glass-navbar'
+import { NotificationBell } from '@/components/ui/notification-bell'
+import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
+import { cn } from '@/lib/utils'
 
-export type View = 'focus' | 'radio' | 'tv' | 'insights' | 'settings'
+export type View = 'focus' | 'radio' | 'tv' | 'insights' | 'coach' | 'lab' | 'settings'
 
-const ICON = 'size-[18px]'
+const ic = 'size-4'
 export const NAV: { id: View; label: string; icon: ReactNode }[] = [
-  { id: 'focus', label: 'Focus', icon: <Target className={ICON} /> },
-  { id: 'radio', label: 'Radio', icon: <Radio className={ICON} /> },
-  { id: 'tv', label: 'TV', icon: <Tv className={ICON} /> },
-  { id: 'insights', label: 'Insights', icon: <BarChart3 className={ICON} /> },
-  { id: 'settings', label: 'Settings', icon: <Settings className={ICON} /> },
+  { id: 'focus', label: 'Focus', icon: <Home className={ic} /> },
+  { id: 'radio', label: 'Radio', icon: <Radio className={ic} /> },
+  { id: 'tv', label: 'TV', icon: <Tv className={ic} /> },
+  { id: 'insights', label: 'Insights', icon: <BarChart3 className={ic} /> },
+  { id: 'coach', label: 'Coach', icon: <Bot className={ic} /> },
+  { id: 'lab', label: 'Lab', icon: <FlaskConical className={ic} /> },
+  { id: 'settings', label: 'Settings', icon: <Settings className={ic} /> },
 ]
+const TABS: View[] = ['focus', 'radio', 'tv', 'insights']
 
-function Brand() {
+function Brand({ compact }: { compact?: boolean }) {
   const live = useStore((s) => !!s.session && !s.session.paused)
   return (
-    <div className="flex min-w-0 items-center gap-2.5 text-ink">
-      <Mark size={26} />
-      <div className="min-w-0 leading-4">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          Anti-Scroll
-          {live && <span className="live-dot" role="status" aria-label="Session running" />}
-        </div>
-        <div className="truncate text-[13px] text-ink-2">On this device</div>
-      </div>
+    <div className="flex items-center gap-2 text-ink">
+      <Mark size={compact ? 24 : 22} />
+      <span className="text-sm font-semibold tracking-[-0.01em]">Anti-Scroll</span>
+      {live && <span className="live-dot" role="status" aria-label="Session running" />}
+    </div>
+  )
+}
+
+/** Bell + avatar + search: the right end of the bar. */
+export function BarTools() {
+  const events = useStore((s) => s.events)
+  const name = useStore((s) => s.profile?.name)
+  const mark = useStore((s) => s.markEventRead)
+  const markAll = useStore((s) => s.markEventsRead)
+  const set = useUI((s) => s.set)
+  const notifications = useMemo(() => events.slice(0, 30).map((e) => ({ id: e.id, message: e.text, timestamp: new Date(e.t), read: e.read })), [events])
+  return (
+    <div className="flex items-center gap-1.5">
+      <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-white/10 hover:text-ink">
+        <Search className={ic} />
+      </button>
+      <NotificationBell notifications={notifications} onMarkAsRead={mark} onMarkAllAsRead={markAll} />
+      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-signal/80 to-violet-400/80 text-sm font-semibold text-[#05060a]">
+        {(name ?? 'You')[0].toUpperCase()}
+      </button>
     </div>
   )
 }
 
 export function Shell({ view, onChange, children }: { view: View; onChange: (v: View) => void; children: ReactNode }) {
-  return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-ground text-ink">
-      {/* tablet and desktop: labelled sidebar on the page ground */}
-      <Sidebar
-        className="!border-r-0 !bg-transparent"
-        header={<Brand />}
-        sections={[
-          { items: NAV.slice(0, 3).map(({ id, label, icon }) => ({ id, label, icon })) },
-          { title: 'Review', items: NAV.slice(3).map(({ id, label, icon }) => ({ id, label, icon })) },
-        ]}
-        activeId={view}
-        onActiveChange={(id) => onChange(id as View)}
-        footer={<NowPlaying onOpen={() => onChange('focus')} />}
-      />
+  const wide = useMedia('(min-width: 1024px)')
+  const theatre = useUI((s) => s.theatre)
+  const set = useUI((s) => s.set)
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* phone: 48px bar with the screen name */}
-        <header className="flex h-12 shrink-0 items-center justify-between px-4 md:hidden">
-          <Brand />
-        </header>
-        <main id="canvas" className="min-h-0 flex-1 overflow-hidden px-4 pb-3 pt-1 md:px-9 md:pb-6 md:pt-8">
-          {children}
-        </main>
-        <aside aria-label="Now playing" className="shrink-0 px-3 md:hidden">
-          <NowPlaying onOpen={() => onChange('focus')} className="mb-2" />
-        </aside>
-        <TabBar view={view} onChange={onChange} />
+  return (
+    <div className="relative h-dvh w-screen overflow-hidden text-ink">
+      <AnimatePresence initial={false}>
+        {!theatre && (
+          <motion.div key="chrome" className="contents" exit={{ opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}>
+            {wide ? (
+              <header className="absolute inset-x-0 top-3 z-40 flex justify-center px-4">
+                <GlassNavbar
+                  variant="floating"
+                  glass
+                  brand={<Brand />}
+                  brandHref="#focus"
+                  activeId={view}
+                  className="!static !w-auto"
+                  items={NAV.map((n) => ({ id: n.id, label: n.label, href: `#${n.id}`, icon: n.icon, onClick: (e) => { e.preventDefault(); onChange(n.id) } }))}
+                  cta={<BarTools />}
+                />
+              </header>
+            ) : (
+              <header className="absolute inset-x-0 top-0 z-40 flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+                <Brand compact />
+                <BarTools />
+              </header>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main
+        id="canvas"
+        className={cn('absolute inset-0 overflow-hidden px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[92px]' : 'pb-[calc(138px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
+      >
+        <div className="mx-auto h-full w-full max-w-[1240px]">{children}</div>
+      </main>
+
+      {/* floating player */}
+      <div className={cn('pointer-events-none absolute inset-x-0 z-40 flex justify-center px-3', wide ? 'bottom-4' : 'bottom-[calc(70px+env(safe-area-inset-bottom))]')}>
+        <div className="pointer-events-auto"><PlayerIsland /></div>
       </div>
+
+      {theatre && (
+        <div className="absolute right-4 top-4 z-50">
+          <GlassIconButton label="Exit theatre mode" onClick={() => set({ theatre: false })}><X className={ic} /></GlassIconButton>
+        </div>
+      )}
+
+      {!wide && !theatre && <TabBar view={view} onChange={onChange} />}
     </div>
   )
 }
 
-/** Phone tab bar: five labelled destinations, 44pt targets, safe-area aware. */
+/** Phone and tablet: a Liquid Glass tab bar with labels. "More" opens the rest. */
 function TabBar({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+  const set = useUI((s) => s.set)
+  const items = [...TABS.map((id) => NAV.find((n) => n.id === id)!), { id: 'more' as const, label: 'More', icon: <Menu className={ic} /> }]
+  const inMore = !TABS.includes(view)
   return (
-    <nav aria-label="Sections" className="shrink-0 border-t border-[var(--border)] bg-surface pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden">
-      <ul className="grid grid-cols-5">
-        {NAV.map((n) => {
-          const on = view === n.id
-          return (
-            <li key={n.id} className="relative">
-              <button
-                type="button"
-                onClick={() => onChange(n.id)}
-                aria-current={on ? 'page' : undefined}
-                className={cn('flex h-[52px] w-full flex-col items-center justify-center gap-0.5 text-[11px] transition-colors', on ? 'text-ink' : 'text-ink-3')}
-              >
-                {on && <motion.span layoutId="tab-on" className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-ink" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
-                <motion.span animate={{ y: on ? -1 : 0, scale: on ? 1.05 : 1 }} transition={{ type: 'spring', stiffness: 600, damping: 32 }}>
-                  {n.icon}
-                </motion.span>
-                {n.label}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+    <nav aria-label="Sections" className="absolute inset-x-3 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40">
+      <Glass lens radius={30} className="p-1">
+        <ul className="grid grid-cols-5">
+          {items.map((n) => {
+            const on = n.id === 'more' ? inMore : view === n.id
+            return (
+              <li key={n.id} className="relative">
+                <button
+                  type="button"
+                  onClick={() => (n.id === 'more' ? set({ moreOpen: true }) : onChange(n.id as View))}
+                  aria-current={on ? 'page' : undefined}
+                  className={cn('relative flex h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-3xl text-[11px] transition-colors', on ? 'text-ink' : 'text-ink-3')}
+                >
+                  {on && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-3xl bg-white/12 ring-1 ring-white/15" transition={{ type: 'spring', stiffness: 600, damping: 36 }} />}
+                  <span className="relative">{n.icon}</span>
+                  <span className="relative">{n.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </Glass>
     </nav>
   )
 }
+

@@ -22,14 +22,7 @@ function ChipRow({ children, label }: { children: ReactNode; label: string }) {
     return () => ro.disconnect()
   }, [])
   return (
-    <div
-      ref={outer}
-      data-allow-scroll
-      role="group"
-      aria-label={label}
-      className="fade-end shrink-0 overflow-hidden"
-      data-fit={limit === 0}
-    >
+    <div ref={outer} data-allow-scroll role="group" aria-label={label} className="fade-end shrink-0 overflow-hidden" data-fit={limit === 0}>
       <motion.div ref={inner} drag={limit > 0 ? 'x' : false} dragConstraints={{ left: -limit, right: 0 }} dragElastic={0.12} className="flex w-max gap-1.5 py-0.5 active:cursor-grabbing">
         {children}
       </motion.div>
@@ -39,6 +32,7 @@ function ChipRow({ children, label }: { children: ReactNode; label: string }) {
 
 interface Props {
   kind: MediaKind
+  kicker: string
   title: string
   sub: ReactNode
   chips: readonly string[]
@@ -47,10 +41,13 @@ interface Props {
   /** true: refetch when typing (radio directory). false: filter loaded list locally. */
   remoteSearch: boolean
   placeholder: string
-  side?: ReactNode
+  /** rail: one narrow column so the picture behind stays visible */
+  layout?: 'wide' | 'rail'
+  aside?: ReactNode
+  onItems?: (items: MediaItem[]) => void
 }
 
-export function Browser({ kind, title, sub, chips, initialChip, load, remoteSearch, placeholder, side }: Props) {
+export function Browser({ kind, kicker, title, sub, chips, initialChip, load, remoteSearch, placeholder, layout = 'wide', aside, onItems }: Props) {
   const favorites = useStore((s) => s.favorites).filter((f) => f.kind === kind)
   const recent = useStore((s) => s.recent).filter((f) => f.kind === kind)
   const [tab, setTab] = useState<'discover' | 'saved' | 'recent'>('discover')
@@ -61,7 +58,7 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [page, setPage] = useState(1)
   const [nonce, setNonce] = useState(0)
-  const { ref, per, cols } = useGridFit(280, 56, 8, 3)
+  const { ref, per, cols } = useGridFit(layout === 'rail' ? 9999 : 300, 56, 8, layout === 'rail' ? 1 : 3)
   const tiny = useMedia('(max-width: 380px)')
 
   useEffect(() => {
@@ -74,12 +71,12 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
     let dead = false
     setState('loading')
     load(chip, remoteSearch ? dq : '')
-      .then((list) => !dead && (setItems(list), setState('ready')))
+      .then((list) => !dead && (setItems(list), setState('ready'), onItems?.(list)))
       .catch(() => !dead && (setItems([]), setState('error')))
     return () => {
       dead = true
     }
-  }, [chip, dq, tab, remoteSearch, load, nonce])
+  }, [chip, dq, tab, remoteSearch, load, nonce]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setPage(1), [chip, dq, tab, q])
 
@@ -97,19 +94,10 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
   const loading = state === 'loading' && tab === 'discover'
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 lg:flex-row lg:gap-6">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        <PageHeader title={title} sub={sub}>
-          <Seg
-            id={`tabs-${kind}`}
-            value={tab}
-            onChange={(id) => setTab(id as typeof tab)}
-            tabs={[
-              { id: 'discover', label: 'Discover' },
-              { id: 'saved', label: 'Saved', badge: favorites.length || undefined },
-              { id: 'recent', label: 'Recent' },
-            ]}
-          />
+    <section className={cn('grid h-full min-h-0 gap-6', layout === 'rail' ? 'lg:grid-cols-[minmax(380px,470px)_1fr]' : aside ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : '')}>
+      <div className="flex min-h-0 min-w-0 flex-col gap-3">
+        <PageHeader kicker={kicker} title={title} sub={sub}>
+          <Seg id={`tabs-${kind}`} value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'saved', label: 'Saved', badge: favorites.length || undefined }, { id: 'recent', label: 'Recent' }]} />
         </PageHeader>
 
         <IOSSearchBar value={q} onChange={setQ} onClear={() => setQ('')} placeholder={placeholder} collapsedWidth="100%" expandedWidth="100%" className="max-w-full" />
@@ -122,10 +110,7 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setChip(c)}
                 aria-pressed={chip === c}
-                className={cn(
-                  'relative h-8 shrink-0 rounded-full border px-3 text-[13px] capitalize transition-colors',
-                  chip === c ? 'border-ink bg-ink text-white' : 'border-[var(--control)] bg-surface text-ink hover:border-ink',
-                )}
+                className={cn('h-9 shrink-0 rounded-full px-3.5 text-[13px] capitalize transition-colors', chip === c ? 'bg-ink text-[#05060a]' : 'bg-white/[0.07] text-ink ring-1 ring-white/12 hover:bg-white/12')}
               >
                 {c}
               </motion.button>
@@ -143,8 +128,8 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
             >
               {loading
                 ? Array.from({ length: Math.min(perPage, 12) }, (_, i) => (
-                    <div key={i} className="flex h-14 items-center gap-3 rounded-md bg-surface px-3" aria-hidden>
-                      <Skeleton className="size-9 rounded-[4px]" />
+                    <div key={i} className="flex h-14 items-center gap-3 rounded-2xl bg-white/[0.04] px-3 ring-1 ring-white/8" aria-hidden>
+                      <Skeleton className="size-9 rounded-[10px]" />
                       <div className="grid flex-1 gap-1.5">
                         <Skeleton className="h-3 w-2/3 rounded-sm" />
                         <Skeleton className="h-2.5 w-1/3 rounded-sm" />
@@ -153,15 +138,13 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
                   ))
                 : slice.map((it, i) => <MediaRow key={it.id} item={it} queue={filtered} index={i} />)}
               {state === 'error' && tab === 'discover' && (
-                <div className="col-span-full grid place-items-center gap-3 rounded-md border border-dashed border-[var(--control)] py-8 text-center text-sm text-ink-2">
+                <div className="col-span-full grid place-items-center gap-3 rounded-2xl border border-dashed border-white/20 py-8 text-center text-sm text-ink-2">
                   Couldn’t load {kind === 'radio' ? 'stations' : 'channels'}. Check your connection.
-                  <button className="h-8 rounded-md bg-ink px-3 text-[13px] font-medium text-white" onClick={() => setNonce((n) => n + 1)}>
-                    Try again
-                  </button>
+                  <button className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-[#05060a]" onClick={() => setNonce((n) => n + 1)}>Try again</button>
                 </div>
               )}
               {!loading && state !== 'error' && slice.length === 0 && (
-                <div className="col-span-full rounded-md border border-dashed border-[var(--control)] py-8 text-center text-sm text-ink-2">
+                <div className="col-span-full rounded-2xl border border-dashed border-white/20 py-8 text-center text-sm text-ink-2">
                   {tab === 'saved' ? 'Nothing saved yet. Tap the heart on a listing to keep it here.' : tab === 'recent' ? 'Nothing played yet.' : 'No matches. Try another word or category.'}
                 </div>
               )}
@@ -170,11 +153,11 @@ export function Browser({ kind, title, sub, chips, initialChip, load, remoteSear
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <span className="fig whitespace-nowrap text-[13px] text-ink-2">{filtered.length ? `${(safePage - 1) * perPage + 1}–${Math.min(safePage * perPage, filtered.length)} of ${filtered.length}` : '0 results'}</span>
+          <span className="fig whitespace-nowrap text-xs text-ink-2">{filtered.length ? `${(safePage - 1) * perPage + 1}–${Math.min(safePage * perPage, filtered.length)} of ${filtered.length}` : '0 results'}</span>
           <SlidePagination pageCount={pages} page={safePage} onChange={setPage} siblingCount={tiny ? 0 : 1} />
         </div>
       </div>
-      {side && <aside className="shrink-0 lg:w-[360px]">{side}</aside>}
+      {aside && <aside className="hidden min-h-0 lg:block">{aside}</aside>}
     </section>
   )
 }

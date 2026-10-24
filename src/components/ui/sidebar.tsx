@@ -158,7 +158,7 @@ export function SidebarTrigger({ className, ...props }: React.ComponentProps<"bu
       type="button"
       aria-label="Open navigation"
       className={cn(
-        "grid size-9 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink md:hidden dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white",
+        "grid size-9 place-items-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 md:hidden dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white",
         className
       )}
       {...props}
@@ -247,7 +247,7 @@ function Panel({
             "relative flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-neutral-400/50 dark:focus-visible:ring-neutral-600/60",
             isActive || childActive
               ? "text-neutral-900 dark:text-white"
-              : "text-ink-2 hover:text-ink dark:text-neutral-400 dark:hover:text-white"
+              : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
           )}
         >
           {isActive && (
@@ -314,7 +314,7 @@ function Panel({
                         "relative flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-neutral-400/50 dark:focus-visible:ring-neutral-600/60",
                         active
                           ? "text-neutral-900 dark:text-white"
-                          : "text-ink-2 hover:text-ink dark:text-neutral-400 dark:hover:text-white"
+                          : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
                       )}
                     >
                       {active && (
@@ -326,7 +326,7 @@ function Panel({
                       )}
                       <span className="flex-1 truncate text-left">{c.label}</span>
                       {c.badge !== undefined && (
-                        <span className="text-[11px] tabular-nums text-ink-2">{c.badge}</span>
+                        <span className="text-[11px] tabular-nums text-neutral-400">{c.badge}</span>
                       )}
                     </button>
                   );
@@ -377,7 +377,7 @@ function Panel({
                 (collapsed ? (
                   <div className="mx-2.5 my-2 h-px bg-neutral-200 dark:bg-neutral-800" />
                 ) : (
-                  <p className="truncate px-2.5 pb-1 pt-4 text-xs text-ink-2">
+                  <p className="truncate px-2.5 pb-1 pt-4 text-xs text-neutral-400 dark:text-neutral-500">
                     {section.title}
                   </p>
                 ))}
@@ -399,8 +399,8 @@ function Panel({
                   setTip({ label: "Expand", x: r.right + 10, y: r.top + r.height / 2 });
                 }}
                 onMouseLeave={() => setTip(null)}
-                aria-label={collapsed ? "Expand sidebar" : undefined}
-                className="flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-ink-2 outline-none transition-colors hover:bg-neutral-100 hover:text-ink focus-visible:ring-2 focus-visible:ring-neutral-400/50 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-white dark:focus-visible:ring-neutral-600/60"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                className="flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-neutral-500 outline-none transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-400/50 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-white dark:focus-visible:ring-neutral-600/60"
               >
                 <span className="grid size-5 shrink-0 place-items-center">
                   <PanelLeft className="size-[18px]" />
@@ -414,7 +414,7 @@ function Panel({
                   Collapse
                 </motion.span>
                 {!collapsed && (
-                  <kbd className="rounded border border-neutral-200 px-1 font-sans text-[11px] text-ink-2 dark:border-neutral-800">
+                  <kbd className="rounded border border-neutral-200 px-1 font-sans text-[10px] text-neutral-400 dark:border-neutral-800">
                     ⌘B
                   </kbd>
                 )}

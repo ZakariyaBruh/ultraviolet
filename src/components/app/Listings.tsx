@@ -71,7 +71,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
             initial={false}
             animate={{ opacity: 1 }}
           >
-            <span className="fig absolute -top-4 -translate-x-1/2 rounded-sm bg-signal px-1 text-[10px] leading-4 text-white">
+            <span className="fig absolute -top-4 -translate-x-1/2 rounded-sm bg-signal px-1 text-[10px] leading-4 text-[#05060a]">
               {pad(d.getHours())}:{pad(d.getMinutes())}
             </span>
           </motion.div>
@@ -98,7 +98,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
                   <div key={h} className="relative h-full border-l border-[var(--rule)] px-px" role="cell" aria-label={m > 0 ? `${pad(h)}:00, ${Math.round(m)} minutes` : undefined}>
                     {m > 0 && (
                       <motion.div
-                        className="absolute left-px top-1/2 h-3 -translate-y-1/2 rounded-[2px] bg-signal"
+                        className="absolute left-px top-1/2 h-3 -translate-y-1/2 rounded-[2px] bg-signal shadow-[0_0_10px_rgba(110,231,255,0.55)]"
                         initial={{ width: 0 }}
                         animate={{ width: `calc(${(m / 60) * 100}% - 2px)` }}
                         transition={{ type: 'spring', stiffness: 320, damping: 32, delay: 0.06 + (h - from) * 0.01 }}
@@ -124,7 +124,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
                   {Array.from({ length: Math.min(n, MAX_TICKS) }, (_, i) => (
                     <motion.i
                       key={i}
-                      className="block h-3.5 w-[2px] rounded-[1px] bg-ink"
+                      className="block h-3.5 w-[2px] rounded-[1px] bg-[#ff9db0] shadow-[0_0_8px_rgba(255,107,129,0.7)]"
                       initial={{ y: -14, opacity: 0, scaleY: 0.6 }}
                       animate={{ y: 0, opacity: 1, scaleY: 1 }}
                       transition={{ type: 'spring', stiffness: 560, damping: 26 }}

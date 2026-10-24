@@ -1,94 +1,80 @@
-import { Pause, Play, Radio, Square } from 'lucide-react'
+import { Pause, Play, Radio } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useMemo, useState } from 'react'
-import { Eq, Logo, PageHeader, Panel, Strip, Transport, VideoSurface } from '@/components/app/shared'
+import { useMemo } from 'react'
+import { Glass } from '@/components/app/glass'
 import { Listings } from '@/components/app/Listings'
+import { Logo, Panel, Readout } from '@/components/app/shared'
 import { AnimatedNumber } from '@/components/ui/animated-number'
-import { MagneticButton } from '@/components/ui/magnetic-button'
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { SplitButton } from '@/components/ui/split-button'
-import { TextScrambleDecoder } from '@/components/ui/text-scramble-decoder'
+import { DragToConfirm } from '@/components/ui/drag-to-confirm'
+import { NeonEdgeButton } from '@/components/ui/neon-edge-button'
+import { Stepper } from '@/components/ui/stepper'
+import { ThinkingOrb } from '@/components/ui/thinking-orb'
 import { fx_say, quickPlay } from '@/lib/actions'
+import { PRESETS } from '@/lib/commands'
 import { dateKey, fmtClock } from '@/lib/dates'
+import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, streak, sum } from '@/lib/stats'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
 import type { View } from '@/components/app/Shell'
 
 const LENGTHS = [15, 25, 45, 60]
 
-const PRESETS: { label: string; kind: 'radio' | 'tv'; tag: string }[] = [
-  { label: 'Lo-fi', kind: 'radio', tag: 'lofi' },
-  { label: 'Ambient', kind: 'radio', tag: 'ambient' },
-  { label: 'Documentaries', kind: 'tv', tag: 'documentary' },
-  { label: 'Science', kind: 'tv', tag: 'science' },
-]
-
-function Ring({ progress, left, running, paused, ready }: { progress: number; left: number; running: boolean; paused: boolean; ready: boolean }) {
+/** The timer is a lens of glass: the ring is the only bright thing, and the picture behind bends through the rest. */
+function LensTimer({ progress, left, running, paused, live }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean }) {
   const lots = useStore((s) => s.settings.motion >= 2)
-  const R = 46
+  const { status } = usePlayer()
+  const R = 44
   const secs = Math.floor(left) % 60
   const ticks = useMemo(() => Array.from({ length: 60 }, (_, i) => i), [])
+  const orb = !live ? 'breathing' : paused ? 'searching' : status === 'playing' ? 'listening' : 'working'
   return (
-    <div className="relative aspect-square h-full max-h-[380px] min-h-[150px]">
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
+    <Glass lens radius={9999} className="relative aspect-square h-[min(36dvh,360px)] min-h-[200px] max-lg:h-[min(30dvh,250px)] shrink-0">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90" aria-hidden>
         {ticks.map((i) => (
-          <motion.line
-            key={i}
-            x1="50" y1="2" x2="50" y2={i % 5 === 0 ? 5.6 : 4.2}
-            transform={`rotate(${i * 6} 50 50)`}
-            strokeWidth={i % 5 === 0 ? 0.7 : 0.4}
-            initial={false}
-            animate={{ stroke: ready && i / 60 <= progress ? '#1d5fbf' : '#c9cdd6' }}
-            transition={{ duration: 0.3 }}
-          />
+          <line key={i} x1="50" y1="3.5" x2="50" y2={i % 5 === 0 ? 7 : 5.4} transform={`rotate(${i * 6} 50 50)`} strokeWidth={i % 5 === 0 ? 0.55 : 0.3} stroke={live && i / 60 <= progress ? '#6ee7ff' : 'rgba(255,255,255,0.28)'} />
         ))}
-        <circle cx="50" cy="50" r={R - 6} fill="none" stroke="var(--rule)" strokeWidth="1.2" />
+        <circle cx="50" cy="50" r={R - 4} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
         <motion.circle
-          cx="50" cy="50" r={R - 6} fill="none" stroke="var(--signal)" strokeWidth="1.8" strokeLinecap="round"
-          strokeDasharray={2 * Math.PI * (R - 6)}
+          cx="50" cy="50" r={R - 4} fill="none" stroke="var(--signal)" strokeWidth="1.6" strokeLinecap="round"
+          strokeDasharray={2 * Math.PI * (R - 4)}
           initial={false}
-          animate={{ strokeDashoffset: 2 * Math.PI * (R - 6) * (1 - Math.max(0.002, progress)) }}
+          animate={{ strokeDashoffset: 2 * Math.PI * (R - 4) * (1 - Math.max(0.003, progress)) }}
           transition={{ type: 'spring', stiffness: 70, damping: 20 }}
+          style={{ filter: 'drop-shadow(0 0 2.5px rgba(110,231,255,0.9))' }}
         />
       </svg>
+      <motion.div className="pointer-events-none absolute inset-0" initial={false} animate={{ rotate: progress * 360 }} transition={{ type: 'spring', stiffness: 70, damping: 20 }} aria-hidden>
+        <span className="absolute left-1/2 top-[11%] size-2.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_14px_3px_rgba(110,231,255,0.9)]" />
+      </motion.div>
       {lots && (
-        <motion.div className="pointer-events-none absolute inset-[16%]" animate={{ rotate: -360 }} transition={{ duration: running ? 24 : 90, repeat: Infinity, ease: 'linear' }} aria-hidden>
-          <svg viewBox="0 0 100 100" className="size-full"><circle cx="50" cy="50" r="49" fill="none" stroke="var(--control)" strokeWidth="0.5" strokeDasharray="1.5 3" /><circle cx="50" cy="1" r="1.6" fill="var(--ink)" /></svg>
+        <motion.div className="pointer-events-none absolute inset-[15%]" animate={{ rotate: -360 }} transition={{ duration: running ? 24 : 90, repeat: Infinity, ease: 'linear' }} aria-hidden>
+          <svg viewBox="0 0 100 100" className="size-full"><circle cx="50" cy="50" r="49" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" strokeDasharray="1.5 3" /><circle cx="50" cy="1" r="1.5" fill="#fff" /></svg>
         </motion.div>
       )}
-      {/* the sweeping end-point */}
-      <motion.div className="absolute inset-0" initial={false} animate={{ rotate: progress * 360 }} transition={{ type: 'spring', stiffness: 70, damping: 20 }} aria-hidden>
-        <span className="absolute left-1/2 top-[8%] size-2.5 -translate-x-1/2 rounded-full bg-signal ring-4 ring-[var(--signal-soft)]" />
-      </motion.div>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <div className="fig flex items-baseline justify-center text-[44px] leading-[48px] text-ink" aria-live="off">
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="absolute opacity-60 mix-blend-screen" aria-hidden><ThinkingOrb state={orb} size={150} speed={running ? 1.5 : 0.8} dark /></div>
+        <div className="relative text-center">
+          <div className="fig flex items-baseline justify-center text-[clamp(2.4rem,7.5vw,4.1rem)] font-light leading-none text-ink [text-shadow:0_0_24px_rgba(110,231,255,0.35)]">
             {fmtClock(left).split('').map((ch, i, arr) => {
               const last = i === arr.length - 1
               return (
                 <AnimatePresence mode="popLayout" key={arr.length - i} initial={false}>
-                  <motion.span
-                    key={last ? `${ch}-${secs}` : ch}
-                    initial={{ y: last ? 14 : 0, opacity: last ? 0 : 1 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -14, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 520, damping: 34 }}
-                    className="inline-block"
-                  >
+                  <motion.span key={last ? `${ch}-${secs}` : ch} initial={{ y: last ? 14 : 0, opacity: last ? 0 : 1 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }} transition={{ type: 'spring', stiffness: 520, damping: 34 }} className="inline-block">
                     {ch}
                   </motion.span>
                 </AnimatePresence>
               )
             })}
           </div>
-          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[13px] text-ink-2">
+          <div className="hud mt-2 flex items-center justify-center gap-2">
             {running && <span className="live-dot" />}
-            {!ready ? 'Ready' : paused ? 'Paused' : 'Locked in'}
+            {!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}
           </div>
         </div>
       </div>
-    </div>
+    </Glass>
   )
 }
 
@@ -96,186 +82,162 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const session = useStore((s) => s.session)
   const sessionMin = useStore((s) => s.settings.sessionMin)
   const setSettings = useStore((s) => s.setSettings)
+  const focusLog = useStore((s) => s.focusLog)
+  const urgeLog = useStore((s) => s.urgeLog)
   const goal = useStore((s) => s.settings.dailyGoalMin)
-  const today = dateKey()
-  const blocked = useStore((s) => Math.round(sum(s.urgeLog[today] ?? [])))
-  const held = useStore((s) => dayTotal(s.focusLog, today))
-  const days = useStore((s) => streak(s.focusLog))
   const { current, status } = usePlayer()
   const recent = useStore((s) => s.recent)
-  const [busy, setBusy] = useState<string | null>(null)
-  const [tune, setTune] = useState(false)
+  const set = useUI((s) => s.set)
+  const tall = useMedia('(min-height: 800px)')
+  const veryTall = useMedia('(min-height: 980px)')
+  const wide = useMedia('(min-width: 1024px)')
+  const today = dateKey()
 
   const total = (session?.goalMin ?? sessionMin) * 60
   const left = session ? Math.max(0, total - session.elapsedSec) : total
   const progress = session ? Math.min(1, session.elapsedSec / total) : 0
   const running = !!session && !session.paused
 
+  const held = dayTotal(focusLog, today)
+  const blocked = Math.round(sum(urgeLog[today] ?? []))
+  const days = streak(focusLog)
+
   const start = () => {
     useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
     if (current && status === 'paused') play(current)
   }
 
-  const preset = async (p: (typeof PRESETS)[number]) => {
-    setBusy(p.label)
-    try {
-      await quickPlay(p.kind, p.tag)
-    } catch {
-      fx_say({ title: 'Could not reach the directory', description: 'Check your connection and try again.', variant: 'danger' })
-    } finally {
-      setBusy(null)
-    }
-  }
+  const step = session ? 2 : current ? 2 : 1
 
   const finding = session
-    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} scroll${session.urges === 1 ? '' : 's'} blocked this session.`
+    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} scroll${session.urges === 1 ? '' : 's'} blocked.`
     : held >= goal
       ? `Daily goal of ${goal} min met. ${blocked} scrolls blocked today.`
       : held > 0
         ? `${Math.round(held)} of ${goal} min today, ${blocked} scrolls blocked.`
-        : 'Nothing held yet today. Lock in to start the first block.'
+        : 'Nothing held yet today. Choose a length, tune in, lock in.'
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4">
-      <PageHeader title="Focus" sub={finding}>
-        {!session && (
-          <button onClick={() => setTune(true)} className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--control)] bg-surface px-3 text-sm text-ink hover:bg-raised lg:hidden">
-            <Radio className="size-4" /> Tune
-          </button>
+    <section className="flex h-full min-h-0 flex-col gap-3 lg:gap-4">
+      {!wide && (
+        <div>
+          <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
+          <h1 className="text-[26px] font-semibold leading-8 tracking-[-0.02em]">Focus</h1>
+          <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
+        </div>
+      )}
+      <div className="grid min-h-0 flex-1 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        {wide && (
+          <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }} className="min-w-0 self-center">
+            <div className="hud mb-2 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
+            <h1 className="text-[28px] font-semibold leading-9 tracking-[-0.02em]">Focus</h1>
+            <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
+            <Panel className="grid gap-4 p-5">
+              <Readout label="Blocked today" value={<AnimatedNumber value={blocked} />} note="scroll attempts" />
+              <div className="h-px bg-white/10" />
+              <Readout label="Held today" value={<AnimatedNumber value={Math.round(held)} />} unit="min" note={`of ${goal} min goal`} />
+              <div className="h-px bg-white/10" />
+              <Readout label="Streak" value={<AnimatedNumber value={days} />} unit={days === 1 ? 'day' : 'days'} note="10+ min each day" />
+            </Panel>
+          </motion.div>
         )}
-        <AnimatePresence mode="wait" initial={false}>
-          {!session ? (
-            <motion.div key="start" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
-              <SplitButton
-                label={`Lock in · ${sessionMin} min`}
-                onClick={start}
-                variant="primary"
-                size="md"
-                options={LENGTHS.map((m) => ({ value: String(m), label: `${m} minutes`, onSelect: () => setSettings({ sessionMin: m }) }))}
-              />
-            </motion.div>
-          ) : (
-            <motion.div key="live" className="flex items-center gap-2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
-              <MagneticButton size="md" strength={0.2} onClick={() => useStore.getState().togglePause()} className="!bg-ink !text-white hover:!bg-[#2a2a2a]">
-                {session.paused ? <Play className="mr-1.5 size-3.5 fill-current" /> : <Pause className="mr-1.5 size-3.5 fill-current" />}
-                {session.paused ? 'Resume' : 'Pause'}
-              </MagneticButton>
-              <MagneticButton size="md" variant="outline" strength={0.2} onClick={() => useStore.getState().endSession(false)}>
-                <Square className="mr-1.5 size-3 fill-current" /> End
-              </MagneticButton>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </PageHeader>
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        {/* session */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }} className="min-h-0">
-          <Panel className="flex h-full min-h-0 flex-col gap-3 p-4 sm:p-5">
-            <div className="flex min-h-0 flex-1 items-center justify-center">
-              <Ring progress={progress} left={left} running={running} paused={!!session?.paused} ready={!!session} />
-            </div>
-            <div className="rule pt-3">
-              <Strip
-                compact
-                cells={[
-                  { label: 'Blocked today', value: <AnimatedNumber value={blocked} />, note: 'scroll attempts' },
-                  { label: 'Held today', value: <AnimatedNumber value={Math.round(held)} />, unit: 'min', note: `of ${goal} min goal` },
-                  { label: 'Streak', value: <AnimatedNumber value={days} />, unit: days === 1 ? 'day' : 'days', note: '10+ min each day' },
-                ]}
-              />
-            </div>
-          </Panel>
-        </motion.div>
+        <div className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
+          <LensTimer progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} />
 
-        {/* now playing */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: 0.05 }} className="hidden min-h-0 lg:block">
-          <Panel className="flex h-full min-h-0 flex-col gap-3 p-3">
-            <div className="relative min-h-[120px] flex-1 overflow-hidden rounded-md">
-              <VideoSurface className="absolute inset-0" />
-              {current?.kind === 'radio' && (
-                <div className="absolute inset-0 z-[4] grid place-items-center bg-signal-soft">
-                  <div className="flex flex-col items-center gap-3">
-                    <Logo item={current} size={64} />
-                    <Eq playing={status === 'playing'} className="!h-5 [&>i]:!w-[3px]" />
-                  </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {!session ? (
+              <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+                <div className="flex items-center gap-2">
+                  <NeonEdgeButton onClick={start} className="!h-12 !px-7 !text-[15px]">
+                    <span className="whitespace-nowrap">Lock in · {sessionMin} min</span>
+                  </NeonEdgeButton>
                 </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between gap-3 px-1">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-ink">
-                  {current ? <TextScrambleDecoder key={current.id} text={current.name} trigger="mount" duration={700} className="!font-sans !text-sm !tracking-normal" /> : 'Nothing playing'}
+                <div className="flex items-center gap-1.5" role="group" aria-label="Session length">
+                  {LENGTHS.map((m) => (
+                    <button key={m} onClick={() => setSettings({ sessionMin: m })} aria-pressed={sessionMin === m} className={`fig h-9 rounded-full px-3.5 text-[13px] transition-colors ${sessionMin === m ? 'bg-white/15 text-ink ring-1 ring-white/25' : 'text-ink-2 hover:bg-white/10'}`}>
+                      {m}m
+                    </button>
+                  ))}
                 </div>
-                <div className="truncate text-[13px] text-ink-2">
-                  {status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable' : current?.meta || 'Pick something below'}
+              </motion.div>
+            ) : (
+              <motion.div key="live" className="flex w-full max-w-[420px] flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+                <Glass radius={999} clear as="button" onClick={() => useStore.getState().togglePause()} className="inline-flex h-12 items-center gap-2 px-7 text-[15px] font-medium text-ink">
+                  {session.paused ? <Play className="size-4 fill-current" /> : <Pause className="size-4 fill-current" />}
+                  {session.paused ? 'Resume' : 'Pause'}
+                </Glass>
+                <div className="w-full">
+                  <DragToConfirm label="Slide to end session" confirmedLabel="Ended" actionType="delete" size="md" onConfirm={() => useStore.getState().endSession(false)} />
                 </div>
-              </div>
-              <Transport compact />
-            </div>
-            <ul className="rule" aria-label="Quick tune">
-              {PRESETS.map((p, i) => (
-                <motion.li key={p.label} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 + i * 0.04, duration: 0.2 }}>
-                  <button
-                    onClick={() => void preset(p)}
-                    disabled={!!busy}
-                    className="group flex h-9 w-full items-center justify-between border-b border-[var(--rule)] px-1 text-left text-sm text-ink transition-colors last:border-b-0 hover:bg-raised disabled:opacity-60"
-                  >
-                    <span>{busy === p.label ? 'Tuning…' : p.label}</span>
-                    <span className="text-[13px] text-ink-3">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
-                  </button>
-                </motion.li>
-              ))}
-            </ul>
-            {recent.length > 0 && (
-              <button onClick={() => play(recent[0], recent)} className="truncate px-1 text-left text-[13px] text-ink-2 hover:text-ink">
-                Resume {recent[0].name}
-              </button>
+              </motion.div>
             )}
-            <div className="flex gap-3 px-1 text-[13px]">
-              <button className="text-ink underline decoration-[var(--control)] underline-offset-4 hover:decoration-ink" onClick={() => go('radio')}>Browse radio</button>
-              <button className="text-ink underline decoration-[var(--control)] underline-offset-4 hover:decoration-ink" onClick={() => go('tv')}>Browse TV</button>
+          </AnimatePresence>
+
+          {veryTall && !session && (
+            <div className="w-full max-w-[460px]">
+              <Stepper
+                current={step}
+                steps={[{ title: 'Length', description: `${sessionMin} min` }, { title: 'Tune', description: current ? current.name.slice(0, 14) : 'a source' }, { title: 'Lock in', description: 'and stay' }]}
+                onStepChange={(i) => i === 1 && set({ tuneOpen: true })}
+              />
             </div>
-          </Panel>
-        </motion.div>
+          )}
+        </div>
+
+        {wide && (
+          <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1], delay: 0.05 }} className="min-w-0 self-center">
+            <Panel className="p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <h2 className="text-base font-semibold">Tune in</h2>
+                <button onClick={() => set({ tuneOpen: true })} className="text-[13px] text-signal hover:underline">All sources</button>
+              </div>
+              <ul>
+                {PRESETS.slice(0, 5).map((p, i) => (
+                  <motion.li key={p.label} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04, duration: 0.2 }}>
+                    <button onClick={() => void quickPlay(p.kind, p.tag).catch(() => fx_say({ title: 'Could not reach the directory', variant: 'danger' }))} className="flex h-10 w-full items-center justify-between border-b border-white/10 text-left text-sm text-ink transition-colors last:border-b-0 hover:text-signal">
+                      <span>{p.label}</span>
+                      <span className="hud !tracking-[0.1em]">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
+                    </button>
+                  </motion.li>
+                ))}
+              </ul>
+              {recent[0] && (
+                <button onClick={() => play(recent[0], recent)} className="mt-3 flex w-full items-center gap-2 rounded-xl bg-white/[0.05] p-2 text-left text-[13px] text-ink-2 hover:bg-white/10">
+                  <Logo item={recent[0]} size={28} />
+                  <span className="min-w-0 truncate">Resume {recent[0].name}</span>
+                </button>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button className="h-9 flex-1 rounded-full border border-white/15 text-[13px] text-ink hover:bg-white/10" onClick={() => go('radio')}><Radio className="mr-1.5 inline size-3.5" />Browse radio</button>
+                <button className="h-9 flex-1 rounded-full border border-white/15 text-[13px] text-ink hover:bg-white/10" onClick={() => go('tv')}>Browse TV</button>
+              </div>
+            </Panel>
+          </motion.div>
+        )}
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: 0.1 }} className="hidden shrink-0 [@media(min-height:780px)]:block">
-        <Panel className="px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-base font-semibold">Today</h2>
-            <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, scrolls blocked underneath</span>
-          </div>
-          <Listings />
-        </Panel>
-      </motion.div>
-      <Sheet open={tune} onOpenChange={setTune}>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>Tune in</SheetTitle>
-            <SheetDescription>Pick something to stay with, then lock in.</SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <ul>
-              {PRESETS.map((p) => (
-                <li key={p.label}>
-                  <button
-                    onClick={() => { setTune(false); void preset(p) }}
-                    className="flex h-12 w-full items-center justify-between border-b border-[var(--rule)] text-left text-[15px] text-ink last:border-b-0"
-                  >
-                    <span>{p.label}</span>
-                    <span className="text-sm text-ink-2">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3 flex gap-2">
-              <button className="h-11 flex-1 rounded-md border border-[var(--control)] text-sm" onClick={() => { setTune(false); go('radio') }}>Browse radio</button>
-              <button className="h-11 flex-1 rounded-md border border-[var(--control)] text-sm" onClick={() => { setTune(false); go('tv') }}>Browse TV</button>
+      {wide && tall && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.26, ease: [0.2, 0, 0, 1], delay: 0.1 }} className="shrink-0">
+          <Panel className="px-5 pb-3 pt-4">
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="text-base font-semibold">Today</h2>
+              <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, blocked scrolls underneath</span>
             </div>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+            <Listings />
+          </Panel>
+        </motion.div>
+      )}
+      {!wide && (
+        <div className="grid grid-cols-3 gap-2">
+          {[{ l: 'Blocked', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'Streak', v: days, u: 'd' }].map((r) => (
+            <Panel key={r.l} className="px-3 py-2.5">
+              <div className="hud">{r.l}</div>
+              <div className="fig mt-0.5 text-2xl text-ink"><AnimatedNumber value={r.v} />{r.u && <span className="ml-1 text-sm text-ink-2">{r.u}</span>}</div>
+            </Panel>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
