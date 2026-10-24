@@ -276,7 +276,7 @@ export const SpotlightSearch: React.FC<SpotlightSearchProps> = ({
             </div>
 
             {/* Search Results List (Clean Names Only) */}
-            <div className="max-h-[340px] overflow-y-auto p-1.5 space-y-0.5">
+            <div data-allow-scroll className="max-h-[340px] overflow-y-auto p-1.5 space-y-0.5">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item, index) => {
                   const isSelected = index === selectedIndex;

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFx } from './fx'
 import { useStore } from './store'
 
-const INTERACTIVE = 'input, textarea, select, [contenteditable="true"], [data-allow-scroll]'
+const INTERACTIVE = 'input, textarea, select, [contenteditable="true"], [data-allow-scroll], [role="dialog"], [role="listbox"], [role="menu"]'
 const SCROLL_KEYS = new Set([' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'End', 'Home'])
 
 /**

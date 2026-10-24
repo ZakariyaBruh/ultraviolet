@@ -36,6 +36,14 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
   const reduced = !!useReducedMotion()
   const wide = useMedia('(min-width: 900px)')
   const readout = useRef<HTMLSpanElement>(null)
+  const self = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const others = [...(document.getElementById('root')?.children ?? [])].filter((el) => el !== self.current) as HTMLElement[]
+    others.forEach((el) => el.setAttribute('inert', ''))
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && onEnter()
+    addEventListener('keydown', key)
+    return () => { others.forEach((el) => el.removeAttribute('inert')); removeEventListener('keydown', key) }
+  }, [onEnter])
   useEffect(() => {
     const move = (e: PointerEvent) => {
       if (readout.current) readout.current.textContent = `X ${(e.clientX / innerWidth).toFixed(3)}  Y ${(e.clientY / innerHeight).toFixed(3)}`
@@ -44,7 +52,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
     return () => removeEventListener('pointermove', move)
   }, [])
   return (
-    <motion.div className="fixed inset-0 z-[100] flex flex-col bg-black text-[#f4f1e8]" exit={{ opacity: 0, scale: 1.04, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}>
+    <motion.div ref={self} className="fixed inset-0 z-[100] flex flex-col bg-black text-[#f4f1e8]" exit={{ opacity: 0, scale: 1.04, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}>
       <div className="relative min-h-0 flex-[1.3]">
         <LineImage still={reduced} focus={wide ? [0.68, 0.46] : [0.5, 0.36]} className="absolute inset-0 size-full" />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-5 font-mono text-xs uppercase tracking-[0.16em] sm:px-8">

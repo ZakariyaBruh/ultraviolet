@@ -22,6 +22,7 @@ const LENGTHS = [15, 25, 45, 60]
 /** Retro ground (ASCII torus in a CRT window) under a futuristic clock: wide light numerals and a hairline progress rule. */
 function FrictionDial({ progress, left, running, paused, live }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean }) {
   const level = useStore((s) => s.settings.motion)
+  const phone = useMedia('(max-width: 639px)')
   return (
     <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
       <div className="hud relative z-10 flex w-full items-center justify-between">
@@ -29,7 +30,7 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
         <span className="text-ice">{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
       </div>
       <div className="crt pointer-events-none absolute inset-3 grid place-items-center overflow-hidden text-signal opacity-60" aria-hidden>
-        <AsciiSolid cols={58} rows={26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[6px] sm:text-[8px] lg:text-[10px]" />
+        <AsciiSolid cols={phone ? 40 : 58} rows={phone ? 20 : 26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[6px] sm:text-[8px] lg:text-[10px]" />
       </div>
       <div className="dot relative z-10 text-[clamp(2.2rem,6.4vw,3.9rem)] font-light text-ink [text-shadow:0_0_12px_var(--ground),0_0_3px_var(--ground)]" role="timer" aria-label={`${fmtClock(left)} left`}>
         {fmtClock(left)}

@@ -100,7 +100,7 @@ export const SlidePagination: React.FC<SlidePaginationProps> = ({
           disabled={current <= 1}
           onClick={() => setCurrent(current - 1)}
           className={cn(
-            'w-8 h-8 inline-flex items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-hover)] transition-colors focus-ring cursor-pointer',
+            'size-11 md:size-8 inline-flex items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-hover)] transition-colors focus-ring cursor-pointer',
             current <= 1 && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-[var(--text-secondary)]'
           )}
         >
@@ -114,7 +114,7 @@ export const SlidePagination: React.FC<SlidePaginationProps> = ({
             return (
               <li
                 key={`ellipsis-${idx}`}
-                className="w-8 h-8 inline-flex items-center justify-center text-[var(--text-muted)] text-xs"
+                className="size-11 md:size-8 inline-flex items-center justify-center text-[var(--text-muted)] text-xs"
                 aria-hidden="true"
               >
                 …
@@ -131,7 +131,7 @@ export const SlidePagination: React.FC<SlidePaginationProps> = ({
                 aria-label={`Page ${p}`}
                 onClick={() => setCurrent(p)}
                 className={cn(
-                  'relative w-8 h-8 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors focus-ring cursor-pointer',
+                  'relative size-11 md:size-8 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors focus-ring cursor-pointer',
                   isActive
                     ? 'text-[var(--bg)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)]'
@@ -158,7 +158,7 @@ export const SlidePagination: React.FC<SlidePaginationProps> = ({
           disabled={current >= pageCount}
           onClick={() => setCurrent(current + 1)}
           className={cn(
-            'w-8 h-8 inline-flex items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-hover)] transition-colors focus-ring cursor-pointer',
+            'size-11 md:size-8 inline-flex items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-hover)] transition-colors focus-ring cursor-pointer',
             current >= pageCount && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-[var(--text-secondary)]'
           )}
         >

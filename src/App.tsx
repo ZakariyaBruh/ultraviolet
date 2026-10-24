@@ -1,5 +1,6 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { FitView } from '@/components/app/FitView'
 import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { NAV, Shell, type View } from '@/components/app/Shell'
@@ -7,7 +8,7 @@ import { UrgeLayer } from '@/components/app/UrgeLayer'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { SpotlightSearch } from '@/components/ui/spotlight-search'
 import { UndoToast } from '@/components/ui/undo-toast'
-import { quickPlay } from '@/lib/actions'
+import { fx_say, quickPlay } from '@/lib/actions'
 import { buildSearchItems, PRESETS } from '@/lib/commands'
 import { useScrollGuard, useSessionEngine } from '@/lib/engine'
 import { useFx } from '@/lib/fx'
@@ -29,7 +30,8 @@ function Placeholder({ name }: { name: string }) {
 }
 
 export default function App() {
-  const [view, setView] = useState<View>('focus')
+  const fromHash = () => { const h = location.hash.slice(1) as View; return NAV.some((n) => n.id === h) ? h : 'focus' }
+  const [view, setView] = useState<View>(fromHash)
   const prev = useRef(0)
   const dir = useRef(1)
   const reduced = !!useReducedMotion()
@@ -49,11 +51,19 @@ export default function App() {
     dir.current = i >= prev.current ? 1 : -1
     prev.current = i
     setView(v)
+    if (location.hash !== `#${v}`) history.pushState(null, '', `#${v}`)
   }
+
+  useEffect(() => {
+    const pop = () => { const v = fromHash(); const i = NAV.findIndex((n) => n.id === v); dir.current = i >= prev.current ? 1 : -1; prev.current = i; setView(v) }
+    addEventListener('popstate', pop)
+    return () => removeEventListener('popstate', pop)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⌘K / Ctrl K opens search from anywhere
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && useUI.getState().theatre) useUI.getState().set({ theatre: false })
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         useUI.getState().set({ searchOpen: !useUI.getState().searchOpen })
@@ -79,6 +89,7 @@ export default function App() {
       <Shell view={view} onChange={change}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
           <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 18 * d, filter: 'blur(6px)' }} animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, x: -12 * d, filter: 'blur(4px)', transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}>
+            <FitView watch={view}>
             {view === 'focus' && <FocusView go={change} />}
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
@@ -87,6 +98,7 @@ export default function App() {
             {view === 'settings' && <SettingsView />}
             {view === 'lab' && <Lab />}
             {!['focus', 'radio', 'tv', 'insights', 'debrief', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
+            </FitView>
           </motion.div>
         </AnimatePresence>
       </Shell>
@@ -105,7 +117,7 @@ export default function App() {
             <ul>
               {PRESETS.map((p) => (
                 <li key={p.label}>
-                  <button onClick={() => { ui.set({ tuneOpen: false }); void quickPlay(p.kind, p.tag).catch(() => undefined) }} className="flex h-12 w-full items-center justify-between border-b border-ink/10 text-left text-[15px] text-ink last:border-b-0">
+                  <button onClick={() => { ui.set({ tuneOpen: false }); void quickPlay(p.kind, p.tag).catch(() => fx_say({ title: 'Could not reach the directory', description: 'Check your connection and try again.', variant: 'danger' })) }} className="flex h-12 w-full items-center justify-between border-b border-ink/10 text-left text-[15px] text-ink last:border-b-0">
                     <span>{p.label}</span>
                     <span className="hud">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
                   </button>

@@ -303,7 +303,7 @@ export const DragToConfirm: React.FC<DragToConfirmProps> = ({
         <motion.div
           style={{ opacity: isConfirmed ? 0 : textOpacity, x: textTranslateX }}
           className={cn(
-            'absolute inset-0 flex items-center justify-center pointer-events-none font-medium tracking-tight z-10 text-neutral-500 dark:text-neutral-400 select-none',
+            'absolute inset-y-0 right-3 left-14 flex items-center justify-center pointer-events-none font-medium tracking-tight z-10 text-neutral-500 dark:text-neutral-400 select-none',
             currentSize.text
           )}
         >

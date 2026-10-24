@@ -73,14 +73,14 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
         className={cn(
           'relative w-full flex items-center h-11 px-3.5 rounded-sm border transition-all duration-200',
           isFocused
-            ? 'bg-[#141414] border-[#4A4A4A] shadow-xs'
-            : 'bg-[#0E0E0E] border-[#1F1F1F] hover:border-[#4A4A4A]'
+            ? 'bg-[var(--raised)] border-[#4A4A4A] shadow-xs'
+            : 'bg-[var(--surface)] border-[var(--rule)] hover:border-[#4A4A4A]'
         )}
       >
         <Search
           className={cn(
             'w-4 h-4 shrink-0 transition-colors mr-2.5',
-            isFocused ? 'text-[#FAFAFA]' : 'text-[#8f98ae]'
+            isFocused ? 'text-[var(--ink)]' : 'text-[var(--ink-3)]'
           )}
         />
 
@@ -96,7 +96,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
           autoFocus={autoFocus}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="w-full bg-transparent text-[16px] text-[#FAFAFA] placeholder-[#8f98ae] focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full bg-transparent text-[16px] text-[var(--ink)] placeholder-[var(--ink-3)] focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden disabled:opacity-40 disabled:cursor-not-allowed"
         />
 
         {/* Clear Button */}
@@ -119,7 +119,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
 
         {/* Keyboard shortcut indicator when idle */}
         {!isExpanded && value.length === 0 && (
-          <div className="hidden sm:flex items-center gap-0.5 text-[9px] font-mono text-[#8f98ae] shrink-0 ml-1">
+          <div className="hidden sm:flex items-center gap-0.5 text-[9px] font-mono text-[var(--ink-3)] shrink-0 ml-1">
             <Command className="w-2.5 h-2.5" />
             <span>K</span>
           </div>

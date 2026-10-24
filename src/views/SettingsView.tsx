@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
-import { CodeSnippetDeck } from '@/components/ui/code-snippet-deck'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LiquidToggle } from '@/components/ui/liquid-toggle'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
+import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
 import { useMedia } from '@/lib/hooks'
-import { useUI } from '@/lib/ui'
 
 const snapshot = (s: AppState) => {
   const o: Record<string, unknown> = {}
@@ -60,28 +59,30 @@ function Look() {
       <Row title="Theme" hint="Dark is the default">
         <Seg id="set-theme" value={s.theme} onChange={(v) => set({ theme: v as typeof s.theme })} tabs={[{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }]} />
       </Row>
-      <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => set({ volume: Number(e.target.value) })} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
+      <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>
   )
 }
 
 function Data() {
   const [confirmed, setConfirmed] = useState(false)
-  const json = JSON.stringify(snapshot(useStore.getState()), null, 2)
+  const wide = useMedia('(min-width: 768px)')
+  const download = () => {
+    const json = JSON.stringify(snapshot(useStore.getState()), null, 2)
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: 'friction-backup.json' })
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  }
   return (
     <div className="grid min-h-0 gap-4 md:grid-cols-2">
-      <Panel className="rounded-3xl p-4">
-        <AnimatedFileUpload accept={['.json']} multiple={false} maxFiles={1} dropTitle="Import a backup" dropSubtitle="or browse for a .json file" onFilesSelected={async (files) => {
-          const ok = useStore.getState().importData(await files[0].text())
-          fx_say({ title: ok ? 'Backup imported' : 'Could not read that file', variant: ok ? 'success' : 'danger' })
-        }} />
-      </Panel>
       <Panel className="flex flex-col gap-3 rounded-3xl p-4">
-        <CodeSnippetDeck snippets={[{ language: 'json', label: 'Export', filename: 'anti-scroll.json', code: json.slice(0, 600) + (json.length > 600 ? '\n…' : '') }]} />
-        <button className="h-11 rounded-full border border-ink/15 text-sm text-ink" onClick={() => {
-          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: 'anti-scroll.json' })
-          a.click()
-        }}>Download backup</button>
+        <AnimatedFileUpload variant={wide ? 'standard' : 'compact'} accept={['.json']} multiple={false} maxFiles={1} dropTitle="Import a backup" dropSubtitle="or browse for a .json file" onFilesSelected={async (files) => {
+          const ok = useStore.getState().importData(await files[0].text())
+          fx_say({ title: ok ? 'Backup imported' : 'Could not read that file', description: ok ? undefined : 'It is not a Friction backup.', variant: ok ? 'success' : 'danger' })
+        }} />
+        <button className="h-11 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={download}>Download backup</button>
+      </Panel>
+      <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
         <DrawCheckbox label="Everything stays in this browser" description="Nothing is sent anywhere. Clearing site data erases it." checked readOnly />
         <DragToConfirm label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={() => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); fx_say({ title: 'All data erased', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
       </Panel>
@@ -98,8 +99,7 @@ function Help() {
         { id: '3', question: 'Why does a lapse happen?', answer: 'Leaving the tab for six seconds or more during a session is logged as a lapse.' },
       ]} />
       <div className="mt-3 flex gap-2">
-        <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => useUI.getState().set({ tourOpen: true })}>Replay tour</button>
-        <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => { useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', variant: 'success' }) }}>Load demo data</button>
+        <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
     </Panel>
   )

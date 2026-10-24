@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useFx } from './fx'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
 
@@ -142,6 +143,53 @@ const emptyData = (): Data => ({
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
 
+
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/** Accept only what has the right shape; anything else falls back to the default for that key. */
+export function sanitizeData(raw: unknown): { data: Data; matched: number } {
+  const base = emptyData()
+  const out: Record<string, unknown> = { ...base }
+  let matched = 0
+  if (!isObj(raw)) return { data: base, matched }
+  const hourLog = (v: unknown) => {
+    if (!isObj(v)) return null
+    const o: Record<string, number[]> = {}
+    for (const [k, row] of Object.entries(v)) if (Array.isArray(row) && row.length === 24 && row.every((n) => typeof n === 'number')) o[k] = row as number[]
+    return o
+  }
+  for (const k of DATA_KEYS) {
+    const v = raw[k]
+    if (v === undefined) continue
+    const b = (base as unknown as Record<string, unknown>)[k]
+    let ok: unknown = undefined
+    if (k === 'settings') {
+      if (isObj(v)) {
+        const st: Record<string, unknown> = { ...DEFAULT_SETTINGS }
+        for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
+        if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
+        if (st.theme !== 'dark' && st.theme !== 'light') st.theme = 'dark'
+        ok = st
+      }
+    } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined
+    else if (k === 'sourceLog') {
+      if (isObj(v)) {
+        const o: Record<string, unknown> = {}
+        for (const [d, day] of Object.entries(v)) if (isObj(day) && ['radio', 'tv', 'silent'].every((x) => Array.isArray(day[x]) && (day[x] as unknown[]).length === 24)) o[d] = day
+        ok = o
+      }
+    } else if (k === 'profile') ok = v === null || (isObj(v) && typeof v.name === 'string') ? v : undefined
+    else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
+    else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
+    else if (isObj(b)) ok = isObj(v) ? v : undefined
+    if (ok !== undefined) {
+      out[k] = ok
+      matched++
+    }
+  }
+  return { data: out as unknown as Data, matched }
+}
+
 const zeros = () => new Array<number>(24).fill(0)
 
 const hours = (log: HourLog, key: string) => {
@@ -283,6 +331,7 @@ export const useStore = create<AppState>()(
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
         })
+        useFx.getState().say(completed ? { title: 'Session complete', description: `${a.goalMin} min held, ${a.urges} scroll${a.urges === 1 ? '' : 's'} blocked.`, variant: 'success' } : a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 
@@ -320,14 +369,9 @@ export const useStore = create<AppState>()(
 
       importData: (json) => {
         try {
-          const parsed = JSON.parse(json) as Partial<Data>
-          const base = emptyData()
-          const next: Data = { ...base }
-          for (const k of DATA_KEYS) {
-            if (parsed[k] !== undefined) (next as unknown as Record<string, unknown>)[k] = parsed[k]
-          }
-          next.settings = { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) }
-          set({ ...next, session: null })
+          const { data, matched } = sanitizeData(JSON.parse(json))
+          if (matched === 0) return false
+          set({ ...data, session: null })
           return true
         } catch {
           return false
@@ -341,8 +385,21 @@ export const useStore = create<AppState>()(
       partialize: (s) => {
         const out: Record<string, unknown> = {}
         for (const k of DATA_KEYS) out[k] = s[k]
+        out.session = s.session
         return out as unknown as AppState
       },
+      // never trust what is on disk: validate every key, and close a session that a reload interrupted
+      merge: (persisted, current) => {
+        const { data } = sanitizeData(persisted)
+        const p = persisted as { session?: ActiveSession | null } | null
+        const a = p && isObj(p.session) ? (p.session as ActiveSession) : null
+        if (a && typeof a.elapsedSec === 'number' && a.elapsedSec >= 10 && typeof a.start === 'number') {
+          data.sessions = [{ id: a.id, start: a.start, end: Date.now(), goalMin: a.goalMin, focusSec: a.elapsedSec, urges: a.urges ?? 0, lapses: a.lapses ?? 0, source: a.source, title: a.title, completed: false }, ...data.sessions].slice(0, 300)
+          data.events = [{ id: uid(), t: Date.now(), kind: 'session' as const, text: `Interrupted ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept`, read: false }, ...data.events].slice(0, 200)
+        }
+        return { ...current, ...data, session: null }
+      },
+      migrate: (state) => state as AppState,
     },
   ),
 )

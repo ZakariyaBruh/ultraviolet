@@ -93,7 +93,7 @@ export function MediaRow({ item, queue, index = 0 }: { item: MediaItem; queue: M
     >
       <SpotlightCard
         spotlightColor="rgba(255,90,31,0.18)"
-        className={cn('group relative !rounded-2xl !border-ink/10 !bg-ink/[0.04] !p-0-md', isCurrent && '!border-signal/50 !bg-signal/10')}
+        className={cn('group relative !rounded-2xl !border-ink/10 !bg-ink/[0.04] !p-0', isCurrent && '!border-signal/50 !bg-signal/10')}
       >
         <div className="flex h-14 items-center gap-3 px-3">
         <button type="button" onClick={() => (isCurrent ? toggle() : play(item, queue))} aria-current={isCurrent ? 'true' : undefined} className="flex min-w-0 flex-1 items-center gap-3 text-left">

@@ -102,7 +102,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             : 'Notifications'
         }
         className={cn(
-          'relative grid size-10 place-items-center border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer',
+          'relative grid size-11 place-items-center border md:size-10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer',
           isPanelOpen
             ? 'bg-[var(--raised)] border-[var(--control)] text-[var(--ink)]'
             : 'bg-white/[0.06] border-white/15 text-ink-2 hover:text-ink hover:border-white/30'
@@ -139,7 +139,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={motionTransitions.springSnappy}
-            className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 mt-2 w-[calc(100vw-4rem)] max-w-[320px] sm:max-w-none sm:w-96 rounded-sm bg-[var(--surface)]  border border-[var(--rule)] shadow-[0_16px_40px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
+            className="fixed inset-x-4 top-[64px] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96 rounded-sm bg-[var(--surface)]  border border-[var(--rule)] shadow-[0_16px_40px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--rule)] bg-[var(--raised)]">
@@ -176,7 +176,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             </div>
 
             {/* List */}
-            <div className="max-h-80 overflow-y-auto divide-y divide-[#1F1F1F]">
+            <div data-allow-scroll className="max-h-80 overflow-y-auto divide-y divide-[#1F1F1F]">
               {notifications.length === 0 ? (
                 <div className="py-8 px-4 text-center">
                   <Bell className="w-6 h-6 text-[var(--ink-3)] mx-auto mb-2" />
