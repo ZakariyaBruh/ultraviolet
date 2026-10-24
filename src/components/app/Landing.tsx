@@ -29,6 +29,7 @@ function Ident({ still }: { still: boolean }) {
 /** Going in takes a deliberate act: hold the button. Letting go early drains it back out. */
 function HoldToEnter({ onEnter, still }: { onEnter: () => void; still: boolean }) {
   const [p, setP] = useState(0)
+  const pr = useRef(0)
   const raf = useRef(0)
   const holding = useRef(false)
   const last = useRef(0)
@@ -37,12 +38,10 @@ function HoldToEnter({ onEnter, still }: { onEnter: () => void; still: boolean }
   const loop = (now: number) => {
     const dt = now - last.current
     last.current = now
-    setP((v) => {
-      const next = holding.current ? Math.min(1, v + dt / HOLD) : Math.max(0, v - (dt / HOLD) * 2)
-      if (next >= 1 && !done.current) { done.current = true; setTimeout(onEnter, 120) }
-      return next
-    })
-    if (holding.current || p > 0) raf.current = requestAnimationFrame(loop)
+    pr.current = holding.current ? Math.min(1, pr.current + dt / HOLD) : Math.max(0, pr.current - (dt / HOLD) * 2)
+    setP(pr.current)
+    if (pr.current >= 1 && !done.current) { done.current = true; setTimeout(onEnter, 120) }
+    if (holding.current || pr.current > 0) raf.current = requestAnimationFrame(loop)
   }
   const start = () => {
     if (holding.current || done.current) return
@@ -94,7 +93,10 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
         <LineImage still={reduced} focus={wide ? [0.68, 0.46] : [0.5, 0.36]} className="absolute inset-0 size-full" />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-4 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] sm:px-8">
           <span className="bg-[#05070c] px-2 py-1">Ch 00 / Friction</span>
-          <span ref={readout} className="hidden bg-[#05070c] px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
+          <span className="flex gap-3">
+            <span className="hidden bg-[#05070c] px-2 py-1 sm:block" aria-hidden>Move: rotate / Click: morph</span>
+            <span ref={readout} className="hidden bg-[#05070c] px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
+          </span>
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}

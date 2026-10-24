@@ -1,5 +1,26 @@
 import { useEffect, useRef } from 'react'
 
+const N = 2744
+function mulberry(a: number) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+
+/** Four shapes (knot, helix, cube lattice, dune) with the same number of points, so any one can melt into any other. */
+function makeShapes() {
+  const r = mulberry(11)
+  const sphere = new Float32Array(N * 3), knot = new Float32Array(N * 3), lattice = new Float32Array(N * 3), dune = new Float32Array(N * 3)
+  for (let i = 0; i < N; i++) {
+    const ht = (i >> 1) / (N / 2), ha = ht * Math.PI * 6 + (i & 1) * Math.PI
+    sphere.set([0.62 * Math.cos(ha) + (r() - 0.5) * 0.06, (ht - 0.5) * 2.4, 0.62 * Math.sin(ha) + (r() - 0.5) * 0.06], i * 3)
+    const u = (i / N) * Math.PI * 2 * 1, q = 3, p = 2, rr = Math.cos(q * u) + 2.1
+    knot.set([(rr * Math.cos(p * u)) / 3 + (r() - 0.5) * 0.28, (rr * Math.sin(p * u)) / 3 + (r() - 0.5) * 0.28, (-Math.sin(q * u)) / 1.6 + (r() - 0.5) * 0.28], i * 3)
+    const a = i % 14, b = Math.floor(i / 14) % 14, c = Math.floor(i / 196)
+    lattice.set([(a / 13 - 0.5) * 1.7, (b / 13 - 0.5) * 1.7, (c / 13 - 0.5) * 1.7], i * 3)
+    const col = i % 56, row = Math.floor(i / 56), x = (col / 55 - 0.5) * 2.4, z = (row / 48 - 0.5) * 2.4
+    dune.set([x, 0.28 * Math.sin(x * 3.2 + z * 1.6) + 0.18 * Math.cos(z * 3.6), z], i * 3)
+  }
+  const perm = (arr: Float32Array) => { const idx = Array.from({ length: N }, (_, i) => i); const rr = mulberry(5); for (let i = N - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]] } const o = new Float32Array(N * 3); idx.forEach((k, i) => o.set(arr.subarray(k * 3, k * 3 + 3), i * 3)); return o }
+  return [perm(knot), perm(sphere), perm(lattice), perm(dune)]
+}
+
 /**
  * Hard white hairlines on black, pushed up by a field of ridges, with the lines parting
  * around one vivid point. The only colour on the page lives in that point and in the lines closest to it.
@@ -7,13 +28,19 @@ import { useEffect, useRef } from 'react'
 export function LineImage({ focus = [0.66, 0.5], still = false, className = '' }: { focus?: [number, number]; still?: boolean; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const target = useRef({ x: focus[0], y: focus[1] })
+  const mouse = useRef({ x: 0, y: 0, in: false })
+  const morph = useRef({ from: 0, to: 0, t: 1 })
   useEffect(() => {
     const c = ref.current
     if (!c) return
     const ctx = c.getContext('2d')
     if (!ctx) return
-    let w = 0, h = 0, raf = 0, last = 0
+    let w = 0, h = 0, raf = 0, last = 0, lastMorph = 0
     const cur = { x: focus[0], y: focus[1] }
+    const shapes = makeShapes()
+    const delay = Float32Array.from({ length: N }, (_, i) => mulberry(i + 3)())
+    const rot = { y: 0.6, x: 0.35, ty: 0.6, tx: 0.35 }
+    const offs = new Float32Array(N * 2)
     const resize = () => {
       const dpr = Math.min(2, devicePixelRatio || 1)
       w = c.clientWidth; h = c.clientHeight
@@ -23,7 +50,7 @@ export function LineImage({ focus = [0.66, 0.5], still = false, className = '' }
     const draw = (now: number) => {
       const t = now / 1000
       const fx = cur.x * w, fy = cur.y * h
-      const R = Math.min(w, h) * 0.105
+      const R = Math.min(w, h) * 0.135
       const gap = Math.max(5.5, h / 118)
       ctx.fillStyle = '#000'
       ctx.fillRect(0, 0, w, h)
@@ -68,19 +95,45 @@ export function LineImage({ focus = [0.66, 0.5], still = false, className = '' }
           } else open = false
         }
       }
-      // the point: one hard-edged sphere of colour, cut by black scan rows so it still belongs to the lines
-      ctx.save()
-      ctx.beginPath(); ctx.arc(fx, fy - R * 0.2, R, 0, Math.PI * 2); ctx.clip()
-      const g = typeof ctx.createConicGradient === 'function' ? ctx.createConicGradient(t * 0.6, fx, fy) : ctx.createLinearGradient(fx - R, fy - R, fx + R, fy + R)
-      ;[['#ff2d95', 0], ['#ff7a00', 0.22], ['#ffe600', 0.42], ['#18ffb0', 0.6], ['#22b8ff', 0.78], ['#a23bff', 0.92], ['#ff2d95', 1]].forEach(([col, s]) => g.addColorStop(s as number, col as string))
-      ctx.fillStyle = g as CanvasGradient
-      ctx.fillRect(fx - R, fy - R * 1.3, R * 2, R * 2.2)
-      const sh = ctx.createRadialGradient(fx - R * 0.35, fy - R * 0.55, R * 0.05, fx, fy, R * 1.1)
-      sh.addColorStop(0, 'rgba(255,255,255,0.85)'); sh.addColorStop(0.28, 'rgba(255,255,255,0)'); sh.addColorStop(0.7, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.78)')
-      ctx.fillStyle = sh; ctx.fillRect(fx - R, fy - R * 1.3, R * 2, R * 2.2)
+      // the point: a cloud of dots that turns with your pointer, parts around your cursor, and melts between shapes
       ctx.fillStyle = '#000'
-      for (let y = fy - R * 1.3; y < fy + R; y += gap) ctx.fillRect(fx - R, y + gap * 0.62, R * 2, gap * 0.38)
-      ctx.restore()
+      ctx.beginPath(); ctx.arc(fx, fy, R * 1.75, 0, Math.PI * 2); ctx.fill()
+      const m = morph.current
+      if (m.t < 1) m.t = Math.min(1, m.t + 1 / 70)
+      if (m.t >= 1 && m.from !== m.to) m.from = m.to
+      if (!still && m.t >= 1 && now - lastMorph > 6000) { lastMorph = now; m.to = (m.to + 1) % shapes.length; m.t = 0 }
+      const A = shapes[m.from], B = shapes[m.to]
+      rot.ty = mouse.current.in ? ((mouse.current.x - fx) / w) * 3.2 : t * 0.25
+      rot.tx = mouse.current.in ? ((mouse.current.y - fy) / h) * 2.2 : 0.35
+      rot.y += (rot.ty - rot.y) * 0.06; rot.x += (rot.tx - rot.x) * 0.06
+      const cy = Math.cos(rot.y), sy = Math.sin(rot.y), cx = Math.cos(rot.x), sx = Math.sin(rot.x)
+      const unit = R * 1.55, cam = 3.4
+      const buckets: number[][] = Array.from({ length: 24 }, () => [])
+      const ph = Math.floor(t * 4)
+      for (let i = 0; i < N; i++) {
+        const tt = Math.min(1, Math.max(0, m.t * 1.5 - delay[i] * 0.5)), e = tt * tt * (3 - 2 * tt)
+        const x0 = A[i * 3] + (B[i * 3] - A[i * 3]) * e, y0 = A[i * 3 + 1] + (B[i * 3 + 1] - A[i * 3 + 1]) * e, z0 = A[i * 3 + 2] + (B[i * 3 + 2] - A[i * 3 + 2]) * e
+        const x1 = x0 * cy + z0 * sy, z1 = -x0 * sy + z0 * cy
+        const y2 = y0 * cx - z1 * sx, z2 = y0 * sx + z1 * cx
+        const k = cam / (cam - z2)
+        let px = fx + x1 * unit * k, py = fy + y2 * unit * k
+        if (mouse.current.in) {
+          const dx = px - mouse.current.x, dy = py - mouse.current.y, d2 = dx * dx + dy * dy
+          if (d2 < 130 * 130 && d2 > 1) { const d = Math.sqrt(d2), f = (1 - d / 130) * 46; offs[i * 2] += (dx / d * f - offs[i * 2]) * 0.3; offs[i * 2 + 1] += (dy / d * f - offs[i * 2 + 1]) * 0.3 } else { offs[i * 2] *= 0.88; offs[i * 2 + 1] *= 0.88 }
+        } else { offs[i * 2] *= 0.88; offs[i * 2 + 1] *= 0.88 }
+        px += offs[i * 2]; py += offs[i * 2 + 1]
+        const hueB = (Math.floor((Math.atan2(A[i * 3 + 2], A[i * 3]) / Math.PI + 1) * 12) + ph) % 24
+        const sz = 1.1 + (z2 + 1.2) * 0.9
+        buckets[hueB].push(px, py, sz)
+      }
+      for (let bk = 0; bk < 24; bk++) {
+        const arr = buckets[bk]
+        if (!arr.length) continue
+        ctx.fillStyle = `hsl(${bk * 15} 100% 62%)`
+        ctx.beginPath()
+        for (let q = 0; q < arr.length; q += 3) ctx.rect(arr[q] - arr[q + 2] / 2, arr[q + 1] - arr[q + 2] / 2, arr[q + 2], arr[q + 2])
+        ctx.fill()
+      }
     }
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
@@ -92,15 +145,18 @@ export function LineImage({ focus = [0.66, 0.5], still = false, className = '' }
     }
     const onMove = (e: PointerEvent) => {
       const r = c.getBoundingClientRect()
+      mouse.current = { x: e.clientX - r.left, y: e.clientY - r.top, in: e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom }
       target.current = { x: Math.min(0.85, Math.max(0.15, (e.clientX - r.left) / r.width)), y: Math.min(0.75, Math.max(0.3, (e.clientY - r.top) / r.height)) }
     }
+    const onClick = () => { const m = morph.current; if (m.t >= 1) { m.to = (m.to + 1) % shapes.length; m.t = 0; lastMorph = performance.now() } }
+    c.addEventListener('click', onClick)
     resize()
     const ro = new ResizeObserver(() => { resize(); if (still) draw(3000) })
     ro.observe(c)
     addEventListener('pointermove', onMove, { passive: true })
     if (still) draw(3000)
     else raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('pointermove', onMove) }
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('pointermove', onMove); c.removeEventListener('click', onClick) }
   }, [focus, still])
-  return <canvas ref={ref} role="img" aria-label="Hairlines of white on black parting around one bright sphere of colour" className={className} />
+  return <canvas ref={ref} role="img" aria-label="Hairlines of white on black parting around a cloud of coloured dots that turns and changes shape. Move to rotate it, click to change its shape." className={`cursor-crosshair ${className}`} />
 }
