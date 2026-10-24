@@ -268,7 +268,7 @@ export const LiquidToggle: React.FC<LiquidToggleProps> = ({
           <motion.span
             animate={{ opacity: isOn ? 0 : 0.6 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="text-text-muted dark:text-[#6B6B6B]"
+            className="text-text-muted dark:text-[#8f98ae]"
           >
             OFF
           </motion.span>

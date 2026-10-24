@@ -93,7 +93,7 @@ export const SelectionBasket: React.FC<SelectionBasketProps> = ({
                 <button
                   type="button"
                   onClick={onSelectAll}
-                  className="text-[11px] font-mono text-[#6B6B6B] hover:text-white transition-colors ml-1 underline underline-offset-2 cursor-pointer"
+                  className="text-[11px] font-mono text-[#8f98ae] hover:text-white transition-colors ml-1 underline underline-offset-2 cursor-pointer"
                 >
                   {isAllSelected ? 'Select none' : `All (${totalCount})`}
                 </button>
@@ -132,7 +132,7 @@ export const SelectionBasket: React.FC<SelectionBasketProps> = ({
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="w-7 h-7 rounded-lg bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] flex items-center justify-center text-[#525252] hover:text-[#FAFAFA] transition-colors focus-ring shrink-0 ml-1 cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] flex items-center justify-center text-[#8f98ae] hover:text-[#FAFAFA] transition-colors focus-ring shrink-0 ml-1 cursor-pointer"
                 title="Clear selection"
                 aria-label="Clear selection"
               >

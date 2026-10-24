@@ -84,7 +84,7 @@ export const StackUnfoldPanel: React.FC<StackUnfoldPanelProps> = ({
               className="w-full px-4 py-3.5 flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-[10px] font-mono text-[#6B6B6B]">
+                <span className="text-[10px] font-mono text-[#8f98ae]">
                   0{idx + 1}
                 </span>
                 <div>
@@ -92,7 +92,7 @@ export const StackUnfoldPanel: React.FC<StackUnfoldPanelProps> = ({
                     {card.title}
                   </h4>
                   {card.subtitle && (
-                    <p className="text-[11px] text-[#6B6B6B] mt-0.5">{card.subtitle}</p>
+                    <p className="text-[11px] text-[#8f98ae] mt-0.5">{card.subtitle}</p>
                   )}
                 </div>
               </div>
@@ -106,7 +106,7 @@ export const StackUnfoldPanel: React.FC<StackUnfoldPanelProps> = ({
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
                   transition={motionTransitions.springSnappy}
-                  className="p-1 rounded-lg text-[#525252] hover:text-white"
+                  className="p-1 rounded-lg text-[#8f98ae] hover:text-white"
                 >
                   <ChevronDown className="w-4 h-4" />
                 </motion.div>

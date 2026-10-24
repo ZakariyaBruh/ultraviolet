@@ -199,7 +199,7 @@ export const ScrollProgressNav: React.FC<ScrollProgressNavProps> = ({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 rounded-full text-[#6B6B6B] hover:text-white transition-colors cursor-pointer"
+            className="p-1 rounded-full text-[#8f98ae] hover:text-white transition-colors cursor-pointer"
             aria-label="Toggle section menu"
           >
             <ChevronRight className={cn('w-3.5 h-3.5 transition-transform', isExpanded && 'rotate-90')} />
@@ -219,7 +219,7 @@ export const ScrollProgressNav: React.FC<ScrollProgressNavProps> = ({
                 onClick={() => scrollToSection(section.id)}
                 className={cn(
                   'relative px-3 py-1.5 rounded-full text-xs font-medium transition-colors focus-ring inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer',
-                  isActive ? 'text-[#FAFAFA]' : 'text-[#6B6B6B] hover:text-[#A1A1A1]'
+                  isActive ? 'text-[#FAFAFA]' : 'text-[#8f98ae] hover:text-[#A1A1A1]'
                 )}
               >
                 {isActive && (
@@ -229,7 +229,7 @@ export const ScrollProgressNav: React.FC<ScrollProgressNavProps> = ({
                     className="absolute inset-0 rounded-full bg-[#141414] border border-[#1F1F1F] z-0 shadow-xs"
                   />
                 )}
-                <span className={cn('text-[10px] font-mono relative z-10', isActive ? 'text-[#FAFAFA]/80' : 'text-[#6B6B6B]')}>
+                <span className={cn('text-[10px] font-mono relative z-10', isActive ? 'text-[#FAFAFA]/80' : 'text-[#8f98ae]')}>
                   {indexStr}
                 </span>
                 <span className="relative z-10">{section.label}</span>
@@ -243,7 +243,7 @@ export const ScrollProgressNav: React.FC<ScrollProgressNavProps> = ({
           <button
             type="button"
             onClick={scrollToTop}
-            className="w-6 h-6 rounded-full bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] flex items-center justify-center text-[#525252] hover:text-[#FAFAFA] transition-colors focus-ring shrink-0 ml-0.5 cursor-pointer"
+            className="w-6 h-6 rounded-full bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] flex items-center justify-center text-[#8f98ae] hover:text-[#FAFAFA] transition-colors focus-ring shrink-0 ml-0.5 cursor-pointer"
             title="Scroll to top"
             aria-label="Scroll back to top"
           >

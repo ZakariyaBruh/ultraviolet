@@ -52,13 +52,13 @@ export const SmoothAccordion: React.FC<SmoothAccordionProps> = ({
               <div>
                 <div className="text-sm font-medium text-[#FAFAFA]">{item.title}</div>
                 {item.subtitle && (
-                  <div className="text-xs text-[#6B6B6B] mt-0.5">{item.subtitle}</div>
+                  <div className="text-xs text-[#8f98ae] mt-0.5">{item.subtitle}</div>
                 )}
               </div>
               <motion.div
                 animate={{ rotate: isOpen ? 180 : 0 }}
                 transition={motionTransitions.springSnappy}
-                className="text-[#525252] ml-2 shrink-0"
+                className="text-[#8f98ae] ml-2 shrink-0"
               >
                 <ChevronDown className="w-4 h-4" />
               </motion.div>

@@ -177,7 +177,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                     'relative px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 flex items-center gap-1.5 focus-ring select-none cursor-pointer',
                     isCurrent
                       ? 'text-[#FAFAFA]'
-                      : 'text-[#6B6B6B] hover:text-[#FAFAFA]'
+                      : 'text-[#8f98ae] hover:text-[#FAFAFA]'
                   )}
                   aria-current={isCurrent ? 'page' : undefined}
                 >
@@ -211,7 +211,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                     </span>
                   )}
                   {item.external && (
-                    <ExternalLink className="w-3 h-3 text-[#525252]" />
+                    <ExternalLink className="w-3 h-3 text-[#8f98ae]" />
                   )}
                 </a>
               );
@@ -235,7 +235,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
-              className="p-2 rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#525252] hover:text-[#FAFAFA] hover:border-[#4A4A4A] transition-colors focus-ring cursor-pointer"
+              className="p-2 rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#8f98ae] hover:text-[#FAFAFA] hover:border-[#4A4A4A] transition-colors focus-ring cursor-pointer"
             >
               <motion.div
                 key={mobileMenuOpen ? 'close' : 'menu'}
@@ -280,7 +280,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                         'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors focus-ring cursor-pointer',
                         isCurrent
                           ? 'bg-[#141414] text-[#FAFAFA] border border-[#1F1F1F]'
-                          : 'text-[#6B6B6B] hover:text-[#FAFAFA] hover:bg-[#141414]'
+                          : 'text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#141414]'
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -298,7 +298,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                           </span>
                         )}
                         {item.external && (
-                          <ExternalLink className="w-3 h-3 text-[#525252]" />
+                          <ExternalLink className="w-3 h-3 text-[#8f98ae]" />
                         )}
                       </div>
                     </a>

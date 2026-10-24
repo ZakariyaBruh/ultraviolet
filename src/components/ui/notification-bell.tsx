@@ -157,7 +157,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                   <button
                     type="button"
                     onClick={onMarkAllAsRead}
-                    className="p-1 rounded-lg text-[10px] text-[#525252] hover:text-white hover:bg-[#141414] transition-colors flex items-center gap-1 cursor-pointer"
+                    className="p-1 rounded-lg text-[10px] text-[#8f98ae] hover:text-white hover:bg-[#141414] transition-colors flex items-center gap-1 cursor-pointer"
                     title="Mark all as read"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
@@ -167,7 +167,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                 <button
                   type="button"
                   onClick={() => setPanelOpen(false)}
-                  className="p-1 rounded-lg text-[#525252] hover:text-white hover:bg-[#141414] transition-colors cursor-pointer"
+                  className="p-1 rounded-lg text-[#8f98ae] hover:text-white hover:bg-[#141414] transition-colors cursor-pointer"
                   aria-label="Close notifications"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -179,8 +179,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             <div className="max-h-80 overflow-y-auto divide-y divide-[#1F1F1F]">
               {notifications.length === 0 ? (
                 <div className="py-8 px-4 text-center">
-                  <Bell className="w-6 h-6 text-[#6B6B6B] mx-auto mb-2" />
-                  <p className="text-xs text-[#6B6B6B]">No notifications right now</p>
+                  <Bell className="w-6 h-6 text-[#8f98ae] mx-auto mb-2" />
+                  <p className="text-xs text-[#8f98ae]">No notifications right now</p>
                 </div>
               ) : (
                 notifications.map((item) => {
@@ -210,7 +210,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                         <p className={cn('text-xs text-[#A1A1A1] leading-relaxed', !item.read && 'font-medium text-[#FAFAFA]')}>
                           {item.message}
                         </p>
-                        <span className="text-[10px] font-mono text-[#6B6B6B] mt-1 block">
+                        <span className="text-[10px] font-mono text-[#8f98ae] mt-1 block">
                           {dateString}
                         </span>
                       </div>
@@ -219,7 +219,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                         <button
                           type="button"
                           onClick={() => onMarkAsRead(item.id)}
-                          className="p-1 rounded text-[#525252] hover:text-white hover:bg-[#0E0E0E] transition-colors shrink-0 cursor-pointer"
+                          className="p-1 rounded text-[#8f98ae] hover:text-white hover:bg-[#0E0E0E] transition-colors shrink-0 cursor-pointer"
                           title="Mark as read"
                           aria-label="Mark notification as read"
                         >

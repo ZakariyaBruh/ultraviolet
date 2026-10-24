@@ -93,7 +93,7 @@ export const MorphingDialog: React.FC<MorphingDialogProps> = ({
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-[#525252] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
+                  className="p-1.5 rounded-lg text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X className="w-4 h-4" />

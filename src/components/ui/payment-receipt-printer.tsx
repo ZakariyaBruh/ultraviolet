@@ -266,7 +266,7 @@ export const PaymentReceiptPrinter: React.FC<PaymentReceiptPrinterProps> = ({
                   : 'bg-[#555555]'
               )}
             />
-            <span className="text-[10px] font-mono text-[#525252]">
+            <span className="text-[10px] font-mono text-[#8f98ae]">
               {isPrinting ? 'Printing' : isCompleted ? 'Ready' : 'Idle'}
             </span>
           </div>
@@ -328,7 +328,7 @@ export const PaymentReceiptPrinter: React.FC<PaymentReceiptPrinterProps> = ({
                       : 'bg-[#444444]'
                   )}
                 />
-                <span className="text-[9px] font-mono text-[#6B6B6B] uppercase">
+                <span className="text-[9px] font-mono text-[#8f98ae] uppercase">
                   {isPrinting ? 'FEED' : isCompleted ? 'ONLINE' : 'STANDBY'}
                 </span>
               </div>
@@ -588,7 +588,7 @@ export const PaymentReceiptPrinter: React.FC<PaymentReceiptPrinterProps> = ({
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-[#525252]" />
+                <Copy className="w-3.5 h-3.5 text-[#8f98ae]" />
                 <span>Copy Order</span>
               </>
             )}

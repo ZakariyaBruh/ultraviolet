@@ -148,7 +148,7 @@ export const MacOSFolderCards: React.FC<MacOSFolderCardsProps> = ({
                   transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                   className="absolute inset-x-1 top-0 h-18 rounded-xl border border-[#444444] bg-[#0B0B0B] opacity-90 shadow-sm flex items-center justify-between px-3"
                 >
-                  <span className="font-mono text-[10px] text-[#525252]">02</span>
+                  <span className="font-mono text-[10px] text-[#8f98ae]">02</span>
                   <Sparkles className="h-3.5 w-3.5 text-white" />
                 </motion.div>
 
@@ -186,7 +186,7 @@ export const MacOSFolderCards: React.FC<MacOSFolderCardsProps> = ({
             {/* Folder Label */}
             <div className="flex items-center gap-1.5 text-sm font-medium text-[#FAFAFA] group-hover:text-white transition-colors">
               <span>{folderTitle}</span>
-              <span className="text-xs text-[#6B6B6B] font-mono">({items.length})</span>
+              <span className="text-xs text-[#8f98ae] font-mono">({items.length})</span>
             </div>
           </motion.div>
         ) : (
@@ -205,13 +205,13 @@ export const MacOSFolderCards: React.FC<MacOSFolderCardsProps> = ({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2.5">
                 <span className="text-sm font-semibold text-[#FAFAFA]">{folderTitle}</span>
-                <span className="text-xs text-[#6B6B6B] font-mono">• {items.length} items</span>
+                <span className="text-xs text-[#8f98ae] font-mono">• {items.length} items</span>
               </div>
 
               <button
                 type="button"
                 onClick={toggleFolder}
-                className="focus-ring inline-flex items-center gap-1 text-xs font-mono text-[#525252] hover:text-[#FAFAFA] transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-[#0E0E0E] border border-transparent hover:border-[#1F1F1F]"
+                className="focus-ring inline-flex items-center gap-1 text-xs font-mono text-[#8f98ae] hover:text-[#FAFAFA] transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-[#0E0E0E] border border-transparent hover:border-[#1F1F1F]"
                 aria-label="Close folder"
               >
                 <X className="h-3.5 w-3.5 text-white" />
@@ -239,7 +239,7 @@ export const MacOSFolderCards: React.FC<MacOSFolderCardsProps> = ({
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#161616] border border-[#1F1F1F] text-white">
                       {item.icon || <Layers className="h-4 w-4 text-white" />}
                     </div>
-                    <span className="font-mono text-[10px] text-[#6B6B6B] group-hover:text-[#A1A1A1] transition-colors">
+                    <span className="font-mono text-[10px] text-[#8f98ae] group-hover:text-[#A1A1A1] transition-colors">
                       {item.meta || `0${index + 1}`}
                     </span>
                   </div>

@@ -65,11 +65,11 @@ const defaultItems: FocusModeItem[] = [
         </p>
         <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
           <div className="p-2 rounded bg-[#141414] border border-[#1F1F1F]">
-            <span className="text-[#6B6B6B] block">Cache Hit</span>
+            <span className="text-[#8f98ae] block">Cache Hit</span>
             <span className="text-emerald-400 font-bold">96.4%</span>
           </div>
           <div className="p-2 rounded bg-[#141414] border border-[#1F1F1F]">
-            <span className="text-[#6B6B6B] block">P99 TTFB</span>
+            <span className="text-[#8f98ae] block">P99 TTFB</span>
             <span className="text-[#FAFAFA] font-bold">12.1ms</span>
           </div>
         </div>
@@ -151,7 +151,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-[#6B6B6B] hidden sm:inline">
+              <span className="text-[10px] font-mono text-[#8f98ae] hidden sm:inline">
                 Press <kbd className="px-1 py-0.5 bg-[#0E0E0E] border border-[#1F1F1F] rounded text-[#FAFAFA]">ESC</kbd> to exit
               </span>
               <button
@@ -196,7 +196,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
                     {item.category && (
-                      <span className="text-[10px] font-mono text-[#6B6B6B] uppercase tracking-wider block">
+                      <span className="text-[10px] font-mono text-[#8f98ae] uppercase tracking-wider block">
                         {item.category}
                       </span>
                     )}
@@ -213,7 +213,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
                       'p-1.5 rounded-lg border transition-colors focus-ring cursor-pointer',
                       isFocused
                         ? 'bg-[#FAFAFA] text-[#050505] border-transparent'
-                        : 'bg-[#141414] hover:bg-[#171717] text-[#525252] hover:text-white border-[#1F1F1F]'
+                        : 'bg-[#141414] hover:bg-[#171717] text-[#8f98ae] hover:text-white border-[#1F1F1F]'
                     )}
                     title={isFocused ? 'Exit Focus' : 'Focus on this card'}
                     aria-label={isFocused ? `Exit focus on ${item.title}` : `Focus on ${item.title}`}

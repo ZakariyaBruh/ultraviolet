@@ -107,7 +107,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
           <Check className="w-3 h-3" />
         </span>
       ) : (
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#141414] text-[#6B6B6B]">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#141414] text-[#8f98ae]">
           <Minus className="w-3 h-3" />
         </span>
       );
@@ -135,13 +135,13 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
         <div className="flex items-center gap-3">
           {enableSearch && (
             <div className="relative flex-1 sm:w-64">
-              <Search className="w-3.5 h-3.5 text-[#525252] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#8f98ae] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter capabilities..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#FAFAFA] placeholder-[#6B6B6B] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#FAFAFA] placeholder-[#8f98ae] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
               />
             </div>
           )}
@@ -174,7 +174,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
                 onClick={() => setSelectedPlanId(p.id)}
                 className={cn(
                   'relative flex-1 py-1.5 px-2 text-xs font-medium text-center rounded-lg transition-colors cursor-pointer',
-                  isSelected ? 'text-white' : 'text-[#6B6B6B] hover:text-[#A1A1A1]'
+                  isSelected ? 'text-white' : 'text-[#8f98ae] hover:text-[#A1A1A1]'
                 )}
               >
                 {isSelected && (
@@ -195,7 +195,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pb-6 border-b border-[#1F1F1F]">
         {/* Left Column Label spacer */}
         <div className="hidden sm:flex flex-col justify-end">
-          <span className="text-[11px] font-mono uppercase tracking-widest text-[#6B6B6B]">
+          <span className="text-[11px] font-mono uppercase tracking-widest text-[#8f98ae]">
             Feature Matrix
           </span>
           <span className="text-xs text-[#A1A1A1] mt-0.5">
@@ -240,7 +240,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
                     {plan.price}
                   </span>
                   {plan.billingPeriod && (
-                    <span className="text-[10px] font-mono text-[#6B6B6B]">
+                    <span className="text-[10px] font-mono text-[#8f98ae]">
                       /{plan.billingPeriod}
                     </span>
                   )}
@@ -270,7 +270,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
       {/* Comparison Rows Grouped by Category */}
       <div className="divide-y divide-[#1F1F1F]">
         {filteredCategories.length === 0 ? (
-          <div className="py-12 text-center text-xs text-[#6B6B6B]">
+          <div className="py-12 text-center text-xs text-[#8f98ae]">
             No features match your current search or difference filters.
           </div>
         ) : (
@@ -292,7 +292,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
                   <motion.div
                     animate={{ rotate: isCollapsed ? -90 : 0 }}
                     transition={{ duration: 0.15 }}
-                    className="text-[#525252] group-hover:text-white"
+                    className="text-[#8f98ae] group-hover:text-white"
                   >
                     <ChevronDown className="w-4 h-4" />
                   </motion.div>
@@ -327,7 +327,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
                                   onClick={() =>
                                     setActiveTooltip((prev) => (prev === feat.id ? null : feat.id))
                                   }
-                                  className="text-[#525252] hover:text-[#FAFAFA] cursor-pointer"
+                                  className="text-[#8f98ae] hover:text-[#FAFAFA] cursor-pointer"
                                   aria-label={`Info about ${feat.name}`}
                                 >
                                   <Info className="w-3 h-3" />
@@ -353,7 +353,7 @@ export const SmartComparison: React.FC<SmartComparisonProps> = ({
                                   isMobileActive ? 'flex justify-between py-1' : 'hidden sm:flex'
                                 )}
                               >
-                                <span className="sm:hidden text-[11px] font-mono text-[#6B6B6B]">
+                                <span className="sm:hidden text-[11px] font-mono text-[#8f98ae]">
                                   {plan.name}:
                                 </span>
                                 <div>{renderValueCell(feat.values[plan.id])}</div>

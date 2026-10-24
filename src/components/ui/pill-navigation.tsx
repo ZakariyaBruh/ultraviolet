@@ -165,7 +165,7 @@ export const PillNavigation: React.FC<PillNavigationProps> = ({
                 <ChevronDown
                   className={cn(
                     'relative z-10 h-3 w-3 transition-transform duration-200',
-                    active ? 'text-[#050505]' : 'text-[#6B6B6B]',
+                    active ? 'text-[#050505]' : 'text-[#8f98ae]',
                     active && submenuOpen && 'rotate-180'
                   )}
                 />
@@ -202,7 +202,7 @@ export const PillNavigation: React.FC<PillNavigationProps> = ({
                   onClick={() => selectSub(subItem.id)}
                   className={cn(
                     'focus-ring relative flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer',
-                    isSubActive ? 'text-[#FAFAFA] font-semibold' : 'text-[#525252] hover:text-[#D4D4D4]'
+                    isSubActive ? 'text-[#FAFAFA] font-semibold' : 'text-[#8f98ae] hover:text-[#D4D4D4]'
                   )}
                 >
                   {isSubActive && !reducedMotion && (

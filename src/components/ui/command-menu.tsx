@@ -187,7 +187,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
           >
             {/* Search Input Bar */}
             <div className="flex items-center px-4 py-3 border-b border-[#1F1F1F]">
-              <Search className="w-4 h-4 text-[#525252] mr-2.5 shrink-0" />
+              <Search className="w-4 h-4 text-[#8f98ae] mr-2.5 shrink-0" />
               <input
                 autoFocus
                 type="text"
@@ -197,9 +197,9 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
                   setSelectedIndex(0);
                 }}
                 placeholder="Type a command or search components, docs..."
-                className="w-full bg-transparent text-[16px] text-[#FAFAFA] placeholder-[#6B6B6B] focus:outline-none"
+                className="w-full bg-transparent text-[16px] text-[#FAFAFA] placeholder-[#8f98ae] focus:outline-none"
               />
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0E0E0E] border border-[#1F1F1F] text-[#6B6B6B]">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0E0E0E] border border-[#1F1F1F] text-[#8f98ae]">
                 ESC
               </span>
             </div>
@@ -207,7 +207,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
             {/* Results List */}
             <div className="max-h-80 overflow-y-auto p-1.5" role="listbox">
               {filteredItems.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[#6B6B6B]">
+                <div className="py-8 text-center text-xs text-[#8f98ae]">
                   No commands or documentation matching "{query}"
                 </div>
               ) : (
@@ -253,7 +253,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
             </div>
 
             {/* Footer status */}
-            <div className="flex items-center justify-between px-4 py-2 bg-[#141414] border-t border-[#1F1F1F] text-[11px] text-[#6B6B6B]">
+            <div className="flex items-center justify-between px-4 py-2 bg-[#141414] border-t border-[#1F1F1F] text-[11px] text-[#8f98ae]">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1">
                   <span className="font-mono bg-[#0E0E0E] border border-[#1F1F1F] px-1 rounded text-[10px] text-[#A1A1A1]">↑↓</span> navigate
@@ -262,7 +262,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
                   <span className="font-mono bg-[#0E0E0E] border border-[#1F1F1F] px-1 rounded text-[10px] text-[#A1A1A1]">↵</span> select
                 </span>
               </div>
-              <span className="text-[#6B6B6B]">EasyUI</span>
+              <span className="text-[#8f98ae]">EasyUI</span>
             </div>
           </motion.div>
         </div>

@@ -146,13 +146,13 @@ export const BranchingSubmenu: React.FC<BranchingSubmenuProps> = ({
                 <span className="relative z-10">
                   <span className="block text-xs font-medium">{item.label}</span>
                   {item.description && (
-                    <span className="mt-0.5 block text-[10px] text-[#6B6B6B]">{item.description}</span>
+                    <span className="mt-0.5 block text-[10px] text-[#8f98ae]">{item.description}</span>
                   )}
                 </span>
                 <ChevronRight
                   className={cn(
                     'relative z-10 h-3.5 w-3.5 transition-transform duration-200',
-                    selected ? 'text-white translate-x-0.5' : 'text-[#6B6B6B]'
+                    selected ? 'text-white translate-x-0.5' : 'text-[#8f98ae]'
                   )}
                 />
               </button>
@@ -180,7 +180,7 @@ export const BranchingSubmenu: React.FC<BranchingSubmenuProps> = ({
                 className="space-y-1.5"
               >
                 <div className="mb-2.5 flex items-center gap-2 px-1 text-xs font-semibold text-[#FAFAFA]">
-                  <Layers className="h-3.5 w-3.5 text-[#525252]" />
+                  <Layers className="h-3.5 w-3.5 text-[#8f98ae]" />
                   <span>{active.label}</span>
                 </div>
 
@@ -204,7 +204,7 @@ export const BranchingSubmenu: React.FC<BranchingSubmenuProps> = ({
                           {child.label}
                         </span>
                         {child.description && (
-                          <span className="block text-[10px] text-[#6B6B6B] group-hover:text-[#A1A1A1] transition-colors">
+                          <span className="block text-[10px] text-[#8f98ae] group-hover:text-[#A1A1A1] transition-colors">
                             {child.description}
                           </span>
                         )}

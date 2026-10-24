@@ -82,7 +82,7 @@ export const NotificationStack: React.FC<NotificationStackProps> = ({
     <div className={cn('flex flex-col gap-3 max-w-sm w-full select-none', className)}>
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-medium text-[#A1A1A1]">
-          <Bell className="w-3.5 h-3.5 text-[#525252]" />
+          <Bell className="w-3.5 h-3.5 text-[#8f98ae]" />
           <span>Notifications ({notifications.length})</span>
         </div>
         <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export const NotificationStack: React.FC<NotificationStackProps> = ({
           </button>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-[11px] text-[#6B6B6B] hover:text-[#A1A1A1] transition-colors cursor-pointer"
+            className="text-[11px] text-[#8f98ae] hover:text-[#A1A1A1] transition-colors cursor-pointer"
           >
             {isExpanded ? 'Stack' : 'Expand'}
           </button>
@@ -107,7 +107,7 @@ export const NotificationStack: React.FC<NotificationStackProps> = ({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-6 text-center rounded-xl border border-[#1F1F1F] bg-[#0E0E0E] text-xs text-[#6B6B6B]"
+              className="p-6 text-center rounded-xl border border-[#1F1F1F] bg-[#0E0E0E] text-xs text-[#8f98ae]"
             >
               No pending notifications
             </motion.div>
@@ -151,7 +151,7 @@ export const NotificationStack: React.FC<NotificationStackProps> = ({
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs font-semibold text-[#FAFAFA]">{item.title}</h4>
-                          <span className="text-[10px] text-[#6B6B6B]">{item.time}</span>
+                          <span className="text-[10px] text-[#8f98ae]">{item.time}</span>
                         </div>
                         <p className="text-[11px] text-[#A1A1A1] mt-0.5 leading-snug">
                           {item.description}
@@ -160,7 +160,7 @@ export const NotificationStack: React.FC<NotificationStackProps> = ({
                     </div>
                     <button
                       onClick={() => dismiss(item.id)}
-                      className="text-[#525252] hover:text-[#FAFAFA] p-0.5 rounded transition-colors cursor-pointer"
+                      className="text-[#8f98ae] hover:text-[#FAFAFA] p-0.5 rounded transition-colors cursor-pointer"
                       aria-label="Dismiss"
                     >
                       <X className="w-3.5 h-3.5" />

@@ -57,7 +57,7 @@ function DockIcon({
       </div>
 
       {/* Icon */}
-      <span className="text-[#525252] group-hover:text-[#FAFAFA] transition-colors [&>svg]:w-5 [&>svg]:h-5">
+      <span className="text-[#8f98ae] group-hover:text-[#FAFAFA] transition-colors [&>svg]:w-5 [&>svg]:h-5">
         {item.icon}
       </span>
 

@@ -175,7 +175,7 @@ export const IntroLoader: React.FC<IntroLoaderProps> = ({
               aria-label="Skip welcome sequence"
             >
               <span>Skip</span>
-              <kbd className="hidden sm:inline-block text-[9px] text-[#6B6B6B] bg-[#222222] px-1 py-0.2 rounded border border-[#1F1F1F]">
+              <kbd className="hidden sm:inline-block text-[9px] text-[#8f98ae] bg-[#222222] px-1 py-0.2 rounded border border-[#1F1F1F]">
                 ESC
               </kbd>
               <X className="h-3 w-3 sm:hidden" />

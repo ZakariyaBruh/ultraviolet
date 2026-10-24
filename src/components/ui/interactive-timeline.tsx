@@ -101,7 +101,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
         return 'bg-rose-500/10 text-rose-300 border-rose-500/30';
       case 'pending':
       default:
-        return 'bg-[#141414] text-[#6B6B6B] border-[#1F1F1F]';
+        return 'bg-[#141414] text-[#8f98ae] border-[#1F1F1F]';
     }
   };
 
@@ -117,7 +117,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
       default:
         return isSelected
           ? 'bg-[#141414] border-[#4A4A4A] text-[#A1A1A1]'
-          : 'bg-[#0E0E0E] border-[#1F1F1F] text-[#6B6B6B]';
+          : 'bg-[#0E0E0E] border-[#1F1F1F] text-[#8f98ae]';
     }
   };
 
@@ -216,7 +216,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
                         </span>
                       </div>
 
-                      <span className="text-[11px] font-mono text-[#6B6B6B] block">
+                      <span className="text-[11px] font-mono text-[#8f98ae] block">
                         {item.timestamp}
                       </span>
                     </div>
@@ -226,7 +226,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
                         <motion.div
                           animate={{ rotate: isExpanded ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
-                          className="text-[#6B6B6B] group-hover:text-[#FAFAFA] p-1"
+                          className="text-[#8f98ae] group-hover:text-[#FAFAFA] p-1"
                         >
                           <ChevronDown className="w-4 h-4" />
                         </motion.div>
@@ -260,7 +260,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
                                   key={i}
                                   className="p-2.5 rounded-lg bg-[#0E0E0E] border border-[#1F1F1F]"
                                 >
-                                  <span className="text-[10px] font-mono text-[#6B6B6B] block uppercase">
+                                  <span className="text-[10px] font-mono text-[#8f98ae] block uppercase">
                                     {m.label}
                                   </span>
                                   <span className="text-xs font-mono font-medium text-[#FAFAFA]">
@@ -272,13 +272,13 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
                           )}
 
                           {/* Footer Meta: Commit + Author */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[11px] font-mono text-[#6B6B6B]">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[11px] font-mono text-[#8f98ae]">
                             {item.author && (
                               <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#6B6B6B]" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#8f98ae]" />
                                 <span className="text-[#A1A1A1]">{item.author.name}</span>
                                 {item.author.role && (
-                                  <span className="text-[#6B6B6B]">({item.author.role})</span>
+                                  <span className="text-[#8f98ae]">({item.author.role})</span>
                                 )}
                               </div>
                             )}
@@ -295,7 +295,7 @@ export const InteractiveTimeline: React.FC<InteractiveTimelineProps> = ({
                                 {copiedHash === item.commitHash ? (
                                   <CheckCheck className="w-3 h-3 text-white" />
                                 ) : (
-                                  <Copy className="w-3 h-3 text-[#6B6B6B]" />
+                                  <Copy className="w-3 h-3 text-[#8f98ae]" />
                                 )}
                               </button>
                             )}

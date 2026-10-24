@@ -67,9 +67,9 @@ export const RecoveryLedger: React.FC<RecoveryLedgerProps> = ({
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#1F1F1F] bg-[#141414] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#525252]" />
+          <Clock className="w-4 h-4 text-[#8f98ae]" />
           <h3 className="text-xs font-semibold text-[#FAFAFA]">Recovery Ledger</h3>
-          <span className="text-[10px] font-mono text-[#6B6B6B] bg-[#141414] px-2 py-0.5 rounded-full border border-[#1F1F1F]">
+          <span className="text-[10px] font-mono text-[#8f98ae] bg-[#141414] px-2 py-0.5 rounded-full border border-[#1F1F1F]">
             {entries.length} snapshots
           </span>
         </div>
@@ -141,7 +141,7 @@ export const RecoveryLedger: React.FC<RecoveryLedgerProps> = ({
                     </p>
 
                     {/* Metadata Footer */}
-                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#6B6B6B] mt-2">
+                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#8f98ae] mt-2">
                       <span>{dateStr}</span>
                       {entry.author && (
                         <span className="flex items-center gap-1">
@@ -171,7 +171,7 @@ export const RecoveryLedger: React.FC<RecoveryLedgerProps> = ({
                       </button>
                     )}
 
-                    <div className="p-1 text-[#525252] hover:text-white">
+                    <div className="p-1 text-[#8f98ae] hover:text-white">
                       <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
                         transition={motionTransitions.springSnappy}

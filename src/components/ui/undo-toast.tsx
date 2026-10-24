@@ -227,7 +227,7 @@ export const UndoToast: React.FC<UndoToastProps> = ({
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="p-1 rounded-md text-[#525252] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
+                  className="p-1 rounded-md text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
                   aria-label="Close notification"
                 >
                   <X className="w-3.5 h-3.5" />

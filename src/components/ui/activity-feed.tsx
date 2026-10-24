@@ -220,13 +220,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         <div className="flex items-center gap-2">
           {enableSearch && (
             <div className="relative flex-1 sm:w-56">
-              <Search className="w-3.5 h-3.5 text-[#6B6B6B] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#8f98ae] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search audit trace..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#FAFAFA] placeholder-[#6B6B6B] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#FAFAFA] placeholder-[#8f98ae] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
               />
             </div>
           )}
@@ -241,13 +241,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               'inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer',
               isLiveStreaming
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-[#141414] border-[#1F1F1F] text-[#6B6B6B] hover:text-white'
+                : 'bg-[#141414] border-[#1F1F1F] text-[#8f98ae] hover:text-white'
             )}
           >
             <Radio
               className={cn(
                 'w-3.5 h-3.5',
-                isLiveStreaming ? 'animate-pulse text-emerald-400' : 'text-[#6B6B6B]'
+                isLiveStreaming ? 'animate-pulse text-emerald-400' : 'text-[#8f98ae]'
               )}
             />
             <span>{isLiveStreaming ? 'Live Stream Active' : 'Start Live Stream'}</span>
@@ -267,7 +267,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 'inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap',
                 selectedType === cat.id
                   ? 'bg-[#141414] text-white border border-[#1F1F1F]'
-                  : 'bg-[#0E0E0E] text-[#6B6B6B] border border-[#1F1F1F] hover:text-[#A1A1A1] hover:bg-[#141414]'
+                  : 'bg-[#0E0E0E] text-[#8f98ae] border border-[#1F1F1F] hover:text-[#A1A1A1] hover:bg-[#141414]'
               )}
             >
               <span>{cat.label}</span>
@@ -280,7 +280,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       {/* Events List with Framer Motion Layout & Entry Animations */}
       <div className="space-y-2.5 max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-1">
         {filteredEvents.length === 0 ? (
-          <div className="py-12 text-center text-xs text-[#6B6B6B] rounded-xl border border-[#1F1F1F] bg-[#141414]">
+          <div className="py-12 text-center text-xs text-[#8f98ae] rounded-xl border border-[#1F1F1F] bg-[#141414]">
             No activity events recorded matching filters.
           </div>
         ) : (
@@ -325,7 +325,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                           </p>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-[#6B6B6B]">
+                        <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-[#8f98ae]">
                           <span>{ev.timestamp}</span>
                           {ev.duration && (
                             <>
@@ -356,7 +356,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                           {copiedTraceId === ev.traceId ? (
                             <Check className="w-3 h-3 text-white" />
                           ) : (
-                            <Copy className="w-3 h-3 text-[#6B6B6B]" />
+                            <Copy className="w-3 h-3 text-[#8f98ae]" />
                           )}
                         </button>
                       )}
@@ -365,7 +365,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         <button
                           type="button"
                           onClick={() => onEventReplay(ev)}
-                          className="p-1.5 rounded-lg text-[#6B6B6B] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-[#8f98ae] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
                           title="Replay event"
                         >
                           <RotateCw className="w-3.5 h-3.5" />
@@ -376,7 +376,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         <button
                           type="button"
                           onClick={() => togglePayload(ev.id)}
-                          className="p-1 rounded-lg text-[#6B6B6B] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-[#8f98ae] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
                           title="Toggle JSON payload"
                         >
                           <motion.div
@@ -401,7 +401,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         className="overflow-hidden"
                       >
                         <div className="mt-3 pt-3 border-t border-[#1F1F1F]">
-                          <div className="flex items-center justify-between mb-1 text-[10px] font-mono text-[#6B6B6B]">
+                          <div className="flex items-center justify-between mb-1 text-[10px] font-mono text-[#8f98ae]">
                             <span>PAYLOAD SNAPSHOT (JSON)</span>
                             <button
                               type="button"

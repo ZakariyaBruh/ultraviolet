@@ -80,7 +80,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
         <Search
           className={cn(
             'w-4 h-4 shrink-0 transition-colors mr-2.5',
-            isFocused ? 'text-[#FAFAFA]' : 'text-[#525252]'
+            isFocused ? 'text-[#FAFAFA]' : 'text-[#8f98ae]'
           )}
         />
 
@@ -96,7 +96,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
           autoFocus={autoFocus}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="w-full bg-transparent text-[16px] text-[#FAFAFA] placeholder-[#6B6B6B] focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full bg-transparent text-[16px] text-[#FAFAFA] placeholder-[#8f98ae] focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden disabled:opacity-40 disabled:cursor-not-allowed"
         />
 
         {/* Clear Button */}
@@ -110,7 +110,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
               aria-label="Clear search"
-              className="p-1 rounded-full bg-[#141414] text-[#525252] hover:text-white hover:bg-[#1F1F1F] transition-colors shrink-0 ml-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white cursor-pointer"
+              className="p-1 rounded-full bg-[#141414] text-[#8f98ae] hover:text-white hover:bg-[#1F1F1F] transition-colors shrink-0 ml-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white cursor-pointer"
             >
               <X className="w-3 h-3" />
             </motion.button>
@@ -119,7 +119,7 @@ export const IOSSearchBar: React.FC<IOSSearchBarProps> = ({
 
         {/* Keyboard shortcut indicator when idle */}
         {!isExpanded && value.length === 0 && (
-          <div className="hidden sm:flex items-center gap-0.5 text-[9px] font-mono text-[#6B6B6B] shrink-0 ml-1">
+          <div className="hidden sm:flex items-center gap-0.5 text-[9px] font-mono text-[#8f98ae] shrink-0 ml-1">
             <Command className="w-2.5 h-2.5" />
             <span>K</span>
           </div>

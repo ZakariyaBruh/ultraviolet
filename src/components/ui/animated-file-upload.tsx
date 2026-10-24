@@ -367,7 +367,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
           transition={motionTransitions.springSnappy}
           className="w-10 h-10 rounded-lg bg-[#141414] border border-[#1F1F1F] flex items-center justify-center text-[#A1A1A1] mb-3 group-hover:text-white"
         >
-          <Upload className={cn('w-5 h-5 transition-colors', isDragOver ? 'text-white' : 'text-[#525252]')} />
+          <Upload className={cn('w-5 h-5 transition-colors', isDragOver ? 'text-white' : 'text-[#8f98ae]')} />
         </motion.div>
 
         <div className="space-y-1">
@@ -375,7 +375,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
           <p className="text-xs text-[#A1A1A1]">
             {dropSubtitle}{' '}
             {maxSize && (
-              <span className="text-[#6B6B6B]">
+              <span className="text-[#8f98ae]">
                 (up to {formatFileSize(maxSize)})
               </span>
             )}
@@ -393,7 +393,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
             transition={motionTransitions.springGentle}
             className="mt-4 space-y-2"
           >
-            <div className="flex items-center justify-between px-1 text-[11px] font-mono text-[#6B6B6B] uppercase tracking-wider">
+            <div className="flex items-center justify-between px-1 text-[11px] font-mono text-[#8f98ae] uppercase tracking-wider">
               <span>Files ({files.length})</span>
               {files.some((f) => f.status === 'complete') && (
                 <button
@@ -452,7 +452,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
                           <p className="text-xs font-medium text-[#FAFAFA] truncate">
                             {file.name}
                           </p>
-                          <span className="text-[10px] font-mono text-[#6B6B6B] shrink-0">
+                          <span className="text-[10px] font-mono text-[#8f98ae] shrink-0">
                             {formatFileSize(file.size)}
                           </span>
                         </div>
@@ -475,7 +475,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
                               Processing...
                             </span>
                           ) : (
-                            <span className="text-[#6B6B6B] font-mono text-[10px]">
+                            <span className="text-[#8f98ae] font-mono text-[10px]">
                               Uploading {file.progress}%
                             </span>
                           )}
@@ -488,7 +488,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
                           <button
                             type="button"
                             onClick={() => handleRetryFile(file)}
-                            className="p-1 rounded-md text-[#525252] hover:text-white hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
+                            className="p-1 rounded-md text-[#8f98ae] hover:text-white hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
                             title="Retry upload"
                             aria-label={`Retry uploading ${file.name}`}
                           >
@@ -498,7 +498,7 @@ export const AnimatedFileUpload: React.FC<AnimatedFileUploadProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(file.id)}
-                          className="p-1 rounded-md text-[#525252] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
+                          className="p-1 rounded-md text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#141414] transition-colors focus-ring cursor-pointer"
                           title="Remove file"
                           aria-label={`Remove ${file.name}`}
                         >

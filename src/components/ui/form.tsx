@@ -70,7 +70,7 @@ export const FormDescription = forwardRef<HTMLParagraphElement, React.HTMLAttrib
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn('text-[11px] text-[#6B6B6B] leading-relaxed', className)}
+      className={cn('text-[11px] text-[#8f98ae] leading-relaxed', className)}
       {...props}
     />
   )
@@ -150,7 +150,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative w-full flex items-center">
         {leftIcon && (
-          <div className="absolute left-3 text-[#525252] pointer-events-none flex items-center justify-center">
+          <div className="absolute left-3 text-[#8f98ae] pointer-events-none flex items-center justify-center">
             {leftIcon}
           </div>
         )}
@@ -160,7 +160,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           type={computedType}
           disabled={disabled}
           className={cn(
-            'w-full h-10 px-3.5 text-xs text-[#FAFAFA] placeholder:text-[#6B6B6B] bg-[#141414] rounded-lg border transition-all duration-150',
+            'w-full h-10 px-3.5 text-xs text-[#FAFAFA] placeholder:text-[#8f98ae] bg-[#141414] rounded-lg border transition-all duration-150',
             'border-[#1F1F1F] hover:border-[#4A4A4A]',
             'focus:bg-[#141414] focus:border-[#4A4A4A] focus:outline-none focus-ring',
             leftIcon && 'pl-9',
@@ -178,7 +178,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
-            className="absolute right-3 text-[#525252] hover:text-[#FAFAFA] transition-colors focus-ring rounded cursor-pointer"
+            className="absolute right-3 text-[#8f98ae] hover:text-[#FAFAFA] transition-colors focus-ring rounded cursor-pointer"
           >
             {showPassword ? (
               <EyeOff className="w-3.5 h-3.5" />
@@ -188,7 +188,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </button>
         ) : (
           rightIcon && (
-            <div className="absolute right-3 text-[#525252] pointer-events-none flex items-center justify-center">
+            <div className="absolute right-3 text-[#8f98ae] pointer-events-none flex items-center justify-center">
               {rightIcon}
             </div>
           )
@@ -214,7 +214,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ref={ref}
         disabled={disabled}
         className={cn(
-          'w-full min-h-[90px] p-3 text-xs text-[#FAFAFA] placeholder:text-[#6B6B6B] bg-[#141414] rounded-lg border transition-all duration-150 resize-y',
+          'w-full min-h-[90px] p-3 text-xs text-[#FAFAFA] placeholder:text-[#8f98ae] bg-[#141414] rounded-lg border transition-all duration-150 resize-y',
           'border-[#1F1F1F] hover:border-[#4A4A4A]',
           'focus:bg-[#141414] focus:border-[#4A4A4A] focus:outline-none focus-ring leading-relaxed',
           error && 'border-rose-500/50 focus:border-rose-500',
@@ -273,7 +273,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               ))
             : children}
         </select>
-        <div className="absolute right-3 text-[#525252] pointer-events-none flex items-center justify-center">
+        <div className="absolute right-3 text-[#8f98ae] pointer-events-none flex items-center justify-center">
           <ChevronDown className="w-3.5 h-3.5" />
         </div>
       </div>
@@ -360,7 +360,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               </div>
             )}
             {description && (
-              <div className="text-[11px] text-[#6B6B6B] mt-0.5 leading-relaxed">
+              <div className="text-[11px] text-[#8f98ae] mt-0.5 leading-relaxed">
                 {description}
               </div>
             )}
@@ -501,7 +501,7 @@ export const RadioGroupItem: React.FC<RadioGroupItemProps> = ({
             </div>
           )}
           {description && (
-            <div className="text-[11px] text-[#6B6B6B] mt-0.5 leading-relaxed">
+            <div className="text-[11px] text-[#8f98ae] mt-0.5 leading-relaxed">
               {description}
             </div>
           )}
@@ -559,7 +559,7 @@ export const Switch: React.FC<SwitchProps> = ({
             </div>
           )}
           {description && (
-            <div className="text-[11px] text-[#6B6B6B] mt-0.5 leading-relaxed">
+            <div className="text-[11px] text-[#8f98ae] mt-0.5 leading-relaxed">
               {description}
             </div>
           )}
@@ -585,7 +585,7 @@ export const Switch: React.FC<SwitchProps> = ({
           transition={motionTransitions.springSnappy}
           className={cn(
             'pointer-events-none block h-3.5 w-3.5 my-auto top-0 bottom-0 rounded-full shadow-xs',
-            current ? 'bg-[#050505]' : 'bg-[#6B6B6B]'
+            current ? 'bg-[#050505]' : 'bg-[#8f98ae]'
           )}
         />
       </button>

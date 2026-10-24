@@ -152,7 +152,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
               />
-              <CreditCard className="w-5 h-5 text-[#525252]" />
+              <CreditCard className="w-5 h-5 text-[#8f98ae]" />
             </div>
           )}
 
@@ -201,7 +201,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={motionTransitions.springSnappy}
-              className="w-14 h-14 rounded-full bg-[#141414] border border-[#1F1F1F] flex items-center justify-center text-[#525252]"
+              className="w-14 h-14 rounded-full bg-[#141414] border border-[#1F1F1F] flex items-center justify-center text-[#8f98ae]"
             >
               <RotateCcw className="w-6 h-6" />
             </motion.div>
@@ -227,7 +227,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
 
         {/* Amount Pill */}
         <div className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#141414] border border-[#1F1F1F]">
-          <span className="text-[11px] font-mono text-[#6B6B6B]">Total</span>
+          <span className="text-[11px] font-mono text-[#8f98ae]">Total</span>
           <span className="text-sm font-semibold font-mono text-[#FAFAFA]">
             {formattedAmount}
           </span>
@@ -253,7 +253,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
                 title="Copy Transaction ID"
               >
                 <span>{transactionId.slice(0, 14)}...</span>
-                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-[#6B6B6B]" />}
+                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-[#8f98ae]" />}
               </button>
             </div>
 
@@ -265,7 +265,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
             <div className="flex items-center justify-between py-1">
               <span className="text-[#A1A1A1]">Payment Method</span>
               <span className="text-[#FAFAFA] flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-[#525252]" />
+                <CreditCard className="w-3.5 h-3.5 text-[#8f98ae]" />
                 {paymentMethod} {last4 ? `(•••• ${last4})` : ''}
               </span>
             </div>
@@ -280,7 +280,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] text-xs font-medium text-[#A1A1A1] hover:text-[#FAFAFA] transition-colors focus-ring cursor-pointer"
               >
-                <Receipt className="w-3.5 h-3.5 text-[#525252]" />
+                <Receipt className="w-3.5 h-3.5 text-[#8f98ae]" />
                 <span>{showReceiptDetails ? 'Hide Details' : 'View Receipt'}</span>
               </button>
 
@@ -289,7 +289,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
                 onClick={handleDownload}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] text-xs font-medium text-[#A1A1A1] hover:text-[#FAFAFA] transition-colors focus-ring cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-[#525252]" />
+                <Download className="w-3.5 h-3.5 text-[#8f98ae]" />
                 <span>Download</span>
               </button>
             </div>
@@ -304,7 +304,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
                   transition={motionTransitions.springGentle}
                   className="overflow-hidden pt-2 space-y-1.5 bg-[#050505] p-3 rounded-lg border border-[#1F1F1F]"
                 >
-                  <p className="text-[10px] font-mono uppercase text-[#6B6B6B] tracking-wider mb-1">
+                  <p className="text-[10px] font-mono uppercase text-[#8f98ae] tracking-wider mb-1">
                     Itemized Breakdown
                   </p>
                   {items.map((item, idx) => (
@@ -349,7 +349,7 @@ ${items.map((i) => `- ${i.name} (${i.quantity || 1}x): ${i.price}`).join('\n')}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#141414] hover:bg-[#0E0E0E] border border-[#1F1F1F] hover:border-[#4A4A4A] text-[#A1A1A1] hover:text-[#FAFAFA] font-medium text-xs transition-colors focus-ring cursor-pointer"
             >
               <span>Change Payment Method</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#6B6B6B]" />
+              <ArrowRight className="w-3.5 h-3.5 text-[#8f98ae]" />
             </button>
           </motion.div>
         )}

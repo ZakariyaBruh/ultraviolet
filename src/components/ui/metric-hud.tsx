@@ -183,7 +183,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
               <h3 className="text-xs sm:text-sm font-semibold text-[#FAFAFA]">System Telemetry HUD</h3>
               {getStatusIndicator(activeMetric?.status)}
             </div>
-            <p className="text-[10px] sm:text-[11px] text-[#6B6B6B]">Live hardware-accelerated telemetry telemetry</p>
+            <p className="text-[10px] sm:text-[11px] text-[#8f98ae]">Live hardware-accelerated telemetry telemetry</p>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
                 onClick={() => setSelectedTimeRange(range)}
                 className={cn(
                   'relative py-1 px-2.5 text-[11px] font-mono rounded-md transition-colors cursor-pointer',
-                  isSelected ? 'text-[#FAFAFA]' : 'text-[#6B6B6B] hover:text-[#A1A1A1]'
+                  isSelected ? 'text-[#FAFAFA]' : 'text-[#8f98ae] hover:text-[#A1A1A1]'
                 )}
               >
                 {isSelected && (
@@ -235,7 +235,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
                 <button
                   type="button"
                   onClick={(e) => handleCopyStat(e, `${m.value} ${m.unit || ''}`, m.id)}
-                  className="text-[#525252] hover:text-white p-0.5 cursor-pointer"
+                  className="text-[#8f98ae] hover:text-white p-0.5 cursor-pointer"
                   title="Copy value"
                 >
                   {copiedId === m.id ? (
@@ -249,7 +249,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex items-baseline gap-1">
                   <span className="text-lg sm:text-xl font-bold font-mono text-[#FAFAFA]">{m.value}</span>
-                  {m.unit && <span className="text-[10px] font-mono text-[#6B6B6B]">{m.unit}</span>}
+                  {m.unit && <span className="text-[10px] font-mono text-[#8f98ae]">{m.unit}</span>}
                 </div>
 
                 <span
@@ -274,7 +274,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
           <div className="flex items-center justify-between mb-2 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="font-mono text-[#FAFAFA] text-xs font-semibold">{activeMetric.label}</span>
-              <span className="text-[#6B6B6B] text-[11px] font-mono">({selectedTimeRange})</span>
+              <span className="text-[#8f98ae] text-[11px] font-mono">({selectedTimeRange})</span>
             </div>
 
             <div className="text-right font-mono">
@@ -283,7 +283,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
                   Indexed: {hoveredPoint.val.toFixed(1)} {activeMetric.unit || ''}
                 </span>
               ) : (
-                <span className="text-[10px] text-[#6B6B6B]">
+                <span className="text-[10px] text-[#8f98ae]">
                   Hover canvas to inspect timeline values
                 </span>
               )}
@@ -360,7 +360,7 @@ export const MetricHUD: React.FC<MetricHUDProps> = ({
           </div>
 
           {/* Min & Max Labels */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#1F1F1F] text-[10px] font-mono text-[#6B6B6B]">
+          <div className="flex items-center justify-between pt-2 border-t border-[#1F1F1F] text-[10px] font-mono text-[#8f98ae]">
             <span>Min: {minVal.toFixed(1)}</span>
             <span>Max: {maxVal.toFixed(1)}</span>
           </div>

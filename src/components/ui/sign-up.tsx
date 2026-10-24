@@ -219,7 +219,7 @@ export const SignUp: React.FC<SignUpProps> = ({
 
           <div className="relative flex items-center justify-center my-4">
             <div className="border-t border-[#1F1F1F] w-full" />
-            <span className="bg-[#0E0E0E] px-3 text-[10px] uppercase font-mono tracking-widest text-[#6B6B6B] absolute">
+            <span className="bg-[#0E0E0E] px-3 text-[10px] uppercase font-mono tracking-widest text-[#8f98ae] absolute">
               Or sign up with email
             </span>
           </div>
@@ -315,7 +315,7 @@ export const SignUp: React.FC<SignUpProps> = ({
                   />
                 ))}
               </div>
-              <div className="flex justify-between items-center text-[10px] font-mono text-[#6B6B6B]">
+              <div className="flex justify-between items-center text-[10px] font-mono text-[#8f98ae]">
                 <span>Strength</span>
                 <span className="text-[#A1A1A1]">{strengthLabels[strength - 1] || 'Weak'}</span>
               </div>

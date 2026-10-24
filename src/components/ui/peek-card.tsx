@@ -174,7 +174,7 @@ export const PeekCard: React.FC<PeekCardProps> = ({
                 <div className="flex items-start justify-between gap-2 border-b border-[#1F1F1F] pb-2.5">
                   <div>
                     <p className="font-semibold text-sm text-[#FAFAFA]">{data.title}</p>
-                    {data.subtitle && <p className="text-[11px] text-[#6B6B6B]">{data.subtitle}</p>}
+                    {data.subtitle && <p className="text-[11px] text-[#8f98ae]">{data.subtitle}</p>}
                   </div>
                   {data.amount && (
                     <span className="font-mono text-sm font-semibold text-[#FAFAFA] bg-[#141414] px-2 py-0.5 rounded border border-[#1F1F1F]">
@@ -192,14 +192,14 @@ export const PeekCard: React.FC<PeekCardProps> = ({
                       </div>
                       <div className="min-w-0">
                         <p className="text-[11px] font-medium text-[#FAFAFA] truncate">{data.customer.name}</p>
-                        <p className="text-[10px] text-[#6B6B6B] truncate">{data.customer.email}</p>
+                        <p className="text-[10px] text-[#8f98ae] truncate">{data.customer.email}</p>
                       </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleCopyEmail(data.customer?.email)}
-                      className="p-1 rounded text-[#525252] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
+                      className="p-1 rounded text-[#8f98ae] hover:text-white hover:bg-[#0E0E0E] transition-colors cursor-pointer"
                       title="Copy customer email"
                     >
                       {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
@@ -221,7 +221,7 @@ export const PeekCard: React.FC<PeekCardProps> = ({
 
                 {/* Footer Timestamp */}
                 {data.timestamp && (
-                  <div className="pt-2 border-t border-[#1F1F1F] flex justify-between items-center text-[10px] text-[#6B6B6B] font-mono">
+                  <div className="pt-2 border-t border-[#1F1F1F] flex justify-between items-center text-[10px] text-[#8f98ae] font-mono">
                     <span>{data.timestamp}</span>
                     <span className="text-emerald-400 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />

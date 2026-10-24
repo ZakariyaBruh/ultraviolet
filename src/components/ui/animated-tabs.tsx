@@ -81,7 +81,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
                   : 'px-3.5 py-1.5 rounded-md',
                 isActive
                   ? 'text-text-primary font-medium dark:text-[#FAFAFA]'
-                  : 'text-text-muted hover:text-text-secondary dark:text-[#6B6B6B] dark:hover:text-[#A1A1A1]'
+                  : 'text-text-muted hover:text-text-secondary dark:text-[#b4bccf] dark:hover:text-[#eef2fb]'
               )}
             >
               {isActive && (

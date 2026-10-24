@@ -170,7 +170,7 @@ export const Login: React.FC<LoginProps> = ({
 
           <div className="relative flex items-center justify-center my-4">
             <div className="border-t border-[#1F1F1F] w-full" />
-            <span className="bg-[#0E0E0E] px-3 text-[10px] uppercase font-mono tracking-widest text-[#6B6B6B] absolute">
+            <span className="bg-[#0E0E0E] px-3 text-[10px] uppercase font-mono tracking-widest text-[#8f98ae] absolute">
               Or continue with
             </span>
           </div>

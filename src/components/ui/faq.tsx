@@ -145,13 +145,13 @@ export const FAQ: React.FC<FAQProps> = ({
       {/* Optional Search Bar */}
       {searchable && (
         <div className="relative">
-          <Search className="w-4 h-4 text-[#525252] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-[#8f98ae] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full h-10 pl-10 pr-4 text-xs text-[#FAFAFA] placeholder:text-[#6B6B6B] bg-[#141414] border border-[#1F1F1F] rounded-xl focus:border-[#4A4A4A] focus:outline-none focus-ring transition-colors"
+            className="w-full h-10 pl-10 pr-4 text-xs text-[#FAFAFA] placeholder:text-[#8f98ae] bg-[#141414] border border-[#1F1F1F] rounded-xl focus:border-[#4A4A4A] focus:outline-none focus-ring transition-colors"
           />
         </div>
       )}
@@ -168,7 +168,7 @@ export const FAQ: React.FC<FAQProps> = ({
                 'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors focus-ring cursor-pointer',
                 selectedCategory === cat
                   ? 'bg-[#141414] text-[#FAFAFA] border border-[#1F1F1F]'
-                  : 'text-[#6B6B6B] hover:text-[#FAFAFA] hover:bg-[#0E0E0E]'
+                  : 'text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#0E0E0E]'
               )}
             >
               {cat}
@@ -180,8 +180,8 @@ export const FAQ: React.FC<FAQProps> = ({
       {/* FAQ Items List */}
       {filteredItems.length === 0 ? (
         <div className="p-8 text-center rounded-xl border border-[#1F1F1F] bg-[#0E0E0E]">
-          <HelpCircle className="w-6 h-6 text-[#6B6B6B] mx-auto mb-2 opacity-60" />
-          <p className="text-xs text-[#6B6B6B]">No matching questions found.</p>
+          <HelpCircle className="w-6 h-6 text-[#8f98ae] mx-auto mb-2 opacity-60" />
+          <p className="text-xs text-[#8f98ae]">No matching questions found.</p>
         </div>
       ) : variant === 'separated' ? (
         /* Separated Cards Mode */
@@ -211,7 +211,7 @@ export const FAQ: React.FC<FAQProps> = ({
                 >
                   <div className="flex items-center gap-3 pr-4">
                     {item.icon && (
-                      <span className="text-[#525252] group-hover:text-[#FAFAFA] transition-colors shrink-0">
+                      <span className="text-[#8f98ae] group-hover:text-[#FAFAFA] transition-colors shrink-0">
                         {item.icon}
                       </span>
                     )}
@@ -271,7 +271,7 @@ export const FAQ: React.FC<FAQProps> = ({
                 >
                   <div className="flex items-center gap-3 pr-4">
                     {item.icon && (
-                      <span className="text-[#525252] group-hover:text-[#FAFAFA] transition-colors shrink-0">
+                      <span className="text-[#8f98ae] group-hover:text-[#FAFAFA] transition-colors shrink-0">
                         {item.icon}
                       </span>
                     )}

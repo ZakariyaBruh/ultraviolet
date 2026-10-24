@@ -285,7 +285,7 @@ export const TorqueDial: React.FC<TorqueDialProps> = ({
             {value}
             {unit}
           </div>
-          <span className="text-[10px] font-mono text-[#6B6B6B]">{label}</span>
+          <span className="text-[10px] font-mono text-[#8f98ae]">{label}</span>
         </div>
       )}
     </div>

@@ -127,7 +127,7 @@ export const DepthCorridor: React.FC<DepthCorridorProps> = ({
               {layer.title && (
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-semibold text-[#FAFAFA] tracking-tight">{layer.title}</h4>
-                  <span className="text-[9px] font-mono text-[#6B6B6B]">0{idx + 1}</span>
+                  <span className="text-[9px] font-mono text-[#8f98ae]">0{idx + 1}</span>
                 </div>
               )}
               {layer.subtitle && (
@@ -146,7 +146,7 @@ export const DepthCorridor: React.FC<DepthCorridorProps> = ({
           onClick={() => setActiveIndex(activeIndex - 1)}
           disabled={activeIndex === 0}
           aria-label="Previous layer"
-          className="p-1 rounded-full text-[#525252] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-1 rounded-full text-[#8f98ae] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -169,7 +169,7 @@ export const DepthCorridor: React.FC<DepthCorridorProps> = ({
           onClick={() => setActiveIndex(activeIndex + 1)}
           disabled={activeIndex === layers.length - 1}
           aria-label="Next layer"
-          className="p-1 rounded-full text-[#525252] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-1 rounded-full text-[#8f98ae] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

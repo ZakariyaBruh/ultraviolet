@@ -57,7 +57,7 @@ export const LiquidRippleButton: React.FC<LiquidRippleButtonProps> = ({
         'focus-ring group relative inline-flex min-h-12 items-center justify-center overflow-hidden rounded-xl px-6 py-3 text-xs sm:text-sm font-medium tracking-tight select-none cursor-pointer transition-all duration-300',
         isPrimary
           ? 'bg-[#FAFAFA] text-[#050505] hover:bg-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]'
-          : 'border border-[#3A3A3A] bg-[#161616] text-[#FAFAFA] hover:border-[#525252] hover:bg-[#0B0B0B] shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
+          : 'border border-[#3A3A3A] bg-[#161616] text-[#FAFAFA] hover:border-[#8f98ae] hover:bg-[#0B0B0B] shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
         className
       )}
       {...(props as any)}
