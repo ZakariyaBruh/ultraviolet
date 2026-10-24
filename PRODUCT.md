@@ -13,7 +13,7 @@ Vite + React 19 + TypeScript + Tailwind v4 + shadcn (base-nova) + Motion. EasyUI
 Primary: doomscrollers breaking a scrolling habit, who open it when they sit down to work, study or read and want to stay put. Secondary: students and remote workers who already do long focus blocks.
 
 ## Product Purpose
-Anti-Scroll replaces the feed with one calm screen: internet radio and live IPTV as the thing you stay with, a session timer, and honest measurement of every urge to scroll. Success after a week is longer unbroken sessions and fewer scroll reflexes.
+Friction (formerly Anti-Scroll) replaces the feed with one calm screen: internet radio and live IPTV as the thing you stay with, a session timer, and honest measurement of every urge to scroll. Success after a week is longer unbroken sessions and fewer scroll reflexes.
 
 ## Positioning
 The only focus tool that treats a swallowed scroll gesture as the unit of progress, and keeps sound/TV (not silence) as the anchor. A neighbouring Pomodoro timer or lo-fi player cannot truthfully copy "the site does not scroll at all."
@@ -28,7 +28,7 @@ Opened at the start of a work or study block, on a phone or laptop. The page nev
 - No vertical scroll anywhere: lists page, charts are slides.
 
 ## Brand Commitments
-Name: Anti-Scroll ("Pro attention span"). Must use EasyUI components heavily. The user rejected the first version as looking AI-generated.
+Name: Friction ("Put the friction back"). Must use EasyUI components heavily. The user rejected the first version as looking AI-generated.
 
 ## Evidence on Hand
 No real user data, testimonials or customers. A "Load demo history" button produces clearly labelled fake history so charts can be previewed; never present it as real.
@@ -42,3 +42,6 @@ No real user data, testimonials or customers. A "Load demo history" button produ
 
 ## Accessibility & Inclusion
 Target WCAG 2.2 AA. Motion has a reduced path. Controls keyboard reachable with visible focus. Touch targets at least 44px.
+
+
+No backend and no AI anywhere: no chat, no model calls. The Debrief is plain sentences computed from stored numbers.

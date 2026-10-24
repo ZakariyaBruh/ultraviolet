@@ -6,7 +6,6 @@ import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LiquidToggle } from '@/components/ui/liquid-toggle'
-import { SpringSelect } from '@/components/ui/spring-select'
 import { StretchSwitch } from '@/components/ui/stretch-switch'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
@@ -22,7 +21,7 @@ const snapshot = (s: AppState) => {
 
 function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-2 last:border-b-0">
+    <div className="flex min-h-14 items-center justify-between gap-4 border-b border-ink/10 py-2 last:border-b-0">
       <div className="min-w-0">
         <div className="text-[15px] text-ink">{title}</div>
         {hint && <div className="text-xs text-ink-3">{hint}</div>}
@@ -46,7 +45,7 @@ function Focus() {
           <TorqueDial label="Session length" value={s.sessionMin} min={10} max={90} step={5} unit="min" onChange={(v) => set({ sessionMin: v })} size={wide ? 150 : 112} />
         </div>
       </div>
-      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
+      <Row title="Scroll guard" hint="Swallow and count scroll gestures while the app is open"><LiquidToggle offLabel="Scroll guard off" onLabel="Scroll guard on" value={s.guard} onChange={(v) => set({ guard: v })} /></Row>
     </Panel>
   )
 }
@@ -59,10 +58,10 @@ function Look() {
       <Row title="Motion" hint="Calm is still. Lots turns on every effect.">
         <Seg id="set-motion" value={String(s.motion)} onChange={(v) => set({ motion: Number(v) as 0 | 1 | 2 })} tabs={[{ id: '0', label: 'Calm' }, { id: '1', label: 'Lively' }, { id: '2', label: 'Lots' }]} />
       </Row>
-      <Row title="Glass" hint="Reduce Transparency in your system forces Solid">
-        <SpringSelect value={s.glass} onChange={(v) => set({ glass: v as typeof s.glass })} options={[{ value: 'liquid', label: 'Liquid', description: 'Blur and refraction' }, { value: 'frost', label: 'Frost', description: 'Blur only' }, { value: 'solid', label: 'Solid', description: 'Opaque' }]} />
+      <Row title="Theme" hint="Dark is the default">
+        <Seg id="set-theme" value={s.theme} onChange={(v) => set({ theme: v as typeof s.theme })} tabs={[{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }]} />
       </Row>
-      <Row title="Sound volume"><StretchSwitch checked={s.volume > 0} onChange={(c) => set({ volume: c ? 0.7 : 0 })} /></Row>
+      <Row title="Sound volume"><StretchSwitch label="Sound" checked={s.volume > 0} onChange={(c) => set({ volume: c ? 0.7 : 0 })} /></Row>
     </Panel>
   )
 }
@@ -80,7 +79,7 @@ function Data() {
       </Panel>
       <Panel className="flex flex-col gap-3 rounded-3xl p-4">
         <CodeSnippetDeck snippets={[{ language: 'json', label: 'Export', filename: 'anti-scroll.json', code: json.slice(0, 600) + (json.length > 600 ? '\n…' : '') }]} />
-        <button className="h-11 rounded-full border border-white/15 text-sm text-ink" onClick={() => {
+        <button className="h-11 rounded-full border border-ink/15 text-sm text-ink" onClick={() => {
           const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: 'anti-scroll.json' })
           a.click()
         }}>Download backup</button>
@@ -100,8 +99,8 @@ function Help() {
         { id: '3', question: 'Why does a lapse happen?', answer: 'Leaving the tab for six seconds or more during a session is logged as a lapse.' },
       ]} />
       <div className="mt-3 flex gap-2">
-        <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => useUI.getState().set({ tourOpen: true })}>Replay tour</button>
-        <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => { useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', variant: 'success' }) }}>Load demo data</button>
+        <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => useUI.getState().set({ tourOpen: true })}>Replay tour</button>
+        <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => { useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', variant: 'success' }) }}>Load demo data</button>
       </div>
     </Panel>
   )
@@ -112,11 +111,10 @@ export function SettingsView() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader kicker="Settings" title="Make it yours">
-        <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Focus' }, { id: 'look', label: 'Look' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
+        <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Settings' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
       </PageHeader>
       <div className="min-h-0 flex-1">
-        {tab === 'focus' && <Focus />}
-        {tab === 'look' && <Look />}
+        {tab === 'focus' && <div className="grid gap-4 lg:grid-cols-2"><Focus /><Look /></div>}
         {tab === 'data' && <Data />}
         {tab === 'help' && <Help />}
       </div>

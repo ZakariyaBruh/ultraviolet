@@ -35,7 +35,7 @@ export function PlayerIsland() {
           </button>
         ) : (
           <button type="button" onClick={() => set({ tuneOpen: true })} className="flex min-w-0 flex-1 items-center gap-3 rounded-full text-left">
-            <span className="grid size-11 place-items-center rounded-full bg-white/10 text-ink"><Radio className="size-5" /></span>
+            <span className="grid size-11 place-items-center rounded-full bg-ink/10 text-ink"><Radio className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-ink">Nothing playing</span>
               <span className="text-[13px] text-ink-2">Tap to tune in</span>
@@ -44,7 +44,7 @@ export function PlayerIsland() {
         )}
         <Transport compact />
         {current?.kind === 'tv' && (
-          <button type="button" onClick={() => set({ theatre: true })} aria-label="Theatre mode" className="grid size-9 place-items-center rounded-full text-ink hover:bg-white/10">
+          <button type="button" onClick={() => set({ theatre: true })} aria-label="Theatre mode" className="grid size-9 place-items-center rounded-full text-ink hover:bg-ink/10">
             <Maximize2 className="size-4" />
           </button>
         )}
@@ -58,7 +58,7 @@ export function PlayerIsland() {
             transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="flex items-center justify-between gap-4 border-t border-white/10 px-5 py-3">
+            <div className="flex items-center justify-between gap-4 border-t border-ink/10 px-5 py-3">
               <div className="flex items-center gap-2 text-[13px] text-ink-2"><Volume2 className="size-4" />Volume</div>
               <TorqueDial value={Math.round(volume * 100)} min={0} max={100} step={5} unit="%" size={84} label="Volume" onChange={(v) => setVolume(v / 100)} />
             </div>

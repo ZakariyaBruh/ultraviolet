@@ -2,6 +2,7 @@ import { Maximize2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useCallback } from 'react'
 import { Browser } from '@/components/app/Browser'
+import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { Glass } from '@/components/app/glass'
 import { Logo } from '@/components/app/shared'
 import { StackUnfoldPanel } from '@/components/ui/stack-unfold-panel'
@@ -27,7 +28,10 @@ function Stage() {
         )}
       </div>
       {!tv ? (
-        <div className="self-center rounded-3xl border border-dashed border-white/20 px-8 py-6 text-center text-sm text-ink-2">Pick a channel and it goes on air behind everything.</div>
+        <div className="flex flex-col items-center gap-3 self-center text-center text-ink-2">
+          <AsciiSolid cols={52} rows={24} speed={0.6} className="text-[9px] text-signal" />
+          <p className="hud">Off air. Pick a channel and it plays behind everything.</p>
+        </div>
       ) : (
         <div className="grid gap-3 self-end md:max-w-[360px]">
           <Glass clear radius={22} className="flex items-center gap-3 p-3">

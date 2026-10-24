@@ -23,9 +23,9 @@ import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
 
-const SIGNAL = '#6ee7ff'
-const VIOLET = '#a78bfa'
-const PINK = '#f0abfc'
+const SIGNAL = '#ff5a1f'
+const VIOLET = '#ffc400'
+const PINK = '#9a958a'
 
 function ScoreRing({ score }: { score: number }) {
   const R = 44
@@ -33,8 +33,8 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative aspect-square w-[140px] shrink-0">
       <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={R} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-        <motion.circle cx="50" cy="50" r={R} fill="none" stroke={SIGNAL} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - score / 100) }} transition={{ type: 'spring', stiffness: 50, damping: 18, delay: 0.1 }} style={{ filter: 'drop-shadow(0 0 3px rgba(110,231,255,0.8))' }} />
+        <circle cx="50" cy="50" r={R} fill="none" stroke="var(--rule)" strokeWidth="3" />
+        <motion.circle cx="50" cy="50" r={R} fill="none" stroke={SIGNAL} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - score / 100) }} transition={{ type: 'spring', stiffness: 50, damping: 18, delay: 0.1 }} style={{ }} />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
@@ -53,8 +53,8 @@ function Part({ value, label, note, weight }: { value: number; label: string; no
         <span className="text-ink">{label}</span>
         <span className="fig text-[13px] text-ink-2">{Math.round(value * weight)} of {weight}</span>
       </div>
-      <div className="mt-1.5 h-1.5 rounded-full bg-white/10">
-        <motion.div className="h-full rounded-full bg-signal shadow-[0_0_10px_rgba(110,231,255,0.6)]" initial={{ width: 0 }} animate={{ width: `${value * 100}%` }} transition={{ type: 'spring', stiffness: 90, damping: 20, delay: 0.15 }} />
+      <div className="mt-1.5 h-1.5 rounded-full bg-ink/10">
+        <motion.div className="h-full bg-signal" initial={{ width: 0 }} animate={{ width: `${value * 100}%` }} transition={{ type: 'spring', stiffness: 90, damping: 20, delay: 0.15 }} />
       </div>
       <div className="mt-1 text-[13px] text-ink-2">{note}</div>
     </div>
@@ -107,6 +107,7 @@ export function InsightsView() {
     ]
   }, [s.focusLog, s.urgeLog, held, blocked, wkNow, wkPrev])
 
+  const hourBars = Array.from({ length: 24 }, (_, h) => ({ label: String(h).padStart(2, '0'), blocked: Math.round(Object.values(s.urgeLog).reduce((a, r) => a + (r[h] ?? 0), 0)) }))
   const bars14 = days14.map((d) => ({ label: weekdayShort(d).slice(0, 2), held: Math.round(dayTotal(s.focusLog, d)) }))
   const rate14 = days14.map((d) => ({ label: weekdayShort(d).slice(0, 2), rate: blockedPerHour(dayTotal(s.focusLog, d), dayTotal(s.urgeLog, d)) ?? 0 }))
   const weekdayAvg = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label, i) => ({ label, avg: Math.round(sum(matrix[i]) / 10) }))
@@ -173,13 +174,20 @@ export function InsightsView() {
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                       <h2 className="text-base font-semibold">{offset === 0 ? 'Today' : parseKey(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</h2>
                       <div className="flex w-full min-w-0 items-center justify-between gap-1.5 sm:w-auto">
-                        <button aria-label="Previous day" disabled={offset >= 89} onClick={() => setOffset((o) => o + 1)} className="grid size-10 place-items-center rounded-full bg-white/[0.06] text-ink ring-1 ring-white/12 hover:bg-white/12 disabled:opacity-40"><ChevronLeft className="size-4" /></button>
+                        <button aria-label="Previous day" disabled={offset >= 89} onClick={() => setOffset((o) => o + 1)} className="grid size-10 place-items-center rounded-full bg-ink/[0.06] text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronLeft className="size-4" /></button>
                         <DatePicker value={parseKey(day)} onChange={(d) => d && setOffset(Math.max(0, Math.round((+parseKey(dateKey()) - +parseKey(dateKey(d))) / 864e5)))} placeholder="Pick a day" align="end" />
-                        <button aria-label="Next day" disabled={offset <= 0} onClick={() => setOffset((o) => o - 1)} className="grid size-10 place-items-center rounded-full bg-white/[0.06] text-ink ring-1 ring-white/12 hover:bg-white/12 disabled:opacity-40"><ChevronRight className="size-4" /></button>
+                        <button aria-label="Next day" disabled={offset <= 0} onClick={() => setOffset((o) => o - 1)} className="grid size-10 place-items-center rounded-full bg-ink/[0.06] text-ink ring-1 ring-ink/12 hover:bg-ink/12 disabled:opacity-40"><ChevronRight className="size-4" /></button>
                       </div>
                     </div>
                     <Listings day={day} />
                   </Panel>
+                  {wide && (
+                    <Panel className="min-w-0 p-5">
+                      <h2 className="text-base font-semibold">When you reach for it</h2>
+                      <p className="mb-2 text-[13px] text-ink-2">Scrolls blocked by hour of day, all time.</p>
+                      <BarChart data={hourBars} series={[{ key: 'blocked', label: 'Blocked', color: SIGNAL }]} height={150} />
+                    </Panel>
+                  )}
                 </div>
                 <Panel className={`min-w-0 p-5 ${!wide && half !== 'score' ? 'hidden' : ''}`}>
                   <div className="flex items-center gap-4">
@@ -191,7 +199,7 @@ export function InsightsView() {
                   </div>
                   <div className="mt-5 grid gap-4">{parts.map((p) => <Part key={p.label} {...p} />)}</div>
                   {wide && (
-                    <div className="mt-5 border-t border-white/10 pt-3">
+                    <div className="mt-5 border-t border-ink/10 pt-3">
                       <div className="mb-1 flex items-baseline justify-between text-sm"><span>Steadiness, last 45 s</span><span className="text-[13px] text-ink-2">Falls 9 per blocked scroll</span></div>
                       <LiveLineChart source={(push) => { const t = setInterval(() => push(getPulse()), 1000); return () => clearInterval(t) }} initial={[getPulse()]} windowSeconds={45} height={96} color={SIGNAL} domain={[0, 100]} formatValue={(n) => `${Math.round(n)}`} ariaLabel="Live steadiness" />
                     </div>
@@ -226,7 +234,7 @@ export function InsightsView() {
                 </div>
                 <div className="min-h-0 flex-1 overflow-hidden">
                   {sessions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/20 py-10 text-center text-sm text-ink-2">No sessions yet. Lock in on the Focus screen and your first one lands here.</div>
+                    <div className="rounded-2xl border border-dashed border-ink/20 py-10 text-center text-sm text-ink-2">No sessions yet. Lock in on the Focus screen and your first one lands here.</div>
                   ) : sessView === 'table' ? (
                     <Panel className="h-full overflow-hidden p-3">
                       <AdvancedDataTable

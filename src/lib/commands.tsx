@@ -26,7 +26,7 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
     { id: 'go-radio', title: 'Radio', category: 'Navigation', icon: <Radio className={ic} />, action: () => go('radio') },
     { id: 'go-tv', title: 'TV', category: 'Navigation', icon: <Tv className={ic} />, action: () => go('tv') },
     { id: 'go-insights', title: 'Insights', category: 'Navigation', icon: <BarChart3 className={ic} />, action: () => go('insights') },
-    { id: 'go-coach', title: 'Coach', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('coach') },
+    { id: 'go-debrief', title: 'Debrief', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('debrief') },
     { id: 'go-lab', title: 'Lab: all 131 components', category: 'Navigation', icon: <FlaskConical className={ic} />, action: () => go('lab') },
     { id: 'go-settings', title: 'Settings', category: 'Navigation', icon: <Settings className={ic} />, action: () => go('settings') },
     {

@@ -63,8 +63,7 @@ export interface Settings {
   volume: number
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
-  /** liquid: blur + refraction · frost: blur only · solid: opaque (also forced by Reduce Transparency) */
-  glass: 'liquid' | 'frost' | 'solid'
+  theme: 'dark' | 'light'
 }
 
 type HourLog = Record<string, number[]>
@@ -122,7 +121,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 2,
   volume: 0.8,
   guard: true,
-  glass: 'liquid',
+  theme: 'dark',
 }
 
 const emptyData = (): Data => ({

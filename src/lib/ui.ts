@@ -8,6 +8,7 @@ interface UI {
   searchOpen: boolean
   profileOpen: boolean
   moreOpen: boolean
+  landing: boolean
   tourOpen: boolean
   receipt: SessionRec | null
   set: (patch: Partial<Omit<UI, 'set'>>) => void
@@ -19,6 +20,7 @@ export const useUI = create<UI>((set) => ({
   searchOpen: false,
   profileOpen: false,
   moreOpen: false,
+  landing: false,
   tourOpen: false,
   receipt: null,
   set: (patch) => set(patch),

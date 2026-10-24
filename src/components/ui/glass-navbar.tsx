@@ -43,10 +43,10 @@ export interface GlassNavbarProps {
 export const GlassNavbar: React.FC<GlassNavbarProps> = ({
   brand = (
     <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded-lg bg-[#141414] border border-[#1F1F1F] flex items-center justify-center font-bold text-xs text-[#FAFAFA]">
+      <div className="w-7 h-7 rounded-lg bg-[var(--raised)] border border-[var(--rule)] flex items-center justify-center font-bold text-xs text-[var(--ink)]">
         E
       </div>
-      <span className="font-semibold text-sm tracking-tight text-[#FAFAFA]">EasyUI</span>
+      <span className="font-semibold text-sm tracking-tight text-[var(--ink)]">EasyUI</span>
     </div>
   ),
   brandHref = '/',
@@ -136,11 +136,11 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
         className={cn(
           'relative mx-auto transition-all duration-300',
           isFloating
-            ? 'max-w-5xl rounded-2xl border border-[#1F1F1F] px-4 sm:px-5 py-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)]'
-            : 'w-full border-b border-[#1F1F1F] px-4 sm:px-8 py-3.5',
+            ? 'max-w-5xl rounded-sm border border-[var(--rule)] px-4 sm:px-5 py-2.5 '
+            : 'w-full border-b border-[var(--rule)] px-4 sm:px-8 py-3.5',
           glass
-            ? 'bg-[#0E0E0E]/90 backdrop-blur-md'
-            : 'bg-[#0E0E0E]'
+            ? 'bg-[var(--surface)] '
+            : 'bg-[var(--surface)]'
         )}
       >
         <nav
@@ -176,8 +176,8 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                   className={cn(
                     'relative px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 flex items-center gap-1.5 focus-ring select-none cursor-pointer',
                     isCurrent
-                      ? 'text-[#FAFAFA]'
-                      : 'text-[#8f98ae] hover:text-[#FAFAFA]'
+                      ? 'text-[var(--ink)]'
+                      : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
                   )}
                   aria-current={isCurrent ? 'page' : undefined}
                 >
@@ -185,7 +185,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                   {hoveredIndex === idx && (
                     <motion.div
                       layoutId="navbar-hover-pill"
-                      className="absolute inset-0 rounded-lg bg-[#141414] -z-10"
+                      className="absolute inset-0 rounded-lg bg-[var(--raised)] -z-10"
                       transition={motionTransitions.springSnappy}
                     />
                   )}
@@ -194,7 +194,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                   {isCurrent && hoveredIndex === null && (
                     <motion.div
                       layoutId="navbar-active-pill"
-                      className="absolute inset-0 rounded-lg bg-[#141414] border border-[#1F1F1F] -z-10"
+                      className="absolute inset-0 rounded-lg bg-[var(--raised)] border border-[var(--rule)] -z-10"
                       transition={motionTransitions.springGentle}
                     />
                   )}
@@ -206,12 +206,12 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                   )}
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono leading-none bg-[#141414] border border-[#1F1F1F] text-[#A1A1A1]">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono leading-none bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink-2)]">
                       {item.badge}
                     </span>
                   )}
                   {item.external && (
-                    <ExternalLink className="w-3 h-3 text-[#8f98ae]" />
+                    <ExternalLink className="w-3 h-3 text-[var(--ink-3)]" />
                   )}
                 </a>
               );
@@ -235,7 +235,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
-              className="p-2 rounded-lg bg-[#141414] border border-[#1F1F1F] text-[#8f98ae] hover:text-[#FAFAFA] hover:border-[#4A4A4A] transition-colors focus-ring cursor-pointer"
+              className="p-2 rounded-lg bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--control)] transition-colors focus-ring cursor-pointer"
             >
               <motion.div
                 key={mobileMenuOpen ? 'close' : 'menu'}
@@ -262,7 +262,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -8, height: 0 }}
               transition={motionTransitions.springGentle}
-              className="overflow-hidden md:hidden pt-3 mt-3 border-t border-[#1F1F1F]"
+              className="overflow-hidden md:hidden pt-3 mt-3 border-t border-[var(--rule)]"
             >
               <div className="flex flex-col gap-1 pb-2">
                 {items.map((item) => {
@@ -279,8 +279,8 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                       className={cn(
                         'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors focus-ring cursor-pointer',
                         isCurrent
-                          ? 'bg-[#141414] text-[#FAFAFA] border border-[#1F1F1F]'
-                          : 'text-[#8f98ae] hover:text-[#FAFAFA] hover:bg-[#141414]'
+                          ? 'bg-[var(--raised)] text-[var(--ink)] border border-[var(--rule)]'
+                          : 'text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--raised)]'
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -293,12 +293,12 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                       </div>
                       <div className="flex items-center gap-2">
                         {item.badge && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono leading-none bg-[#141414] border border-[#1F1F1F] text-[#A1A1A1]">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono leading-none bg-[var(--raised)] border border-[var(--rule)] text-[var(--ink-2)]">
                             {item.badge}
                           </span>
                         )}
                         {item.external && (
-                          <ExternalLink className="w-3 h-3 text-[#8f98ae]" />
+                          <ExternalLink className="w-3 h-3 text-[var(--ink-3)]" />
                         )}
                       </div>
                     </a>
@@ -306,7 +306,7 @@ export const GlassNavbar: React.FC<GlassNavbarProps> = ({
                 })}
 
                 {cta && (
-                  <div className="pt-2 mt-2 border-t border-[#1F1F1F] flex flex-col">
+                  <div className="pt-2 mt-2 border-t border-[var(--rule)] flex flex-col">
                     {cta}
                   </div>
                 )}

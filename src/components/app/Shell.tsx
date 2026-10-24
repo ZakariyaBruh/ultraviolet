@@ -1,4 +1,4 @@
-import { BarChart3, Bot, FlaskConical, Home, Menu, Radio, Search, Settings, Tv, X } from 'lucide-react'
+import { BarChart3, ClipboardList, FlaskConical, Home, Menu, Moon, Radio, Search, Settings, Sun, Tv, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
@@ -12,7 +12,7 @@ import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
-export type View = 'focus' | 'radio' | 'tv' | 'insights' | 'coach' | 'lab' | 'settings'
+export type View = 'focus' | 'radio' | 'tv' | 'insights' | 'debrief' | 'lab' | 'settings'
 
 const ic = 'size-4'
 export const NAV: { id: View; label: string; icon: ReactNode }[] = [
@@ -20,7 +20,7 @@ export const NAV: { id: View; label: string; icon: ReactNode }[] = [
   { id: 'radio', label: 'Radio', icon: <Radio className={ic} /> },
   { id: 'tv', label: 'TV', icon: <Tv className={ic} /> },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className={ic} /> },
-  { id: 'coach', label: 'Coach', icon: <Bot className={ic} /> },
+  { id: 'debrief', label: 'Debrief', icon: <ClipboardList className={ic} /> },
   { id: 'lab', label: 'Lab', icon: <FlaskConical className={ic} /> },
   { id: 'settings', label: 'Settings', icon: <Settings className={ic} /> },
 ]
@@ -29,11 +29,11 @@ const TABS: View[] = ['focus', 'radio', 'tv', 'insights']
 function Brand({ compact }: { compact?: boolean }) {
   const live = useStore((s) => !!s.session && !s.session.paused)
   return (
-    <div className="flex items-center gap-2 text-ink">
+    <button onClick={() => useUI.getState().set({ landing: true })} aria-label="Friction, show the front page" className="flex items-center gap-2 text-ink">
       <Mark size={compact ? 24 : 22} />
-      <span className="text-sm font-semibold tracking-[-0.01em]">Anti-Scroll</span>
+      <span className="dot text-[19px] uppercase">Friction</span>
       {live && <span className="live-dot" role="status" aria-label="Session running" />}
-    </div>
+    </button>
   )
 }
 
@@ -44,14 +44,18 @@ export function BarTools() {
   const mark = useStore((s) => s.markEventRead)
   const markAll = useStore((s) => s.markEventsRead)
   const set = useUI((s) => s.set)
+  const theme = useStore((s) => s.settings.theme)
   const notifications = useMemo(() => events.slice(0, 30).map((e) => ({ id: e.id, message: e.text, timestamp: new Date(e.t), read: e.read })), [events])
   return (
     <div className="flex items-center gap-1.5">
-      <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-white/10 hover:text-ink">
+      <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-10 place-items-center text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         <Search className={ic} />
       </button>
+      <button onClick={() => { const st = useStore.getState(); st.setSettings({ theme: st.settings.theme === 'dark' ? 'light' : 'dark' }) }} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="grid size-10 place-items-center text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
+        {theme === 'dark' ? <Sun className={ic} /> : <Moon className={ic} />}
+      </button>
       <NotificationBell notifications={notifications} onMarkAsRead={mark} onMarkAllAsRead={markAll} />
-      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-signal/80 to-violet-400/80 text-sm font-semibold text-[#05060a]">
+      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-9 place-items-center bg-signal text-sm font-semibold text-black">
         {(name ?? 'You')[0].toUpperCase()}
       </button>
     </div>
@@ -133,7 +137,7 @@ function TabBar({ view, onChange }: { view: View; onChange: (v: View) => void })
                   aria-current={on ? 'page' : undefined}
                   className={cn('relative flex h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-3xl text-[11px] transition-colors', on ? 'text-ink' : 'text-ink-3')}
                 >
-                  {on && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-3xl bg-white/12 ring-1 ring-white/15" transition={{ type: 'spring', stiffness: 600, damping: 36 }} />}
+                  {on && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-3xl bg-ink/12 ring-1 ring-ink/15" transition={{ type: 'spring', stiffness: 600, damping: 36 }} />}
                   <span className="relative">{n.icon}</span>
                   <span className="relative">{n.label}</span>
                 </button>

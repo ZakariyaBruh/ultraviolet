@@ -63,7 +63,7 @@ export const DEMOS: Record<string, Demo> = {
   'ai-agent-activity': (m) => (
     <div className="w-full max-w-[520px]">
       <m.AIAgentActivity
-        title="Local coach"
+        title="Demo agent"
         agentName="Rules engine"
         activities={[
           { id: 'a1', type: 'database_query', title: 'Read your logs', status: 'success', duration: '4 ms', description: 'localStorage, last 14 days' },
@@ -109,14 +109,14 @@ export const DEMOS: Record<string, Demo> = {
       />
     </div>
   ),
-  'breadcrumb': (m) => <m.Breadcrumb items={[{ label: 'Anti-Scroll', href: '#' }, { label: 'Insights', href: '#' }, { label: 'Trends' }]} />,
+  'breadcrumb': (m) => <m.Breadcrumb items={[{ label: 'Friction', href: '#' }, { label: 'Insights', href: '#' }, { label: 'Trends' }]} />,
   'chat': (m) => (
-    <Stateful init={[{ id: '1', role: 'assistant', content: 'Ask about your focus: “how was today?”', author: 'Coach', timestamp: 'now' }] as any[]}>
+    <Stateful init={[{ id: '1', role: 'assistant', content: 'Static demo of the chat component. There is no model behind it.', author: 'Demo', timestamp: 'now' }] as any[]}>
       {(msgs, set) => (
         <div className="h-[300px] w-full max-w-[560px]">
           <m.Chat
             messages={msgs}
-            onSendMessage={(c: string) => set([...msgs, { id: String(msgs.length + 1), role: 'user', content: c, author: 'You' }, { id: String(msgs.length + 2), role: 'assistant', content: 'Open Coach in the app for answers from your real data.', author: 'Coach' }])}
+            onSendMessage={(c: string) => set([...msgs, { id: String(msgs.length + 1), role: 'user', content: c, author: 'You' }, { id: String(msgs.length + 2), role: 'assistant', content: 'This is only the component. Friction has no chat and no AI.', author: 'Demo' }])}
           />
         </div>
       )}
@@ -254,7 +254,7 @@ export const DEMOS: Record<string, Demo> = {
     <Stateful init="focus">
       {(a, set) => (
         <div className="h-[260px] w-full max-w-[300px] overflow-hidden rounded-xl">
-          <m.Sidebar activeId={a} onActiveChange={set} header={<span className="text-sm font-semibold text-ink">Anti-Scroll</span>} sections={[{ items: [{ id: 'focus', label: 'Focus', icon: <Home className={ico} /> }, { id: 'radio', label: 'Radio', icon: <Radio className={ico} /> }, { id: 'tv', label: 'TV', icon: <Tv className={ico} /> }] }]} />
+          <m.Sidebar activeId={a} onActiveChange={set} header={<span className="text-sm font-semibold text-ink">Friction</span>} sections={[{ items: [{ id: 'focus', label: 'Focus', icon: <Home className={ico} /> }, { id: 'radio', label: 'Radio', icon: <Radio className={ico} /> }, { id: 'tv', label: 'TV', icon: <Tv className={ico} /> }] }]} />
         </div>
       )}
     </Stateful>

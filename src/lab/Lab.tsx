@@ -115,7 +115,7 @@ export function Lab({ onCount }: { onCount?: (n: number) => void }): ReactNode {
             {slice.map((c, i) => (
               <Tile key={c.id} id={c.id} name={c.name} description={c.description} motion={c.category === 'Motion'} index={i} />
             ))}
-            {slice.length === 0 && <div className="col-span-full rounded-xl border border-dashed border-white/15 p-8 text-center text-sm text-ink-2">No components match.</div>}
+            {slice.length === 0 && <div className="col-span-full rounded-xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink-2">No components match.</div>}
           </div>
         </AnimatePresence>
       </div>

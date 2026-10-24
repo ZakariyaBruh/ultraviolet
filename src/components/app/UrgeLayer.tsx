@@ -12,8 +12,8 @@ function Chip({ b }: { b: Burst }) {
   const y = Math.min(Math.max(b.y, 90), innerHeight - 130)
   return (
     <motion.div className="pointer-events-none fixed z-[70] -translate-x-1/2" style={{ left: x, top: y }} initial={{ opacity: 0, y: 6, scale: 0.9 }} animate={{ opacity: [0, 1, 1, 0], y: -34, scale: 1 }} transition={{ duration: 1, times: [0, 0.15, 0.7, 1], ease: [0.2, 0, 0, 1] }}>
-      <div className="glass-clear rounded-full px-3 py-1.5 text-[13px] font-medium text-ink [--r:999px]">
-        Blocked <span className="fig text-[#ff9db0]">#{b.n}</span>
+      <div className="glass-clear px-3 py-1.5 text-[13px] font-medium text-ink [--r:999px]">
+        Blocked <span className="fig text-signal">#{b.n}</span>
       </div>
       {[...Array(8)].map((_, i) => {
         const a = (i / 8) * Math.PI * 2

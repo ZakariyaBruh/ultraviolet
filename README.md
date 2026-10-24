@@ -1,14 +1,14 @@
-# Anti-Scroll
+# Friction
 
 An attention-span trainer. One screen, no feed. Lock in with **internet radio** or **live IPTV**
 while the site swallows every scroll attempt and turns it into data.
 
-- **Focus**: a glass lens timer, a divided strip of blocked scrolls, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, blocked scrolls ticked underneath).
+- **Focus**: a text-mode dial (spinning ASCII torus, dot-matrix clock), a divided strip of blocked scrolls, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, blocked scrolls ticked underneath).
 - **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
 - **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
-- **Coach**: ask your own numbers. Local rules, not an AI model.
-- **Settings**: goal and session dials, scroll guard, motion (Calm / Lively / Lots), glass (Liquid / Frost / Solid), export / import / erase.
+- **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.
+- **Settings**: goal and session dials, scroll guard, motion (Calm / Lively / Lots), theme (Dark / Light), export / import / erase.
 - **Lab**: all 131 EasyUI components, live.
 
 Nothing scrolls vertically: lists page, charts are slides. Wheel, swipe and scroll keys are

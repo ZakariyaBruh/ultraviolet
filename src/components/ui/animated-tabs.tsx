@@ -63,7 +63,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
         className={cn(
           'flex items-center gap-1 self-start select-none',
           isGlass
-            ? 'p-1 rounded-full bg-surface-raised backdrop-blur-xl border border-border dark:bg-[#0E0E0E] dark:border-[#1F1F1F]'
+            ? 'p-1 rounded-sm bg-surface-raised border border-border dark:bg-[#0E0E0E] dark:border-[#1F1F1F]'
             : 'p-1 rounded-lg bg-surface-raised border border-border dark:bg-[#0E0E0E] dark:border-[#1F1F1F]',
           tabsContainerClassName
         )}
@@ -77,7 +77,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
               className={cn(
                 'relative text-xs sm:text-sm font-medium transition-colors focus-ring select-none flex items-center gap-2 cursor-pointer',
                 isGlass
-                  ? 'px-4 py-1.5 rounded-full'
+                  ? 'px-4 py-1.5 rounded-sm'
                   : 'px-3.5 py-1.5 rounded-md',
                 isActive
                   ? 'text-text-primary font-medium dark:text-[#FAFAFA]'
@@ -90,7 +90,7 @@ export const AnimatedTabs: React.FC<AnimatedTabsProps> = ({
                   className={cn(
                     'absolute inset-0 shadow-xs',
                     isGlass
-                      ? 'rounded-full bg-surface border border-border-hover dark:bg-[#141414] dark:border-[#1F1F1F]'
+                      ? 'rounded-sm bg-surface border border-border-hover dark:bg-[#141414] dark:border-[#1F1F1F]'
                       : 'rounded-md bg-surface border border-border-hover dark:bg-[#141414] dark:border-[#1F1F1F]'
                   )}
                   transition={motionTransitions.springMorph}

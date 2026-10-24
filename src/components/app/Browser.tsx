@@ -110,7 +110,7 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setChip(c)}
                 aria-pressed={chip === c}
-                className={cn('h-9 shrink-0 rounded-full px-3.5 text-[13px] capitalize transition-colors', chip === c ? 'bg-ink text-[#05060a]' : 'bg-white/[0.07] text-ink ring-1 ring-white/12 hover:bg-white/12')}
+                className={cn('h-9 shrink-0 px-3.5 text-[13px] capitalize transition-colors', chip === c ? 'bg-ink text-[#000]' : 'bg-ink/[0.07] text-ink ring-1 ring-ink/12 hover:bg-ink/12')}
               >
                 {c}
               </motion.button>
@@ -128,23 +128,23 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
             >
               {loading
                 ? Array.from({ length: Math.min(perPage, 12) }, (_, i) => (
-                    <div key={i} className="flex h-14 items-center gap-3 rounded-2xl bg-white/[0.04] px-3 ring-1 ring-white/8" aria-hidden>
+                    <div key={i} className="flex h-14 items-center gap-3 rounded-2xl bg-ink/[0.04] px-3 ring-1 ring-ink/8" aria-hidden>
                       <Skeleton className="size-9 rounded-[10px]" />
                       <div className="grid flex-1 gap-1.5">
-                        <Skeleton className="h-3 w-2/3 rounded-sm" />
-                        <Skeleton className="h-2.5 w-1/3 rounded-sm" />
+                        <Skeleton className="h-3 w-2/3 " />
+                        <Skeleton className="h-2.5 w-1/3 " />
                       </div>
                     </div>
                   ))
                 : slice.map((it, i) => <MediaRow key={it.id} item={it} queue={filtered} index={i} />)}
               {state === 'error' && tab === 'discover' && (
-                <div className="col-span-full grid place-items-center gap-3 rounded-2xl border border-dashed border-white/20 py-8 text-center text-sm text-ink-2">
+                <div className="col-span-full grid place-items-center gap-3 rounded-2xl border border-dashed border-ink/20 py-8 text-center text-sm text-ink-2">
                   Couldn’t load {kind === 'radio' ? 'stations' : 'channels'}. Check your connection.
-                  <button className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-[#05060a]" onClick={() => setNonce((n) => n + 1)}>Try again</button>
+                  <button className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-[#000]" onClick={() => setNonce((n) => n + 1)}>Try again</button>
                 </div>
               )}
               {!loading && state !== 'error' && slice.length === 0 && (
-                <div className="col-span-full rounded-2xl border border-dashed border-white/20 py-8 text-center text-sm text-ink-2">
+                <div className="col-span-full rounded-2xl border border-dashed border-ink/20 py-8 text-center text-sm text-ink-2">
                   {tab === 'saved' ? 'Nothing saved yet. Tap the heart on a listing to keep it here.' : tab === 'recent' ? 'Nothing played yet.' : 'No matches. Try another word or category.'}
                 </div>
               )}

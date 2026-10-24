@@ -50,7 +50,7 @@ export function PageHeader({ title, sub, kicker, children }: { title: string; su
     <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         {kicker && <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{kicker}</div>}
-        <h1 className="text-[28px] font-semibold leading-9 tracking-[-0.02em] text-ink">{title}</h1>
+        <h1 className="dot text-[38px] uppercase text-ink">{title}</h1>
         {sub && <p className="mt-0.5 max-w-[60ch] text-sm text-ink-2">{sub}</p>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
@@ -66,10 +66,10 @@ export function Logo({ item, size = 40 }: { item: Pick<MediaItem, 'logo' | 'name
     .join('')
     .toUpperCase()
   return (
-    <div className="relative grid shrink-0 place-items-center overflow-hidden rounded-[10px] bg-white/10 text-[11px] font-medium text-ink-2 ring-1 ring-white/10" style={{ width: size, height: size }}>
+    <div className="relative grid shrink-0 place-items-center overflow-hidden rounded-[10px] bg-ink/10 text-[11px] font-medium text-ink-2 ring-1 ring-ink/10" style={{ width: size, height: size }}>
       {initials}
       {item.logo && (
-        <img src={item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 size-full bg-white/90 object-contain p-1" onError={(e) => (e.currentTarget.style.display = 'none')} />
+        <img src={item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 size-full bg-ink/90 object-contain p-1" onError={(e) => (e.currentTarget.style.display = 'none')} />
       )}
     </div>
   )
@@ -92,8 +92,8 @@ export function MediaRow({ item, queue, index = 0 }: { item: MediaItem; queue: M
       className="min-h-0 min-w-0"
     >
       <SpotlightCard
-        spotlightColor="rgba(110,231,255,0.16)"
-        className={cn('group relative !rounded-2xl !border-white/10 !bg-white/[0.04] !p-0 backdrop-blur-md', isCurrent && '!border-signal/50 !bg-signal/10')}
+        spotlightColor="rgba(255,90,31,0.18)"
+        className={cn('group relative !rounded-2xl !border-ink/10 !bg-ink/[0.04] !p-0-md', isCurrent && '!border-signal/50 !bg-signal/10')}
       >
         <div className="flex h-14 items-center gap-3 px-3">
         <button type="button" onClick={() => (isCurrent ? toggle() : play(item, queue))} aria-current={isCurrent ? 'true' : undefined} className="flex min-w-0 flex-1 items-center gap-3 text-left">
@@ -128,13 +128,13 @@ export function Transport({ compact = false }: { compact?: boolean }) {
   const { current, status } = usePlayer()
   const queueLen = usePlayer((s) => s.queue.length)
   const size = compact ? 'size-9' : 'size-11'
-  const base = 'grid place-items-center rounded-full text-ink transition-colors hover:bg-white/10 disabled:opacity-35'
+  const base = 'grid place-items-center rounded-full text-ink transition-colors hover:bg-ink/10 disabled:opacity-35'
   return (
     <div className="flex items-center gap-1.5">
       <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size)} onClick={() => step(-1)} disabled={queueLen < 2} aria-label="Previous">
         <SkipBack className="size-4" />
       </motion.button>
-      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, '!bg-ink !text-[#05060a] hover:!bg-white')} onClick={toggle} disabled={!current} aria-label={status === 'playing' ? 'Pause' : 'Play'}>
+      <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size, '!bg-ink !text-[#000] hover:!bg-white')} onClick={toggle} disabled={!current} aria-label={status === 'playing' ? 'Pause' : 'Play'}>
         {status === 'playing' ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
       </motion.button>
       <motion.button whileTap={{ scale: 0.95 }} className={cn(base, size)} onClick={() => step(1)} disabled={queueLen < 2} aria-label="Next">

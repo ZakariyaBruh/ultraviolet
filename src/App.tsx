@@ -1,5 +1,6 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { NAV, Shell, type View } from '@/components/app/Shell'
 import { UrgeLayer } from '@/components/app/UrgeLayer'
@@ -10,13 +11,13 @@ import { quickPlay } from '@/lib/actions'
 import { buildSearchItems, PRESETS } from '@/lib/commands'
 import { useScrollGuard, useSessionEngine } from '@/lib/engine'
 import { useFx } from '@/lib/fx'
-import { useGlass } from '@/lib/glint'
+import { useTheme } from '@/lib/theme'
 import { usePlayer } from '@/lib/player'
 import { useStore } from '@/lib/store'
-import { FlaskConical, Bot, Settings as Cog } from 'lucide-react'
+import { FlaskConical, ClipboardList, Settings as Cog } from 'lucide-react'
 import { useUI } from '@/lib/ui'
 import { FocusView } from '@/views/FocusView'
-import { CoachView } from '@/views/CoachView'
+import { DebriefView } from '@/views/DebriefView'
 import { SettingsView } from '@/views/SettingsView'
 import { InsightsView } from '@/views/InsightsView'
 import { RadioView } from '@/views/RadioView'
@@ -36,10 +37,12 @@ export default function App() {
   const notice = useFx((s) => s.notice)
   const ui = useUI()
   const profile = useStore((s) => s.profile)
+  const seen = useStore((s) => s.seenIntro)
+  const landing = useUI((s) => s.landing)
 
   useScrollGuard()
   useSessionEngine()
-  useGlass()
+  useTheme()
 
   const change = (v: View) => {
     const i = NAV.findIndex((n) => n.id === v)
@@ -71,6 +74,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
+      <AnimatePresence>{(!seen || landing) && <Landing key="landing" onEnter={() => { useStore.getState().markIntroSeen(); ui.set({ landing: false }) }} />}</AnimatePresence>
       <Backdrop reduced={reduced} />
       <Shell view={view} onChange={change}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
@@ -79,10 +83,10 @@ export default function App() {
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
             {view === 'insights' && <InsightsView />}
-            {view === 'coach' && <CoachView />}
+            {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
             {view === 'lab' && <Lab />}
-            {!['focus', 'radio', 'tv', 'insights', 'coach', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'insights', 'debrief', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
           </motion.div>
         </AnimatePresence>
       </Shell>
@@ -101,7 +105,7 @@ export default function App() {
             <ul>
               {PRESETS.map((p) => (
                 <li key={p.label}>
-                  <button onClick={() => { ui.set({ tuneOpen: false }); void quickPlay(p.kind, p.tag).catch(() => undefined) }} className="flex h-12 w-full items-center justify-between border-b border-white/10 text-left text-[15px] text-ink last:border-b-0">
+                  <button onClick={() => { ui.set({ tuneOpen: false }); void quickPlay(p.kind, p.tag).catch(() => undefined) }} className="flex h-12 w-full items-center justify-between border-b border-ink/10 text-left text-[15px] text-ink last:border-b-0">
                     <span>{p.label}</span>
                     <span className="hud">{p.kind === 'radio' ? 'Radio' : 'TV'}</span>
                   </button>
@@ -109,8 +113,8 @@ export default function App() {
               ))}
             </ul>
             <div className="mt-3 flex gap-2">
-              <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => { ui.set({ tuneOpen: false }); change('radio') }}>Browse radio</button>
-              <button className="h-11 flex-1 rounded-full border border-white/15 text-sm text-ink" onClick={() => { ui.set({ tuneOpen: false }); change('tv') }}>Browse TV</button>
+              <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => { ui.set({ tuneOpen: false }); change('radio') }}>Browse radio</button>
+              <button className="h-11 flex-1 rounded-full border border-ink/15 text-sm text-ink" onClick={() => { ui.set({ tuneOpen: false }); change('tv') }}>Browse TV</button>
             </div>
           </SheetBody>
         </SheetContent>
@@ -120,13 +124,13 @@ export default function App() {
         <SheetContent side="bottom">
           <SheetHeader>
             <SheetTitle>More</SheetTitle>
-            <SheetDescription>Everything else in Anti-Scroll.</SheetDescription>
+            <SheetDescription>Everything else in Friction.</SheetDescription>
           </SheetHeader>
           <SheetBody>
             <ul>
-              {([['coach', 'Coach', <Bot key="c" className="size-5" />], ['lab', 'Lab', <FlaskConical key="l" className="size-5" />], ['settings', 'Settings', <Cog key="s" className="size-5" />]] as const).map(([id, label, icon]) => (
+              {([['debrief', 'Debrief', <ClipboardList key="c" className="size-5" />], ['lab', 'Lab', <FlaskConical key="l" className="size-5" />], ['settings', 'Settings', <Cog key="s" className="size-5" />]] as const).map(([id, label, icon]) => (
                 <li key={id}>
-                  <button onClick={() => { ui.set({ moreOpen: false }); change(id) }} className="flex h-12 w-full items-center gap-3 border-b border-white/10 text-left text-[15px] text-ink last:border-b-0">{icon}{label}</button>
+                  <button onClick={() => { ui.set({ moreOpen: false }); change(id) }} className="flex h-12 w-full items-center gap-3 border-b border-ink/10 text-left text-[15px] text-ink last:border-b-0">{icon}{label}</button>
                 </li>
               ))}
             </ul>
@@ -142,7 +146,7 @@ export default function App() {
           </SheetHeader>
           <SheetBody>
             <label className="hud mb-1 block" htmlFor="pname">Name</label>
-            <input id="pname" defaultValue={profile?.name ?? ''} placeholder="Your name" onChange={(e) => useStore.getState().setProfile({ name: e.target.value, since: profile?.since ?? Date.now() })} className="h-11 w-full rounded-xl bg-white/[0.06] px-3 text-[15px] text-ink ring-1 ring-white/15 focus:outline-none focus:ring-2 focus:ring-signal" />
+            <input id="pname" defaultValue={profile?.name ?? ''} placeholder="Your name" onChange={(e) => useStore.getState().setProfile({ name: e.target.value, since: profile?.since ?? Date.now() })} className="h-11 w-full rounded-xl bg-ink/[0.06] px-3 text-[15px] text-ink ring-1 ring-ink/15 focus:outline-none focus:ring-2 focus:ring-signal" />
             <p className="mt-3 text-xs text-ink-3">Here since {new Date(profile?.since ?? Date.now()).toLocaleDateString()}</p>
           </SheetBody>
         </SheetContent>
