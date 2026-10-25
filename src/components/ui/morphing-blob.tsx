@@ -209,6 +209,11 @@ export const MorphingBlob: React.FC<MorphingBlobProps> = ({
       };
     });
 
+    // keep the blob's centre of mass on the middle, so uneven swells never push it off to one side
+    const mx = coords.reduce((t, c) => t + c.x, 0) / coords.length - (centerX + cursorOffsetX);
+    const my = coords.reduce((t, c) => t + c.y, 0) / coords.length - (centerY + cursorOffsetY);
+    coords.forEach((c) => { c.x -= mx; c.y -= my; });
+
     pathRef.current.setAttribute(
       'd',
       catmullRomPath(coords)
