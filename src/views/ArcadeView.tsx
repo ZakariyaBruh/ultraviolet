@@ -1,4 +1,4 @@
-import { Apple, ArrowUpDown, Bird, Car, CircleDot, Coins, Crosshair, Disc, Footprints, Ghost, Hammer, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, ShoppingBasket, Skull, Target, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
+import { Apple, ArrowUpDown, Car, CircleDot, Coins, Crosshair, Disc, Ghost, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, Skull, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Panel } from '@/components/app/shared'
 import { Scrubber } from '@/components/app/Scrubber'
@@ -8,7 +8,7 @@ import { useCoarse, useGridFit, useSize } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
-const ICONS: Record<string, LucideIcon> = { dodge: Rocket, catch: ShoppingBasket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, flap: Bird, runner: Footprints, invaders: Skull, asteroids: Disc, whack: Hammer, aim: Target, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding }
+const ICONS: Record<string, LucideIcon> = { dodge: Rocket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, invaders: Skull, asteroids: Disc, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding }
 const MUTE = 'friction:arcade-mute'
 const readMute = () => { try { return localStorage.getItem(MUTE) === '1' } catch { return false } }
 

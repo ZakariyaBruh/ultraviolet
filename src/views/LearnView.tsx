@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ExternalLink, Flame, Layers, Shuffle, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
-import { PageHeader, Panel, Seg } from '@/components/app/shared'
+import { FitText, PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
@@ -90,10 +90,10 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
           <motion.div key={at} className="flex h-full min-h-0 flex-col justify-between gap-4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease }}>
             {idea && step.kind === 'idea' && (
               <>
-                <div className="grid min-h-0 gap-4 md:grid-cols-[1fr_auto] md:items-start">
-                  <div className="min-w-0">
-                    <p className="hud mb-2">Idea {step.i + 1} of {lesson.ideas.length} · {idea.heading}</p>
-                    <p className="max-w-[44ch] text-[clamp(1.1rem,2.2vw,1.6rem)] font-medium leading-[1.4]">{idea.text}</p>
+                <div className="flex min-h-0 flex-1 gap-4">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <p className="hud mb-2 shrink-0">Idea {step.i + 1} of {lesson.ideas.length} · {idea.heading}</p>
+                    <FitText max={26} className="max-w-[44ch] font-medium leading-[1.4]">{idea.text}</FitText>
                   </div>
                   {step.i === 0 && lesson.thumb && <img src={lesson.thumb} alt="" className="hidden max-h-[220px] w-[200px] object-cover md:block" />}
                 </div>
@@ -105,7 +105,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
             )}
             {step.kind === 'check' && (
               <>
-                <div><p className="hud mb-2">Check · fill the gap</p><p className="max-w-[52ch] text-[clamp(1.05rem,2vw,1.4rem)] leading-[1.45]">{step.prompt}</p></div>
+                <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">Check · fill the gap</p><FitText max={22} className="max-w-[52ch] leading-[1.45]">{step.prompt}</FitText></div>
                 <Choices options={step.options} answer={step.answer} picked={picked} onPick={answer} />
                 {picked !== null && <p role="status" className="text-[14px] text-ink-2"><strong className="text-ink">{picked === step.answer ? 'Right. ' : 'Not quite. '}</strong>{step.explain}{picked !== step.answer && ' It is in your review deck now.'}</p>}
               </>

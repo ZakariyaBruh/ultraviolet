@@ -1,6 +1,6 @@
 import { Heart, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { Glass } from '@/components/app/glass'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
@@ -164,4 +164,29 @@ export function GlassIconButton({ label, onClick, children, className }: { label
       {children}
     </Glass>
   )
+}
+
+/** Text that shrinks until it fits the room it has, so a long passage never runs into the controls under it. */
+export function FitText({ children, max = 26, min = 13, className }: { children: ReactNode; max?: number; min?: number; className?: string }) {
+  const box = useRef<HTMLDivElement>(null)
+  const txt = useRef<HTMLParagraphElement>(null)
+  useLayoutEffect(() => {
+    const b = box.current
+    const t = txt.current
+    if (!b || !t) return
+    const fit = () => {
+      let size = max
+      t.style.fontSize = `${size}px`
+      while (size > min && t.scrollHeight > b.clientHeight + 1) { size -= 1; t.style.fontSize = `${size}px` }
+    }
+    fit()
+    let raf = 0
+    const again = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit) }
+    const ro = new ResizeObserver(again)
+    ro.observe(b)
+    ro.observe(t)
+    void document.fonts?.ready.then(again)
+    return () => { ro.disconnect(); cancelAnimationFrame(raf) }
+  }, [children, max, min])
+  return <div ref={box} className="min-h-0 flex-1 overflow-hidden"><p ref={txt} className={className}>{children}</p></div>
 }
