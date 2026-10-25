@@ -1,10 +1,10 @@
-export type View = 'focus' | 'radio' | 'tv' | 'podcasts' | 'news' | 'learn' | 'books' | 'insights' | 'debrief' | 'settings'
+export type View = 'focus' | 'radio' | 'tv' | 'podcasts' | 'news' | 'learn' | 'leaders' | 'books' | 'insights' | 'debrief' | 'settings'
 export type Route = 'home' | View
 
-export const VIEWS: View[] = ['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'books', 'insights', 'debrief', 'settings']
+export const VIEWS: View[] = ['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'leaders', 'books', 'insights', 'debrief', 'settings']
 
 /** Friendly aliases for subdomains and paths: radio.example.com, app.example.com/tv ... */
-const HOST_ALIAS: Record<string, View> = { app: 'focus', focus: 'focus', radio: 'radio', tv: 'tv', podcasts: 'podcasts', pods: 'podcasts', news: 'news', learn: 'learn', books: 'books', insights: 'insights', stats: 'insights', debrief: 'debrief', settings: 'settings' }
+const HOST_ALIAS: Record<string, View> = { app: 'focus', focus: 'focus', radio: 'radio', tv: 'tv', podcasts: 'podcasts', pods: 'podcasts', news: 'news', learn: 'learn', leaders: 'leaders', board: 'leaders', books: 'books', insights: 'insights', stats: 'insights', debrief: 'debrief', settings: 'settings' }
 
 /** The landing page is `/`. Every other screen has its own address, or its own subdomain when one is attached. */
 export function routeFromLocation(): Route {

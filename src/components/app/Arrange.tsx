@@ -76,8 +76,8 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       const all = scan()
       const keep = useLayout.getState().keep[scope] ?? []
       const shells = all.filter(({ el, id }) => id.startsWith('shell-') && el.dataset.moved && !el.dataset.dragging && !el.dataset.gliding)
-      const blocks = Array.from(document.querySelectorAll<HTMLElement>('[data-block]')).map((el) => ({ el, id: `block:${el.dataset.block || ''}` }))
-      const cands = all.filter(({ id }) => !id.startsWith('shell-') && !offsets?.[id]).concat(blocks)
+      // only free-standing panels are eased aside; page text and lists stay where the layout put them
+      const cands = all.filter(({ id }) => !id.startsWith('shell-') && !offsets?.[id])
       for (const { el, id } of cands) {
         if (el.dataset.dragging || el.dataset.gliding) continue
         const k = scaleOf(el)

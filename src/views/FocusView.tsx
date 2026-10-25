@@ -25,7 +25,7 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
   const level = useStore((s) => s.settings.motion)
   const phone = useMedia('(max-width: 639px)')
   return (
-    <Glass data-movable className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
+    <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
       <div className="hud relative z-10 flex w-full items-center justify-between">
         <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}</span>
         <span className="text-ice">{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
@@ -112,7 +112,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
           </motion.div>
         )}
 
-        <div className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
+        <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
           <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} />
 
           <AnimatePresence mode="wait" initial={false}>

@@ -9,6 +9,7 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **Podcasts**: search the Apple Podcasts directory (iTunes Search API), open a show, and the episodes are read straight from its RSS feed. Seek, back 15, forward 30.
 - **News**: 90+ RSS feeds across nine categories, read in the browser (through a public CORS relay when a publisher blocks browsers). Hide any word or name for an hour, a day, a week or until you lift it; every change has an undo.
 - **Learn**: search any topic and get a short lesson from Wikipedia, with fill-the-gap and which-came-first checks written from the text itself, a trivia round from the Open Trivia Database, XP, a learning streak, and a spaced-repetition review deck. No key, no account, no AI.
+- **Leaders**: recommend Friction with your own link; once three new people tune in through it you appear on a public leaderboard (Turso, via `api/lb.ts`). Only people with three or more recommends are stored.
 - **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.

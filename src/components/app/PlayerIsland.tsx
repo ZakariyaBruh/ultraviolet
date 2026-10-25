@@ -18,7 +18,7 @@ export function PlayerIsland() {
   const sub = status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable, skipping' : current ? (current.kind === 'tv' ? 'Live TV' : 'Radio') : 'Nothing playing'
 
   return (
-    <Glass lens radius={36} className="w-[min(440px,calc(100vw-24px))] overflow-visible lg:max-xl:w-[300px]">
+    <Glass lens radius={36} className="w-[min(440px,calc(100vw-24px))] overflow-visible lg:max-xl:w-[340px]">
       <motion.div layout className="flex items-center gap-3 p-2.5 pr-3">
         {current ? (
           <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-3 rounded-full text-left" aria-label={`Now playing ${current.name}. ${open ? 'Close' : 'Open'} volume`}>
@@ -37,8 +37,8 @@ export function PlayerIsland() {
           <button type="button" onClick={() => set({ tuneOpen: true })} className="flex min-w-0 flex-1 items-center gap-3 rounded-full text-left">
             <span className="grid size-11 place-items-center rounded-full bg-ink/10 text-ink"><Radio className="size-5" /></span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-ink">Nothing playing</span>
-              <span className="text-[13px] text-ink-2">Tap to tune in</span>
+              <span className="block truncate whitespace-nowrap text-sm font-medium text-ink">Nothing playing</span>
+              <span className="block truncate whitespace-nowrap text-[13px] text-ink-2">Tap to tune in</span>
             </span>
           </button>
         )}

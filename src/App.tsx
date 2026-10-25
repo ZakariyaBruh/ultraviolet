@@ -27,6 +27,8 @@ import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
 import { Celebration } from '@/components/app/Celebration'
+import { captureRef, countRecommend } from '@/lib/leaders'
+import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
 
@@ -47,6 +49,7 @@ export default function App() {
 
   useSessionEngine()
   useTheme()
+  useEffect(() => { captureRef(); if (routeFromLocation() !== 'home') void countRecommend() }, [])
 
   const go = (r: Route) => {
     const i = VIEWS.indexOf(r as View)
@@ -92,7 +95,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      {route === 'home' ? <Landing onEnter={() => go('focus')} onGo={(v) => go(v)} /> : (<>
+      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go('focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
       <Backdrop reduced={reduced} />
       <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
@@ -105,11 +108,12 @@ export default function App() {
             {view === 'podcasts' && <PodcastsView />}
             {view === 'news' && <NewsView />}
             {view === 'learn' && <LearnView />}
+            {view === 'leaders' && <LeadersView />}
             {view === 'books' && <BooksView />}
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'leaders', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>

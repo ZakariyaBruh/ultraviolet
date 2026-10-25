@@ -5,9 +5,9 @@ import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
-const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', news: 'News', learn: 'Learn', books: 'Books', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
+const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', news: 'News', learn: 'Learn', leaders: 'Leaders', books: 'Books', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
 
-const LOG = ['STATION  FRICTION', 'FEED ........ OFF', 'SCROLLING ... NOT REQUIRED', 'STORAGE ..... THIS BROWSER', 'SERVER ...... NONE', 'AI .......... NONE', 'STANDBY']
+const LOG = ['STATION  FRICTION', 'FEED ........ OFF', 'SCROLLING ... NOT REQUIRED', 'STORAGE ..... THIS BROWSER', 'SERVER ...... LEADERBOARD ONLY', 'AI .......... NONE', 'STANDBY']
 
 /** Retro: the station ident types itself out, one stepped character at a time. */
 function Ident({ still }: { still: boolean }) {
@@ -65,7 +65,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
 
       <div className="grid shrink-0 gap-4 border-t border-ink/30 bg-ground px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-end">
         <motion.h1
-          className="dot m-0 text-[clamp(2.4rem,11vw,3.4rem)] uppercase text-ink sm:text-[clamp(3rem,8.4vw,8.5rem)]"
+          className="dot m-0 min-w-0 text-[clamp(2.4rem,11vw,3.4rem)] uppercase text-ink sm:text-[clamp(3rem,9vw,8.5rem)] lg:text-[clamp(3rem,calc((100vw-30rem)/10),8.5rem)]"
           initial={reduced ? false : { fontWeight: 200, opacity: 0 }}
           animate={{ fontWeight: 800, opacity: 1 }}
           transition={{ duration: 1.4, ease: [0.2, 0, 0, 1], delay: 0.2 }}
