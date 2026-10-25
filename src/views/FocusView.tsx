@@ -1,7 +1,6 @@
 import { Pause, Play, Radio } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
-import { HoldButton } from '@/components/app/HoldButton'
 import { LengthBand } from '@/components/app/LengthBand'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Listings } from '@/components/app/Listings'
@@ -120,7 +119,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             {!session ? (
               <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <div className="flex items-center gap-2">
-                  <HoldButton label="Hold to lock in" holdLabel="Locking in" onDone={start} className="min-w-[17rem] max-w-[420px] sm:w-[19rem]" />
+                  <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
               </motion.div>

@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, ExternalLink, Search, X } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { Scrubber } from '@/components/app/Scrubber'
 import { embedUrl, type BookRef } from '@/lib/books'
 import { useStore } from '@/lib/store'
 
@@ -17,7 +18,9 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
   const [slow, setSlow] = useState(false)
   const shelved = useStore((s) => s.books.some((b) => b.id === book.id))
   const toggle = useStore((s) => s.toggleBook)
-  const src = embedUrl(book.id, page, find)
+  const [shown, setShown] = useState(0)
+  useEffect(() => { const t = setTimeout(() => setShown(page), 350); return () => clearTimeout(t) }, [page])
+  const src = embedUrl(book.id, shown, find)
   const open = `https://books.google.com/books?id=${encodeURIComponent(book.id)}`
 
   useEffect(() => { setLoaded(false); setSlow(false); const t = setTimeout(() => setSlow(true), 12000); return () => clearTimeout(t) }, [src])
@@ -68,6 +71,9 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
           </form>
           <button className={btn} onClick={() => setPage((p) => p + 1)} aria-label="Next page"><ChevronRight className="size-5" /></button>
         </div>
+        {book.pages && book.pages > 1 && (
+          <Scrubber className="order-last basis-full sm:order-none sm:min-w-[220px] sm:flex-1 sm:basis-auto" count={book.pages + 1} per={1} page={page + 1} onPage={(p) => setPage(p - 1)} labelAt={(i) => (i === 0 ? 'Cover' : `Page ${i}`)} />
+        )}
         <form onSubmit={search} className="order-last flex min-w-0 basis-full items-center gap-2 sm:order-none sm:max-w-sm sm:flex-1 sm:basis-auto" role="search">
           <input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Find in this book" aria-label="Find in this book" className={`${input} flex-1`} />
           <button type="submit" className={btn} aria-label="Find"><Search className="size-5" /></button>

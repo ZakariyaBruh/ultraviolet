@@ -74,9 +74,9 @@ export async function searchBooks(q: string, start = 0): Promise<{ items: BookRe
       embeddable: !!v.accessInfo?.embeddable,
       link: v.accessInfo?.webReaderLink,
     }))
-    // readable-in-place first
-    items.sort((a, b) => Number(b.embeddable) - Number(a.embeddable))
-    return { items, total: d.totalItems ?? items.length }
+    // only what actually opens in the reader; a book that cannot be shown here would only lead to Google's catalogue page
+    const readable = items.filter((b) => b.embeddable)
+    return { items: readable, total: d.totalItems ?? readable.length }
   })
 }
 

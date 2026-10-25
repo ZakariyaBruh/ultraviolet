@@ -1,11 +1,10 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
 
-const MIN = 10, MAX = 90, STEP = 5
-const SPAN = (MAX - MIN) / STEP
 
 /** Session length as a ruler: drag the marker along it (or arrow keys). It snaps to five minutes. */
-export function LengthBand({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX = 90, step: STEP = 5, label = 'Session length in minutes', ends }: { value: number; onChange: (v: number) => void; className?: string; min?: number; max?: number; step?: number; label?: string; ends?: string[] }) {
+  const SPAN = (MAX - MIN) / STEP
   const ref = useRef<HTMLDivElement>(null)
   const on = useRef(false)
   const at = (clientX: number) => {
@@ -26,7 +25,7 @@ export function LengthBand({ value, onChange, className }: { value: number; onCh
       ref={ref}
       role="slider"
       tabIndex={0}
-      aria-label="Session length in minutes"
+      aria-label={label}
       aria-valuemin={MIN}
       aria-valuemax={MAX}
       aria-valuenow={value}
@@ -39,11 +38,11 @@ export function LengthBand({ value, onChange, className }: { value: number; onCh
       className={cn('relative h-12 w-full max-w-[420px] cursor-ew-resize touch-none select-none', className)}
     >
       <div className="absolute inset-x-0 top-0 h-5" aria-hidden>
-        {Array.from({ length: SPAN + 1 }, (_, i) => <i key={i} className={cn('absolute top-0 w-px -translate-x-1/2 bg-ink/50', i % 2 === 0 ? 'h-4 bg-ink/80' : 'h-2')} style={{ left: `${(i / SPAN) * 100}%` }} />)}
+        {Array.from({ length: SPAN + 1 }, (_, i) => <i key={i} className={cn('absolute top-0 w-px -translate-x-1/2 bg-ink/50', i % Math.max(1, Math.round(SPAN / 8)) === 0 ? 'h-4 bg-ink/80' : 'h-2')} style={{ left: `${(i / SPAN) * 100}%` }} />)}
         <div className="absolute inset-y-0 left-0 w-0 border-t border-ink/0" />
       </div>
       <div className="absolute bottom-0 left-0 right-0 flex justify-between font-[family-name:var(--font-cond)] text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-3" aria-hidden>
-        <span>10</span><span>30</span><span>50</span><span>70</span><span>90 min</span>
+        {(ends ?? [`${MIN}`, `${Math.round((MIN + MAX) / 2)}`, `${MAX} min`]).map((t) => <span key={t}>{t}</span>)}
       </div>
       <div className="pointer-events-none absolute top-0 -translate-x-1/2" style={{ left: `${f * 100}%` }} aria-hidden>
         <div className="h-5 w-0.5 bg-signal" />

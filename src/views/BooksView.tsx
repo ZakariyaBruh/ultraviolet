@@ -5,7 +5,7 @@ import { BookReader } from '@/components/app/BookReader'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SlidePagination } from '@/components/ui/slide-pagination'
+import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { BooksError, getBooksKey, parseVolumeId, searchBooks, setBooksKey, SUBJECTS, type BookRef } from '@/lib/books'
 import { fx_say } from '@/lib/actions'
 import { useGridFit } from '@/lib/hooks'
@@ -69,6 +69,7 @@ export function BooksView() {
   const pages = Math.max(1, Math.ceil(list.length / per))
   const safe = Math.min(page, pages)
   const slice = useMemo(() => list.slice((safe - 1) * per, safe * per), [list, safe, per])
+  const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   const loading = tab === 'discover' && state === 'loading'
   const needsKey = tab === 'discover' && (state === 'nokey' || state === 'quota' || state === 'bad')
 
@@ -112,9 +113,9 @@ export function BooksView() {
         <KeyPanel reason={state as 'nokey' | 'quota' | 'bad'} onSaved={() => { setNonce((n) => n + 1) }} />
       ) : (
         <>
-          <div ref={ref} className="min-h-[108px] flex-1 overflow-hidden">
+          <div ref={ref} className="min-h-[108px] flex-1 overflow-hidden" {...swipe}>
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={`${tab}-${subject}-${dq}-${safe}-${loading}`} className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '108px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
+              <motion.div key={`${tab}-${subject}-${dq}-${loading}`} className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '108px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
                 {loading
                   ? Array.from({ length: Math.min(per, 9) }, (_, i) => (
                       <div key={i} className="flex h-[108px] gap-3 border border-ink/10 p-2" aria-hidden><Skeleton className="h-full w-[64px]" /><div className="grid flex-1 content-start gap-2 pt-1"><Skeleton className="h-3 w-3/4" /><Skeleton className="h-2.5 w-1/2" /></div></div>
@@ -126,7 +127,7 @@ export function BooksView() {
                           <span className="min-w-0 flex-1 pr-9">
                             <span className="line-clamp-2 text-[14px] font-semibold leading-[18px] text-ink">{b.title}</span>
                             <span className="mt-1 block truncate text-[13px] text-ink-2">{b.authors || 'Unknown author'}</span>
-                            <span className="hud mt-1 block">{b.embeddable ? 'Read here' : 'Opens on Google'}{b.pages ? ` · ${b.pages} p` : ''}</span>
+                            <span className="hud mt-1 block">Read here{b.pages ? ` · ${b.pages} p` : ''}</span>
                           </span>
                         </button>
                         <button onClick={() => toggle(b)} aria-pressed={shelf.some((s) => s.id === b.id)} aria-label={shelf.some((s) => s.id === b.id) ? `Remove ${b.title} from shelf` : `Keep ${b.title} on shelf`} className="absolute right-1 top-1 grid size-11 place-items-center text-ink-2 hover:text-signal">
@@ -136,16 +137,16 @@ export function BooksView() {
                     ))}
                 {!loading && slice.length === 0 && (
                   <div className="col-span-full border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">
-                    {tab === 'shelf' ? 'Nothing on your shelf yet. Press the bookmark on any book.' : state === 'error' || state === 'network' ? 'Could not reach Google Books. Check your connection.' : 'No free ebooks matched that.'}
+                    {tab === 'shelf' ? 'Nothing on your shelf yet. Press the bookmark on any book.' : state === 'error' || state === 'network' ? 'Could not reach Google Books. Check your connection.' : 'No free ebooks you can read here matched that. Try another word.'}
                     {(state === 'error' || state === 'network') && tab === 'discover' && <button className="ml-3 h-11 bg-ink px-4 text-ground" onClick={() => setNonce((n) => n + 1)}>Try again</button>}
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
           </div>
-          <div className="flex shrink-0 items-center justify-between gap-3">
+          <div className="flex shrink-0 flex-col gap-1">
             <span className="hud">{list.length ? `${(safe - 1) * per + 1}-${Math.min(safe * per, list.length)} of ${list.length}` : ' '}</span>
-            {pages > 1 && <SlidePagination pageCount={pages} page={safe} onChange={setPage} />}
+            <Scrubber count={list.length} per={per} page={safe} onPage={setPage} labelAt={(i) => list[i]?.title ?? ''} />
           </div>
         </>
       )}

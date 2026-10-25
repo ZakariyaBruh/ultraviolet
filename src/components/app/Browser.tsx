@@ -3,8 +3,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { MediaRow, PageHeader, Seg } from '@/components/app/shared'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SlidePagination } from '@/components/ui/slide-pagination'
-import { useGridFit, useMedia } from '@/lib/hooks'
+import { Scrubber, useSwipe } from '@/components/app/Scrubber'
+import { useGridFit } from '@/lib/hooks'
 import { useStore, type MediaItem, type MediaKind } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -59,7 +59,6 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
   const [page, setPage] = useState(1)
   const [nonce, setNonce] = useState(0)
   const { ref, per, cols } = useGridFit(layout === 'rail' ? 9999 : 300, 56, 8, layout === 'rail' ? 1 : 3)
-  const tiny = useMedia('(max-width: 380px)')
 
   useEffect(() => {
     const t = setTimeout(() => setDq(q.trim()), 380)
@@ -91,6 +90,7 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
   const pages = Math.max(1, Math.ceil(filtered.length / perPage))
   const safePage = Math.min(page, pages)
   const slice = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const swipe = useSwipe(() => setPage(Math.max(1, safePage - 1)), () => setPage(Math.min(pages, safePage + 1)))
   const loading = state === 'loading' && tab === 'discover'
 
   return (
@@ -118,10 +118,10 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
           </ChipRow>
         )}
 
-        <div ref={ref} className="min-h-[56px] flex-1 overflow-hidden">
+        <div ref={ref} className="min-h-[56px] flex-1 overflow-hidden" {...swipe}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={`${tab}-${chip}-${dq}-${safePage}-${loading}`}
+              key={`${tab}-${chip}-${dq}-${loading}`}
               className="grid h-full content-start gap-2"
               style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '56px' }}
               exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}
@@ -152,9 +152,9 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
           </AnimatePresence>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <span className="fig whitespace-nowrap text-xs text-ink-2">{filtered.length ? `${(safePage - 1) * perPage + 1}–${Math.min(safePage * perPage, filtered.length)} of ${filtered.length}` : '0 results'}</span>
-          <SlidePagination pageCount={pages} page={safePage} onChange={setPage} siblingCount={tiny ? 0 : 1} />
+        <div className="flex shrink-0 flex-col gap-1">
+          <span className="fig whitespace-nowrap text-xs text-ink-2">{filtered.length ? `${(safePage - 1) * perPage + 1}–${Math.min(safePage * perPage, filtered.length)} of ${filtered.length}. Swipe, or drag the bar.` : '0 results'}</span>
+          <Scrubber count={filtered.length} per={perPage} page={safePage} onPage={setPage} labelAt={(i) => filtered[i]?.name ?? ''} />
         </div>
       </div>
       {aside && <aside className="hidden min-h-0 lg:block">{aside}</aside>}

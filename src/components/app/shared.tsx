@@ -88,7 +88,7 @@ export function MediaRow({ item, queue, index = 0 }: { item: MediaItem; queue: M
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}
-      transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: Math.min(index, 11) * 0.025 }}
+      transition={{ duration: 0.24, ease: [0.2, 0, 0, 1], delay: Math.min(index, 11) * 0.01 }}
       className="min-h-0 min-w-0"
     >
       <SpotlightCard

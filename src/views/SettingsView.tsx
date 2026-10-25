@@ -4,7 +4,7 @@ import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
-import { TorqueDial } from '@/components/ui/torque-dial'
+import { LengthBand } from '@/components/app/LengthBand'
 import { fx_say } from '@/lib/actions'
 import { THEMES } from '@/lib/themes'
 import { setVolume } from '@/lib/player'
@@ -30,18 +30,17 @@ function Row({ title, hint, children }: { title: string; hint?: string; children
 }
 
 function Focus() {
-  const wide = useMedia('(min-width: 640px)')
   const s = useStore((x) => x.settings)
   const set = useStore((x) => x.setSettings)
   return (
-    <Panel className="rounded-3xl p-5">
-      <div className="grid grid-cols-2 gap-2 sm:gap-6">
-        <div className="flex flex-col items-center gap-1">
-          <TorqueDial label="Daily goal" value={s.dailyGoalMin} min={15} max={480} step={15} unit="min" onChange={(v) => set({ dailyGoalMin: v })} size={wide ? 150 : 112} />
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <TorqueDial label="Session length" value={s.sessionMin} min={10} max={90} step={5} unit="min" onChange={(v) => set({ sessionMin: v })} size={wide ? 150 : 112} />
-        </div>
+    <Panel className="grid content-start gap-6 rounded-3xl p-5">
+      <div>
+        <div className="mb-1 flex items-baseline justify-between"><h2 className="text-[15px] font-semibold">Daily goal</h2><span className="fig text-sm text-ink-2">{s.dailyGoalMin} min</span></div>
+        <LengthBand value={s.dailyGoalMin} onChange={(v) => set({ dailyGoalMin: v })} min={30} max={240} step={15} label="Daily goal in minutes" ends={['30', '90', '150', '240 min']} className="max-w-none" />
+      </div>
+      <div>
+        <div className="mb-1 flex items-baseline justify-between"><h2 className="text-[15px] font-semibold">Session length</h2><span className="fig text-sm text-ink-2">{s.sessionMin} min</span></div>
+        <LengthBand value={s.sessionMin} onChange={(v) => set({ sessionMin: v })} min={10} max={90} step={5} className="max-w-none" />
       </div>
     </Panel>
   )
