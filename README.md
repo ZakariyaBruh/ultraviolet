@@ -1,7 +1,7 @@
 # Friction
 
 An attention-span trainer. One screen, no feed. Lock in with **internet radio** or **live IPTV**
-while the site itself never scrolls. You get around by tuning a radio dial.
+while the site itself never scrolls. You get around with a tab deck, and any panel can be dragged where you like.
 
 - **Focus**: a text-mode dial (spinning ASCII torus, wide clock), drifts, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, drifts ticked underneath).
 - **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
