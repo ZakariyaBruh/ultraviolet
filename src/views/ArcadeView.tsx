@@ -1,4 +1,4 @@
-import { Coins, Lock } from 'lucide-react'
+import { Apple, ArrowUpDown, Bird, Car, CircleDot, Coins, Crosshair, Disc, Footprints, Ghost, Hammer, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, ShoppingBasket, Skull, Target, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Panel } from '@/components/app/shared'
 import { Scrubber } from '@/components/app/Scrubber'
@@ -7,6 +7,10 @@ import { runGame, type Game, type Key } from '@/games/engine'
 import { useCoarse, useGridFit, useSize } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+
+const ICONS: Record<string, LucideIcon> = { dodge: Rocket, catch: ShoppingBasket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, flap: Bird, runner: Footprints, invaders: Skull, asteroids: Disc, whack: Hammer, aim: Target, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding }
+const MUTE = 'friction:arcade-mute'
+const readMute = () => { try { return localStorage.getItem(MUTE) === '1' } catch { return false } }
 
 const PADS: Record<Key, string> = { left: '◀', right: '▶', up: '▲', down: '▼', act: 'GO' }
 
@@ -22,17 +26,26 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
   const [phase, setPhase] = useState<'ready' | 'play' | 'over'>('ready')
   const [score, setScore] = useState(0)
   const [fresh, setFresh] = useState(false)
+  const [why, setWhy] = useState<'out' | 'time'>('out')
+  const [paused, setPaused] = useState(false)
+  const [muted, setMuted] = useState(readMute)
+  const settings = useStore((s) => s.settings)
 
   const start = () => {
     if (live || !useStore.getState().spendCredits(COST, `Played ${game.name}`)) return
     run.current?.stop()
-    setPhase('play'); setFresh(false)
+    setPhase('play'); setFresh(false); setPaused(false)
     requestAnimationFrame(() => {
       if (!cv.current) return
-      run.current = runGame(cv.current, game, (sc) => {
-        const prev = useStore.getState().credits.best[game.id] ?? 0
-        useStore.getState().setBest(game.id, sc)
-        setScore(sc); setFresh(sc > prev && sc > 0); setPhase('over')
+      const calm = settings.motion === 0 || matchMedia('(prefers-reduced-motion: reduce)').matches
+      run.current = runGame(cv.current, game, {
+        motion: !calm, volume: settings.volume, muted, best,
+        onPause: setPaused,
+        onEnd: (sc, w) => {
+          const prev = useStore.getState().credits.best[game.id] ?? 0
+          useStore.getState().setBest(game.id, sc)
+          setScore(sc); setWhy(w); setFresh(sc > prev && sc > 0); setPhase('over'); setPaused(false)
+        },
       })
     })
   }
@@ -48,16 +61,21 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
           <h2 className="dot truncate text-lg font-bold uppercase">{game.name}</h2>
           <p className="truncate text-[13px] text-ink-2">{game.how}</p>
         </div>
-        <button onClick={() => { run.current?.stop(); onExit() }} className="h-11 shrink-0 border border-ink/30 px-4 text-sm hover:bg-ink/10">All games</button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {phase === 'play' && <button onClick={(e) => { run.current?.pause(!paused); e.currentTarget.blur() }} aria-label={paused ? 'Resume' : 'Pause'} className="grid size-11 place-items-center border border-ink/30 hover:bg-ink/10">{paused ? <PlayIcon className="size-4" /> : <Pause className="size-4" />}</button>}
+          <button onClick={(e) => { e.currentTarget.blur(); const m = !muted; setMuted(m); run.current?.mute(m); try { localStorage.setItem(MUTE, m ? '1' : '0') } catch { /* private mode */ } }} aria-label={muted ? 'Turn sound on' : 'Turn sound off'} aria-pressed={muted} className="grid size-11 place-items-center border border-ink/30 hover:bg-ink/10">{muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}</button>
+          <button onClick={() => { run.current?.stop(); onExit() }} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">All games</button>
+        </div>
       </div>
       <div ref={box} className="relative flex min-h-0 flex-1 items-center justify-center">
         <div className="relative" style={{ width: cw, height: cw / 1.5 }}>
           <canvas ref={cv} role="img" aria-label={`${game.name}: ${game.how}`} className="size-full touch-none border border-rule bg-ground" />
           {phase !== 'play' && (
-            <div className="absolute inset-0 grid place-content-center justify-items-center gap-2 bg-ground/85 p-4 text-center">
-              {phase === 'over' && <p className="dot text-3xl font-bold" role="status">{score}</p>}
+            <div className="absolute inset-0 grid place-content-center justify-items-center gap-2 bg-ground/60 p-4 text-center">
+              {phase === 'over' && <p className="hud">{why === 'time' ? 'Time' : 'Game over'}</p>}
+              {phase === 'over' && <p className="dot text-4xl font-bold" role="status">{score}</p>}
               {phase === 'over' && <p className="hud">{fresh ? 'New best' : `Best ${best}`}</p>}
-              {phase === 'ready' && <p className="text-sm text-ink-2">Best {best}. A round is {COST} credits and ends when you run out of lives, or after 75 seconds.</p>}
+              {phase === 'ready' && <p className="text-sm text-ink-2">Best {best}. A round is {COST} credits. It ends when you lose, or after 75 seconds. Press P to pause.</p>}
               <button onClick={start} disabled={!can} className="h-11 bg-signal px-6 text-sm font-semibold text-on-signal disabled:opacity-40">{phase === 'over' ? 'Play again' : 'Start'} · {COST} credits</button>
               {live ? <p className="inline-flex items-center gap-1.5 text-[13px] text-ink-2" role="status"><Lock className="size-3.5" />You are locked in. Games open when you finish.</p> : bal < COST ? <p className="text-[13px] text-ink-2" role="status">You need {COST - bal} more credit{COST - bal === 1 ? '' : 's'}. Lock in to earn them.</p> : null}
             </div>
@@ -74,6 +92,8 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
     </Panel>
   )
 }
+
+function Ic({ id }: { id: string }) { const I = ICONS[id] ?? Rocket; return <I className="size-4 shrink-0 text-signal" aria-hidden /> }
 
 export function ArcadeView() {
   const cr = useStore((s) => s.credits)
@@ -99,7 +119,7 @@ export function ArcadeView() {
             <div className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '84px' }}>
               {slice.map((g) => (
                 <button key={g.id} onClick={() => setGame(g)} className="material flex h-[84px] min-w-0 flex-col justify-between p-3 text-left hover:bg-ink/5">
-                  <span className="flex items-baseline justify-between gap-2"><span className="truncate text-[15px] font-semibold">{g.name}</span><span className="fig shrink-0 text-[12px] text-signal">{cr.best[g.id] ? `Best ${cr.best[g.id]}` : ''}</span></span>
+                  <span className="flex items-baseline justify-between gap-2"><span className="flex min-w-0 items-center gap-2"><Ic id={g.id} /><span className="truncate text-[15px] font-semibold">{g.name}</span></span><span className="fig shrink-0 text-[12px] text-signal">{cr.best[g.id] ? `Best ${cr.best[g.id]}` : ''}</span></span>
                   <span className="line-clamp-2 text-[13px] leading-[17px] text-ink-2">{g.blurb}</span>
                 </button>
               ))}
