@@ -25,7 +25,7 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
   const level = useStore((s) => s.settings.motion)
   const phone = useMedia('(max-width: 639px)')
   return (
-    <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
+    <Glass data-movable className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
       <div className="hud relative z-10 flex w-full items-center justify-between">
         <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}</span>
         <span className="text-ice">{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
@@ -182,7 +182,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
 
       {wide && tall && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.26, ease: [0.2, 0, 0, 1], delay: 0.1 }} className="shrink-0">
-          <Panel className="px-5 pb-3 pt-4">
+          <Panel className="px-5 pb-6 pt-4">
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="text-base font-semibold">Today</h2>
               <span className="hidden text-[13px] text-ink-2 sm:inline">Focused time by source, drifts underneath</span>

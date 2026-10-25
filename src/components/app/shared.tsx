@@ -39,7 +39,7 @@ export function Seg({
 /** Content-layer surface (thicker material, no refraction). */
 export function Panel({ children, className, ...rest }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('material', className)} {...rest}>
+    <div data-movable className={cn('material', className)} {...rest}>
       {children}
     </div>
   )

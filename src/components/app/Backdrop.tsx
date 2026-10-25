@@ -13,6 +13,7 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
   return (
     <div aria-hidden className={`fixed inset-0 overflow-hidden bg-ground ${level === 0 ? 'motion-calm' : ''}`}>
       <FieldLines level={level} />
+      {light && <><div className="screentone" /><div className="paper-grain" /></>}
       {level >= 1 && running && (
         <div className={`absolute inset-0 opacity-60 ${light ? 'invert' : ''}`}>
           <SpeedWarp speed={level === 2 ? 14 : 7} starCount={level === 2 ? 380 : 180} />

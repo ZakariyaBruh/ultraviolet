@@ -71,7 +71,7 @@ export function Listings({ day = dateKey(), className }: { day?: string; classNa
             initial={false}
             animate={{ opacity: 1 }}
           >
-            <span className="fig absolute -top-4 -translate-x-1/2  bg-ice px-1 text-xs leading-4 text-ground">
+            <span className="fig absolute top-full mt-px -translate-x-1/2 bg-ice px-1 text-xs leading-4 text-ground">
               {pad(d.getHours())}:{pad(d.getMinutes())}
             </span>
           </motion.div>

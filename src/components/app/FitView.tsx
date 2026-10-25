@@ -24,7 +24,7 @@ export function FitView({ children, watch }: { children: ReactNode; watch?: unkn
         const top = i.getBoundingClientRect().top
         let bottom = top
         i.querySelectorAll('*').forEach((el) => {
-          if (el.closest('.sr-only, [aria-hidden="true"][class*="absolute"]')) return
+          if (el.closest('[data-moved], .sr-only, [aria-hidden="true"][class*="absolute"]')) return
           const q = el.getBoundingClientRect()
           if (q.height <= 0) return
           // what a clipping ancestor hides does not count as overflow
@@ -52,7 +52,7 @@ export function FitView({ children, watch }: { children: ReactNode; watch?: unkn
   }, [watch])
 
   return (
-    <div ref={outer} className="h-full w-full overflow-hidden">
+    <div ref={outer} className="h-full w-full" style={{ overflow: 'clip', overflowClipMargin: 8 }}>
       <div ref={inner} style={{ transformOrigin: 'top left', width: `${100 / k}%`, height: `${100 / k}%`, transform: `scale(${k})` }}>
         {children}
       </div>

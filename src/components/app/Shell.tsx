@@ -1,11 +1,12 @@
-import { BarChart3, BookOpen, ClipboardList, FlaskConical, Home, Palette, Radio, Search, Settings, Tv, X } from 'lucide-react'
+import { Palette, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
 import { PlayerIsland } from '@/components/app/PlayerIsland'
 import { GlassIconButton } from '@/components/app/shared'
 import { Glass } from '@/components/app/glass'
-import { Tuner } from '@/components/app/Tuner'
+import { ArrangeButtons, ArrangeLayer } from '@/components/app/Arrange'
+import { NavDeck } from '@/components/app/NavDeck'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { useMedia } from '@/lib/hooks'
@@ -18,16 +19,7 @@ import { cn } from '@/lib/utils'
 export type { View } from '@/lib/route'
 
 const ic = 'size-4'
-export const NAV: { id: View; label: string; icon: ReactNode }[] = [
-  { id: 'focus', label: 'Focus', icon: <Home className={ic} /> },
-  { id: 'radio', label: 'Radio', icon: <Radio className={ic} /> },
-  { id: 'tv', label: 'TV', icon: <Tv className={ic} /> },
-  { id: 'books', label: 'Books', icon: <BookOpen className={ic} /> },
-  { id: 'insights', label: 'Insights', icon: <BarChart3 className={ic} /> },
-  { id: 'debrief', label: 'Debrief', icon: <ClipboardList className={ic} /> },
-  { id: 'lab', label: 'Lab', icon: <FlaskConical className={ic} /> },
-  { id: 'settings', label: 'Settings', icon: <Settings className={ic} /> },
-]
+export { NAV } from '@/components/app/navItems'
 
 function Brand({ onHome }: { onHome: () => void }) {
   const live = useStore((s) => !!s.session && !s.session.paused)
@@ -41,7 +33,7 @@ function Brand({ onHome }: { onHome: () => void }) {
 }
 
 /** Bell + avatar + search: the right end of the bar. */
-export function BarTools() {
+export function BarTools({ scope = 'home' }: { scope?: string }) {
   const events = useStore((s) => s.events)
   const name = useStore((s) => s.profile?.name)
   const mark = useStore((s) => s.markEventRead)
@@ -54,6 +46,7 @@ export function BarTools() {
       <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         <Search className={ic} />
       </button>
+      <ArrangeButtons scope={scope} />
       <button onClick={cycleTheme} aria-label={`Theme: ${themeDef(theme).name}. Change theme`} className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         <Palette className={ic} />
       </button>
@@ -76,7 +69,8 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
         {!theatre && (
           <motion.header key="chrome" className="absolute inset-x-0 top-0 z-40 flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] md:px-8 lg:top-2 lg:px-12" exit={{ opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}>
             <Brand onHome={onHome} />
-            <BarTools />
+            <BarTools scope={view} />
+            <ArrangeLayer scope={view} reduced={false} />
           </motion.header>
         )}
       </AnimatePresence>
@@ -90,9 +84,9 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
 
       {!theatre && (
         <div className={cn('pointer-events-none absolute inset-x-0 z-40 px-3', wide ? 'bottom-4 mx-auto flex max-w-[1240px] items-end gap-3 px-8 lg:px-12' : 'bottom-[max(0.5rem,env(safe-area-inset-bottom))] grid gap-2')}>
-          <div className="pointer-events-auto"><PlayerIsland /></div>
-          <Glass radius={4} className="pointer-events-auto min-w-0 flex-1 py-1">
-            <Tuner view={view} onChange={onChange} />
+          <div className="pointer-events-auto" data-movable="shell-player"><PlayerIsland /></div>
+          <Glass radius={4} data-movable="shell-nav" className="pointer-events-auto min-w-0 flex-1 p-0.5">
+            <NavDeck view={view} onChange={onChange} />
           </Glass>
         </div>
       )}
