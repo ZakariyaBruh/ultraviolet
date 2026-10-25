@@ -67,10 +67,26 @@ export async function loadStanding(me: Me): Promise<Standing> {
   if (!r.ok) throw new Error('me')
   return r.json()
 }
-export async function sendName(me: Me, name: string): Promise<boolean> {
-  const r = await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'name', key: me.key, name }) })
-  return r.ok && ((await r.json()) as { ok: boolean }).ok
+export type NameResult = 'ok' | 'taken' | 'reserved' | 'invalid' | 'error'
+/** Asks the board to show this alias. Names are unique: "Zak", "zak" and "Z.a.k" are the same name. */
+export async function sendName(me: Me, name: string): Promise<NameResult> {
+  try {
+    const r = await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'name', key: me.key, name }) })
+    if (!r.ok) return 'error'
+    const j = (await r.json()) as { ok: boolean; reason?: string }
+    return j.ok ? 'ok' : (j.reason as NameResult) || 'error'
+  } catch { return 'error' }
 }
+/** Is this alias already on the board (or not allowed)? Checked before you commit to it. */
+export async function checkName(name: string): Promise<'free' | 'taken' | 'reserved' | 'error'> {
+  try {
+    const r = await fetch(`/api/lb?a=check&name=${encodeURIComponent(name)}`)
+    if (!r.ok) return 'error'
+    const j = (await r.json()) as { taken: boolean; reserved: boolean }
+    return j.reserved ? 'reserved' : j.taken ? 'taken' : 'free'
+  } catch { return 'error' }
+}
+export const nameProblem = (r: NameResult | 'free'): string => (r === 'taken' ? 'That name is already on the board. Pick another.' : r === 'reserved' || r === 'invalid' ? 'That name is not allowed. Pick another.' : r === 'error' ? 'Could not check that name. Try again.' : '')
 
 /** The public alias: what everyone sees on the board. Separate from the private name your friends know you by. */
 export const hasAlias = (me: Me) => me.name.trim().length > 0

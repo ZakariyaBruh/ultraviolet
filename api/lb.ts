@@ -20,11 +20,21 @@ let db: Client | undefined
 let ready: Promise<unknown> | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
 const init = () =>
-  (ready ??= client().batch([
-    'CREATE TABLE IF NOT EXISTS pending (code TEXT PRIMARY KEY, n INTEGER NOT NULL, t INTEGER NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS board (code TEXT PRIMARY KEY, name TEXT, n INTEGER NOT NULL, t INTEGER NOT NULL)',
-    'CREATE INDEX IF NOT EXISTS board_n ON board (n DESC, t ASC)',
-  ]))
+  (ready ??= (async () => {
+    const c = client()
+    await c.batch([
+      'CREATE TABLE IF NOT EXISTS pending (code TEXT PRIMARY KEY, n INTEGER NOT NULL, t INTEGER NOT NULL)',
+      'CREATE TABLE IF NOT EXISTS board (code TEXT PRIMARY KEY, name TEXT, n INTEGER NOT NULL, t INTEGER NOT NULL)',
+      'CREATE INDEX IF NOT EXISTS board_n ON board (n DESC, t ASC)',
+    ])
+    // names are unique: `nkey` is the name folded to lowercase letters and digits, so "Zak", "zak" and "Z.a.k" are one name
+    const cols = await c.execute('PRAGMA table_info(board)')
+    if (!cols.rows.some((r) => r.name === 'nkey')) {
+      await c.execute('ALTER TABLE board ADD COLUMN nkey TEXT')
+      await c.execute("UPDATE board SET nkey = lower(replace(replace(replace(coalesce(name, ''), ' ', ''), '.', ''), '-', '')) WHERE name IS NOT NULL")
+    }
+    await c.execute('CREATE UNIQUE INDEX IF NOT EXISTS board_nkey ON board (nkey) WHERE nkey IS NOT NULL')
+  })())
 
 const json = (body: unknown, status = 200, cache = 'no-store') => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': cache } })
 const CODE = /^[a-f0-9]{10}$/
@@ -63,6 +73,9 @@ async function needed(): Promise<number> {
   return Number(r.rows[0].k) ? Number(r.rows[0].lo) + 1 : 0
 }
 
+/** The name folded for comparing: letters and digits only, lowercase, accents removed. */
+const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+const RESERVED = new Set(['you', 'me', 'friend', 'afriend', 'afriendoffriction', 'friction', 'anonymous', 'anon', 'admin', 'moderator', 'system', 'unknown', 'guest', 'user', 'player'])
 const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
 
 async function mine(code: string) {
@@ -90,8 +103,15 @@ export default {
         const a = url.searchParams.get('a')
         if (a === 'board') {
           const r = await c.execute({ sql: 'SELECT code, name, n FROM board ORDER BY n DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
-          const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || 'A friend of Friction', n: Number(x.n) }))
+          const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`, n: Number(x.n) }))
           return json({ min: await needed(), rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
+        }
+        if (a === 'check') {
+          const k = fold(clean(url.searchParams.get('name')))
+          if (!k) return json({ taken: false, ok: false })
+          if (RESERVED.has(k)) return json({ taken: false, reserved: true })
+          const t = await c.execute({ sql: 'SELECT 1 FROM board WHERE nkey = ?', args: [k] })
+          return json({ taken: !!t.rows.length, reserved: false })
         }
         if (a === 'me') {
           const key = url.searchParams.get('key') ?? ''
@@ -146,8 +166,20 @@ export default {
           if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
           if (limited(`ip:${ip}`, 30)) return json({ error: 'slow down' }, 429)
           const name = clean(body.name)
-          const r = await c.execute({ sql: 'UPDATE board SET name = ? WHERE code = ?', args: [name || null, await sha(key)] })
-          return json({ ok: !!r.rowsAffected, name })
+          const k = fold(name)
+          if (name && !k) return json({ ok: false, reason: 'invalid' })
+          if (RESERVED.has(k)) return json({ ok: false, reason: 'reserved' })
+          const code = await sha(key)
+          if (k) {
+            const t = await c.execute({ sql: 'SELECT 1 FROM board WHERE nkey = ? AND code != ?', args: [k, code] })
+            if (t.rows.length) return json({ ok: false, reason: 'taken' })
+          }
+          try {
+            const r = await c.execute({ sql: 'UPDATE board SET name = ?, nkey = ? WHERE code = ?', args: [name || null, k || null, code] })
+            return json({ ok: !!r.rowsAffected, name })
+          } catch {
+            return json({ ok: false, reason: 'taken' }) // someone took it a moment ago
+          }
         }
       }
       return json({ error: 'unknown' }, 404)

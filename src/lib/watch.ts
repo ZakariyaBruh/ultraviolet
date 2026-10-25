@@ -13,7 +13,14 @@ export async function checkBoard() {
   const me = await identity()
   const s = await loadStanding(me)
   // keep the public name on the board in step with the alias you chose
-  if (s.listed && me.name && s.name !== me.name) void sendName(me, me.name).catch(() => false)
+  if (s.listed && me.name && s.name !== me.name) {
+    const r = await sendName(me, me.name)
+    if (r === 'taken' || r === 'reserved' || r === 'invalid') {
+      const old = me.name
+      saveName(me, '')
+      notify('board', `Your alias “${old}” is already taken on the leaderboard. Pick another one.`, 'Pick a new alias')
+    }
+  }
   if (s.listed && s.name && !me.name) saveName(me, s.name)
   const prev = read()
   if (prev) {

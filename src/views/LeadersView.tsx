@@ -7,7 +7,7 @@ import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { fx_say } from '@/lib/actions'
 import { useGridFit } from '@/lib/hooks'
-import { hasAlias, identity, loadBoard, loadStanding, saveName, sendName, shareUrl, type Me, type Row, type Standing } from '@/lib/leaders'
+import { checkName, hasAlias, identity, loadBoard, nameProblem, loadStanding, saveName, sendName, shareUrl, type Me, type Row, type Standing } from '@/lib/leaders'
 import { cn } from '@/lib/utils'
 
 const medal = (rank: number) => (rank === 1 ? 'bg-signal text-on-signal' : 'border border-ink/30')
@@ -33,7 +33,7 @@ export function LeadersView() {
       const [b, s] = await Promise.all([loadBoard(), loadStanding(m)])
       if (dead) return
       setRows(b.rows); setMin(b.min); setSt(s)
-      if (s.listed && m.name && s.name !== m.name) void sendName(m, m.name).catch(() => false)
+      if (s.listed && m.name && s.name !== m.name) void sendName(m, m.name).then((r) => { if (r === 'taken' || r === 'reserved' || r === 'invalid') { saveName(m, ''); setMe({ ...m, name: '' }); setProblem(nameProblem(r)) } })
     }).catch(() => !dead && setErr(true))
     return () => { dead = true }
   }, [nonce])
@@ -49,9 +49,10 @@ export function LeadersView() {
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!me) return
-    const ok = await sendName(me, name).catch(() => false)
-    if (ok) { saveName(me, name.trim()); setNonce((n) => n + 1) }
-    fx_say(ok ? { title: 'Name saved', description: name.trim() ? 'It shows on the board.' : 'You show as a friend of Friction.' } : { title: 'Could not save', variant: 'danger' })
+    const r = await sendName(me, name)
+    if (r === 'ok') { saveName(me, name.trim()); setMe({ ...me, name: name.trim() }); setNonce((n) => n + 1); fx_say({ title: 'Alias saved', description: name.trim() ? 'It shows on the board.' : 'You show as a friend of Friction.' }) }
+    else if (r === 'error') fx_say({ title: 'Could not save', variant: 'danger' })
+    else fx_say({ title: nameProblem(r), variant: 'danger' })
   }
 
   const list = rows ?? []
@@ -61,13 +62,18 @@ export function LeadersView() {
   const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   const n = st?.n ?? 0
   const [alias, setAlias] = useState('')
-  const claim = (e: FormEvent) => {
+  const [problem, setProblem] = useState('')
+  const claim = async (e: FormEvent) => {
     e.preventDefault()
     const a = alias.trim().slice(0, 20)
     if (!me || !a) return
+    const c = await checkName(a)
+    if (c !== 'free' && c !== 'error') { setProblem(nameProblem(c)); return }
+    const r = await sendName(me, a)
+    if (r === 'taken' || r === 'reserved' || r === 'invalid') { setProblem(nameProblem(r)); return }
+    setProblem('')
     saveName(me, a)
     setMe({ ...me, name: a }); setName(a)
-    void sendName(me, a).catch(() => false)
   }
   const need = Math.max(1, min)
   const btn = 'inline-flex h-11 items-center justify-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10'
@@ -85,9 +91,10 @@ export function LeadersView() {
           <h2 className="text-lg font-semibold">Pick the name everyone will see</h2>
           <p className="text-[14px] text-ink-2">The leaderboard is public, so it uses its own alias. It is not the name your friends know you by in Together rooms, and it is never your account, because there is none.</p>
           <form onSubmit={claim} className="flex gap-2">
-            <input value={alias} onChange={(e) => setAlias(e.target.value)} maxLength={20} aria-label="Public alias" placeholder="A public alias" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
+            <input value={alias} onChange={(e) => { setAlias(e.target.value); setProblem('') }} maxLength={20} aria-label="Public alias" placeholder="A public alias" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
             <button type="submit" disabled={!alias.trim()} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">Save alias</button>
           </form>
+          {problem && <p role="alert" className="text-sm text-ink">{problem}</p>}
         </Panel>
       ) : (
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
