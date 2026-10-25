@@ -120,7 +120,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             {!session ? (
               <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <div className="flex items-center gap-2">
-                  <HoldButton label="Hold to lock in" holdLabel="Locking in" onDone={start} className="sm:w-[19rem]" />
+                  <HoldButton label="Hold to lock in" holdLabel="Locking in" onDone={start} className="min-w-[17rem] max-w-[420px] sm:w-[19rem]" />
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
               </motion.div>

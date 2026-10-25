@@ -26,7 +26,14 @@ export function FitView({ children, watch }: { children: ReactNode; watch?: unkn
         i.querySelectorAll('*').forEach((el) => {
           if (el.closest('.sr-only, [aria-hidden="true"][class*="absolute"]')) return
           const q = el.getBoundingClientRect()
-          if (q.height > 0 && q.bottom > bottom) bottom = q.bottom
+          if (q.height <= 0) return
+          // what a clipping ancestor hides does not count as overflow
+          let b = q.bottom
+          for (let a = el.parentElement; a && a !== i && b > bottom; a = a.parentElement) {
+            const ov = getComputedStyle(a).overflowY
+            if (ov !== 'visible') b = Math.min(b, a.getBoundingClientRect().bottom)
+          }
+          if (b > bottom) bottom = b
         })
         const need = (bottom - top) / z
         const have = i.clientHeight
