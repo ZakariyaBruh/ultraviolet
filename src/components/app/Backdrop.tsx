@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { FieldLines } from '@/components/app/FieldLines'
 import { SpeedWarp } from '@/components/ui/speed-warp'
 import { useStore } from '@/lib/store'
@@ -10,6 +11,11 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
   const running = useStore((s) => !!s.session && !s.session.paused)
   const theme = useStore((s) => s.settings.theme)
   const light = isLightTheme(theme)
+  // while locked in, panels turn part-transparent so the rush of stars shows through them
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-locked', level >= 1 && running)
+    return () => document.documentElement.removeAttribute('data-locked')
+  }, [level, running])
 
   return (
     <div aria-hidden className={`fixed inset-0 overflow-hidden bg-ground bp-ground ${level === 0 ? 'motion-calm' : ''}`}>
@@ -17,8 +23,8 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
       {theme === 'paper' && <><div className="screentone" /><div className="paper-grain" /></>}
       {theme === 'sunset' && <div className="sun" />}
       {level >= 1 && running && (
-        <div className={`absolute inset-0 opacity-60 ${light ? 'invert' : ''}`}>
-          <SpeedWarp speed={level === 2 ? 14 : 7} starCount={level === 2 ? 380 : 180} />
+        <div className={`absolute inset-0 ${light ? 'invert' : ''}`}>
+          <SpeedWarp speed={level === 2 ? 26 : 16} starCount={level === 2 ? 700 : 420} />
         </div>
       )}
     </div>
