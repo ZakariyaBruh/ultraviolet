@@ -7,6 +7,7 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
 - **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
 - **Podcasts**: search the Apple Podcasts directory (iTunes Search API), open a show, and the episodes are read straight from its RSS feed. Seek, back 15, forward 30.
+- **News**: 90+ RSS feeds across nine categories, read in the browser (through a public CORS relay when a publisher blocks browsers). Hide any word or name for an hour, a day, a week or until you lift it; every change has an undo.
 - **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.

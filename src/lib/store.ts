@@ -4,6 +4,13 @@ import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
 
+export interface Mute {
+  id: string
+  word: string
+  /** epoch ms the mute ends; 0 means until you lift it */
+  until: number
+}
+
 export type MediaKind = 'radio' | 'tv'
 
 export interface MediaItem {
@@ -93,6 +100,8 @@ interface Data {
   profile: Profile | null
   events: EventRec[]
   books: BookRef[]
+  /** topics hidden from the news, until a time (0 = until removed) */
+  mutes: Mute[]
 }
 
 interface Actions {
@@ -105,6 +114,7 @@ interface Actions {
   endSession: (completed: boolean) => void
   toggleFavorite: (item: MediaItem) => void
   toggleBook: (book: BookRef) => void
+  setMutes: (m: Mute[]) => void
   pushRecent: (item: MediaItem) => void
   markIntroSeen: () => void
   setProfile: (p: Profile | null) => void
@@ -149,6 +159,7 @@ const emptyData = (): Data => ({
   profile: null,
   events: [],
   books: [],
+  mutes: [],
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -337,6 +348,8 @@ export const useStore = create<AppState>()(
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 
+      setMutes: (mutes) => set({ mutes: mutes.slice(0, 200) }),
+
       toggleBook: (book) => set((s) => ({ books: s.books.some((b) => b.id === book.id) ? s.books.filter((b) => b.id !== book.id) : [book, ...s.books].slice(0, 100) })),
 
       toggleFavorite: (item) =>
@@ -364,7 +377,7 @@ export const useStore = create<AppState>()(
 
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
