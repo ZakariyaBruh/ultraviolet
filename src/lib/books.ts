@@ -65,12 +65,15 @@ export async function searchBooks(q: string, start = 0): Promise<{ items: BookRe
       }
     }
     // a key restricted to other sites or APIs is refused with 400/403; the open endpoint still answers a person's own browser
+    const say = (r: Response) => r.clone().json().then((j: { error?: { message?: string } }) => j.error?.message ?? '', () => '')
     let res = await go(true)
-    if (res.status === 400 || res.status === 403) res = await go(false)
+    let keyed = ''
+    if (res.status === 400 || res.status === 403) { keyed = await say(res); res = await go(false) }
     if (!res.ok) {
-      const msg = await res.json().then((j: { error?: { message?: string } }) => j.error?.message ?? '', () => '')
+      // when the key itself was refused, that is the reason to show; the keyless retry only reports the shared quota
+      const msg = keyed || (await say(res))
       lastBooksError = msg
-      throw new BooksError(res.status === 429 ? 'quota' : res.status < 500 ? 'bad' : 'network', msg)
+      throw new BooksError(keyed ? 'bad' : res.status === 429 ? 'quota' : res.status < 500 ? 'bad' : 'network', msg)
     }
     const d = (await res.json()) as { totalItems?: number; items?: Vol[] }
     const items = (d.items ?? []).map((v): BookRef => ({
