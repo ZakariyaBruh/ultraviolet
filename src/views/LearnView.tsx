@@ -1,7 +1,6 @@
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ExternalLink, Layers, Shuffle, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ExternalLink, Flame, Layers, Shuffle, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
-import { HEART, Sprite, STAR } from '@/components/app/Sprite'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
@@ -309,8 +308,8 @@ export function LearnView() {
     <section className="flex h-full min-h-0 flex-col gap-3">
       <PageHeader kicker="Learn" title="Learn" sub="Short lessons from Wikipedia, checks written from the text itself, trivia, and a review deck. No account, no AI.">
         <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
-          <span className="inline-flex items-center gap-1.5"><Sprite rows={STAR} px={2} /><span className="fig font-semibold">{xp}</span> XP</span>
-          <span className="inline-flex items-center gap-1.5"><Sprite rows={HEART} px={2} /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
+          <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
+          <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
         </div>
       </PageHeader>
       {lesson ? (

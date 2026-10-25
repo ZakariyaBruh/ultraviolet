@@ -184,7 +184,7 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
-      {route !== 'home' && <Onboarding />}
+      <Onboarding />
       <Celebration />
       <UndoToast
         key={notice?.id}

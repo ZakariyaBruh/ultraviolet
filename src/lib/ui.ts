@@ -10,6 +10,8 @@ interface UI {
   moreOpen: boolean
   landing: boolean
   tourOpen: boolean
+  /** run the welcome again (Settings, Help) */
+  onboardOpen: boolean
   receipt: SessionRec | null
   /** a small win worth marking: shows the celebration card */
   celebrate: { title: string; detail: string } | null
@@ -24,6 +26,7 @@ export const useUI = create<UI>((set) => ({
   moreOpen: false,
   landing: false,
   tourOpen: false,
+  onboardOpen: false,
   receipt: null,
   celebrate: null,
   set: (patch) => set(patch),

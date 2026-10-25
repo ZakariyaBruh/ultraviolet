@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Glass } from '@/components/app/glass'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
 const SKIP = 'friction:onboard-skip'
@@ -18,21 +19,25 @@ export function Onboarding() {
   const setSettings = useStore((s) => s.setSettings)
   const [hidden, setHidden] = useState(skipped)
   const [step, setStep] = useState(0)
-  const [name, setName] = useState('')
-  const open = !profile && !hidden
+  const [name, setName] = useState(profile?.name ?? '')
+  const forced = useUI((s) => s.onboardOpen)
+  const close = () => { setStep(0); useUI.getState().set({ onboardOpen: false }) }
+  // opened again from Settings: start from the top with the saved name filled in
+  useEffect(() => { if (forced) { setStep(0); setName(useStore.getState().profile?.name ?? '') } }, [forced])
+  const visible = step === 1 || (step === 0 && (forced || (!profile && !hidden)))
 
   const save = (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    setProfile({ name: name.trim().slice(0, 20), since: Date.now() })
+    setProfile({ name: name.trim().slice(0, 20), since: profile?.since ?? Date.now() })
     setStep(1)
   }
-  const later = () => { try { sessionStorage.setItem(SKIP, '1') } catch { /* storage blocked */ } setHidden(true) }
+  const later = () => { if (forced) { close(); return } try { sessionStorage.setItem(SKIP, '1') } catch { /* storage blocked */ } setHidden(true) }
 
   return (
     <AnimatePresence>
-      {(open || (step === 1 && !hidden && profile)) && (
-        <motion.div key="onboard" className="fixed inset-0 z-[70] grid place-items-center bg-ground/70 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.2 }}>
+      {visible && (
+        <motion.div key="onboard" className="fixed inset-0 z-[120] grid place-items-center bg-ground/70 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.2 }}>
           <Glass role="dialog" aria-modal="true" aria-label="Welcome to Friction" className="w-[min(440px,100%)] p-6">
             {step === 0 ? (
               <form onSubmit={save} className="grid gap-3">
@@ -53,7 +58,7 @@ export function Onboarding() {
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Daily goal">
                   {[30, 60, 90, 120].map((m) => <button key={m} onClick={() => setSettings({ dailyGoalMin: m })} aria-pressed={goal === m} className={cn('h-11 px-4 text-sm', goal === m ? 'bg-ink text-ground' : 'bg-ink/[0.07] ring-1 ring-ink/12 hover:bg-ink/12')}>{m} min</button>)}
                 </div>
-                <button onClick={() => setStep(2)} className="mt-1 h-11 bg-signal px-6 text-sm font-semibold text-on-signal">Let’s go</button>
+                <button onClick={() => { useStore.getState().markIntroSeen(); close() }} className="mt-1 h-11 bg-signal px-6 text-sm font-semibold text-on-signal">Let’s go</button>
               </div>
             )}
           </Glass>

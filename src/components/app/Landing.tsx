@@ -1,7 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
-import { INVADER, Sprite, TV } from '@/components/app/Sprite'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
@@ -51,16 +50,6 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           </span>
         </div>
         <motion.div
-          initial={reduced ? false : { opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.15 }}
-          className="pointer-events-none absolute bottom-6 right-5 grid justify-items-center gap-4 sm:right-[8%]" aria-hidden
-        >
-          <Sprite rows={INVADER} px={5} className="bob" />
-          <Sprite rows={TV} px={11} />
-          <p className="pix blink text-ink">Press start</p>
-        </motion.div>
-        <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.2, 0, 0, 1], delay: 0.15 }}
@@ -84,7 +73,6 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           Friction
         </motion.h1>
         <div className="flex min-w-0 flex-col gap-3">
-          <p className="pix flex items-center text-signal"><span className="pixbullet" aria-hidden />Stand by for friction</p>
           <p className="max-w-[44ch] text-[16px] leading-[23px]">
             Scrolling has no friction. That is the whole problem. Stay on one radio station or one live channel and every time you drift away gets counted. This site never scrolls. You hold, drag and tune.
           </p>
