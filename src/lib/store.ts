@@ -68,6 +68,9 @@ export interface Settings {
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
   theme: ThemeId
+  /** custom accent and background colours (#rrggbb), '' keeps the theme's own */
+  accent: string
+  bg: string
 }
 
 type HourLog = Record<string, number[]>
@@ -127,6 +130,8 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.8,
   guard: true,
   theme: 'station',
+  accent: '',
+  bg: '',
 }
 
 const emptyData = (): Data => ({
@@ -174,6 +179,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
         st.theme = normalizeTheme(v.theme)
+        for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
       }
     } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined

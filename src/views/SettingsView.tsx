@@ -6,7 +6,8 @@ import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LengthBand } from '@/components/app/LengthBand'
 import { fx_say } from '@/lib/actions'
-import { THEMES } from '@/lib/themes'
+import { contrast } from '@/lib/theme'
+import { THEMES, themeDef } from '@/lib/themes'
 import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
 import { useMedia } from '@/lib/hooks'
@@ -63,6 +64,31 @@ function ThemePicker() {
   )
 }
 
+function Colours() {
+  const accent = useStore((x) => x.settings.accent)
+  const bg = useStore((x) => x.settings.bg)
+  const theme = useStore((x) => x.settings.theme)
+  const set = useStore((x) => x.setSettings)
+  const def = themeDef(theme)
+  const a = accent || def.signal
+  const b = bg || def.ground
+  const ratio = contrast(a, b)
+  const pick = (label: string, key: 'accent' | 'bg', value: string) => (
+    <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-2">
+      <input type="color" value={value} onChange={(e) => set({ [key]: e.target.value })} aria-label={label} className="size-11 cursor-pointer border border-ink/30 bg-transparent p-0.5" />
+      {label}
+    </label>
+  )
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {pick('Accent', 'accent', a)}
+      {pick('Background', 'bg', b)}
+      {(accent || bg) && <button className="h-11 border border-ink/30 px-3 text-[13px] text-ink hover:bg-ink/10" onClick={() => set({ accent: '', bg: '' })}>Reset colours</button>}
+      {ratio < 3 && <p role="status" className="basis-full text-[13px] text-ink">Accent and background are close ({ratio.toFixed(1)}:1). Controls may be hard to see.</p>}
+    </div>
+  )
+}
+
 function Look() {
   const s = useStore((x) => x.settings)
   const set = useStore((x) => x.setSettings)
@@ -74,6 +100,11 @@ function Look() {
       <Row title="Theme" hint="Press T anywhere to change theme">
         <ThemePicker />
       </Row>
+      <div className="grid gap-1 border-t border-rule py-3">
+        <h3 className="text-sm font-medium">Colours</h3>
+        <p className="text-[13px] text-ink-2">Your own accent and background, on top of any theme.</p>
+        <Colours />
+      </div>
       <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>
   )

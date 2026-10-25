@@ -50,7 +50,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
                 <motion.span
                   layoutId="deck-block"
                   aria-hidden
-                  className="absolute inset-0 bg-signal"
+                  className="deck-block absolute inset-0 bg-signal"
                   transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 38 }}
                 />
               )}

@@ -8,12 +8,14 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
   const motion = useStore((s) => s.settings.motion)
   const level = (reduced ? 0 : motion) as 0 | 1 | 2
   const running = useStore((s) => !!s.session && !s.session.paused)
-  const light = useStore((s) => isLightTheme(s.settings.theme))
+  const theme = useStore((s) => s.settings.theme)
+  const light = isLightTheme(theme)
 
   return (
-    <div aria-hidden className={`fixed inset-0 overflow-hidden bg-ground ${level === 0 ? 'motion-calm' : ''}`}>
+    <div aria-hidden className={`fixed inset-0 overflow-hidden bg-ground bp-ground ${level === 0 ? 'motion-calm' : ''}`}>
       <FieldLines level={level} />
-      {light && <><div className="screentone" /><div className="paper-grain" /></>}
+      {theme === 'paper' && <><div className="screentone" /><div className="paper-grain" /></>}
+      {theme === 'sunset' && <div className="sun" />}
       {level >= 1 && running && (
         <div className={`absolute inset-0 opacity-60 ${light ? 'invert' : ''}`}>
           <SpeedWarp speed={level === 2 ? 14 : 7} starCount={level === 2 ? 380 : 180} />
