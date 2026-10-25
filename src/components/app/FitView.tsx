@@ -52,7 +52,7 @@ export function FitView({ children, watch }: { children: ReactNode; watch?: unkn
   }, [watch])
 
   return (
-    <div ref={outer} className="h-full w-full" style={{ overflow: 'clip', overflowClipMargin: 8 }}>
+    <div ref={outer} className="h-full w-full">
       <div ref={inner} style={{ transformOrigin: 'top left', width: `${100 / k}%`, height: `${100 / k}%`, transform: `scale(${k})` }}>
         {children}
       </div>

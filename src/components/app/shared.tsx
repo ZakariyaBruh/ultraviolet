@@ -47,7 +47,7 @@ export function Panel({ children, className, ...rest }: { children: ReactNode; c
 
 export function PageHeader({ title, sub, kicker, children }: { title: string; sub?: ReactNode; kicker?: string; children?: ReactNode }) {
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <header data-block="header" className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         {kicker && <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{kicker}</div>}
         <h1 className="dot text-[clamp(1.6rem,3.4vw,2.4rem)] font-bold uppercase text-ink">{title}</h1>

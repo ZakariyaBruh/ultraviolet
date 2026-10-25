@@ -5,7 +5,8 @@ import { useStore } from '@/lib/store'
 
 const SEL = '[data-movable]'
 const SKIP = 'input, textarea, select, [role="slider"], [data-no-drag], canvas, iframe, video'
-const KEEP = 64 // px of a panel that always stays on screen
+const EDGE = 6 // px a panel keeps from the screen edge
+const GAP = 14 // px of air left when a panel is nudged clear of another
 const REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** Chrome (player, nav) keeps one position everywhere; panels are remembered per screen. */
@@ -13,7 +14,13 @@ const scopeOf = (id: string, scope: string) => (id.startsWith('shell-') ? 'shell
 
 function scan(): { el: HTMLElement; id: string }[] {
   let n = 0
-  return Array.from(document.querySelectorAll<HTMLElement>(SEL)).map((el) => ({ el, id: el.dataset.movable || `p${n++}` }))
+  return Array.from(document.querySelectorAll<HTMLElement>(SEL)).map((el) => {
+    const named = el.dataset.movable
+    if (named && named !== 'true') return { el, id: named }
+    // unnamed panels are told apart by their order and their heading, so each one keeps its own place
+    const h = el.querySelector('h1,h2,h3')?.textContent?.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 18) ?? ''
+    return { el, id: `p${n++}${h ? `-${h}` : ''}` }
+  })
 }
 
 const live = (el: HTMLElement): Offset => ({ x: Number(el.dataset.ox) || 0, y: Number(el.dataset.oy) || 0 })
@@ -30,17 +37,19 @@ function paint(el: HTMLElement, o: Offset, rot = 0) {
 /** The screen-px scale a FitView puts on the panel (1 when none). */
 const scaleOf = (el: HTMLElement) => (el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1) || 1
 
-/** Allowed offsets (in the panel's own px) that keep KEEP px of it on screen. */
+/** Allowed offsets (in the panel's own px) that keep the whole panel on screen. */
 function range(el: HTMLElement) {
   const k = scaleOf(el)
   const r = el.getBoundingClientRect()
   const o = live(el)
   const left = r.left - o.x * k
   const top = r.top - o.y * k
+  const minX = (EDGE - left) / k
+  const minY = (EDGE - top) / k
   return {
     k,
-    minX: (KEEP - (left + r.width)) / k, maxX: (innerWidth - KEEP - left) / k,
-    minY: (KEEP - (top + r.height)) / k, maxY: (innerHeight - KEEP - top) / k,
+    minX, maxX: Math.max(minX, (innerWidth - EDGE - r.width - left) / k),
+    minY, maxY: Math.max(minY, (innerHeight - EDGE - r.height - top) / k),
   }
 }
 const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -54,36 +63,85 @@ export function ArrangeLayer({ scope }: { scope: string }) {
   const offsets = useLayout((s) => s.offsets[scope])
   const shell = useLayout((s) => s.offsets.shell)
 
-  // apply saved offsets whenever panels mount or change
+  // apply saved offsets whenever panels mount or change, then tidy anything the player or nav now sits on
   useEffect(() => {
     let raf = 0
+    let t1: ReturnType<typeof setTimeout> | undefined
+    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    /**
+     * The player and nav keep their place on every screen, so on a screen where they were never put over something
+     * on purpose, anything they would cover is eased aside. Overlaps the user made themselves are left exactly as made.
+     */
+    const tidy = () => {
+      const all = scan()
+      const keep = useLayout.getState().keep[scope] ?? []
+      const shells = all.filter(({ el, id }) => id.startsWith('shell-') && el.dataset.moved && !el.dataset.dragging && !el.dataset.gliding)
+      const blocks = Array.from(document.querySelectorAll<HTMLElement>('[data-block]')).map((el) => ({ el, id: `block:${el.dataset.block || ''}` }))
+      const cands = all.filter(({ id }) => !id.startsWith('shell-') && !offsets?.[id]).concat(blocks)
+      for (const { el, id } of cands) {
+        if (el.dataset.dragging || el.dataset.gliding) continue
+        const k = scaleOf(el)
+        const cur = live(el)
+        const r = el.getBoundingClientRect()
+        const base = new DOMRect(r.left - cur.x * k, r.top - cur.y * k, r.width, r.height)
+        let dx = 0
+        let dy = 0
+        if (shells.length && base.width * base.height < innerWidth * innerHeight * 0.5) {
+          for (let pass = 0; pass < 3; pass++) {
+            const box = new DOMRect(base.x + dx * k, base.y + dy * k, base.width, base.height)
+            const sh = shells.find((x) => !keep.includes([id, x.id].sort().join('|')) && hit(box, x.el.getBoundingClientRect()))
+            if (!sh) break
+            const S = sh.el.getBoundingClientRect()
+            const opts: [number, number][] = [[S.right + GAP - box.left, 0], [S.left - GAP - box.right, 0], [0, S.bottom + GAP - box.top], [0, S.top - GAP - box.bottom]]
+            const fit = opts
+              .filter(([x, y]) => box.left + x >= EDGE && box.right + x <= innerWidth - EDGE && box.top + y >= EDGE && box.bottom + y <= innerHeight - EDGE)
+              .sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0]
+            if (!fit) break
+            dx += fit[0] / k
+            dy += fit[1] / k
+          }
+        }
+        if (Math.round(dx) !== cur.x || Math.round(dy) !== cur.y) paint(el, { x: Math.round(dx), y: Math.round(dy) })
+      }
+    }
     const apply = () => {
       for (const { el, id } of scan()) {
         if (el.dataset.dragging || el.dataset.gliding) continue
         const o = (id.startsWith('shell-') ? shell : offsets)?.[id]
-        if (!o) { if (el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
+        if (!o) { if (id.startsWith('shell-') && el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
         const r = range(el)
         paint(el, { x: Math.round(clampTo(o.x, r.minX, r.maxX)), y: Math.round(clampTo(o.y, r.minY, r.maxY)) })
       }
+      tidy()
     }
-    const queue = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply) }
-    apply()
+    const queue = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply); clearTimeout(t1); t1 = setTimeout(apply, 420) }
+    queue()
     const mo = new MutationObserver(queue)
     mo.observe(document.body, { childList: true, subtree: true })
     addEventListener('resize', queue)
-    return () => { mo.disconnect(); removeEventListener('resize', queue); cancelAnimationFrame(raf) }
+    return () => { mo.disconnect(); removeEventListener('resize', queue); cancelAnimationFrame(raf); clearTimeout(t1) }
   }, [offsets, shell, scope])
 
   useEffect(() => {
     type Drag = { el: HTMLElement; id: string; pid: number; x0: number; y0: number; o0: Offset; k: number; r: ReturnType<typeof range>; began: boolean; lx: number; ly: number; lt: number; vx: number; vy: number; rot: number }
     let d: Drag | null = null
     let swallow = false
+    let z = 10
     const flair = () => !REDUCED() && useStore.getState().settings.motion > 0
 
-    const save = (el: HTMLElement, id: string) => useLayout.getState().move(scopeOf(id, scope), id, live(el))
+    const hits = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    /** Whatever the dropped panel now overlaps was put there on purpose: remember it, and forget pairs it has left. */
+    const remember = (el: HTMLElement, id: string) => {
+      const mine = el.getBoundingClientRect()
+      const old = (useLayout.getState().keep[scope] ?? []).filter((p) => !p.split('|').includes(id))
+      const now = scan().filter((o) => o.el !== el && hits(mine, o.el.getBoundingClientRect())).map((o) => [id, o.id].sort().join('|'))
+      useLayout.getState().setKeep(scope, Array.from(new Set([...old, ...now])))
+    }
+    const save = (el: HTMLElement, id: string) => { useLayout.getState().move(scopeOf(id, scope), id, live(el)); remember(el, id) }
 
-    const glide = (el: HTMLElement, id: string, vx: number, vy: number, rot: number) => {
-      const r = range(el)
+    const glide = (el: HTMLElement, id: string, vx: number, vy: number, rot: number, r: ReturnType<typeof range>) => {
+      vx = clampTo(vx, -2.5, 2.5)
+      vy = clampTo(vy, -2.5, 2.5)
       let { x, y } = live(el)
       let last = performance.now()
       el.dataset.gliding = 'true'
@@ -92,8 +150,8 @@ export function ArrangeLayer({ scope }: { scope: string }) {
         last = now
         const f = Math.pow(0.9, dt / 16)
         x += vx * dt; y += vy * dt; vx *= f; vy *= f; rot *= Math.pow(0.8, dt / 16)
-        if (x < r.minX || x > r.maxX) { x = clampTo(x, r.minX, r.maxX); vx *= -0.35 }
-        if (y < r.minY || y > r.maxY) { y = clampTo(y, r.minY, r.maxY); vy *= -0.35 }
+        if (x < r.minX || x > r.maxX) { x = clampTo(x, r.minX, r.maxX); vx *= -0.12 }
+        if (y < r.minY || y > r.maxY) { y = clampTo(y, r.minY, r.maxY); vy *= -0.12 }
         paint(el, { x, y }, Math.abs(rot) > 0.05 ? rot : 0)
         if (Math.hypot(vx, vy) > 0.02 || Math.abs(rot) > 0.05) requestAnimationFrame(tick)
         else { delete el.dataset.gliding; paint(el, { x: Math.round(x), y: Math.round(y) }); save(el, id) }
@@ -121,6 +179,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
         d.began = true
         d.el.setPointerCapture?.(d.pid)
         d.el.dataset.dragging = 'true'
+        d.el.style.zIndex = String(10 + (z = (z % 18) + 1)) // the one you hold comes to the front
         document.documentElement.dataset.dragging = 'true'
       }
       // a little resistance past the edges, so it feels like cloth, not a wall
@@ -144,9 +203,9 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       delete cur.el.dataset.dragging
       delete document.documentElement.dataset.dragging
       const idle = e.timeStamp - cur.lt > 90
-      if (flair() && !idle) glide(cur.el, cur.id, cur.vx, cur.vy, cur.rot)
+      if (flair() && !idle) glide(cur.el, cur.id, cur.vx, cur.vy, cur.rot, cur.r)
       else {
-        const r = range(cur.el)
+        const r = cur.r // measured before the panel leaned, so its tilt cannot skew the limits
         const o = live(cur.el)
         paint(cur.el, { x: Math.round(clampTo(o.x, r.minX, r.maxX)), y: Math.round(clampTo(o.y, r.minY, r.maxY)) })
         save(cur.el, cur.id)

@@ -11,6 +11,22 @@ export interface Mute {
   until: number
 }
 
+export interface Flash {
+  id: string
+  front: string
+  back: string
+  /** Leitner box 0..4 */
+  box: number
+  due: number
+}
+export interface Learn {
+  xp: number
+  /** days (YYYY-MM-DD) with any learning */
+  days: string[]
+  done: Record<string, { at: number; score: number; total: number }>
+  deck: Flash[]
+}
+
 export type MediaKind = 'radio' | 'tv'
 
 export interface MediaItem {
@@ -102,6 +118,7 @@ interface Data {
   books: BookRef[]
   /** topics hidden from the news, until a time (0 = until removed) */
   mutes: Mute[]
+  learn: Learn
 }
 
 interface Actions {
@@ -115,6 +132,7 @@ interface Actions {
   toggleFavorite: (item: MediaItem) => void
   toggleBook: (book: BookRef) => void
   setMutes: (m: Mute[]) => void
+  setLearn: (l: Learn) => void
   pushRecent: (item: MediaItem) => void
   markIntroSeen: () => void
   setProfile: (p: Profile | null) => void
@@ -160,6 +178,7 @@ const emptyData = (): Data => ({
   events: [],
   books: [],
   mutes: [],
+  learn: { xp: 0, days: [], done: {}, deck: [] },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -348,6 +367,7 @@ export const useStore = create<AppState>()(
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 
+      setLearn: (learn) => set({ learn }),
       setMutes: (mutes) => set({ mutes: mutes.slice(0, 200) }),
 
       toggleBook: (book) => set((s) => ({ books: s.books.some((b) => b.id === book.id) ? s.books.filter((b) => b.id !== book.id) : [book, ...s.books].slice(0, 100) })),
@@ -377,7 +397,7 @@ export const useStore = create<AppState>()(
 
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, learn: get().learn, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),

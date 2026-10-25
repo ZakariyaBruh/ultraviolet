@@ -77,7 +77,7 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
 
       <main
         id="canvas"
-        className={cn('absolute inset-0 overflow-hidden px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[76px]' : 'pb-[calc(150px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
+        className={cn('absolute inset-0 px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[76px]' : 'pb-[calc(150px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
       >
         <div className="mx-auto h-full w-full max-w-[1240px]">{children}</div>
       </main>

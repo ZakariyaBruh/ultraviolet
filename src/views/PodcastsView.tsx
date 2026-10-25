@@ -97,8 +97,8 @@ function ShowPage({ show, onBack }: { show: Show; onBack: () => void }) {
       <Panel className="relative flex min-h-0 flex-col gap-3 overflow-hidden p-4 max-lg:grid max-lg:grid-cols-[104px_1fr] max-lg:items-center max-lg:gap-x-3 max-lg:gap-y-1 max-lg:p-3">
         <button onClick={onBack} className="inline-flex h-11 items-center gap-2 self-start pr-3 text-sm text-ink-2 hover:text-ink max-lg:col-span-2"><ArrowLeft className="size-4" /> All shows</button>
         <div className="relative mx-auto grid aspect-square w-full max-w-[300px] min-h-0 shrink place-items-center max-lg:max-w-[104px]">
-          <MorphingBlob className="absolute inset-0 size-full" width={400} height={400} baseRadius={150} variance={motionLevel === 2 ? 46 : 30} speed={live ? 1.5 : 0.6} points={9} colors={colours} cursorFollow={motionLevel > 0} aria-hidden />
-          <Art src={show.art} name={show.name} className="relative size-[52%] rounded-[4px] shadow-[0_14px_30px_-12px_rgba(0,0,0,.6)]" />
+          <MorphingBlob className="absolute inset-0 size-full" width={400} height={400} baseRadius={128} variance={motionLevel === 2 ? 64 : 52} speed={live ? 2 : 1.1} stiffness={38} damping={5.5} points={10} colors={colours} cursorFollow={false} aria-hidden />
+          <Art src={show.art} name={show.name} className={cn('relative size-[50%] rounded-full shadow-[0_14px_30px_-12px_rgba(0,0,0,.6)]', live && motionLevel > 0 && 'motion-safe:animate-[spin_26s_linear_infinite]')} />
         </div>
         <div className="min-w-0">
           <h2 className="line-clamp-2 text-[18px] font-semibold leading-6">{show.name}</h2>
