@@ -1,8 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
-import { LineImage } from '@/components/app/LineImage'
-import { useMedia } from '@/lib/hooks'
+import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
@@ -30,7 +29,6 @@ function Ident({ still }: { still: boolean }) {
 /** The front page, and the only page that is always black. A broadcast ident over a field of lines. */
 export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View) => void }) {
   const reduced = !!useReducedMotion()
-  const wide = useMedia('(min-width: 900px)')
   const readout = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -43,11 +41,11 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
     <div className="fixed inset-0 z-[100] flex flex-col bg-ground text-ink">
       <div className="flex h-2.5 shrink-0" aria-hidden>{BARS.map((c) => <i key={c} className="flex-1" style={{ background: c }} />)}</div>
       <div className="relative min-h-0 flex-[1.3]">
-        <LineImage still={reduced} focus={wide ? [0.68, 0.46] : [0.5, 0.36]} className="absolute inset-0 size-full" />
+        <DotGrid still={reduced} className="absolute inset-0 size-full" />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-4 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] sm:px-8">
           <span className="bg-ground px-2 py-1">Ch 00 / Friction</span>
           <span className="flex gap-3">
-            <span className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>Move: bend / Click: ripple</span>
+            <span className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>Move: light up / Click: ripple</span>
             <span ref={readout} className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
           </span>
         </div>

@@ -4,7 +4,7 @@ A broadcast station for staying put. Retro (a test card, an ident, CRT scanlines
 
 ## Navigation is the idea
 The site never scrolls. You move by tuning:
-- **Landing (`/`)** opens only if you hold the button. Letting go early drains it. The image is hairlines bending around a broadcast test card; click it to send a ripple.
+- **Landing (`/`)** opens only if you hold the button. Letting go early drains it. The image is a plain, regular dot matrix: dots swell and light up around your pointer, and a click sends a ring of light across it.
 - **Radio** is found on a radar: drag around the dial, the station under the beam plays when you let go.
 - **Lock in** is hold-to-lock; **session length** is a ruler you drag.
 - **TV** has its own 16:9 screen with a fill-screen mode; video never sits behind the interface.
