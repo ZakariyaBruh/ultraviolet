@@ -51,6 +51,8 @@ export function BooksView() {
   const [nonce, setNonce] = useState(0)
   const [reading, setReading] = useState<(Pick<BookRef, 'id'> & Partial<BookRef>) | null>(null)
   const [link, setLink] = useState('')
+  // once a search has worked, the key box and the open-by-link tab are not needed again
+  const [worked, setWorked] = useState(() => { try { return localStorage.getItem('friction:books-ok') === '1' } catch { return false } })
   const { ref, per, cols } = useGridFit(300, 108, 8, 3)
 
   useEffect(() => { const t = setTimeout(() => setDq(q.trim()), 380); return () => clearTimeout(t) }, [q])
@@ -61,7 +63,7 @@ export function BooksView() {
     let dead = false
     setState('loading')
     searchBooks(dq || `subject:${subject}`)
-      .then((r) => { if (!dead) { setItems(r.items); setState('ready') } })
+      .then((r) => { if (!dead) { setItems(r.items); setState('ready'); if (r.items.length) { setWorked(true); try { localStorage.setItem('friction:books-ok', '1') } catch { /* storage blocked */ } } } })
       .catch((e) => { if (!dead) setState(e instanceof BooksError ? e.kind : 'error') })
     return () => { dead = true }
   }, [tab, subject, dq, nonce])
@@ -84,7 +86,7 @@ export function BooksView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       <PageHeader kicker="Free ebooks" title="Books" sub="Free and public-domain titles from Google Books. Read them here, with the dial still under your thumb.">
-        <Seg id="tabs-books" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'shelf', label: 'Shelf', badge: shelf.length || undefined }, { id: 'open', label: 'Open' }]} />
+        <Seg id="tabs-books" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'shelf', label: 'Shelf', badge: shelf.length || undefined }, ...(worked ? [] : [{ id: 'open', label: 'Open' }])]} />
       </PageHeader>
 
       {tab === 'discover' && (
@@ -109,6 +111,12 @@ export function BooksView() {
             <button type="submit" className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Open</button>
           </form>
           <KeyRow />
+        </Panel>
+      ) : needsKey && worked ? (
+        <Panel className="grid justify-items-start gap-3 p-5">
+          <h2 className="text-base font-semibold">Google Books did not answer</h2>
+          {lastBooksError && <p role="status" className="text-[14px] text-ink-2">Google says: {lastBooksError}</p>}
+          <button onClick={() => setNonce((n) => n + 1)} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Try again</button>
         </Panel>
       ) : needsKey ? (
         <KeyPanel reason={state as 'nokey' | 'quota' | 'bad'} onSaved={() => { setNonce((n) => n + 1) }} />
