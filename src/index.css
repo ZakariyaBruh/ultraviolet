@@ -364,22 +364,33 @@ html[data-theme='paper'] .glass::before, html[data-theme='paper'] .glass-clear::
 html[data-locked][data-theme] .glass, html[data-locked][data-theme] .glass-clear, html[data-locked][data-theme] .material { background-color: color-mix(in srgb, var(--surface) 72%, transparent); }
 html[data-locked][data-theme='paper'] .glass, html[data-locked][data-theme='paper'] .material { background-color: color-mix(in srgb, var(--surface) 86%, transparent); }
 
-/* ───────── the era dial (Settings): --retro runs 0 (future) to 1 (past); data-retro is its stage 0 to 3 ───────── */
+/* ───────── the era dial (Settings): six stops. data-retro 0 future, 1 afterglow, 2 broadcast, 3 arcade, 4 tube TV, 5 8-bit. --retro is the stop over 5. ───────── */
 .retro-fx { position: fixed; inset: 0; z-index: 130; pointer-events: none; }
-.retro-scan { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 1px, transparent 1px 3px); opacity: calc(var(--retro, 0) * 0.34); }
+.retro-scan { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 1px, transparent 1px 3px); opacity: calc(var(--retro, 0) * 0.4); }
 .retro-grain { opacity: calc(var(--retro, 0) * 0.5); mix-blend-mode: overlay; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-.retro-warm { background: #ffa83c; mix-blend-mode: soft-light; opacity: calc(var(--retro, 0) * 0.22); }
-html[data-retro='3'] .retro-warm { mix-blend-mode: multiply; opacity: 0.1; }
-/* all the way to the future: even the quiet CRT touches go */
+.retro-warm { background: #ffa83c; mix-blend-mode: soft-light; opacity: calc(var(--retro, 0) * 0.24); }
+html[data-retro='4'] .retro-warm, html[data-retro='5'] .retro-warm { mix-blend-mode: multiply; opacity: 0.1; }
+/* the tube: a curved vignette and a bezel from stop 4 */
+.retro-tube { display: none; box-shadow: inset 0 0 140px 30px rgba(0,0,0,0.65); border-radius: 28px; }
+html[data-retro='4'] .retro-tube, html[data-retro='5'] .retro-tube { display: block; }
+html[data-retro='5'] .retro-tube { box-shadow: inset 0 0 0 6px #000, inset 0 0 0 9px color-mix(in srgb, var(--signal) 60%, transparent), inset 0 0 160px 40px rgba(0,0,0,0.7); border-radius: 0; }
+.retro-roll { display: none; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.05) 50%, transparent); height: 22%; animation: roll 7s linear infinite; }
+html[data-retro='4'] .retro-roll, html[data-retro='5'] .retro-roll { display: block; }
+@keyframes roll { from { translate: 0 -120%; } to { translate: 0 520%; } }
 html[data-retro='0'] .crt::after { display: none; }
 html[data-retro='0'] .caret { animation: none; }
-/* a glow on headings grows with the retro dial */
+/* a glow on headings grows with the dial; from the tube on it splits like a mistuned set */
 .dot, .hud { text-shadow: 0 0 calc(var(--retro, 0) * 10px) color-mix(in srgb, var(--signal) calc(var(--retro, 0) * 45%), transparent); }
-/* stage 2 and 3: on-screen display, pixel kickers, stepped corners, pixel pointer */
-.osd-wrap, .retro2 { display: none; }
-html[data-retro='2'] .osd-wrap, html[data-retro='3'] .osd-wrap { display: flex; }
-html[data-retro='2'] .retro2, html[data-retro='3'] .retro2 { display: grid; }
-.osd { font-family: 'VT323', monospace; text-transform: uppercase; letter-spacing: 0.06em; font-size: 24px; line-height: 1; color: var(--ink); text-shadow: 2px 2px 0 var(--ground); -webkit-font-smoothing: none; }
+html[data-retro='4'] :is(.dot, .hud, h1, h2, h3), html[data-retro='5'] :is(.dot, .hud, h1, h2, h3) { text-shadow: 2px 0 rgba(255, 40, 80, 0.55), -2px 0 rgba(40, 200, 255, 0.55); }
+/* pieces that appear at a stop */
+.osd-wrap, .retro2, .ticker { display: none; }
+.ticker .spr { display: none; vertical-align: middle; margin: 0 14px; }
+html[data-retro='5'] .ticker .spr { display: inline-block; }
+.ticker .spr svg, .ticker svg.spr { display: inline-block; }
+html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .osd-wrap { display: flex; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .retro2 { display: grid; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .ticker { display: block; }
+.osd { font-family: 'VT323', monospace; text-transform: uppercase; letter-spacing: 0.06em; font-size: 24px; line-height: 1; color: var(--ink); text-shadow: 2px 2px 0 var(--ground); -webkit-font-smoothing: none; font-size-adjust: none; }
 .osd .rec { color: var(--hot); }
 .osd .rec::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; background: var(--hot); animation: blink 1.1s steps(2) infinite; vertical-align: 1px; }
 .pix { font-family: 'Press Start 2P', monospace; text-transform: uppercase; line-height: 1.6; font-size: 10px; -webkit-font-smoothing: none; }
@@ -387,16 +398,32 @@ html[data-retro='2'] .retro2, html[data-retro='3'] .retro2 { display: grid; }
 @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
 .bob { animation: bob 1.4s steps(2) infinite; }
 .blink { animation: blink 1s steps(2) infinite; }
-@media (prefers-reduced-motion: reduce) { .bob, .blink, .osd .rec::before { animation: none; } }
-.motion-calm .bob { animation: none; }
-html[data-retro='2'] .kicker, html[data-retro='3'] .kicker { font-family: 'Silkscreen', monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--signal); }
-html[data-retro='3'] .kicker { font-family: 'Press Start 2P', monospace; font-size: 10px; }
-html[data-retro='3'] .dot { font-family: 'Silkscreen', 'Unbounded Variable', sans-serif; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
-html[data-retro='2'][data-theme='station'] .glass, html[data-retro='2'][data-theme='station'] .material,
-html[data-retro='3'][data-theme='station'] .glass, html[data-retro='3'][data-theme='station'] .material,
-html[data-retro='2'][data-theme='phosphor'] .glass, html[data-retro='2'][data-theme='phosphor'] .material,
-html[data-retro='3'][data-theme='phosphor'] .glass, html[data-retro='3'][data-theme='phosphor'] .material {
+/* the ticker: a marquee along the top edge, stepped like a scoreboard */
+.ticker { position: fixed; bottom: 0; left: 0; right: 0; z-index: 131; height: 16px; overflow: hidden; pointer-events: none; border-top: 1px solid color-mix(in srgb, var(--signal) 50%, transparent); background: var(--ground); font-family: 'VT323', monospace; font-size: 15px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--signal); white-space: nowrap; font-size-adjust: none; }
+@media (max-width: 767px) { .ticker { display: none !important; } }
+.ticker > span { display: inline-block; padding-left: 100%; animation: marquee 38s steps(240) infinite; }
+@keyframes marquee { to { translate: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .bob, .blink, .osd .rec::before, .retro-roll, .ticker > span { animation: none; } .ticker > span { padding-left: 12px; } .retro-scan, .retro-grain { display: none; } }
+.motion-calm .bob, .motion-calm .retro-roll { animation: none; }
+/* stop 2+: pixel kickers */
+html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .kicker { font-family: 'Silkscreen', monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--signal); }
+/* stop 3+: arcade: Silkscreen titles, stepped corners, pixel pointer, hard pixel shadows */
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .dot { font-family: 'Silkscreen', 'Unbounded Variable', sans-serif; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .hud { font-family: 'VT323', monospace; font-size: 18px; letter-spacing: 0.1em; font-weight: 400; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) :is(.glass, .material) { box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--signal) 35%, transparent); }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']):is([data-theme='station'], [data-theme='phosphor']) :is(.glass, .material) {
   clip-path: polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px));
+  box-shadow: none;
 }
-html[data-retro='3'] body { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' shape-rendering='crispEdges'><path fill='black' d='M2 2h4v2h2v2h2v2h2v2h2v2h-4v2h2v4h-4v-4h-2v-2h-2v2h-2v2h-2z'/><path fill='white' d='M4 4h2v2h2v2h2v2h2v2H8v2h2v4H8v-4H6v-2H4z'/></svg>") 3 3, auto; }
-@media (prefers-reduced-motion: reduce) { .retro-scan, .retro-grain { display: none; } }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) body { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' shape-rendering='crispEdges'><path fill='black' d='M2 2h4v2h2v2h2v2h2v2h2v2h-4v2h2v4h-4v-4h-2v-2h-2v2h-2v2h-2z'/><path fill='white' d='M4 4h2v2h2v2h2v2h2v2H8v2h2v4H8v-4H6v-2H4z'/></svg>") 3 3, auto; }
+/* stop 4+: every bit of text is a pixel face. Stop 4 sets body copy in VT323, stop 5 sets titles and labels in Press Start 2P too. */
+html:is([data-retro='4'], [data-retro='5']) { --font-sans: 'VT323', monospace; --font-cond: 'VT323', monospace; --font-dot: 'Silkscreen', monospace; --font-mono: 'VT323', monospace; font-size-adjust: 0.62; }
+html:is([data-retro='4'], [data-retro='5']) :is(body, button, input, textarea, select, a, p, span, li, label, div, h1, h2, h3, h4) { font-family: 'VT323', monospace; letter-spacing: 0.03em; -webkit-font-smoothing: none; }
+html:is([data-retro='4'], [data-retro='5']) :is(.dot, .kicker) { font-family: 'Silkscreen', monospace; }
+html[data-retro='5'] :is(.dot, .kicker, h1, h2, .hud, .pix) { font-family: 'Press Start 2P', monospace !important; font-size-adjust: none; letter-spacing: 0; line-height: 1.4; }
+html[data-retro='5'] :is(.dot, h1, h2) { font-size-adjust: 0.62 !important; }
+html[data-retro='5'] :is(.hud, .kicker) { font-size: 11px; }
+/* stop 5: hard pixel borders and dithered fills */
+html[data-retro='5'] :is(.glass, .material) { border: 2px solid var(--signal); background-image: repeating-conic-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 0 25%, transparent 0 50%); background-size: 4px 4px; box-shadow: 4px 4px 0 0 #000; }
+html[data-retro='5'] button { border-radius: 0 !important; }
+

@@ -161,7 +161,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.8,
   guard: true,
   theme: 'station',
-  era: 62,
+  era: 80,
   accent: '',
   bg: '',
 }
@@ -213,7 +213,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
         st.theme = normalizeTheme(v.theme)
-        st.era = Math.min(100, Math.max(0, Math.round(Number(st.era))))
+        st.era = Math.min(100, Math.max(0, Math.round((Number(st.era) || 80) / 20) * 20))
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
       }

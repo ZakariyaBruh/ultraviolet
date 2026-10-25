@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
@@ -92,23 +93,36 @@ function Colours() {
   )
 }
 
-const ERA = (era: number) => {
-  const r = 1 - era / 100
-  return r >= 0.7 ? 'Tube TV: pixel type and pointer, scanlines, grain, sprites on the landing.' : r >= 0.4 ? 'Broadcast: an on-screen display, stepped corners, pixel kickers, scanlines and grain.' : r >= 0.15 ? 'Retro-future: a little scanline, grain and warm glow around the clean lines.' : 'Future: clean and sharp, no scanlines and no grain.'
-}
+const STOPS = [
+  { name: 'Future', note: 'Clean and sharp. No scanlines, no grain, no pixels.' },
+  { name: 'Afterglow', note: 'A faint scanline, a little grain, a warm tint around the clean lines.' },
+  { name: 'Broadcast', note: 'Adds an on-screen display (channel and REC) and pixel kickers.' },
+  { name: 'Arcade', note: 'Adds pixel titles, stepped corners, hard shadows, a pixel pointer, a marquee and sprites.' },
+  { name: 'Tube TV', note: 'Every word turns to pixel type. Curved glass, a rolling bar and split colour on titles.' },
+  { name: 'Full 8-bit', note: 'Press Start titles, dithered panels with hard borders, a bezel and a row of sprites.' },
+]
 function Era() {
   const era = useStore((x) => x.settings.era)
   const set = useStore((x) => x.setSettings)
+  const stage = Math.round((100 - era) / 20)
   return (
     <div className="grid gap-2 border-t border-rule py-3">
       <h3 className="text-sm font-medium">Era</h3>
-      <p className="text-[13px] text-ink-2">Slide toward the past for more retro, toward the future for less. It changes everything at once, and you can see it as you go.</p>
+      <p className="text-[13px] text-ink-2">Six stops from the future back to the past. Each one adds to the last, so you can see how retro you want it as you go.</p>
       <div className="flex items-center gap-3">
         <span className="hud shrink-0">Past</span>
-        <LengthBand value={era} onChange={(v) => set({ era: v })} min={0} max={100} step={5} label="Era, from the past to the future" ends={['', '', '']} format={(v) => `${100 - v}% retro`} className="max-w-none flex-1" />
+        <LengthBand value={era} onChange={(v) => set({ era: v })} min={0} max={100} step={20} label="Era, from the past to the future" ends={['', '', '']} format={(v) => STOPS[Math.round((100 - v) / 20)].name} className="max-w-none flex-1" />
         <span className="hud shrink-0">Future</span>
       </div>
-      <p role="status" className="text-[13px] text-ink">{ERA(era)}</p>
+      <div role="group" aria-label="Era stops" className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+        {STOPS.map((st, i) => (
+          <button key={st.name} type="button" aria-pressed={stage === i} onClick={() => set({ era: 100 - i * 20 })} className={cn('min-h-11 border px-1.5 text-[13px] leading-tight', stage === i ? 'border-signal bg-signal text-on-signal' : 'border-rule text-ink-2 hover:text-ink')}>
+            <span className="block">{st.name}</span>
+            <span className="block text-[11px] opacity-70">{i * 20}% retro</span>
+          </button>
+        ))}
+      </div>
+      <p role="status" className="text-[13px] text-ink">{STOPS[stage].note}</p>
     </div>
   )
 }

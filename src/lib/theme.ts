@@ -21,10 +21,10 @@ export function useTheme() {
   const bg = useStore((s) => s.settings.bg)
   const era = useStore((s) => s.settings.era)
   useEffect(() => {
-    // the retro dial: 0 is none, 1 is all of it. Stages switch on the bigger changes (type, corners, sprites).
-    const r = 1 - Math.min(100, Math.max(0, era)) / 100
-    document.documentElement.style.setProperty('--retro', r.toFixed(3))
-    document.documentElement.dataset.retro = r >= 0.7 ? '3' : r >= 0.4 ? '2' : r >= 0.15 ? '1' : '0'
+    // the era dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction.
+    const stage = Math.round((100 - Math.min(100, Math.max(0, era))) / 20)
+    document.documentElement.style.setProperty('--retro', (stage / 5).toFixed(2))
+    document.documentElement.dataset.retro = String(stage)
   }, [era])
   useEffect(() => {
     const t = themeDef(id)

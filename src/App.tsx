@@ -1,4 +1,5 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
+import { RetroBits } from '@/components/app/RetroBits'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
 import { Landing } from '@/components/app/Landing'
@@ -185,7 +186,7 @@ export default function App() {
       </Sheet>
 
       <Onboarding />
-      <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
+      <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden /><RetroBits />
       <Celebration />
       <UndoToast
         key={notice?.id}

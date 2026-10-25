@@ -12,6 +12,16 @@ const BLUE_HI = '#7468f4'
 const BLUE_LO = '#2b2296'
 const CREAM = '#ece3d6'
 
+
+/** A flame as a leaf with a leaning tip, so the fire reads as licking tongues and not zigzags. */
+function flame(cx: number, base: number, h: number, w: number, lean: number) {
+  const tx = cx + lean, ty = base - h
+  return `M${cx - w} ${base} C${cx - w * 1.7} ${base - h * 0.5} ${cx + lean * 0.2 - w * 1.0} ${base - h * 0.72} ${tx} ${ty} C${cx + lean * 0.6 + w * 0.6} ${base - h * 0.64} ${cx + w * 1.7} ${base - h * 0.42} ${cx + w} ${base} Z`
+}
+const TONGUES: [number, number, number, number][] = [[250, 300, 70, -26], [305, 380, 62, 18], [360, 330, 66, -34], [420, 430, 60, 30], [470, 360, 68, -24], [520, 460, 62, 22], [575, 380, 66, -30], [630, 420, 62, 34], [685, 340, 66, -20], [735, 290, 62, 28], [780, 230, 54, -14]]
+const DARK: [number, number, number, number][] = [[330, 230, 34, 20], [405, 270, 38, -22], [585, 260, 36, 26], [655, 220, 32, -18], [715, 190, 28, 14]]
+const EMBERS: [number, number, number][] = [[280, 150, 4], [330, 110, 3], [610, 120, 5], [690, 90, 3], [760, 160, 4], [220, 220, 3], [820, 260, 4], [470, 70, 3], [540, 40, 4], [380, 60, 3]]
+
 function Cloud({ x, y, r, s = 1 }: { x: number; y: number; r: number; s?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
@@ -70,7 +80,7 @@ export function PhoneBreak({ className, slice = false, label = 'A phone at the c
           <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4" result="w" />
           <feDisplacementMap in="SourceGraphic" in2="w" scale="9" result="d" />
           <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="9" result="n" />
-          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 2.05" result="a" />
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.1 1.95" result="a" />
           <feComposite in="d" in2="a" operator="in" />
         </filter>
         <clipPath id={`c${id}`}><rect width="1000" height="560" /></clipPath>
@@ -78,14 +88,27 @@ export function PhoneBreak({ className, slice = false, label = 'A phone at the c
       <g clipPath={`url(#c${id})`}>
         <rect width="1000" height="560" fill={INK} />
 
+        {/* the dial behind it all: a wheel, half swallowed by the fire */}
+        <g transform="translate(500 330)" opacity={0.9}>
+          <circle r={236} fill="none" stroke={BLUE_LO} strokeWidth={26} />
+          <circle r={236} fill="none" stroke={CREAM} strokeOpacity={0.35} strokeWidth={4} strokeDasharray="3 15.4" />
+          <circle r={208} fill="none" stroke={BLUE} strokeWidth={3} />
+          <circle r={262} fill="none" stroke={BLUE_HI} strokeOpacity={0.4} strokeWidth={2} />
+          {Array.from({ length: 12 }, (_, i) => <path key={i} d="M0 -208 L0 -150" stroke={BLUE} strokeWidth={4} transform={`rotate(${i * 30})`} />)}
+        </g>
+
         {/* fire */}
         <g filter={`url(#g${id})`}>
-          <path d="M215 570 L238 430 L268 380 L300 400 L330 300 L368 318 L398 232 L430 276 L470 168 L508 262 L546 180 L582 270 L622 212 L652 300 L700 262 L722 360 L772 384 L792 570 Z" fill={CORAL} />
-          <path d="M330 560 L350 420 L388 440 L412 330 L452 400 L488 300 L526 392 L562 320 L596 410 L640 380 L660 560 Z" fill="#f59a85" opacity={0.7} />
-          {/* black tongues coming down out of the dark */}
-          <path d="M300 150 H430 L418 190 L400 230 L384 100 L366 190 L344 120 L326 80 Z" fill={INK} />
-          <path d="M520 150 H690 L668 200 L652 250 L630 70 L606 150 L584 90 L560 40 Z" fill={INK} />
-          <path d="M700 230 H800 L790 280 L770 90 L752 180 L730 100 Z" fill={INK} />
+          <rect x={200} y={470} width={620} height={110} fill={CORAL} />
+          {TONGUES.map(([x, h, w, l], i) => <path key={i} d={flame(x, 560, h, w, l)} fill={CORAL} />)}
+          {TONGUES.map(([x, h, w, l], i) => <path key={i} d={flame(x + 6, 560, h * 0.68, w * 0.62, l * 0.6)} fill="#f59a85" />)}
+          {TONGUES.filter((_, i) => i % 2 === 0).map(([x, h, w, l], i) => <path key={i} d={flame(x + 8, 560, h * 0.36, w * 0.34, l * 0.3)} fill="#ffd2bf" />)}
+          {/* black tongues licking up out of the middle of it */}
+          {DARK.map(([x, h, w, l], i) => <path key={i} d={flame(x, 560 - 40 * (i % 2), h, w, l)} fill={INK} />)}
+        </g>
+        {/* embers lifting off */}
+        <g fill={CORAL} filter={`url(#g${id})`}>
+          {EMBERS.map(([x, y, r], i) => <path key={i} d={`M${x} ${y - r * 3} L${x + r} ${y} L${x} ${y + r * 3} L${x - r} ${y} Z`} />)}
         </g>
 
         {/* smoke */}
@@ -102,7 +125,7 @@ export function PhoneBreak({ className, slice = false, label = 'A phone at the c
         </g>
 
         {/* the phone */}
-        <g transform="translate(500 322) rotate(-9) skewY(-5)">
+        <g transform="translate(500 318) rotate(-9) skewY(-5) scale(1.12)">
           <rect x={-72} y={-150} width={150} height={290} rx={26} fill="#0d0a22" />
           <rect x={-78} y={-156} width={150} height={290} rx={26} fill="#1c1648" stroke={BLUE_HI} strokeWidth={3} />
           <rect x={-66} y={-144} width={126} height={266} rx={18} fill={CORAL} />
@@ -135,6 +158,18 @@ export function PhoneBreak({ className, slice = false, label = 'A phone at the c
         <g transform="translate(404 516)">
           <path d="M0 -26 L6 -8 L24 -14 L10 0 L26 10 L6 8 L0 28 L-6 8 L-24 12 L-10 -2 L-22 -16 L-6 -8 Z" fill="#ffd24a" />
           <path d="M0 -14 L3 -4 L13 -6 L5 1 L0 12 L-3 3 L-12 4 L-5 -2 Z" fill={CREAM} />
+        </g>
+
+        {/* the glass, falling */}
+        <g fill={CREAM} opacity={0.9}>
+          <path d="M452 350 l14 -6 l-4 16 Z" /><path d="M560 420 l18 4 l-12 10 Z" /><path d="M430 300 l10 -10 l2 14 Z" /><path d="M590 250 l12 -4 l-6 14 Z" />
+        </g>
+        {/* notifications thrown off the screen */}
+        <g transform="translate(610 240) rotate(18)"><rect x={-44} y={-12} width={88} height={24} rx={8} fill={CREAM} /><circle cx={-30} cy={0} r={6} fill={CORAL} /><rect x={-18} y={-5} width={48} height={5} rx={2.5} fill={INK} opacity={0.7} /><rect x={-18} y={3} width={32} height={4} rx={2} fill={INK} opacity={0.4} /></g>
+        <g transform="translate(402 232) rotate(-16)"><rect x={-40} y={-11} width={80} height={22} rx={7} fill={CREAM} /><circle cx={-27} cy={0} r={5} fill="#ff7a95" /><rect x={-16} y={-4} width={44} height={5} rx={2.5} fill={INK} opacity={0.7} /><rect x={-16} y={3} width={28} height={4} rx={2} fill={INK} opacity={0.4} /></g>
+        {/* speed lines behind the chips */}
+        <g stroke={BLUE_HI} strokeWidth={3} strokeLinecap="round" opacity={0.5}>
+          <path d="M330 262 l-46 22 M350 284 l-30 12" /><path d="M606 164 l40 -18 M680 244 l40 -8" /><path d="M745 346 l36 10" />
         </g>
 
         {/* everything leaving */}
