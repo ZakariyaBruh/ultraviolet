@@ -3,15 +3,18 @@ import { createClient, type Client } from '@libsql/client/web'
 /**
  * The recommendation leaderboard. The one place this app talks to a server, because the database key must not live in the browser.
  *
- * What is stored, and only this:
- *  - `pending`: a running count for a code that has fewer than MIN recommends (a short random code and a number)
- *  - `board`:   a code, a public nickname and a count, for people who reached MIN
- * Once a person reaches MIN their `pending` row is moved to `board` and deleted, so storage grows with people who
- * truly recommended Friction, not with every visit. Writes stop altogether if the database passes ~4.5 GB.
+ * What is stored, and only this: `board` (a code, a public nickname, a count) and `pending` (a code and a count).
+ *
+ * The number of recommends needed to be on the board is dynamic:
+ *  - while there is room (the database is under ~4.5 GB) it is 0: your first recommend puts you on the board;
+ *  - once the database is full it is the lowest score on the board plus one. A newcomer who passes that score
+ *    takes the lowest person's place, and that person is removed. The board then stays the same size.
+ * While full, counts for people not yet on the board are kept in a capped, oldest-first `pending` table,
+ * so storage never grows past the limit.
  */
-const MIN = 3
-const CAP_BYTES = 4.5e9
+const CAP_BYTES = Number(process.env.LB_CAP_BYTES) || 4.5e9
 const BOARD_SIZE = 25
+const PENDING_CAP = 5000
 
 let db: Client | undefined
 let ready: Promise<unknown> | undefined
@@ -44,13 +47,20 @@ function limited(id: string, max: number) {
 let sizeAt = 0
 let full = false
 async function isFull() {
-  if (Date.now() - sizeAt < 600e3) return full
+  if (Date.now() - sizeAt < (Number(process.env.LB_SIZE_TTL_MS) || 600e3)) return full
   const r = await client().batch(['PRAGMA page_count', 'PRAGMA page_size'])
   const pages = Number(Object.values(r[0].rows[0] ?? {})[0] ?? 0)
   const size = Number(Object.values(r[1].rows[0] ?? {})[0] ?? 4096)
   sizeAt = Date.now()
   full = pages * size >= CAP_BYTES
   return full
+}
+
+/** How many recommends it takes to be on the board right now. */
+async function needed(): Promise<number> {
+  if (!(await isFull())) return 0
+  const r = await client().execute('SELECT MIN(n) AS lo, COUNT(*) AS k FROM board')
+  return Number(r.rows[0].k) ? Number(r.rows[0].lo) + 1 : 0
 }
 
 const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
@@ -81,12 +91,12 @@ export default {
         if (a === 'board') {
           const r = await c.execute({ sql: 'SELECT code, name, n FROM board ORDER BY n DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
           const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || 'A friend of Friction', n: Number(x.n) }))
-          return json({ min: MIN, rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
+          return json({ min: await needed(), rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
         }
         if (a === 'me') {
           const key = url.searchParams.get('key') ?? ''
           if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
-          return json({ min: MIN, ...(await mine(await sha(key))) })
+          return json({ min: await needed(), ...(await mine(await sha(key))) })
         }
         return json({ error: 'unknown' }, 404)
       }
@@ -101,14 +111,31 @@ export default {
           const now = Date.now()
           const up = await c.execute({ sql: 'UPDATE board SET n = n + 1, t = ? WHERE code = ?', args: [now, code] })
           if (up.rowsAffected) return json({ ok: true })
-          if (await isFull()) return json({ ok: false, reason: 'full' }, 503)
-          const r = await c.execute({ sql: 'INSERT INTO pending (code, n, t) VALUES (?, 1, ?) ON CONFLICT(code) DO UPDATE SET n = n + 1, t = excluded.t RETURNING n', args: [code, now] })
-          const n = Number(r.rows[0].n)
-          if (n >= MIN) {
+          const p = await c.execute({ sql: 'SELECT n FROM pending WHERE code = ?', args: [code] })
+          if (!(await isFull())) {
+            // room to spare: the first recommend puts you on the board
+            const n = Number(p.rows[0]?.n ?? 0) + 1
             await c.batch([
               { sql: 'INSERT INTO board (code, name, n, t) VALUES (?, NULL, ?, ?) ON CONFLICT(code) DO UPDATE SET n = excluded.n, t = excluded.t', args: [code, n, now] },
               { sql: 'DELETE FROM pending WHERE code = ?', args: [code] },
             ])
+          } else {
+            // full: count in a capped, oldest-first table, and take a place only by beating the lowest score
+            if (!p.rows[0]) {
+              const k = Number((await c.execute('SELECT COUNT(*) AS k FROM pending')).rows[0].k)
+              if (k >= PENDING_CAP) await c.execute('DELETE FROM pending WHERE code IN (SELECT code FROM pending ORDER BY t ASC LIMIT 1)')
+            }
+            const r = await c.execute({ sql: 'INSERT INTO pending (code, n, t) VALUES (?, 1, ?) ON CONFLICT(code) DO UPDATE SET n = n + 1, t = excluded.t RETURNING n', args: [code, now] })
+            const n = Number(r.rows[0].n)
+            const low = (await c.execute('SELECT code, n FROM board ORDER BY n ASC, t ASC LIMIT 1')).rows[0]
+            if (!low || n > Number(low.n)) {
+              const stmts = [
+                ...(low ? [{ sql: 'DELETE FROM board WHERE code = ?', args: [low.code as string] }] : []),
+                { sql: 'INSERT INTO board (code, name, n, t) VALUES (?, NULL, ?, ?) ON CONFLICT(code) DO UPDATE SET n = excluded.n, t = excluded.t', args: [code, n, now] },
+                { sql: 'DELETE FROM pending WHERE code = ?', args: [code] },
+              ]
+              await c.batch(stmts)
+            }
           }
           if (Math.random() < 0.02) await c.execute({ sql: 'DELETE FROM pending WHERE t < ?', args: [now - 45 * 86400e3] })
           return json({ ok: true })

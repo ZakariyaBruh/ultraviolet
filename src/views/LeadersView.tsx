@@ -16,7 +16,7 @@ export function LeadersView() {
   const [me, setMe] = useState<Me | null>(null)
   const [st, setSt] = useState<Standing | null>(null)
   const [rows, setRows] = useState<Row[] | null>(null)
-  const [min, setMin] = useState(3)
+  const [min, setMin] = useState(0)
   const [err, setErr] = useState(false)
   const [nonce, setNonce] = useState(0)
   const [page, setPage] = useState(1)
@@ -60,11 +60,12 @@ export function LeadersView() {
   const slice = list.slice((safe - 1) * per, safe * per)
   const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   const n = st?.n ?? 0
+  const need = Math.max(1, min)
   const btn = 'inline-flex h-11 items-center justify-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10'
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Recommend" title="Leaders" sub={`Send your link to people who would like Friction. Once ${min} of them join you, you are on the board.`} />
+      <PageHeader kicker="Recommend" title="Leaders" sub={min === 0 ? 'Send your link to people who would like Friction. Your first recommend puts you on the board.' : `The board is full. Reach ${min} recommends to take the lowest place.`} />
       {err ? (
         <Panel className="grid justify-items-start gap-3 p-5"><p className="text-sm text-ink-2">The leaderboard did not answer. Check your connection.</p><button className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setNonce((x) => x + 1)}>Try again</button></Panel>
       ) : !me || !rows ? (
@@ -77,10 +78,10 @@ export function LeadersView() {
                 <p className="hud">Your recommends</p>
                 <div className="dot text-[clamp(2.4rem,6vw,3.6rem)] font-bold leading-none"><AnimatedNumber value={n} /></div>
               </div>
-              <p className="pb-1 text-sm text-ink-2">{st?.listed ? `You are number ${st.rank} on the board.` : `${Math.max(0, min - n)} more to join the board.`}</p>
+              <p className="pb-1 text-sm text-ink-2">{st?.listed ? `You are number ${st.rank} on the board.` : min === 0 ? 'Your first recommend puts you on the board.' : `${Math.max(0, need - n)} more to take a place.`}</p>
             </div>
-            <div className="flex gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={min} aria-valuenow={Math.min(n, min)} aria-label="Recommends needed to join the board">
-              {Array.from({ length: min }, (_, i) => <i key={i} className={cn('h-2 flex-1', i < n ? 'bg-signal' : 'bg-ink/15')} />)}
+            <div className="flex gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={need} aria-valuenow={Math.min(n, need)} aria-label="Recommends needed to be on the board">
+              {need <= 12 ? Array.from({ length: need }, (_, i) => <i key={i} className={cn('h-2 flex-1', i < n ? 'bg-signal' : 'bg-ink/15')} />) : <i className="h-2 flex-1 bg-ink/15"><i className="block h-full bg-signal" style={{ width: `${Math.min(100, (n / need) * 100)}%` }} /></i>}
             </div>
             <div>
               <label htmlFor="sharelink" className="hud mb-1 block">Your link</label>
@@ -96,7 +97,7 @@ export function LeadersView() {
                 <button type="submit" className={btn}>Save</button>
               </form>
             )}
-            <p className="mt-auto text-[13px] leading-[18px] text-ink-3">A recommend counts when someone new opens your link and tunes in, once per browser. Only people with {min} or more are stored, as a random code, the name you choose and a count.</p>
+            <p className="mt-auto text-[13px] leading-[18px] text-ink-3">A recommend counts when someone new opens your link and tunes in, once per browser. The board holds a random code, the name you choose and a count. When the space set aside for it fills up, the lowest score is replaced by anyone who beats it.</p>
           </Panel>
 
           <div className="flex min-h-0 min-w-0 flex-col gap-2">
@@ -110,7 +111,7 @@ export function LeadersView() {
                       <span className="fig text-[15px]">{r.n}<span className="ml-1 text-[13px] text-ink-2">recommends</span></span>
                     </motion.li>
                   ))}
-                  {list.length === 0 && <li className="border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">Nobody has reached {min} recommends yet. Be the first on the board.</li>}
+                  {list.length === 0 && <li className="border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">Nobody is on the board yet. Your first recommend puts you at the top.</li>}
                 </motion.ol>
               </AnimatePresence>
             </div>
