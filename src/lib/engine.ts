@@ -12,9 +12,10 @@ export function useSessionEngine() {
     let prev = performance.now()
     const t = setInterval(() => {
       const now = performance.now()
-      const dt = Math.min(5, (now - prev) / 1000)
+      const gap = (now - prev) / 1000
       prev = now
-      if (document.visibilityState === 'visible') useStore.getState().tick(dt)
+      // time only counts while you are locked in and looking at it: a long gap (sleep, a throttled background tab) is never credited
+      if (document.visibilityState === 'visible' && document.hasFocus() && gap < 3) useStore.getState().tick(Math.min(1.5, gap))
     }, 1000)
     return () => clearInterval(t)
   }, [active])

@@ -22,7 +22,7 @@ export function DebriefView() {
   const bestH = best.indexOf(Math.max(...best))
   const run = streak(s.focusLog)
   const per = blockedPerHour(focus, blocked)
-  const left = Math.max(0, s.settings.dailyGoalMin - focus)
+  const left = Math.max(0, Math.ceil(s.settings.dailyGoalMin - focus - 1e-9))
 
   const wide = useMedia('(min-width: 1100px)')
   const rows: { k: string; v: string }[] =
@@ -30,8 +30,8 @@ export function DebriefView() {
       ? [{ k: 'Status', v: 'Nothing to read yet. Lock in for one session, even 15 minutes, and this page fills in with what actually happened.' }]
       : [
           { k: 'Score', v: `${attentionScore(s)} of 100 today.` },
-          { k: 'Today', v: `${Math.round(focus)} min held, ${Math.round(blocked)} drifts${per !== null ? `, ${per} per focused hour` : ''}.` },
-          { k: 'Worst hour', v: hours[worst] > 0 ? `You drift most around ${hr(worst)}: ${hours[worst]} times in total. Put a session there.` : 'No drifts logged yet.' },
+          { k: 'Today', v: `${Math.round(focus)} min held, ${Math.round(blocked)} drift${Math.round(blocked) === 1 ? '' : 's'}${per !== null ? `, ${per} per focused hour` : ''}.` },
+          { k: 'Worst hour', v: hours[worst] > 0 ? `You drift most around ${hr(worst)}: ${hours[worst]} time${hours[worst] === 1 ? '' : 's'} in total. Put a session there.` : 'No drifts logged yet.' },
           { k: 'Best hour', v: best[bestH] > 0 ? `Your longest holds land around ${hr(bestH)}. Do the hard thing then.` : 'Not enough focus yet.' },
           { k: 'Streak', v: run > 0 ? `${run} day${run === 1 ? '' : 's'} of 10+ minutes. ${focus >= 10 ? 'Today keeps it alive.' : 'Today needs 10 minutes to keep it.'}` : 'No streak yet. One day of 10+ minutes starts it.' },
           { k: 'Next', v: left === 0 ? `Goal of ${s.settings.dailyGoalMin} min met. Stop when it stops being easy.` : `${left} min to your goal of ${s.settings.dailyGoalMin}. One ${Math.min(45, Math.max(15, left))}-minute block does it.` },

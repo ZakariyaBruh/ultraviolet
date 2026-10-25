@@ -72,6 +72,7 @@ export function InsightsView() {
   const [offset, setOffset] = useState(0)
   const [slide, setSlide] = useState(1)
   const [ring, setRing] = useState(1)
+  const [pat, setPat] = useState(1)
   const col = useColours()
   const [sessView, setSessView] = useState('table')
   const day = dateKey(daysAgo(offset))
@@ -223,9 +224,19 @@ export function InsightsView() {
             )}
 
             {tab === 'patterns' && (
-              <div className="grid h-full min-h-0 content-start gap-4">
-                <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">When you lock in</h2><p className="mb-2 text-[13px] text-ink-2">Minutes focused by weekday and hour, last 10 weeks.</p><ActivityHeatmap mode="hours" matrix={matrix} color={SIGNAL} unit="focused minutes" ariaLabel="Weekday by hour, focused minutes" /></Panel>
-                <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Drifts, by day</h2><p className="mb-2 text-[13px] text-ink-2">Brighter is more drifts. Fewer is better.</p><ActivityHeatmap mode="calendar" data={cal} weeks={53} weekStart={1} color={PINK} unit="blocked scrolls" ariaLabel="Daily blocked scrolls" /></Panel>
+              <div className="flex h-full min-h-0 flex-col gap-3">
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div key={pat} className="h-full" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+                      {pat === 1 ? (
+                      <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">When you lock in</h2><p className="mb-2 text-[13px] text-ink-2">Minutes focused by weekday and hour, last 10 weeks.</p><ActivityHeatmap mode="hours" matrix={matrix} color={SIGNAL} unit="focused minutes" ariaLabel="Weekday by hour, focused minutes" /></Panel>
+                      ) : (
+                      <Panel className="min-w-0 p-5"><h2 className="text-base font-semibold">Drifts, by day</h2><p className="mb-2 text-[13px] text-ink-2">Brighter is more drifts. Fewer is better.</p><ActivityHeatmap mode="calendar" data={cal} weeks={53} weekStart={1} color={PINK} unit="blocked scrolls" ariaLabel="Daily blocked scrolls" /></Panel>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+                <div className="flex justify-center"><SlidePagination pageCount={2} page={pat} onChange={setPat} /></div>
               </div>
             )}
 
@@ -276,7 +287,7 @@ export function InsightsView() {
                     </Panel>
                   ) : (
                     <Panel className="h-full overflow-hidden p-4">
-                      <InteractiveTimeline items={sessions.slice(0, 5).map((x) => ({ id: x.id, title: x.title, timestamp: new Date(x.start).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }), status: x.completed ? 'completed' : 'failed', description: `${Math.round(x.focusSec / 60)} of ${x.goalMin} min held`, metrics: [{ label: 'Held', value: `${Math.round(x.focusSec / 60)}m` }, { label: 'Drifts', value: String(x.urges) }] }))} />
+                      <InteractiveTimeline items={sessions.slice(0, wide ? 4 : 3).map((x) => ({ id: x.id, title: x.title, timestamp: new Date(x.start).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }), status: x.completed ? 'completed' : 'failed', description: `${Math.round(x.focusSec / 60)} of ${x.goalMin} min held`, metrics: [{ label: 'Held', value: `${Math.round(x.focusSec / 60)}m` }, { label: 'Drifts', value: String(x.urges) }] }))} />
                     </Panel>
                   )}
                 </div>

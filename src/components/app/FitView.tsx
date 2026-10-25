@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
- * Nothing scrolls, so a view that is taller than the space it has is scaled down until it fits (never below 62%).
+ * Nothing scrolls, so a view that is taller than the space it has is scaled down until it fits (never below 50%).
  * The inner box is resized to compensate, so views that fill their height keep doing so.
  */
 export function FitView({ children, watch }: { children: ReactNode; watch?: unknown }) {
@@ -37,8 +37,8 @@ export function FitView({ children, watch }: { children: ReactNode; watch?: unkn
         })
         const need = (bottom - top) / z
         const have = i.clientHeight
-        if (need <= have + 1 || z <= 0.62) break
-        z = Math.max(0.62, z * (have / need) * 0.99)
+        if (need <= have + 1 || z <= 0.5) break
+        z = Math.max(0.5, z * (have / need) * 0.99)
       }
       setK((prev) => (Math.abs(prev - z) > 0.005 ? z : prev))
     }

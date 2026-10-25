@@ -75,6 +75,9 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     const tidy = () => {
       const all = scan()
       const keep = useLayout.getState().keep[scope] ?? []
+      // eased-aside panels stay inside the page's own area, never up over the header or down over the nav
+      const area = document.querySelector('#canvas > div')?.getBoundingClientRect()
+      if (!area) return
       const shells = all.filter(({ el, id }) => id.startsWith('shell-') && el.dataset.moved && !el.dataset.dragging && !el.dataset.gliding)
       // only free-standing panels are eased aside; page text and lists stay where the layout put them
       const cands = all.filter(({ id }) => !id.startsWith('shell-') && !offsets?.[id])
@@ -94,7 +97,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
             const S = sh.el.getBoundingClientRect()
             const opts: [number, number][] = [[S.right + GAP - box.left, 0], [S.left - GAP - box.right, 0], [0, S.bottom + GAP - box.top], [0, S.top - GAP - box.bottom]]
             const fit = opts
-              .filter(([x, y]) => box.left + x >= EDGE && box.right + x <= innerWidth - EDGE && box.top + y >= EDGE && box.bottom + y <= innerHeight - EDGE)
+              .filter(([x, y]) => box.left + x >= area.left && box.right + x <= area.right && box.top + y >= area.top && box.bottom + y <= area.bottom)
               .sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0]
             if (!fit) break
             dx += fit[0] / k
