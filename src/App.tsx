@@ -14,6 +14,7 @@ import { buildSearchItems, PRESETS } from '@/lib/commands'
 import { useSessionEngine } from '@/lib/engine'
 import { useFx } from '@/lib/fx'
 import { useTheme } from '@/lib/theme'
+import { cycleTheme } from '@/lib/themeCycle'
 import { usePlayer } from '@/lib/player'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
@@ -65,6 +66,7 @@ export default function App() {
   // ⌘K / Ctrl K opens search from anywhere
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
+      if ((e.key === 't' || e.key === 'T') && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) cycleTheme()
       if (e.key === 'Escape' && useUI.getState().theatre) useUI.getState().set({ theatre: false })
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()

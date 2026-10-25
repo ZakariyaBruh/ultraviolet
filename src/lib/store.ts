@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useFx } from './fx'
+import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
 
@@ -64,7 +65,7 @@ export interface Settings {
   volume: number
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
-  theme: 'dark' | 'light'
+  theme: ThemeId
 }
 
 type HourLog = Record<string, number[]>
@@ -121,7 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 1,
   volume: 0.8,
   guard: true,
-  theme: 'dark',
+  theme: 'station',
 }
 
 const emptyData = (): Data => ({
@@ -167,7 +168,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const st: Record<string, unknown> = { ...DEFAULT_SETTINGS }
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
-        if (st.theme !== 'dark' && st.theme !== 'light') st.theme = 'dark'
+        st.theme = normalizeTheme(v.theme)
         ok = st
       }
     } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined

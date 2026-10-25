@@ -6,6 +6,7 @@ import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { TorqueDial } from '@/components/ui/torque-dial'
 import { fx_say } from '@/lib/actions'
+import { THEMES } from '@/lib/themes'
 import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
 import { useMedia } from '@/lib/hooks'
@@ -46,6 +47,23 @@ function Focus() {
   )
 }
 
+function ThemePicker() {
+  const id = useStore((x) => x.settings.theme)
+  const set = useStore((x) => x.setSettings)
+  return (
+    <div role="radiogroup" aria-label="Theme" className="flex flex-wrap justify-end gap-2">
+      {THEMES.map((t) => (
+        <button key={t.id} role="radio" aria-checked={id === t.id} aria-label={`${t.name}: ${t.note}`} onClick={() => set({ theme: t.id })} className={`group relative h-14 w-[4.5rem] overflow-hidden border text-left transition-transform active:scale-[0.97] ${id === t.id ? 'border-signal ring-2 ring-signal' : 'border-ink/30'}`} style={{ background: t.ground }}>
+          <span className="absolute left-2 top-2 size-3" style={{ background: t.signal }} />
+          <span className="absolute left-2 top-7 h-px w-8" style={{ background: t.ink }} />
+          <span className="absolute left-2 top-9 h-px w-5" style={{ background: t.ice }} />
+          <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1.5 py-0.5 font-[family-name:var(--font-cond)] text-[13px] font-semibold uppercase leading-4 tracking-[0.08em] text-white">{t.name}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Look() {
   const s = useStore((x) => x.settings)
   const set = useStore((x) => x.setSettings)
@@ -54,8 +72,8 @@ function Look() {
       <Row title="Motion" hint="Calm is still. Lots turns on every effect.">
         <Seg id="set-motion" value={String(s.motion)} onChange={(v) => set({ motion: Number(v) as 0 | 1 | 2 })} tabs={[{ id: '0', label: 'Calm' }, { id: '1', label: 'Lively' }, { id: '2', label: 'Lots' }]} />
       </Row>
-      <Row title="Theme" hint="Dark is the default">
-        <Seg id="set-theme" value={s.theme} onChange={(v) => set({ theme: v as typeof s.theme })} tabs={[{ id: 'dark', label: 'Dark' }, { id: 'light', label: 'Light' }]} />
+      <Row title="Theme" hint="Press T anywhere to change theme">
+        <ThemePicker />
       </Row>
       <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>

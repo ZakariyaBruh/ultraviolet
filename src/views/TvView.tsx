@@ -3,48 +3,52 @@ import { motion } from 'motion/react'
 import { useCallback } from 'react'
 import { Browser } from '@/components/app/Browser'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
-import { Glass } from '@/components/app/glass'
+import { VideoSlot } from '@/components/app/VideoSlot'
 import { Logo } from '@/components/app/shared'
-import { StackUnfoldPanel } from '@/components/ui/stack-unfold-panel'
 import { fetchCategory, TV_CATEGORIES, type TvCategory } from '@/lib/iptv'
 import { play, usePlayer } from '@/lib/player'
 import { useUI } from '@/lib/ui'
 
-/** The channel itself is the backdrop. This side only says what is on and what is next. */
+/** A proper screen: the channel sits in its own 16:9 frame with its controls underneath. */
 function Stage() {
   const { current, status } = usePlayer()
   const queue = usePlayer((s) => s.queue)
+  const theatre = useUI((s) => s.theatre)
   const set = useUI((s) => s.set)
   const tv = current?.kind === 'tv' ? current : null
   const idx = tv ? queue.findIndex((q) => q.id === tv.id) : -1
   const next = idx >= 0 ? queue.slice(idx + 1, idx + 4) : []
   return (
-    <div className="flex h-full min-h-0 flex-col justify-between">
-      <div className="flex justify-end">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden border border-ink/30 bg-black">
+        {tv && !theatre ? <VideoSlot className="size-full" /> : (
+          <div className="grid size-full place-items-center text-center">
+            {!tv && <div className="flex flex-col items-center gap-2"><AsciiSolid cols={40} rows={18} speed={0.6} className="text-[7px] text-signal" /><p className="hud">Off air. Pick a channel.</p></div>}
+          </div>
+        )}
+        {tv && status === 'loading' && <div className="absolute inset-0 grid place-items-center bg-black/60"><span className="hud text-ink">Tuning…</span></div>}
         {tv && (
-          <Glass clear radius={999} as="button" onClick={() => set({ theatre: true })} className="inline-flex h-11 items-center gap-2 px-4 text-sm text-ink">
-            <Maximize2 className="size-4" /> Theatre
-          </Glass>
+          <button onClick={() => set({ theatre: true })} className="absolute right-2 top-2 inline-flex h-11 items-center gap-2 bg-black/70 px-3 text-sm text-white hover:bg-black">
+            <Maximize2 className="size-4" /> Fill screen
+          </button>
         )}
       </div>
-      {!tv ? (
-        <div className="flex flex-col items-center gap-3 self-center text-center text-ink-2">
-          <AsciiSolid cols={52} rows={24} speed={0.6} className="text-[9px] text-signal" />
-          <p className="hud">Off air. Pick a channel and it plays behind everything.</p>
-        </div>
-      ) : (
-        <div className="grid gap-3 self-end md:max-w-[360px]">
-          <Glass clear radius={22} className="flex items-center gap-3 p-3">
+      {tv && (
+        <>
+          <div className="flex items-center gap-3 border border-ink/20 p-3">
             <Logo item={tv} size={44} />
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-ink">{tv.name}</div>
+              <div className="truncate text-sm font-semibold text-ink">{tv.name}</div>
               <div className="truncate text-[13px] text-ink-2">{status === 'loading' ? 'Tuning…' : tv.meta}</div>
             </div>
-          </Glass>
+          </div>
           {next.length > 0 && (
-            <div className="material p-2 [--r:20px]"><StackUnfoldPanel variant="minimal" cards={next.map((u, i) => ({ id: u.id, title: u.name, subtitle: `Up next ${i + 1}`, content: <button onClick={() => play(u)} className="text-sm text-signal hover:underline">Switch to {u.name}</button> }))} /></div>
+            <div className="min-h-0 border border-ink/20 p-3">
+              <div className="hud mb-2">Up next</div>
+              <ul className="grid gap-1">{next.map((u) => <li key={u.id}><button onClick={() => play(u)} className="flex h-11 w-full items-center justify-between gap-3 text-left text-sm text-ink hover:text-signal"><span className="truncate">{u.name}</span><span className="hud shrink-0">Switch</span></button></li>)}</ul>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   )

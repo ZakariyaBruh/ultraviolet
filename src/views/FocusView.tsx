@@ -1,6 +1,9 @@
 import { Pause, Play, Radio } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
+import { HoldButton } from '@/components/app/HoldButton'
+import { LengthBand } from '@/components/app/LengthBand'
+import { VideoSlot } from '@/components/app/VideoSlot'
 import { Listings } from '@/components/app/Listings'
 import { Logo, Panel, Readout } from '@/components/app/shared'
 import { AnimatedNumber } from '@/components/ui/animated-number'
@@ -17,7 +20,6 @@ import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import type { View } from '@/components/app/Shell'
 
-const LENGTHS = [15, 25, 45, 60]
 
 /** Retro ground (ASCII torus in a CRT window) under a futuristic clock: wide light numerals and a hairline progress rule. */
 function FrictionDial({ progress, left, running, paused, live }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean }) {
@@ -55,6 +57,8 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const { current, status } = usePlayer()
   const recent = useStore((s) => s.recent)
   const set = useUI((s) => s.set)
+  const tvOn = current?.kind === 'tv'
+  const theatre = useUI((s) => s.theatre)
   const tall = useMedia('(min-height: 800px)')
   const veryTall = useMedia('(min-height: 980px)')
   const wide = useMedia('(min-width: 1024px)')
@@ -116,15 +120,9 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             {!session ? (
               <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <div className="flex items-center gap-2">
-                  <button onClick={start} className="h-12 bg-signal px-7 text-[13px] font-semibold uppercase tracking-[0.14em] text-on-signal hover:brightness-110">Lock in · {sessionMin} min</button>
+                  <HoldButton label="Hold to lock in" holdLabel="Locking in" onDone={start} className="sm:w-[19rem]" />
                 </div>
-                <div className="flex items-center gap-1.5" role="group" aria-label="Session length">
-                  {LENGTHS.map((m) => (
-                    <button key={m} onClick={() => setSettings({ sessionMin: m })} aria-pressed={sessionMin === m} className={`fig h-11 px-3.5 md:h-9 text-[13px] transition-colors ${sessionMin === m ? 'bg-ink text-ground' : 'text-ink-2 ring-1 ring-ink/25 hover:bg-ink/10'}`}>
-                      {m}m
-                    </button>
-                  ))}
-                </div>
+                <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
               </motion.div>
             ) : (
               <motion.div key="live" className="flex w-full max-w-[420px] flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
@@ -153,6 +151,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         {wide && (
           <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1], delay: 0.05 }} className="min-w-0 self-center">
             <Panel className="p-4">
+              {tvOn && !theatre && <VideoSlot className="mb-3 aspect-video w-full border border-ink/20" />}
               <div className="mb-1 flex items-center justify-between">
                 <h2 className="text-base font-semibold">Tune in</h2>
                 <button onClick={() => set({ tuneOpen: true })} className="text-[13px] text-signal hover:underline">All sources</button>

@@ -179,6 +179,32 @@ html.light {
     --primary-foreground: #f2efe6;
     --sidebar-primary-foreground: #fff;
 }
+/* ───────── themes. Station is the default above; paper is html.light ───────── */
+html[data-theme='phosphor'] {
+    --font-sans: 'Geist Mono Variable', ui-monospace, monospace;
+    --font-cond: 'Geist Mono Variable', ui-monospace, monospace;
+    --font-dot: 'Geist Mono Variable', ui-monospace, monospace;
+    --ground: #020a04; --surface: #04120a; --raised: #08201a; --raised-2: #0d2d22;
+    --ink: #c8ffd6; --ink-2: #8fdca6; --ink-3: #78c28f;
+    --rule: rgba(200, 255, 214, 0.2); --control: rgba(200, 255, 214, 0.4);
+    --signal: #39ff6e; --on-signal: #001a07; --signal-soft: rgba(57, 255, 110, 0.16);
+    --hot: #b6ff3a; --warn: #e8ff3a; --danger: #ff6b6b; --ok: #39ff6e; --ice: #7dffc2; --popover: #04120a;
+}
+html[data-theme='blueprint'] {
+    --ground: #0a2557; --surface: #0d2f6e; --raised: #123a82; --raised-2: #184592;
+    --ink: #eaf3ff; --ink-2: #c4d8f6; --ink-3: #a3c0ec;
+    --rule: rgba(234, 243, 255, 0.28); --control: rgba(234, 243, 255, 0.5);
+    --signal: #7ff0ff; --on-signal: #00203a; --signal-soft: rgba(127, 240, 255, 0.16);
+    --hot: #ff9ec7; --warn: #ffe27a; --danger: #ff8fa3; --ok: #8ff0c0; --ice: #ffffff; --popover: #0d2f6e;
+}
+html[data-theme='sunset'] {
+    --ground: #140a24; --surface: #1c0f33; --raised: #28144a; --raised-2: #351a60;
+    --ink: #fff1f7; --ink-2: #ecc9df; --ink-3: #cfa8c9;
+    --rule: rgba(255, 241, 247, 0.2); --control: rgba(255, 241, 247, 0.4);
+    --signal: #ff4fa3; --on-signal: #1a0010; --signal-soft: rgba(255, 79, 163, 0.18);
+    --hot: #ffb86b; --warn: #ffb86b; --danger: #ff6b7d; --ok: #7ef0c0; --ice: #ffb86b; --popover: #1c0f33;
+}
+html[data-theme='phosphor'] .dot { text-transform: uppercase; }
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }

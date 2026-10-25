@@ -19,6 +19,7 @@ import { dateKey, daysAgo, fmtMinutes, parseKey } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
+import { themeDef } from '@/lib/themes'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
 
 const VIOLET = '#ffc400'
@@ -62,7 +63,7 @@ const TABS = [
 
 export function InsightsView() {
   const s = useStore()
-  const SIGNAL = s.settings.theme === 'light' ? '#0a6e8a' : '#7fd3ff'
+  const SIGNAL = themeDef(s.settings.theme).ice
   const wide = useMedia('(min-width: 1024px)')
   const [tab, setTab] = useState('today')
   const [half, setHalf] = useState('day')

@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, FlaskConical, Home, Moon, Radio, Search, Settings, Sun, Tv, X } from 'lucide-react'
+import { BarChart3, ClipboardList, FlaskConical, Home, Palette, Radio, Search, Settings, Tv, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
@@ -6,10 +6,12 @@ import { PlayerIsland } from '@/components/app/PlayerIsland'
 import { GlassIconButton } from '@/components/app/shared'
 import { Glass } from '@/components/app/glass'
 import { Tuner } from '@/components/app/Tuner'
+import { VideoSlot } from '@/components/app/VideoSlot'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
+import { cycleTheme, themeDef } from '@/lib/themeCycle'
 import type { View } from '@/lib/route'
 import { cn } from '@/lib/utils'
 
@@ -51,8 +53,8 @@ export function BarTools() {
       <button onClick={() => set({ searchOpen: true })} aria-label="Search (⌘K)" className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
         <Search className={ic} />
       </button>
-      <button onClick={() => { const st = useStore.getState(); st.setSettings({ theme: st.settings.theme === 'dark' ? 'light' : 'dark' }) }} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
-        {theme === 'dark' ? <Sun className={ic} /> : <Moon className={ic} />}
+      <button onClick={cycleTheme} aria-label={`Theme: ${themeDef(theme).name}. Change theme`} className="grid size-11 place-items-center md:size-10 text-ink-2 transition-colors hover:bg-ink/10 hover:text-ink">
+        <Palette className={ic} />
       </button>
       <NotificationBell notifications={notifications} onMarkAsRead={mark} onMarkAllAsRead={markAll} />
       <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-11 place-items-center bg-signal md:size-9 text-sm font-semibold text-on-signal">
@@ -94,6 +96,9 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
         </div>
       )}
 
+      {theatre && (
+        <div className="absolute inset-0 z-30 bg-black"><VideoSlot className="size-full" /></div>
+      )}
       {theatre && (
         <div className="absolute right-4 top-4 z-50">
           <GlassIconButton label="Exit theatre mode" onClick={() => set({ theatre: false })}><X className={ic} /></GlassIconButton>
