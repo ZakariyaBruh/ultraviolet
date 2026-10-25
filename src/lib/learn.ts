@@ -1,5 +1,6 @@
 import { cached } from './cache'
 import { dateKey } from './dates'
+import { notify } from './notify'
 import { useStore, type Flash, type Learn } from './store'
 
 /* ───────── sources: Wikipedia (articles) and Open Trivia DB (questions). No key, no account, no AI. ───────── */
@@ -175,8 +176,18 @@ const norm = (l?: Partial<Learn>): Learn => ({ xp: Number(l?.xp) || 0, days: Arr
 export const learnOf = (): Learn => norm(useStore.getState().learn)
 const put = (fn: (l: Learn) => Learn) => useStore.getState().setLearn(fn(learnOf()))
 
-export const earn = (xp: number) => put((l) => ({ ...l, xp: l.xp + xp, days: Array.from(new Set([...l.days, dateKey()])).slice(-400) }))
-export const finishLesson = (title: string, score: number, total: number) => put((l) => ({ ...l, done: { ...l.done, [title]: { at: Date.now(), score, total } } }))
+const XP_MARKS = [100, 250, 500, 1000, 2500, 5000]
+export const earn = (xp: number) => {
+  const before = learnOf().xp
+  put((l) => ({ ...l, xp: l.xp + xp, days: Array.from(new Set([...l.days, dateKey()])).slice(-400) }))
+  const hit = XP_MARKS.find((m) => before < m && before + xp >= m)
+  if (hit) notify('learn', `${hit} XP in Learn.`, 'Learning')
+}
+export const finishLesson = (title: string, score: number, total: number) => {
+  notify('learn', `Finished “${title}”${total ? `: ${score} of ${total} checks right` : ''}.`, 'Lesson complete')
+  finishLessonSave(title, score, total)
+}
+const finishLessonSave = (title: string, score: number, total: number) => put((l) => ({ ...l, done: { ...l.done, [title]: { at: Date.now(), score, total } } }))
 export const addCards = (cards: { id: string; front: string; back: string }[]) => put((l) => {
   const have = new Set(l.deck.map((c) => c.id))
   return { ...l, deck: [...cards.filter((c) => !have.has(c.id)).map((c): Flash => ({ ...c, box: 0, due: Date.now() })), ...l.deck].slice(0, 300) }

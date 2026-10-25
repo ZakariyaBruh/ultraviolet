@@ -1,4 +1,4 @@
-import { BookOpen, BarChart3, Bot, Home, Pause, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap } from 'lucide-react'
+import { BookOpen, BarChart3, Bot, Home, Pause, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
 import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
 import { fx_say, quickPlay } from './actions'
@@ -27,6 +27,7 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
     { id: 'go-podcasts', title: 'Podcasts', category: 'Navigation', icon: <Podcast className={ic} />, action: () => go('podcasts') },
     { id: 'go-news', title: 'News', category: 'Navigation', icon: <Newspaper className={ic} />, action: () => go('news') },
     { id: 'go-learn', title: 'Learn', category: 'Navigation', icon: <GraduationCap className={ic} />, action: () => go('learn') },
+    { id: 'go-together', title: 'Together', category: 'Navigation', icon: <Users className={ic} />, action: () => go('together') },
     { id: 'go-books', title: 'Books', category: 'Navigation', icon: <BookOpen className={ic} />, action: () => go('books') },
     { id: 'go-insights', title: 'Insights', category: 'Navigation', icon: <BarChart3 className={ic} />, action: () => go('insights') },
     { id: 'go-debrief', title: 'Debrief', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('debrief') },

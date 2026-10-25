@@ -213,7 +213,7 @@ export const UndoToast: React.FC<UndoToastProps> = ({
 
               {/* Actions */}
               <div className="flex items-center gap-1.5 shrink-0">
-                {!isRestored && (
+                {!isRestored && onUndo && (
                   <button
                     type="button"
                     onClick={handleUndoClick}

@@ -28,6 +28,11 @@ import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
 import { Celebration } from '@/components/app/Celebration'
 import { captureRef, countRecommend } from '@/lib/leaders'
+import { useMilestones, } from '@/lib/notify'
+import { useBoardWatch } from '@/lib/watch'
+import { pendingInvite, useTogether } from '@/lib/together'
+import { Onboarding } from '@/components/app/Onboarding'
+import { TogetherView } from '@/views/TogetherView'
 import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
@@ -48,6 +53,9 @@ export default function App() {
   const profile = useStore((s) => s.profile)
 
   useSessionEngine()
+  useMilestones()
+  useBoardWatch()
+  useTogether()
   // a drift: the whole screen gives a small, soft zoom, like it took the hit
   useEffect(() => {
     let last = useStore.getState().session?.lapses ?? 0
@@ -108,7 +116,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go('focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
+      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
       <Backdrop reduced={reduced} />
       <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
@@ -121,12 +129,13 @@ export default function App() {
             {view === 'podcasts' && <PodcastsView />}
             {view === 'news' && <NewsView />}
             {view === 'learn' && <LearnView />}
+            {view === 'together' && <TogetherView />}
             {view === 'leaders' && <LeadersView />}
             {view === 'books' && <BooksView />}
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'leaders', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'together', 'leaders', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>
@@ -175,13 +184,14 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
+      {route !== 'home' && <Onboarding />}
       <Celebration />
       <UndoToast
         key={notice?.id}
         open={!!notice}
         title={notice?.title}
         description={notice?.description}
-        variant={notice?.variant === 'danger' ? 'error' : notice?.variant === 'warning' ? 'warning' : notice?.variant === 'success' ? 'success' : 'default'}
+        variant={notice?.variant === 'danger' ? 'error' : notice?.variant === 'warning' ? 'warning' : notice?.variant === 'success' ? 'success' : notice?.undo ? 'default' : 'info'}
         undoLabel="Undo"
         position="top-center"
         duration={notice?.undo ? 7000 : 3800}

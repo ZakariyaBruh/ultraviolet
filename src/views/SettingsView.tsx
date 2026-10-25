@@ -6,6 +6,7 @@ import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LengthBand } from '@/components/app/LengthBand'
 import { fx_say } from '@/lib/actions'
+import { askOs, osState } from '@/lib/notify'
 import { contrast } from '@/lib/theme'
 import { THEMES, themeDef } from '@/lib/themes'
 import { setVolume } from '@/lib/player'
@@ -89,6 +90,19 @@ function Colours() {
   )
 }
 
+function Alerts() {
+  const [state, setState] = useState(osState())
+  return (
+    <div className="grid gap-1 border-t border-rule py-3">
+      <h3 className="text-sm font-medium">Notifications</h3>
+      <p className="text-[13px] text-ink-2">The bell collects goals, streaks, lessons, leaderboard moves and messages from your rooms. With system notifications on, the ones that matter also reach you while this tab is in the background.</p>
+      {state === 'unsupported' ? <p className="text-[13px] text-ink-3">This browser does not offer system notifications.</p> : state === 'granted' ? <p className="text-[13px] text-ink">System notifications are on.</p> : state === 'denied' ? <p className="text-[13px] text-ink-3">System notifications are blocked. Allow them in your browser's site settings.</p> : (
+        <button className="h-11 w-fit border border-ink/30 px-4 text-sm hover:bg-ink/10" onClick={() => void askOs().then((r) => setState(r))}>Turn on system notifications</button>
+      )}
+    </div>
+  )
+}
+
 function Look() {
   const s = useStore((x) => x.settings)
   const set = useStore((x) => x.setSettings)
@@ -107,6 +121,7 @@ function Look() {
         <p className="text-[13px] text-ink-2">Your own accent and background, on top of any theme.</p>
         <Colours />
       </div>
+      <Alerts />
       <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>
   )
@@ -143,7 +158,7 @@ function Help() {
     <Panel className="rounded-3xl p-4" data-allow-scroll>
       <FAQ variant="separated" items={[
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
-        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. The one thing kept on a server is the recommendation board: a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
+        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
         { id: '3', question: 'Does the site scroll?', answer: 'No. Every screen fits the display. You move with the tab deck at the bottom, by dragging, or with the keyboard.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
       ]} />

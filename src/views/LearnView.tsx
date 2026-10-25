@@ -7,6 +7,7 @@ import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { useGridFit } from '@/lib/hooks'
 import { addCards, buildSteps, dropCard, earn, fetchTrivia, finishLesson, gradeCard, learnOf, loadLesson, randomTopic, searchTopics, streakOf, TOPICS, triviaCategories, type Hit, type Lesson, type Step, type Trivia } from '@/lib/learn'
+import { notify } from '@/lib/notify'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
@@ -206,6 +207,7 @@ function TriviaGame() {
     setPicked(i)
     if (i === qs[at].answer) {
       setOk((n) => n + 1); earn(5)
+      if (at === qs.length - 1) notify('learn', `Trivia round: ${ok + 1} of ${qs.length} right.`, 'Trivia')
       if (at === qs.length - 1 && ok + 1 >= 8) useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${ok + 1} of ${qs.length} right.` } })
     }
   }

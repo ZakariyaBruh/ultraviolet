@@ -71,3 +71,7 @@ export async function sendName(me: Me, name: string): Promise<boolean> {
   const r = await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'name', key: me.key, name }) })
   return r.ok && ((await r.json()) as { ok: boolean }).ok
 }
+
+/** The public alias: what everyone sees on the board. Separate from the private name your friends know you by. */
+export const hasAlias = (me: Me) => me.name.trim().length > 0
+export const hasIdentity = () => !!ls.get(ME)

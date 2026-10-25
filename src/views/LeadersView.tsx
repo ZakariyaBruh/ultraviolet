@@ -7,7 +7,7 @@ import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { fx_say } from '@/lib/actions'
 import { useGridFit } from '@/lib/hooks'
-import { identity, loadBoard, loadStanding, saveName, sendName, shareUrl, type Me, type Row, type Standing } from '@/lib/leaders'
+import { hasAlias, identity, loadBoard, loadStanding, saveName, sendName, shareUrl, type Me, type Row, type Standing } from '@/lib/leaders'
 import { cn } from '@/lib/utils'
 
 const medal = (rank: number) => (rank === 1 ? 'bg-signal text-on-signal' : 'border border-ink/30')
@@ -33,7 +33,7 @@ export function LeadersView() {
       const [b, s] = await Promise.all([loadBoard(), loadStanding(m)])
       if (dead) return
       setRows(b.rows); setMin(b.min); setSt(s)
-      if (s.name && s.name !== m.name) { setName(s.name); saveName(m, s.name) }
+      if (s.listed && m.name && s.name !== m.name) void sendName(m, m.name).catch(() => false)
     }).catch(() => !dead && setErr(true))
     return () => { dead = true }
   }, [nonce])
@@ -60,6 +60,15 @@ export function LeadersView() {
   const slice = list.slice((safe - 1) * per, safe * per)
   const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   const n = st?.n ?? 0
+  const [alias, setAlias] = useState('')
+  const claim = (e: FormEvent) => {
+    e.preventDefault()
+    const a = alias.trim().slice(0, 20)
+    if (!me || !a) return
+    saveName(me, a)
+    setMe({ ...me, name: a }); setName(a)
+    void sendName(me, a).catch(() => false)
+  }
   const need = Math.max(1, min)
   const btn = 'inline-flex h-11 items-center justify-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10'
 
@@ -70,6 +79,16 @@ export function LeadersView() {
         <Panel className="grid justify-items-start gap-3 p-5"><p className="text-sm text-ink-2">The leaderboard did not answer. Check your connection.</p><button className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setNonce((x) => x + 1)}>Try again</button></Panel>
       ) : !me || !rows ? (
         <LoadingBlock label="Loading the board" />
+      ) : !hasAlias(me) ? (
+        <Panel className="grid max-w-[520px] content-start gap-3 p-5">
+          <Trophy className="size-6 text-signal" />
+          <h2 className="text-lg font-semibold">Pick the name everyone will see</h2>
+          <p className="text-[14px] text-ink-2">The leaderboard is public, so it uses its own alias. It is not the name your friends know you by in Together rooms, and it is never your account, because there is none.</p>
+          <form onSubmit={claim} className="flex gap-2">
+            <input value={alias} onChange={(e) => setAlias(e.target.value)} maxLength={20} aria-label="Public alias" placeholder="A public alias" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
+            <button type="submit" disabled={!alias.trim()} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">Save alias</button>
+          </form>
+        </Panel>
       ) : (
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
           <Panel className="flex min-h-0 flex-col gap-3 p-5">
@@ -91,9 +110,9 @@ export function LeadersView() {
               <button onClick={copy} className={btn}>{copied ? <Check className="size-4 text-signal" /> : <Copy className="size-4" />}{copied ? 'Copied' : 'Copy link'}</button>
               <button onClick={share} className="inline-flex h-11 items-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal"><Share2 className="size-4" />Share</button>
             </div>
-            {st?.listed && (
+            {(
               <form onSubmit={save} className="flex gap-2">
-                <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} aria-label="Name shown on the board" placeholder="Name on the board" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
+                <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} aria-label="Public alias" placeholder="Public alias" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
                 <button type="submit" className={btn}>Save</button>
               </form>
             )}

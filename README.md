@@ -10,6 +10,7 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **News**: 90+ RSS feeds across nine categories, read in the browser (through a public CORS relay when a publisher blocks browsers). Hide any word or name for an hour, a day, a week or until you lift it; every change has an undo.
 - **Learn**: search any topic and get a short lesson from Wikipedia, with fill-the-gap and which-came-first checks written from the text itself, a trivia round from the Open Trivia Database, XP, a learning streak, and a spaced-repetition review deck. No key, no account, no AI.
 - **Leaders**: recommend Friction with your own link; your first new recommend puts you on a public leaderboard (Turso, via `api/lb.ts`). When the database nears 4.5 GB the bar rises to the lowest score and the lowest person is replaced.
+- **Together**: make a room, share the code, and lock in at the same time with friends. Chat, listen or watch the same station or channel, and connect a Discord or Slack channel by webhook. Rooms close after a day of quiet.
 - **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.

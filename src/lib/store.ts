@@ -68,7 +68,7 @@ export interface ActiveSession {
   title: string
 }
 
-export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system'
+export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
 
 export interface EventRec {
   id: string
