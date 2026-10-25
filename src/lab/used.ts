@@ -9,6 +9,7 @@ export const USED: Record<string, string> = {
   'bar-chart': 'InsightsView',
   'date-picker': 'InsightsView',
   'donut-chart': 'InsightsView',
+  'morphing-blob': 'PodcastsView',
   'drag-to-confirm': 'FocusView, SettingsView',
   'draw-checkbox': 'SettingsView',
   'faq': 'SettingsView',

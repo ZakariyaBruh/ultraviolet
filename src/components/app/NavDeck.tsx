@@ -41,7 +41,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
                 onChange(n.id)
               }}
               className={cn(
-                'relative flex min-h-11 min-w-0 items-center overflow-hidden justify-center gap-2 px-3 text-[13px] font-semibold uppercase tracking-[0.08em] transition-[flex-grow,color] duration-200 ease-[var(--ease-out)] [font-family:var(--font-cond)] max-sm:px-0',
+                'relative flex min-h-11 min-w-0 items-center overflow-hidden justify-center gap-2 px-3 lg:max-xl:px-1.5 text-[13px] font-semibold uppercase tracking-[0.08em] transition-[flex-grow,color] duration-200 ease-[var(--ease-out)] [font-family:var(--font-cond)] max-sm:px-0',
                 n.id === 'lab' && 'max-sm:hidden',
                 on ? 'grow-[2] basis-0 text-on-signal max-sm:grow-[3]' : 'grow basis-0 text-ink-2 hover:text-ink',
               )}

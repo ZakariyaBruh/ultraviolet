@@ -144,7 +144,8 @@ function Help() {
       <FAQ variant="separated" items={[
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
         { id: '2', question: 'Where is my data?', answer: 'In localStorage and IndexedDB in this browser. There is no account and no server.' },
-        { id: '3', question: 'Does the site scroll?', answer: 'No. Every screen fits the display. You move by tuning the dial, dragging, or pressing keys.' },
+        { id: '3', question: 'Does the site scroll?', answer: 'No. Every screen fits the display. You move with the tab deck at the bottom, by dragging, or with the keyboard.' },
+        { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
       ]} />
       <div className="mt-3 flex gap-2">
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>

@@ -321,12 +321,12 @@ html[data-theme='sunset'] .dot { font-weight: 800; letter-spacing: -0.02em; }
 .sun { position: absolute; left: 50%; bottom: -22vmin; width: 62vmin; height: 62vmin; translate: -50% 0; border-radius: 50%; background: var(--signal); opacity: .3;
   -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); }
 
-/* ───────── arrange mode: any panel can be dragged ───────── */
-html[data-arrange] [data-movable] { cursor: grab; touch-action: none; user-select: none; outline: 2px dashed var(--signal); outline-offset: 3px; }
-html[data-arrange] [data-movable] * { pointer-events: none; }
-html[data-arrange] [data-movable][data-dragging] { cursor: grabbing; z-index: 30; outline-style: solid; }
+/* ───────── every panel can be picked up: grab it, throw it ───────── */
+[data-movable] { touch-action: none; cursor: grab; transition: scale 180ms var(--ease-out); }
+[data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.012; transition: none; user-select: none; }
 [data-movable][data-moved] { z-index: 6; }
-html[data-arrange] [data-movable]:focus-visible { outline: 3px solid var(--signal); }
+html[data-dragging] * { cursor: grabbing !important; user-select: none; }
+@media (prefers-reduced-motion: reduce) { [data-movable] { transition: none; } [data-movable][data-dragging] { scale: 1; } }
 
 /* ───────── paper: a manga page. Heavy ink keylines, hard offset shadows, screentone, newsprint grain ───────── */
 html[data-theme='paper'] {
@@ -343,7 +343,6 @@ html[data-theme='paper'] .glass, html[data-theme='paper'] .glass-clear, html[dat
 }
 html[data-theme='paper'] .glass-clear { background-color: var(--surface); }
 html[data-theme='paper'] .glass::before, html[data-theme='paper'] .glass-clear::before { display: none; }
-html.light [data-arrange] [data-movable], html.light[data-arrange] [data-movable] { outline-color: var(--signal); }
 /* screentone: a halftone dot field fading in from two corners, like a manga page's shading */
 .screentone {
   position: absolute; inset: 0; pointer-events: none; opacity: .5;

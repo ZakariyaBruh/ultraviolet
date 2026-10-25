@@ -108,6 +108,9 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
   useStore.getState().pushRecent(item)
   if (item.kind === 'radio') registerClick(item.uuid)
   const el = item.kind === 'tv' ? video : audio
+  // podcast hosts rarely send CORS headers, and a plain element needs none to play
+  if (item.id.startsWith('pod:')) audio.removeAttribute('crossorigin')
+  else audio.crossOrigin = 'anonymous'
   const isHls = /\.m3u8(\?|$)/i.test(item.url)
   arm()
   if (isHls && Hls.isSupported()) {
@@ -155,3 +158,13 @@ export function setVolume(v: number) {
   video.volume = v
   useStore.getState().setSettings({ volume: v })
 }
+
+/** Podcast episodes can be sought; live streams cannot. */
+export function seekBy(sec: number) {
+  if (!Number.isFinite(audio.duration)) return
+  audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + sec))
+}
+export function seekTo(sec: number) {
+  if (Number.isFinite(audio.duration)) audio.currentTime = Math.max(0, Math.min(audio.duration, sec))
+}
+export const audioEl = audio

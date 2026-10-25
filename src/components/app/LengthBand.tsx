@@ -44,10 +44,9 @@ export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX
       <div className="absolute bottom-0 left-0 right-0 flex justify-between font-[family-name:var(--font-cond)] text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-3" aria-hidden>
         {(ends ?? [`${MIN}`, `${Math.round((MIN + MAX) / 2)}`, `${MAX} min`]).map((t) => <span key={t}>{t}</span>)}
       </div>
-      <div className="pointer-events-none absolute top-0 -translate-x-1/2" style={{ left: `${f * 100}%` }} aria-hidden>
-        <div className="h-5 w-0.5 bg-signal" />
-        <div className="-mt-px -translate-x-[calc(50%-1px)] bg-signal px-1.5 text-[13px] font-bold leading-5 text-on-signal">{value}</div>
-      </div>
+      <div className="pointer-events-none absolute top-0 h-5 w-0.5 -translate-x-1/2 bg-signal" style={{ left: `${f * 100}%` }} aria-hidden />
+      {/* the value tag leans away from the ends so it never hangs outside the ruler */}
+      <div className="pointer-events-none absolute top-[19px] bg-signal px-1.5 text-[13px] font-bold leading-5 text-on-signal" style={{ left: `${f * 100}%`, transform: `translateX(-${f * 100}%)` }} aria-hidden>{value}</div>
     </div>
   )
 }

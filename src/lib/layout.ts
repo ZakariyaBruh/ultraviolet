@@ -4,11 +4,8 @@ import { persist } from 'zustand/middleware'
 export type Offset = { x: number; y: number }
 
 interface Layout {
-  /** Arrange mode: panels can be dragged. */
-  arrange: boolean
   /** Offsets by route, then by panel id. */
   offsets: Record<string, Record<string, Offset>>
-  setArrange: (on: boolean) => void
   move: (scope: string, id: string, o: Offset) => void
   reset: (scope?: string) => void
 }
@@ -19,9 +16,7 @@ const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && Ma
 export const useLayout = create<Layout>()(
   persist(
     (set) => ({
-      arrange: false,
       offsets: {},
-      setArrange: (arrange) => set({ arrange }),
       move: (scope, id, o) => set((s) => ({ offsets: { ...s.offsets, [scope]: { ...s.offsets[scope], [id]: o } } })),
       reset: (scope) =>
         set((s) => {

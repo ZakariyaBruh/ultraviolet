@@ -6,6 +6,7 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **Focus**: a text-mode dial (spinning ASCII torus, wide clock), drifts, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, drifts ticked underneath).
 - **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
 - **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
+- **Podcasts**: search the Apple Podcasts directory (iTunes Search API), open a show, and the episodes are read straight from its RSS feed. Seek, back 15, forward 30.
 - **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.

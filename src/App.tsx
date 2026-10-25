@@ -25,6 +25,7 @@ import { InsightsView } from '@/views/InsightsView'
 import { RadioView } from '@/views/RadioView'
 import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
+import { PodcastsView } from '@/views/PodcastsView'
 import { Lab } from '@/lab/Lab'
 
 function Placeholder({ name }: { name: string }) {
@@ -99,12 +100,13 @@ export default function App() {
             {view === 'focus' && <FocusView go={change} />}
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
+            {view === 'podcasts' && <PodcastsView />}
             {view === 'books' && <BooksView />}
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
             {view === 'lab' && <Lab />}
-            {!['focus', 'radio', 'tv', 'books', 'insights', 'debrief', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'books', 'insights', 'debrief', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>

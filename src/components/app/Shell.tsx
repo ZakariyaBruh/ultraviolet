@@ -70,7 +70,7 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
           <motion.header key="chrome" className="absolute inset-x-0 top-0 z-40 flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] md:px-8 lg:top-2 lg:px-12" exit={{ opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}>
             <Brand onHome={onHome} />
             <BarTools scope={view} />
-            <ArrangeLayer scope={view} reduced={false} />
+            <ArrangeLayer scope={view} />
           </motion.header>
         )}
       </AnimatePresence>
