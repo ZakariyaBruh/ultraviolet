@@ -6,7 +6,7 @@ import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
-import { BooksError, getBooksKey, parseVolumeId, searchBooks, setBooksKey, SUBJECTS, type BookRef } from '@/lib/books'
+import { BooksError, getBooksKey, lastBooksError, parseVolumeId, searchBooks, setBooksKey, SUBJECTS, type BookRef } from '@/lib/books'
 import { fx_say } from '@/lib/actions'
 import { useGridFit } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
@@ -28,6 +28,7 @@ function KeyPanel({ reason, onSaved }: { reason: 'nokey' | 'quota' | 'bad'; onSa
     <Panel className="grid gap-3 p-5">
       <div className="flex items-center gap-2"><KeyRound className="size-5 text-signal" /><h2 className="text-base font-semibold">{reason === 'nokey' ? 'Search needs a Google Books key' : reason === 'quota' ? 'That key is out of quota for today' : 'Google did not accept that key'}</h2></div>
       <p className="max-w-[60ch] text-[14px] text-ink-2">Google no longer answers Books searches without a key. Make a free one at Google Cloud (enable the Books API, restrict it to this site), paste it here, and it stays in this browser only. Opening a book by link or ID needs no key.</p>
+      {reason !== 'nokey' && lastBooksError && <p role="status" className="text-[13px] text-ink">Google says: {lastBooksError}</p>}
       <form onSubmit={submit} className="flex flex-wrap gap-2">
         <input value={v} onChange={(e) => setV(e.target.value)} aria-label="Google Books API key" placeholder="AIza…" autoComplete="off" spellCheck={false} className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
         <button type="submit" className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Save key</button>

@@ -37,6 +37,9 @@ export const setBooksKey = (k: string) => {
   }
 }
 
+/** Google's own words for the last refusal, shown so a bad key can be told from a blocked region. */
+export let lastBooksError = ''
+
 export const SUBJECTS = ['fiction', 'philosophy', 'science', 'history', 'poetry', 'mystery', 'classics', 'technology', 'biography', 'religion']
 
 interface Vol {
@@ -49,21 +52,26 @@ interface Vol {
 export async function searchBooks(q: string, start = 0): Promise<{ items: BookRef[]; total: number }> {
   const key = getBooksKey()
   if (!key) throw new BooksError('nokey')
-  const url =
+  const base =
     'https://www.googleapis.com/books/v1/volumes' +
     `?q=${encodeURIComponent(q)}&filter=free-ebooks&printType=books&maxResults=40&startIndex=${start}&projection=lite` +
-    '&fields=totalItems,items(id,volumeInfo(title,authors,pageCount,imageLinks/thumbnail),accessInfo(embeddable,webReaderLink))' +
-    `&key=${encodeURIComponent(key)}`
+    '&fields=totalItems,items(id,volumeInfo(title,authors,pageCount,imageLinks/thumbnail),accessInfo(embeddable,webReaderLink))'
   return cached(`books:${q}:${start}`, 6 * 3600 * 1000, async () => {
-    let res: Response
-    try {
-      res = await fetch(url)
-    } catch {
-      throw new BooksError('network')
+    const go = async (withKey: boolean) => {
+      try {
+        return await fetch(withKey ? `${base}&key=${encodeURIComponent(key)}` : base)
+      } catch {
+        throw new BooksError('network')
+      }
     }
-    if (res.status === 429) throw new BooksError('quota')
-    if (res.status === 400 || res.status === 403) throw new BooksError('bad')
-    if (!res.ok) throw new BooksError('network')
+    // a key restricted to other sites or APIs is refused with 400/403; the open endpoint still answers a person's own browser
+    let res = await go(true)
+    if (res.status === 400 || res.status === 403) res = await go(false)
+    if (!res.ok) {
+      const msg = await res.json().then((j: { error?: { message?: string } }) => j.error?.message ?? '', () => '')
+      lastBooksError = msg
+      throw new BooksError(res.status === 429 ? 'quota' : res.status < 500 ? 'bad' : 'network', msg)
+    }
     const d = (await res.json()) as { totalItems?: number; items?: Vol[] }
     const items = (d.items ?? []).map((v): BookRef => ({
       id: v.id,

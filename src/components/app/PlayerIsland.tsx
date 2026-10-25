@@ -18,7 +18,7 @@ export function PlayerIsland() {
   const sub = status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable, skipping' : current ? (current.kind === 'tv' ? 'Live TV' : 'Radio') : 'Nothing playing'
 
   return (
-    <Glass lens radius={36} className="w-[min(620px,calc(100vw-24px))] overflow-visible">
+    <Glass lens radius={36} className="w-[min(620px,calc(100vw-24px))] overflow-visible lg:max-xl:w-[360px]">
       <motion.div layout className="flex items-center gap-3 p-2.5 pr-3">
         {current ? (
           <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-3 rounded-full text-left" aria-label={`Now playing ${current.name}. ${open ? 'Close' : 'Open'} volume`}>
