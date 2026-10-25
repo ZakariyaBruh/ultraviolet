@@ -47,8 +47,10 @@ function OnAir({ items }: { items: MediaItem[] }) {
 export function RadioView() {
   const [items, setItems] = useState<MediaItem[]>([])
   const load = useCallback(async (tag: string, q: string) => {
-    const list = await searchStations(q ? { name: q } : { tag })
-    return list.map(stationToMedia)
+    // a search looks at every station: those named like it, then those tagged with it
+    const list = q ? [...(await searchStations({ name: q })), ...(await searchStations({ tag: q }).catch(() => []))] : await searchStations({ tag })
+    const seen = new Set<string>()
+    return list.filter((s) => !seen.has(s.stationuuid) && !!seen.add(s.stationuuid)).map(stationToMedia)
   }, [])
   return (
     <Browser
@@ -60,7 +62,7 @@ export function RadioView() {
       initialChip="lofi"
       load={load}
       remoteSearch
-      placeholder="Search stations"
+      placeholder="Search every station"
       onItems={setItems}
       aside={<OnAir items={items} />}
     />

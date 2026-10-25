@@ -268,7 +268,7 @@ input { caret-color: var(--signal); }
 .eq.paused i { animation-play-state: paused; transform: scaleY(.25); }
 @keyframes eq { 0%,100% { transform: scaleY(.2); } 50% { transform: scaleY(1); } }
 /* a blocked scroll: the screen takes the hit */
-@keyframes ripple { 0% { transform: translate(0,0); } 20% { transform: translate(0,4px); } 45% { transform: translate(0,-2px); } 100% { transform: translate(0,0); } }
+@keyframes ripple { 0% { transform: scale(1); } 30% { transform: scale(.992) translateY(3px); } 65% { transform: scale(1.003) translateY(-1px); } 100% { transform: scale(1); } }
 .ripple { animation: ripple 320ms var(--ease-out); }
 .fade-end { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
 .fade-end[data-fit="true"] { -webkit-mask-image: none; mask-image: none; }
@@ -322,8 +322,8 @@ html[data-theme='sunset'] .dot { font-weight: 800; letter-spacing: -0.02em; }
   -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); }
 
 /* ───────── every panel can be picked up: grab it, throw it ───────── */
-[data-movable] { touch-action: none; cursor: grab; transition: scale 180ms var(--ease-out); }
-[data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.012; transition: none; user-select: none; }
+[data-movable] { touch-action: none; cursor: grab; transition: scale 200ms var(--ease-out); }
+[data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.03; transition: none; user-select: none; }
 [data-movable][data-moved] { z-index: 6; }
 html[data-dragging] * { cursor: grabbing !important; user-select: none; }
 @media (prefers-reduced-motion: reduce) { [data-movable] { transition: none; } [data-movable][data-dragging] { scale: 1; } }

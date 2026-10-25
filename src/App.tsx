@@ -48,6 +48,19 @@ export default function App() {
   const profile = useStore((s) => s.profile)
 
   useSessionEngine()
+  // a drift: the whole screen gives a small, soft zoom, like it took the hit
+  useEffect(() => {
+    let last = useStore.getState().session?.lapses ?? 0
+    return useStore.subscribe((s) => {
+      const n = s.session?.lapses ?? 0
+      if (n > last && !matchMedia('(prefers-reduced-motion: reduce)').matches && s.settings.motion > 0) {
+        const el = document.getElementById('canvas')
+        el?.classList.remove('ripple'); void el?.offsetWidth; el?.classList.add('ripple')
+        setTimeout(() => el?.classList.remove('ripple'), 340)
+      }
+      last = n
+    })
+  }, [])
   useTheme()
   useEffect(() => { captureRef(); if (routeFromLocation() !== 'home') void countRecommend() }, [])
 
@@ -99,7 +112,7 @@ export default function App() {
       <Backdrop reduced={reduced} />
       <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
-          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 24 * d }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 * d, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 24 * d, scale: 0.985 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -14 * d, scale: 0.992, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
             <FitView watch={view}>
             {level >= 1 && <StaticBurst />}
             {view === 'focus' && <FocusView go={change} />}

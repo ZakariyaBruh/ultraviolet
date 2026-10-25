@@ -5,7 +5,7 @@ import { Browser } from '@/components/app/Browser'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Logo } from '@/components/app/shared'
-import { fetchCategory, TV_CATEGORIES, type TvCategory } from '@/lib/iptv'
+import { fetchCategory, searchAllTv, TV_CATEGORIES } from '@/lib/iptv'
 import { play, usePlayer } from '@/lib/player'
 import { useUI } from '@/lib/ui'
 
@@ -55,10 +55,11 @@ function Stage() {
 }
 
 export function TvView() {
-  const load = useCallback((cat: string) => fetchCategory(cat as TvCategory), [])
+  // typing in the box searches every channel in every list, not just the chip you are on
+  const load = useCallback((cat: string, q: string) => (q ? searchAllTv(q) : fetchCategory(cat)), [])
   return (
     <motion.div className="h-full" initial={false}>
-      <Browser kind="tv" layout="rail" kicker="Live IPTV" title="TV" sub="Public channels from iptv-org. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="documentary" load={load} remoteSearch={false} placeholder="Filter channels" aside={<Stage />} />
+      <Browser kind="tv" layout="rail" kicker="Live IPTV" title="TV" sub="Public channels from iptv-org. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="documentary" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
     </motion.div>
   )
 }
