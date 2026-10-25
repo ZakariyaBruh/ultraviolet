@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, FlaskConical, Home, Palette, Radio, Search, Settings, Tv, X } from 'lucide-react'
+import { BarChart3, BookOpen, ClipboardList, FlaskConical, Home, Palette, Radio, Search, Settings, Tv, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
@@ -22,6 +22,7 @@ export const NAV: { id: View; label: string; icon: ReactNode }[] = [
   { id: 'focus', label: 'Focus', icon: <Home className={ic} /> },
   { id: 'radio', label: 'Radio', icon: <Radio className={ic} /> },
   { id: 'tv', label: 'TV', icon: <Tv className={ic} /> },
+  { id: 'books', label: 'Books', icon: <BookOpen className={ic} /> },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className={ic} /> },
   { id: 'debrief', label: 'Debrief', icon: <ClipboardList className={ic} /> },
   { id: 'lab', label: 'Lab', icon: <FlaskConical className={ic} /> },

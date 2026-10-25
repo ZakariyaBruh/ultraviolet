@@ -1,10 +1,10 @@
-export type View = 'focus' | 'radio' | 'tv' | 'insights' | 'debrief' | 'lab' | 'settings'
+export type View = 'focus' | 'radio' | 'tv' | 'books' | 'insights' | 'debrief' | 'lab' | 'settings'
 export type Route = 'home' | View
 
-export const VIEWS: View[] = ['focus', 'radio', 'tv', 'insights', 'debrief', 'lab', 'settings']
+export const VIEWS: View[] = ['focus', 'radio', 'tv', 'books', 'insights', 'debrief', 'lab', 'settings']
 
 /** Friendly aliases for subdomains and paths: radio.example.com, app.example.com/tv ... */
-const HOST_ALIAS: Record<string, View> = { app: 'focus', focus: 'focus', radio: 'radio', tv: 'tv', insights: 'insights', stats: 'insights', debrief: 'debrief', lab: 'lab', settings: 'settings' }
+const HOST_ALIAS: Record<string, View> = { app: 'focus', focus: 'focus', radio: 'radio', tv: 'tv', books: 'books', insights: 'insights', stats: 'insights', debrief: 'debrief', lab: 'lab', settings: 'settings' }
 
 /** The landing page is `/`. Every other screen has its own address, or its own subdomain when one is attached. */
 export function routeFromLocation(): Route {

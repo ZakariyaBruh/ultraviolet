@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 import { cn } from '@/lib/utils'
 
-const LABEL: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', insights: 'Insights', debrief: 'Debrief', lab: 'Lab', settings: 'Settings' }
+const LABEL: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', books: 'Books', insights: 'Insights', debrief: 'Debrief', lab: 'Lab', settings: 'Settings' }
 const SHORT: Record<View, string> = { ...LABEL, insights: 'Stats', settings: 'Setup' }
 const N = VIEWS.length
 const freq = (i: number) => (88 + i * 3.1).toFixed(1)
@@ -68,10 +68,10 @@ export function Tuner({ view, onChange, className }: { view: View; onChange: (v:
   return (
     <nav aria-label="Sections" className={cn('select-none', className)} onKeyDown={key}>
       <div ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} className="relative mx-5 h-[64px] cursor-grab touch-none active:cursor-grabbing" style={{ touchAction: 'none' }}>
-        {/* the band: 60 ticks, a long one at every station */}
+        {/* the band: ten ticks between stations, a long one at every station */}
         <div className="pointer-events-none absolute inset-x-0 top-2 h-3" aria-hidden>
-          {Array.from({ length: 61 }, (_, i) => (
-            <i key={i} className={cn('absolute top-0 w-px -translate-x-1/2 bg-ink/35', i % 10 === 0 ? 'h-3 bg-ink/70' : i % 5 === 0 ? 'h-2' : 'h-1')} style={{ left: `${(i / 60) * 100}%` }} />
+          {Array.from({ length: (N - 1) * 10 + 1 }, (_, i) => (
+            <i key={i} className={cn('absolute top-0 w-px -translate-x-1/2 bg-ink/35', i % 10 === 0 ? 'h-3 bg-ink/70' : i % 5 === 0 ? 'h-2' : 'h-1')} style={{ left: `${(i / ((N - 1) * 10)) * 100}%` }} />
           ))}
         </div>
         {VIEWS.map((v, i) => (

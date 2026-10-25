@@ -1,4 +1,4 @@
-import { BarChart3, Bot, FlaskConical, Home, Pause, Play, Radio, Settings, Tv } from 'lucide-react'
+import { BookOpen, BarChart3, Bot, FlaskConical, Home, Pause, Play, Radio, Settings, Tv } from 'lucide-react'
 import { CATALOG_INDEX } from '@/components/registry/catalog-index'
 import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
@@ -25,6 +25,7 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
     { id: 'go-focus', title: 'Focus', category: 'Navigation', icon: <Home className={ic} />, action: () => go('focus') },
     { id: 'go-radio', title: 'Radio', category: 'Navigation', icon: <Radio className={ic} />, action: () => go('radio') },
     { id: 'go-tv', title: 'TV', category: 'Navigation', icon: <Tv className={ic} />, action: () => go('tv') },
+    { id: 'go-books', title: 'Books', category: 'Navigation', icon: <BookOpen className={ic} />, action: () => go('books') },
     { id: 'go-insights', title: 'Insights', category: 'Navigation', icon: <BarChart3 className={ic} />, action: () => go('insights') },
     { id: 'go-debrief', title: 'Debrief', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('debrief') },
     { id: 'go-lab', title: 'Lab: all 131 components', category: 'Navigation', icon: <FlaskConical className={ic} />, action: () => go('lab') },

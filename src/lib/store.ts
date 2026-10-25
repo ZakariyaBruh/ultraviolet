@@ -17,6 +17,8 @@ export interface MediaItem {
   uuid?: string
 }
 
+import type { BookRef } from './books'
+
 export interface SessionRec {
   id: string
   start: number
@@ -87,6 +89,7 @@ interface Data {
   demo: boolean
   profile: Profile | null
   events: EventRec[]
+  books: BookRef[]
 }
 
 interface Actions {
@@ -98,6 +101,7 @@ interface Actions {
   togglePause: () => void
   endSession: (completed: boolean) => void
   toggleFavorite: (item: MediaItem) => void
+  toggleBook: (book: BookRef) => void
   pushRecent: (item: MediaItem) => void
   markIntroSeen: () => void
   setProfile: (p: Profile | null) => void
@@ -139,6 +143,7 @@ const emptyData = (): Data => ({
   demo: false,
   profile: null,
   events: [],
+  books: [],
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -326,6 +331,8 @@ export const useStore = create<AppState>()(
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 
+      toggleBook: (book) => set((s) => ({ books: s.books.some((b) => b.id === book.id) ? s.books.filter((b) => b.id !== book.id) : [book, ...s.books].slice(0, 100) })),
+
       toggleFavorite: (item) =>
         set((s) => ({
           favorites: s.favorites.some((f) => f.id === item.id)
@@ -351,7 +358,7 @@ export const useStore = create<AppState>()(
 
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),

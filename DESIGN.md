@@ -7,6 +7,7 @@ The site never scrolls. You move by tuning:
 - **Landing (`/`)** opens only if you hold the button. Letting go early drains it. The image is a plain, regular dot matrix: dots swell and light up around your pointer, and a click sends a ring of light across it.
 - **Radio** is found on a radar: drag around the dial, the station under the beam plays when you let go.
 - **Lock in** is hold-to-lock; **session length** is a ruler you drag.
+- **Books** (`/books`) lists free ebooks from the Google Books API with `filter=free-ebooks`, and opens them in our own reader frame: page turning, jump to page, find in book, a shelf. Google serves the pages (no text is available), so the page itself is Google's embedded reader. Search needs a Google Books key (Google returns 429 to keyless calls); the key is pasted once and kept in this browser, or baked in with `VITE_GOOGLE_BOOKS_KEY`. Opening by link or ID needs no key.
 - **TV** has its own 16:9 screen with a fill-screen mode; video never sits behind the interface.
 - **The dial** sits at the bottom of every screen: seven stations on a frequency band. Drag the needle, press a station, or use the arrow keys. Letting go snaps to the nearest station and a quarter second of static covers the cut.
 - Every screen has its own address (`/focus`, `/radio`, `/tv`, `/insights`, `/debrief`, `/lab`, `/settings`); a subdomain label such as `radio.` also maps to a screen.
