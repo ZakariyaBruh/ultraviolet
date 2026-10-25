@@ -3,8 +3,8 @@ import { usePlayer } from '@/lib/player'
 import { fmtClock } from '@/lib/dates'
 import type { View } from '@/lib/route'
 
-const CH: Record<View, string> = { focus: '01', radio: '02', tv: '03', podcasts: '04', news: '05', learn: '06', together: '07', leaders: '08', books: '09', insights: '10', debrief: '11', settings: '12' }
-const NAME: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Pods', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', insights: 'Stats', debrief: 'Debrief', settings: 'Setup' }
+const CH: Record<View, string> = { focus: '01', radio: '02', tv: '03', podcasts: '04', news: '05', learn: '06', together: '07', leaders: '08', books: '09', arcade: '10', insights: '11', debrief: '12', settings: '13' }
+const NAME: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Pods', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Stats', debrief: 'Debrief', settings: 'Setup' }
 
 /** An on-screen display like an old set's: the channel you are on, and REC while you are locked in. */
 export function Osd({ view }: { view: View }) {

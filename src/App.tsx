@@ -2,6 +2,7 @@ import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/
 import { RetroBits } from '@/components/app/RetroBits'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
+import { ArcadeView } from '@/views/ArcadeView'
 import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
@@ -133,10 +134,11 @@ export default function App() {
             {view === 'together' && <TogetherView />}
             {view === 'leaders' && <LeadersView />}
             {view === 'books' && <BooksView />}
+            {view === 'arcade' && <ArcadeView />}
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'together', 'leaders', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>

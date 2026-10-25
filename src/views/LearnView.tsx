@@ -73,7 +73,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
     if (ok) { earn(10); setXp((x) => x + 10) }
     else if (step.kind === 'check') addCards([{ id: `c:${lesson.title}:${step.idea}`, front: step.prompt, back: `${step.options[step.answer]}. ${step.explain}` }])
   }
-  useEffect(() => { if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) } else if (step.kind === 'end') { finishLesson(lesson.title, score.ok, score.n); useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}.` } }) } }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) } else if (step.kind === 'end') { { const prev = useStore.getState().learn.done[lesson.title]?.at; if (!prev || Date.now() - prev > 864e5) useStore.getState().earnCredits(6, `Lesson: ${lesson.title}`) } finishLesson(lesson.title, score.ok, score.n); useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}.` } }) } }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const idea = step.kind === 'idea' ? lesson.ideas[step.i] : null
   const keep = () => idea && step.kind === 'idea' && (saved ? dropCard(`i:${lesson.title}:${step.i}`) : addCards([{ id: `i:${lesson.title}:${step.i}`, front: `${lesson.title}: ${idea.heading}`, back: idea.text }]))
@@ -208,7 +208,7 @@ function TriviaGame() {
     if (i === qs[at].answer) {
       setOk((n) => n + 1); earn(5)
       if (at === qs.length - 1) notify('learn', `Trivia round: ${ok + 1} of ${qs.length} right.`, 'Trivia')
-      if (at === qs.length - 1 && ok + 1 >= 8) useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${ok + 1} of ${qs.length} right.` } })
+      if (at === qs.length - 1 && ok + 1 >= 8) { useStore.getState().earnCredits(4, 'Sharp trivia round'); useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${ok + 1} of ${qs.length} right.` } }) }
     }
   }
   const q = qs?.[at]

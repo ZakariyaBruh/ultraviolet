@@ -99,6 +99,15 @@ export interface Settings {
   bg: string
 }
 
+/** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
+export interface Credits {
+  bal: number
+  earned: number
+  spent: number
+  best: Record<string, number>
+  log: { t: number; n: number; why: string }[]
+}
+
 type HourLog = Record<string, number[]>
 export type SourceKey = MediaKind | 'silent'
 export type SourceLog = Record<string, Record<SourceKey, number[]>>
@@ -122,9 +131,13 @@ interface Data {
   /** topics hidden from the news, until a time (0 = until removed) */
   mutes: Mute[]
   learn: Learn
+  credits: Credits
 }
 
 interface Actions {
+  earnCredits: (n: number, why: string) => void
+  spendCredits: (n: number, why: string) => boolean
+  setBest: (game: string, score: number) => void
   setSettings: (patch: Partial<Settings>) => void
   startSession: (goalMin: number, source: MediaKind | 'silent', title: string) => void
   setSessionSource: (source: MediaKind | 'silent', title: string) => void
@@ -183,6 +196,7 @@ const emptyData = (): Data => ({
   books: [],
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
+  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [] },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -225,7 +239,15 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         ok = o
       }
     } else if (k === 'profile') ok = v === null || (isObj(v) && typeof v.name === 'string') ? v : undefined
-    else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
+    else if (k === 'credits') {
+      if (isObj(v)) {
+        const n = (x: unknown) => (typeof x === 'number' && isFinite(x) && x >= 0 ? Math.floor(x) : 0)
+        const best: Record<string, number> = {}
+        if (isObj(v.best)) for (const [g, sc] of Object.entries(v.best)) if (typeof sc === 'number' && isFinite(sc) && sc >= 0) best[g.slice(0, 20)] = Math.floor(sc)
+        const log = Array.isArray(v.log) ? v.log.filter((r) => isObj(r) && typeof r.t === 'number' && typeof r.n === 'number' && typeof r.why === 'string').slice(0, 40) : []
+        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log }
+      }
+    } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
     else if (isObj(b)) ok = isObj(v) ? v : undefined
     if (ok !== undefined) {
@@ -368,11 +390,25 @@ export const useStore = create<AppState>()(
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
         })
-        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.` } })
+        const credit = Math.floor(a.elapsedSec / 60) + (completed ? 5 : 0)
+        if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
+        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits.` : ''}` } })
         // a finished session gets the celebration card instead of a toast
         if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
+
+      earnCredits: (n, why) => {
+        const k = Math.floor(n)
+        if (k <= 0) return
+        set((s) => ({ credits: { ...s.credits, bal: s.credits.bal + k, earned: s.credits.earned + k, log: [{ t: Date.now(), n: k, why }, ...s.credits.log].slice(0, 40) } }))
+      },
+      spendCredits: (n, why) => {
+        if (get().credits.bal < n) return false
+        set((s) => ({ credits: { ...s.credits, bal: s.credits.bal - n, spent: s.credits.spent + n, log: [{ t: Date.now(), n: -n, why }, ...s.credits.log].slice(0, 40) } }))
+        return true
+      },
+      setBest: (game, score) => set((s) => (score > (s.credits.best[game] ?? 0) ? { credits: { ...s.credits, best: { ...s.credits.best, [game]: Math.floor(score) } } } : s)),
 
       setLearn: (learn) => set({ learn }),
       setMutes: (mutes) => set({ mutes: mutes.slice(0, 200) }),
@@ -404,7 +440,7 @@ export const useStore = create<AppState>()(
 
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, learn: get().learn, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, learn: get().learn, credits: get().credits, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
@@ -538,3 +574,5 @@ function makeDemo(): Data {
 
 // dev-only handle so screenshots and tests can seed data
 if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __store: typeof useStore }).__store = useStore
+
+if (import.meta.env.DEV) (globalThis as { __store?: unknown }).__store = useStore
