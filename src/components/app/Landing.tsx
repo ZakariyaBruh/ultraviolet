@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
+import { INVADER, Sprite, TV } from '@/components/app/Sprite'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
@@ -48,6 +49,11 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             <span className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>Move: light up / Click: ripple</span>
             <span ref={readout} className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
           </span>
+        </div>
+        <div className="retro2 pointer-events-none absolute bottom-6 right-5 justify-items-center gap-4 sm:right-[8%]" aria-hidden>
+          <Sprite rows={INVADER} px={5} className="bob" />
+          <Sprite rows={TV} px={11} />
+          <p className="pix blink text-ink">Press start</p>
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}

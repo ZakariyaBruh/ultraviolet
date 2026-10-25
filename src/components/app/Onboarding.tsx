@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Glass } from '@/components/app/glass'
+import { PhoneBreak } from '@/components/app/PhoneBreak'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
@@ -53,7 +54,9 @@ export function Onboarding() {
     <AnimatePresence>
       {visible && (
         <motion.div key="onboard" className="fixed inset-0 z-[120] grid place-items-center bg-ground/70 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.2 }}>
-          <Glass role="dialog" aria-modal="true" aria-label="Welcome to Friction" className="w-[min(440px,100%)] p-6">
+          <Glass role="dialog" aria-modal="true" aria-label="Welcome to Friction" className="w-[min(440px,100%)] overflow-hidden p-0">
+            <PhoneBreak slice className="block h-32 w-full max-h-[22vh] border-b border-ink/20" label="A phone in flames, its cable snapped, its notifications flying away" />
+            <div className="p-6">
             {step === 0 ? (
               <form onSubmit={save} className="grid gap-3">
                 <p className="hud">Welcome</p>
@@ -76,6 +79,7 @@ export function Onboarding() {
                 <button onClick={() => { useStore.getState().markIntroSeen(); close() }} className="mt-1 h-11 bg-signal px-6 text-sm font-semibold text-on-signal">Let’s go</button>
               </div>
             )}
+          </div>
           </Glass>
         </motion.div>
       )}

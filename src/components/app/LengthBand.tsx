@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 
 /** Session length as a ruler: drag the marker along it (or arrow keys). It snaps to five minutes. */
-export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX = 90, step: STEP = 5, label = 'Session length in minutes', ends }: { value: number; onChange: (v: number) => void; className?: string; min?: number; max?: number; step?: number; label?: string; ends?: string[] }) {
+export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX = 90, step: STEP = 5, label = 'Session length in minutes', ends, format }: { value: number; onChange: (v: number) => void; className?: string; min?: number; max?: number; step?: number; label?: string; ends?: string[]; format?: (v: number) => string }) {
   const SPAN = (MAX - MIN) / STEP
   const ref = useRef<HTMLDivElement>(null)
   const on = useRef(false)
@@ -29,7 +29,7 @@ export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX
       aria-valuemin={MIN}
       aria-valuemax={MAX}
       aria-valuenow={value}
-      aria-valuetext={`${value} minutes`}
+      aria-valuetext={format ? format(value) : `${value} minutes`}
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
@@ -46,7 +46,7 @@ export function LengthBand({ value, onChange, className, min: MIN = 10, max: MAX
       </div>
       <div className="pointer-events-none absolute top-0 h-5 w-0.5 -translate-x-1/2 bg-signal" style={{ left: `${f * 100}%` }} aria-hidden />
       {/* the value tag leans away from the ends so it never hangs outside the ruler */}
-      <div className="pointer-events-none absolute top-[19px] bg-signal px-1.5 text-[13px] font-bold leading-5 text-on-signal" style={{ left: `${f * 100}%`, transform: `translateX(-${f * 100}%)` }} aria-hidden>{value}</div>
+      <div className="pointer-events-none absolute top-[19px] bg-signal px-1.5 text-[13px] font-bold leading-5 text-on-signal" style={{ left: `${f * 100}%`, transform: `translateX(-${f * 100}%)` }} aria-hidden>{format ? format(value) : value}</div>
     </div>
   )
 }

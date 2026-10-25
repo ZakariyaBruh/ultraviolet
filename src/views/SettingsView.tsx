@@ -92,6 +92,27 @@ function Colours() {
   )
 }
 
+const ERA = (era: number) => {
+  const r = 1 - era / 100
+  return r >= 0.7 ? 'Tube TV: pixel type and pointer, scanlines, grain, sprites on the landing.' : r >= 0.4 ? 'Broadcast: an on-screen display, stepped corners, pixel kickers, scanlines and grain.' : r >= 0.15 ? 'Retro-future: a little scanline, grain and warm glow around the clean lines.' : 'Future: clean and sharp, no scanlines and no grain.'
+}
+function Era() {
+  const era = useStore((x) => x.settings.era)
+  const set = useStore((x) => x.setSettings)
+  return (
+    <div className="grid gap-2 border-t border-rule py-3">
+      <h3 className="text-sm font-medium">Era</h3>
+      <p className="text-[13px] text-ink-2">Slide toward the past for more retro, toward the future for less. It changes everything at once, and you can see it as you go.</p>
+      <div className="flex items-center gap-3">
+        <span className="hud shrink-0">Past</span>
+        <LengthBand value={era} onChange={(v) => set({ era: v })} min={0} max={100} step={5} label="Era, from the past to the future" ends={['', '', '']} format={(v) => `${100 - v}% retro`} className="max-w-none flex-1" />
+        <span className="hud shrink-0">Future</span>
+      </div>
+      <p role="status" className="text-[13px] text-ink">{ERA(era)}</p>
+    </div>
+  )
+}
+
 function Alerts() {
   const [state, setState] = useState(osState())
   return (
@@ -123,6 +144,7 @@ function Look() {
         <p className="text-[13px] text-ink-2">Your own accent and background, on top of any theme.</p>
         <Colours />
       </div>
+      <Era />
       <Alerts />
       <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
     </Panel>

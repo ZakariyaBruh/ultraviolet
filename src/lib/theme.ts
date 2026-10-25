@@ -19,6 +19,13 @@ export function useTheme() {
   const id = useStore((s) => s.settings.theme)
   const accent = useStore((s) => s.settings.accent)
   const bg = useStore((s) => s.settings.bg)
+  const era = useStore((s) => s.settings.era)
+  useEffect(() => {
+    // the retro dial: 0 is none, 1 is all of it. Stages switch on the bigger changes (type, corners, sprites).
+    const r = 1 - Math.min(100, Math.max(0, era)) / 100
+    document.documentElement.style.setProperty('--retro', r.toFixed(3))
+    document.documentElement.dataset.retro = r >= 0.7 ? '3' : r >= 0.4 ? '2' : r >= 0.15 ? '1' : '0'
+  }, [era])
   useEffect(() => {
     const t = themeDef(id)
     const el = document.documentElement

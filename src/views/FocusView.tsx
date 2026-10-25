@@ -91,7 +91,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
     <section className={`flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : 'justify-center'}`}>
       {!wide && (
         <div>
-          <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
+          <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
           <h1 className="dot text-[1.6rem] font-bold">FOCUS</h1>
           <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
         </div>
@@ -99,7 +99,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       <div className={`grid min-h-0 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${wide ? 'flex-1' : ''}`}>
         {wide && (
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }} className="min-w-0 self-center">
-            <div className="hud mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
+            <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
             <h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1>
             <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
             <Panel className="grid gap-4 p-5">

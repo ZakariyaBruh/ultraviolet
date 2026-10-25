@@ -92,6 +92,8 @@ export interface Settings {
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
   theme: ThemeId
+  /** how far into the future the look goes: 0 is the past (most retro), 100 is the future */
+  era: number
   /** custom accent and background colours (#rrggbb), '' keeps the theme's own */
   accent: string
   bg: string
@@ -159,6 +161,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.8,
   guard: true,
   theme: 'station',
+  era: 62,
   accent: '',
   bg: '',
 }
@@ -210,6 +213,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
         st.theme = normalizeTheme(v.theme)
+        st.era = Math.min(100, Math.max(0, Math.round(Number(st.era))))
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
       }

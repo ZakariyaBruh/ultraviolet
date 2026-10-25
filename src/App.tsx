@@ -185,6 +185,7 @@ export default function App() {
       </Sheet>
 
       <Onboarding />
+      <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast
         key={notice?.id}
