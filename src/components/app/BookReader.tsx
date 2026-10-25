@@ -2,11 +2,11 @@ import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, ExternalLink, Searc
 import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Scrubber } from '@/components/app/Scrubber'
-import { embedUrl, type BookRef } from '@/lib/books'
+import { archiveLink, embedUrl, type BookRef } from '@/lib/books'
 import { useStore } from '@/lib/store'
 
 /**
- * The reader. Google serves the pages (there is no text to fetch), so the page itself is Google's embedded reader.
+ * The reader. The Internet Archive serves the pages, so the page itself is its embedded reader.
  * Everything around it is ours: the frame, page turning, jump-to-page, find-in-book, the shelf, and the keys.
  */
 export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Partial<BookRef>; onClose: () => void }) {
@@ -21,7 +21,7 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
   const [shown, setShown] = useState(0)
   useEffect(() => { const t = setTimeout(() => setShown(page), 350); return () => clearTimeout(t) }, [page])
   const src = embedUrl(book.id, shown, find)
-  const open = `https://books.google.com/books?id=${encodeURIComponent(book.id)}`
+  const open = archiveLink(book.id)
 
   useEffect(() => { setLoaded(false); setSlow(false); const t = setTimeout(() => setSlow(true), 12000); return () => clearTimeout(t) }, [src])
 
@@ -56,10 +56,10 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
       </header>
 
       <div className="relative min-h-0 flex-1 bg-white">
-        <iframe key={src} src={src} title={`${book.title ?? 'Book'}, read through Google Books`} onLoad={() => setLoaded(true)} className="size-full border-0" allow="fullscreen" />
+        <iframe key={src} src={src} title={`${book.title ?? 'Book'}, read through the Internet Archive`} onLoad={() => setLoaded(true)} className="size-full border-0" allow="fullscreen" />
         {!loaded && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-surface"><span className="hud">Opening the book…</span></div>}
         {slow && !loaded && (
-          <div className="absolute inset-x-0 bottom-3 grid place-items-center px-4"><a href={open} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal">Taking long? Open on Google Books <ExternalLink className="size-4" /></a></div>
+          <div className="absolute inset-x-0 bottom-3 grid place-items-center px-4"><a href={open} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal">Taking long? Open on the Internet Archive <ExternalLink className="size-4" /></a></div>
         )}
       </div>
 
@@ -78,7 +78,7 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
           <input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Find in this book" aria-label="Find in this book" className={`${input} flex-1`} />
           <button type="submit" className={btn} aria-label="Find"><Search className="size-5" /></button>
         </form>
-        <a href={open} target="_blank" rel="noreferrer" className="hud inline-flex min-h-11 items-center gap-1.5 hover:text-ink">Google Books <ExternalLink className="size-3.5" /></a>
+        <a href={open} target="_blank" rel="noreferrer" className="hud inline-flex min-h-11 items-center gap-1.5 hover:text-ink">Internet Archive <ExternalLink className="size-3.5" /></a>
       </footer>
     </div>,
     document.body,

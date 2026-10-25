@@ -6,7 +6,7 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **Focus**: a text-mode dial (spinning ASCII torus, wide clock), drifts, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, drifts ticked underneath).
 - **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
 - **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
-- **Books**: free ebooks from the Google Books API (`filter=free-ebooks`), read in a custom frame with page, find and shelf controls. Needs a Google Books API key for search (paste it in the app, or set `VITE_GOOGLE_BOOKS_KEY`).
+- **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.
 - **Settings**: goal and session dials, motion (Calm / Lively / Lots), theme (Dark / Light), export / import / erase.

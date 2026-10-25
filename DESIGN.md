@@ -7,7 +7,7 @@ The site never scrolls. You move by tuning:
 - **Landing (`/`)** opens only if you hold the button. Letting go early drains it. The image is a plain, regular dot matrix: dots swell and light up around your pointer, and a click sends a ring of light across it.
 - **Radio** is a plain browser: chips, search, a scrubbable list.
 - **Lock in** is hold-to-lock; **session length** is a ruler you drag.
-- **Books** (`/books`) lists free ebooks from the Google Books API with `filter=free-ebooks`, and opens them in our own reader frame: page turning, jump to page, find in book, a shelf. Google serves the pages (no text is available), so the page itself is Google's embedded reader. Search needs a Google Books key (Google returns 429 to keyless calls); the key is pasted once and kept in this browser, or baked in with `VITE_GOOGLE_BOOKS_KEY`. Opening by link or ID needs no key.
+- **Books** (`/books`) lists free, open texts from the Internet Archive (Gutenberg, Americana and Universal Library collections, nothing lent out) and opens them in our own reader frame: page turning, jump to page, find in book, a shelf. The Archive serves the pages, so the page itself is its embedded reader. Needs no key.
 - **TV** has its own 16:9 screen with a fill-screen mode; video never sits behind the interface.
 - **The deck** sits at the bottom of every screen: eight index tabs, the active one opens to show its name. Arrow keys move along it. **Arrange** (the move icon) lets you drag any panel; positions are kept in the browser.
 - Every screen has its own address (`/focus`, `/radio`, `/tv`, `/insights`, `/debrief`, `/lab`, `/settings`); a subdomain label such as `radio.` also maps to a screen.

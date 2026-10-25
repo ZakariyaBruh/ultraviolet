@@ -1,13 +1,12 @@
-import { Bookmark, BookmarkCheck, KeyRound } from 'lucide-react'
+import { Bookmark, BookmarkCheck } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BookReader } from '@/components/app/BookReader'
-import { PageHeader, Panel, Seg } from '@/components/app/shared'
+import { PageHeader, Seg } from '@/components/app/shared'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
-import { BooksError, getBooksKey, lastBooksError, parseVolumeId, searchBooks, setBooksKey, SUBJECTS, type BookRef } from '@/lib/books'
-import { fx_say } from '@/lib/actions'
+import { BooksError, searchBooks, SUBJECTS, type BookRef } from '@/lib/books'
 import { useGridFit } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -21,27 +20,10 @@ function Cover({ b }: { b: Pick<BookRef, 'thumb' | 'title'> }) {
   )
 }
 
-function KeyPanel({ reason, onSaved }: { reason: 'nokey' | 'quota' | 'bad'; onSaved: () => void }) {
-  const [v, setV] = useState(getBooksKey())
-  const submit = (e: FormEvent) => { e.preventDefault(); setBooksKey(v); onSaved() }
-  return (
-    <Panel className="grid gap-3 p-5">
-      <div className="flex items-center gap-2"><KeyRound className="size-5 text-signal" /><h2 className="text-base font-semibold">{reason === 'nokey' ? 'Search needs a Google Books key' : reason === 'quota' ? 'That key is out of quota for today' : 'Google did not accept that key'}</h2></div>
-      <p className="max-w-[60ch] text-[14px] text-ink-2">Google no longer answers Books searches without a key. Make a free one at Google Cloud (enable the Books API, restrict it to this site), paste it here, and it stays in this browser only. Opening a book by link or ID needs no key.</p>
-      {reason !== 'nokey' && lastBooksError && <p role="status" className="text-[13px] text-ink">Google says: {lastBooksError}</p>}
-      <form onSubmit={submit} className="flex flex-wrap gap-2">
-        <input value={v} onChange={(e) => setV(e.target.value)} aria-label="Google Books API key" placeholder="AIza…" autoComplete="off" spellCheck={false} className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
-        <button type="submit" className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Save key</button>
-        <a href="https://console.cloud.google.com/apis/library/books.googleapis.com" target="_blank" rel="noreferrer" className="inline-flex h-11 items-center border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10">Get a key</a>
-      </form>
-    </Panel>
-  )
-}
-
 export function BooksView() {
   const shelf = useStore((s) => s.books)
   const toggle = useStore((s) => s.toggleBook)
-  const [tab, setTab] = useState<'discover' | 'shelf' | 'open'>('discover')
+  const [tab, setTab] = useState<'discover' | 'shelf'>('discover')
   const [subject, setSubject] = useState(SUBJECTS[0])
   const [q, setQ] = useState('')
   const [dq, setDq] = useState('')
@@ -50,9 +32,6 @@ export function BooksView() {
   const [page, setPage] = useState(1)
   const [nonce, setNonce] = useState(0)
   const [reading, setReading] = useState<(Pick<BookRef, 'id'> & Partial<BookRef>) | null>(null)
-  const [link, setLink] = useState('')
-  // once a search has worked, the key box and the open-by-link tab are not needed again
-  const [worked, setWorked] = useState(() => { try { return localStorage.getItem('friction:books-ok') === '1' } catch { return false } })
   const { ref, per, cols } = useGridFit(300, 108, 8, 3)
 
   useEffect(() => { const t = setTimeout(() => setDq(q.trim()), 380); return () => clearTimeout(t) }, [q])
@@ -63,7 +42,7 @@ export function BooksView() {
     let dead = false
     setState('loading')
     searchBooks(dq || `subject:${subject}`)
-      .then((r) => { if (!dead) { setItems(r.items); setState('ready'); if (r.items.length) { setWorked(true); try { localStorage.setItem('friction:books-ok', '1') } catch { /* storage blocked */ } } } })
+      .then((r) => { if (!dead) { setItems(r.items); setState('ready') } })
       .catch((e) => { if (!dead) setState(e instanceof BooksError ? e.kind : 'error') })
     return () => { dead = true }
   }, [tab, subject, dq, nonce])
@@ -74,19 +53,11 @@ export function BooksView() {
   const slice = useMemo(() => list.slice((safe - 1) * per, safe * per), [list, safe, per])
   const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   const loading = tab === 'discover' && state === 'loading'
-  const needsKey = tab === 'discover' && (state === 'nokey' || state === 'quota' || state === 'bad')
-
-  const openLink = (e: FormEvent) => {
-    e.preventDefault()
-    const id = parseVolumeId(link)
-    if (!id) return fx_say({ title: 'That is not a Google Books link or ID', description: 'Paste a books.google.com link, or just the id after id=.', variant: 'danger' })
-    setReading({ id })
-  }
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Free ebooks" title="Books" sub="Free and public-domain titles from Google Books. Read them here, with the dial still under your thumb.">
-        <Seg id="tabs-books" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'shelf', label: 'Shelf', badge: shelf.length || undefined }, ...(worked ? [] : [{ id: 'open', label: 'Open' }])]} />
+      <PageHeader kicker="Free ebooks" title="Books" sub="Free and public-domain titles from the Internet Archive. Read them here, with the dial still under your thumb.">
+        <Seg id="tabs-books" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'shelf', label: 'Shelf', badge: shelf.length || undefined }]} />
       </PageHeader>
 
       {tab === 'discover' && (
@@ -100,27 +71,7 @@ export function BooksView() {
         </>
       )}
 
-      {tab === 'open' ? (
-        <Panel className="grid gap-4 p-5">
-          <div>
-            <h2 className="text-base font-semibold">Open a book by link or ID</h2>
-            <p className="mt-1 max-w-[60ch] text-[14px] text-ink-2">Paste a link from books.google.com, or the id after <code>id=</code>. This works without a key.</p>
-          </div>
-          <form onSubmit={openLink} className="flex flex-wrap gap-2">
-            <input value={link} onChange={(e) => setLink(e.target.value)} aria-label="Google Books link or ID" placeholder="https://books.google.com/books?id=…" className="h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal" />
-            <button type="submit" className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Open</button>
-          </form>
-          <KeyRow />
-        </Panel>
-      ) : needsKey && worked ? (
-        <Panel className="grid justify-items-start gap-3 p-5">
-          <h2 className="text-base font-semibold">Google Books did not answer</h2>
-          {lastBooksError && <p role="status" className="text-[14px] text-ink-2">Google says: {lastBooksError}</p>}
-          <button onClick={() => setNonce((n) => n + 1)} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Try again</button>
-        </Panel>
-      ) : needsKey ? (
-        <KeyPanel reason={state as 'nokey' | 'quota' | 'bad'} onSaved={() => { setNonce((n) => n + 1) }} />
-      ) : (
+      {(
         <>
           <div ref={ref} className="min-h-[108px] flex-1 overflow-hidden" {...swipe}>
             <AnimatePresence mode="wait" initial={false}>
@@ -146,7 +97,7 @@ export function BooksView() {
                     ))}
                 {!loading && slice.length === 0 && (
                   <div className="col-span-full border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">
-                    {tab === 'shelf' ? 'Nothing on your shelf yet. Press the bookmark on any book.' : state === 'error' || state === 'network' ? 'Could not reach Google Books. Check your connection.' : 'No free ebooks you can read here matched that. Try another word.'}
+                    {tab === 'shelf' ? 'Nothing on your shelf yet. Press the bookmark on any book.' : state === 'error' || state === 'network' ? 'Could not reach the Internet Archive. Check your connection.' : 'No free ebooks you can read here matched that. Try another word.'}
                     {(state === 'error' || state === 'network') && tab === 'discover' && <button className="ml-3 h-11 bg-ink px-4 text-ground" onClick={() => setNonce((n) => n + 1)}>Try again</button>}
                   </div>
                 )}
@@ -161,13 +112,5 @@ export function BooksView() {
       )}
       {reading && <BookReader book={reading} onClose={() => setReading(null)} />}
     </section>
-  )
-}
-
-function KeyRow() {
-  const [open, setOpen] = useState(false)
-  const has = !!getBooksKey()
-  return open ? <KeyPanel reason="nokey" onSaved={() => { setOpen(false); fx_say({ title: 'Key saved in this browser' }) }} /> : (
-    <button onClick={() => setOpen(true)} className="hud inline-flex min-h-11 items-center gap-2 justify-self-start hover:text-ink"><KeyRound className="size-4" />{has ? 'Change search key' : 'Add a search key'}</button>
   )
 }
