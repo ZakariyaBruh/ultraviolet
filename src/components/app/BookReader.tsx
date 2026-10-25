@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, ExternalLink, Search, X } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { Scrubber } from '@/components/app/Scrubber'
 import { archiveLink, embedUrl, type BookRef } from '@/lib/books'
 import { useStore } from '@/lib/store'
@@ -57,7 +58,7 @@ export function BookReader({ book, onClose }: { book: Pick<BookRef, 'id'> & Part
 
       <div className="relative min-h-0 flex-1 bg-white">
         <iframe key={src} src={src} title={`${book.title ?? 'Book'}, read through the Internet Archive`} onLoad={() => setLoaded(true)} className="size-full border-0" allow="fullscreen" />
-        {!loaded && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-surface"><span className="hud">Opening the book…</span></div>}
+        {!loaded && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-surface"><LoadingBlock label="Opening the book" /></div>}
         {slow && !loaded && (
           <div className="absolute inset-x-0 bottom-3 grid place-items-center px-4"><a href={open} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal">Taking long? Open on the Internet Archive <ExternalLink className="size-4" /></a></div>
         )}

@@ -18,7 +18,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
   // on a phone the first six screens sit in the deck and the rest open from "More"
   const PRIMARY = ['focus', 'radio', 'tv', 'podcasts', 'news', 'learn']
   const shown = narrow ? NAV.filter((n) => PRIMARY.includes(n.id)) : NAV
-  const rest = narrow ? NAV.filter((n) => !PRIMARY.includes(n.id) && n.id !== 'lab') : []
+  const rest = narrow ? NAV.filter((n) => !PRIMARY.includes(n.id)) : []
   const inMore = rest.some((n) => n.id === view)
   useEffect(() => { setMore(false) }, [view])
   useEffect(() => {
@@ -58,7 +58,6 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
               }}
               className={cn(
                 'relative flex min-h-11 min-w-0 items-center overflow-hidden justify-center gap-2 px-3 lg:max-xl:px-1.5 text-[13px] font-semibold uppercase tracking-[0.08em] transition-[flex-grow,color] duration-200 ease-[var(--ease-out)] [font-family:var(--font-cond)] max-sm:px-0',
-                n.id === 'lab' && 'max-sm:hidden',
                 on ? 'grow-[3] basis-0 text-on-signal' : 'grow basis-0 text-ink-2 hover:text-ink',
               )}
             >

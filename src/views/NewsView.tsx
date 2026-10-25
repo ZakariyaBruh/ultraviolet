@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader, Panel } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { fx_say } from '@/lib/actions'
 import { CATEGORIES, FEEDS, type NewsCategory } from '@/lib/feeds'
 import { useGridFit, useMedia } from '@/lib/hooks'
@@ -169,7 +169,7 @@ export function NewsView() {
                       <button onClick={() => { setPicking(s); setPanel(true) }} aria-label={`Hide topics from “${s.title}”`} className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center text-ink-2 hover:text-signal"><EyeOff className="size-[18px]" /></button>
                     </motion.li>
                   ))}
-                  {loading && slice.length === 0 && Array.from({ length: Math.min(per, 6) }, (_, i) => <li key={i} className="h-[84px] border border-ink/10 p-3" aria-hidden><Skeleton className="mb-2 h-3 w-3/4" /><Skeleton className="h-2.5 w-1/3" /></li>)}
+                  {loading && slice.length === 0 && <li style={{ gridRow: 'span 4' }}><LoadingBlock label="Reading the news" /></li>}
                   {!loading && slice.length === 0 && (
                     <li className="border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">{all.length ? 'Every story here is hidden by your topics. Lift one to see them.' : 'None of these sources would open. Check your connection and try another category.'}</li>
                   )}

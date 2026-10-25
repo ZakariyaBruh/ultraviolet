@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { useGridFit } from '@/lib/hooks'
 import { addCards, buildSteps, dropCard, earn, fetchTrivia, finishLesson, gradeCard, learnOf, loadLesson, randomTopic, searchTopics, streakOf, TOPICS, triviaCategories, type Hit, type Lesson, type Step, type Trivia } from '@/lib/learn'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
 const ease = [0.2, 0, 0, 1] as const
@@ -71,7 +72,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
     if (ok) { earn(10); setXp((x) => x + 10) }
     else if (step.kind === 'check') addCards([{ id: `c:${lesson.title}:${step.idea}`, front: step.prompt, back: `${step.options[step.answer]}. ${step.explain}` }])
   }
-  useEffect(() => { if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) } else if (step.kind === 'end') finishLesson(lesson.title, score.ok, score.n) }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) } else if (step.kind === 'end') { finishLesson(lesson.title, score.ok, score.n); useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}.` } }) } }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const idea = step.kind === 'idea' ? lesson.ideas[step.i] : null
   const keep = () => idea && step.kind === 'idea' && (saved ? dropCard(`i:${lesson.title}:${step.i}`) : addCards([{ id: `i:${lesson.title}:${step.i}`, front: `${lesson.title}: ${idea.heading}`, back: idea.text }]))
@@ -171,7 +172,7 @@ function Explore({ onOpen, done }: { onOpen: (title: string) => void; done: Reco
       <div ref={ref} className="min-h-[84px] flex-1 overflow-hidden" {...swipe}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={`${dq}-${safe}-${state}`} className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '84px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
-            {state === 'loading' ? Array.from({ length: Math.min(per, 6) }, (_, i) => <div key={i} className="h-[84px] border border-ink/10 p-3" aria-hidden><Skeleton className="mb-2 h-3 w-1/2" /><Skeleton className="h-2.5 w-3/4" /></div>) : slice.map((h, i) => (
+            {state === 'loading' ? <div className="col-span-full" style={{ gridRow: 'span 4' }}><LoadingBlock label="Searching" /></div> : slice.map((h, i) => (
               <motion.button key={h.title} onClick={() => onOpen(h.title)} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease, delay: Math.min(i, 8) * 0.025 }} className="flex h-[84px] min-w-0 flex-col justify-center gap-0.5 border border-ink/15 bg-ink/[0.03] px-3 text-left transition-colors hover:border-signal/60 hover:bg-ink/[0.06]">
                 <span className="flex items-center gap-2 text-[15px] font-semibold"><span className="truncate">{h.title}</span>{done[h.title] != null && <Check className="size-4 shrink-0 text-signal" aria-label="Completed" />}</span>
                 {h.about && <span className="line-clamp-2 text-[13px] leading-[17px] text-ink-2">{h.about}</span>}
@@ -200,7 +201,14 @@ function TriviaGame() {
     setState('loading')
     try { setQs(await fetchTrivia(cat, diff)); setAt(0); setPicked(null); setOk(0); setState('idle') } catch (e) { setState((e as Error).message === 'slow' ? 'slow' : 'error') }
   }
-  const pick = (i: number) => { if (picked !== null || !qs) return; setPicked(i); if (i === qs[at].answer) { setOk((n) => n + 1); earn(5) } }
+  const pick = (i: number) => {
+    if (picked !== null || !qs) return
+    setPicked(i)
+    if (i === qs[at].answer) {
+      setOk((n) => n + 1); earn(5)
+      if (at === qs.length - 1 && ok + 1 >= 8) useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${ok + 1} of ${qs.length} right.` } })
+    }
+  }
   const q = qs?.[at]
   const finished = qs && at >= qs.length
   if (!qs || finished) {
@@ -213,8 +221,9 @@ function TriviaGame() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Seg id="trivia-diff" value={diff} onChange={setDiff} tabs={[{ id: 'any', label: 'Any' }, { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' }]} />
-          <button onClick={start} disabled={state === 'loading'} className="h-11 bg-signal px-6 text-sm font-semibold text-on-signal disabled:opacity-50">{state === 'loading' ? 'Loading…' : finished ? 'Play again' : 'Start'}</button>
+          <button onClick={start} disabled={state === 'loading'} className="h-11 bg-signal px-6 text-sm font-semibold text-on-signal disabled:opacity-50">{finished ? 'Play again' : 'Start'}</button>
         </div>
+        {state === 'loading' && <LoadingBlock label="Shuffling questions" className="min-h-[120px]" size={56} />}
         {state === 'slow' && <p role="status" className="text-sm text-ink-2">The question bank allows one request every few seconds. Wait a moment and press start again.</p>}
         {state === 'error' && <p role="status" className="text-sm text-ink-2">Could not load questions. Check your connection and try again.</p>}
       </Panel>
@@ -306,11 +315,11 @@ export function LearnView() {
       ) : (
         <>
           <Seg id="tabs-learn" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'lessons', label: 'Lessons' }, { id: 'trivia', label: 'Trivia' }, { id: 'review', label: 'Review', badge: dueN || undefined }]} />
-          {loading && <p className="hud" role="status">Writing a lesson on {loading}…</p>}
           {err && <p className="text-sm text-ink-2" role="alert">{err}</p>}
-          {tab === 'lessons' && <Explore onOpen={open} done={stats.done} />}
-          {tab === 'trivia' && <TriviaGame />}
-          {tab === 'review' && <Review />}
+          {loading && <div className="min-h-0 flex-1"><LoadingBlock label={`Writing a lesson on ${loading}`} size={96} /></div>}
+          {tab === 'lessons' && !loading && <Explore onOpen={open} done={stats.done} />}
+          {tab === 'trivia' && !loading && <TriviaGame />}
+          {tab === 'review' && !loading && <Review />}
         </>
       )}
     </section>

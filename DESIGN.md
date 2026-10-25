@@ -10,7 +10,7 @@ The site never scrolls. You move by tuning:
 - **Books** (`/books`) lists free, open texts from the Internet Archive (Gutenberg, Americana and Universal Library collections, nothing lent out) and opens them in our own reader frame: page turning, jump to page, find in book, a shelf. The Archive serves the pages, so the page itself is its embedded reader. Needs no key.
 - **TV** has its own 16:9 screen with a fill-screen mode; video never sits behind the interface.
 - **The deck** sits at the bottom of every screen: eight index tabs, the active one opens to show its name. Arrow keys move along it. **Arrange** (the move icon) lets you drag any panel; positions are kept in the browser.
-- Every screen has its own address (`/focus`, `/radio`, `/tv`, `/insights`, `/debrief`, `/lab`, `/settings`); a subdomain label such as `radio.` also maps to a screen.
+- Every screen has its own address (`/focus`, `/radio`, `/tv`, `/insights`, `/debrief`, `/settings`); a subdomain label such as `radio.` also maps to a screen.
 
 ## Themes
 Five complete palettes, switched with the palette button, `T` anywhere, or the swatches in Settings: **Station** (default), **Paper** (light), **Phosphor** (green CRT, all monospace), **Blueprint**, **Sunset**. `lib/themes.ts` defines them; `index.css` carries the variables per `html[data-theme]`. The landing page follows the theme too.

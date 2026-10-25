@@ -13,7 +13,6 @@ while the site itself never scrolls. You get around with a tab deck, and any pan
 - **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
 - **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.
 - **Settings**: goal and session dials, motion (Calm / Lively / Lots), theme (Dark / Light), export / import / erase.
-- **Lab**: all 131 EasyUI components, live.
 
 Nothing scrolls vertically: lists page, charts are slides. There is no scroll guard: the site just never scrolls. You move by a radio dial at the bottom of every screen. Leaving the tab mid-session is counted as a drift.
 

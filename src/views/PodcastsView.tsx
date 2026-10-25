@@ -5,11 +5,12 @@ import { PageHeader, Panel } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { MorphingBlob } from '@/components/ui/morphing-blob'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useGridFit } from '@/lib/hooks'
 import { audioEl, play, seekBy, seekTo, toggle, usePlayer } from '@/lib/player'
 import { episodeToMedia, loadEpisodes, searchShows, TOPICS, type Episode, type Show } from '@/lib/podcasts'
 import { useStore } from '@/lib/store'
+import { useColours } from '@/lib/useColours'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { cn } from '@/lib/utils'
 
 const fmt = (s: number) => {
@@ -17,19 +18,6 @@ const fmt = (s: number) => {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`
 }
 const day = (t: number) => (t ? new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '')
-
-/** The two colours the blob swims between: the theme's accent and its data colour, read live so every theme and custom colour carries over. */
-function useBlobColours(): [string, string] {
-  const theme = useStore((s) => s.settings.theme)
-  const accent = useStore((s) => s.settings.accent)
-  const bg = useStore((s) => s.settings.bg)
-  const [c, setC] = useState<[string, string]>(['#ffd23f', '#7fd3ff'])
-  useEffect(() => {
-    const cs = getComputedStyle(document.documentElement)
-    setC([cs.getPropertyValue('--signal').trim() || '#ffd23f', cs.getPropertyValue('--ice').trim() || '#7fd3ff'])
-  }, [theme, accent, bg])
-  return c
-}
 
 function Art({ src, name, className }: { src?: string; name: string; className?: string }) {
   const [bad, setBad] = useState(false)
@@ -68,7 +56,8 @@ function Seek() {
 }
 
 function ShowPage({ show, onBack }: { show: Show; onBack: () => void }) {
-  const colours = useBlobColours()
+  const { signal, ice } = useColours()
+  const colours: [string, string] = [signal, ice]
   const { current, status } = usePlayer()
   const [eps, setEps] = useState<Episode[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -111,7 +100,7 @@ function ShowPage({ show, onBack }: { show: Show; onBack: () => void }) {
         <div ref={ref} className="min-h-[76px] flex-1 overflow-hidden" {...swipe}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.ul key={`${safe}-${state}`} className="grid h-full content-start gap-2" style={{ gridAutoRows: '76px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
-              {state === 'loading' && Array.from({ length: Math.min(per, 6) }, (_, i) => <li key={i} className="h-[76px] border border-ink/10 p-3" aria-hidden><Skeleton className="mb-2 h-3 w-3/4" /><Skeleton className="h-2.5 w-1/2" /></li>)}
+              {state === 'loading' && <li className="row-span-full" style={{ gridRow: 'span 4' }}><LoadingBlock label="Reading the feed" /></li>}
               {state === 'error' && (
                 <li className="border border-dashed border-ink/25 p-6 text-sm text-ink-2">
                   This show’s feed would not open. Some publishers block browsers.
@@ -184,7 +173,7 @@ export function PodcastsView() {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={`${topic}-${dq}-${loading}-${safe}`} className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '92px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
                 {loading
-                  ? Array.from({ length: Math.min(per, 9) }, (_, i) => <div key={i} className="flex h-[92px] gap-3 border border-ink/10 p-2" aria-hidden><Skeleton className="size-[76px]" /><div className="grid flex-1 content-start gap-2 pt-1"><Skeleton className="h-3 w-3/4" /><Skeleton className="h-2.5 w-1/2" /></div></div>)
+                  ? <div className="col-span-full" style={{ gridRow: 'span 4' }}><LoadingBlock label="Finding shows" /></div>
                   : slice.map((s, i) => (
                       <motion.button key={s.id} onClick={() => setOpen(s)} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1], delay: Math.min(i, 8) * 0.025 }} className="flex h-[92px] min-w-0 gap-3 border border-ink/15 bg-ink/[0.03] p-2 text-left transition-colors hover:border-signal/60 hover:bg-ink/[0.06]">
                         <Art src={s.art} name={s.name} className="size-[74px] shrink-0" />

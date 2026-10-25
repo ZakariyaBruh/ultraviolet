@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useFx } from './fx'
+import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
@@ -363,7 +364,9 @@ export const useStore = create<AppState>()(
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
         })
-        useFx.getState().say(completed ? { title: 'Session complete', description: `${a.goalMin} min held, ${a.urges} scroll${a.urges === 1 ? '' : 's'} blocked.`, variant: 'success' } : a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
+        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.` } })
+        // a finished session gets the celebration card instead of a toast
+        if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
       },
 

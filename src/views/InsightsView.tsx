@@ -19,6 +19,7 @@ import { dateKey, daysAgo, fmtMinutes, parseKey } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
+import { useColours } from '@/lib/useColours'
 import { themeDef } from '@/lib/themes'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
 
@@ -57,6 +58,7 @@ const TABS = [
   { id: 'today', label: 'Today' },
   { id: 'patterns', label: 'Patterns' },
   { id: 'trends', label: 'Trends' },
+  { id: 'rings', label: 'Rings' },
   { id: 'sessions', label: 'Sessions' },
   { id: 'log', label: 'Log' },
 ]
@@ -69,6 +71,8 @@ export function InsightsView() {
   const [half, setHalf] = useState('day')
   const [offset, setOffset] = useState(0)
   const [slide, setSlide] = useState(1)
+  const [ring, setRing] = useState(1)
+  const col = useColours()
   const [sessView, setSessView] = useState('table')
   const day = dateKey(daysAgo(offset))
 
@@ -111,6 +115,39 @@ export function InsightsView() {
     title: e.text,
     timestamp: new Date(e.t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
   }))
+
+  // doughnuts: where the day goes, when you drift, and how sessions end
+  const heldToday = Math.round(dayTotal(s.focusLog, dateKey()))
+  const goal = s.settings.dailyGoalMin
+  const PARTS: [string, number, number][] = [['Night', 0, 6], ['Morning', 6, 12], ['Afternoon', 12, 18], ['Evening', 18, 24]]
+  const byPart = (log: Record<string, number[]>) => PARTS.map(([label, a, b], i) => ({ label, value: Math.round(Object.values(log).reduce((acc, row) => acc + sum(row.slice(a, b)), 0)), color: [col.ice, col.signal, col.hot, col.ink3][i] }))
+  const heldParts = byPart(s.focusLog)
+  const driftParts = byPart(s.urgeLog)
+  const todayRing = [{ label: 'Held', value: heldToday, color: col.signal }, { label: 'Still to go', value: Math.max(0, goal - heldToday), color: col.ink3 }]
+  const wkdayMin = Math.round(sum(matrix.slice(0, 5).map((r) => sum(r))))
+  const wkendMin = Math.round(sum(matrix.slice(5).map((r) => sum(r))))
+  const weekRing = [{ label: 'Weekdays', value: wkdayMin, color: col.signal }, { label: 'Weekends', value: wkendMin, color: col.ice }]
+  const outcome = [{ label: 'Completed', value: sessions.filter((x) => x.completed).length, color: col.signal }, { label: 'Ended early', value: sessions.filter((x) => !x.completed).length, color: col.hot }]
+  const srcRing = [{ label: 'Radio', value: Math.round(s.sourceSecs.radio / 60), color: col.ice }, { label: 'TV', value: Math.round(s.sourceSecs.tv / 60), color: col.signal }, { label: 'Silent', value: Math.round(s.sourceSecs.silent / 60), color: col.ink3 }]
+  const ringBox = (key: string, title: string, note: string, data: { label: string; value: number; color: string }[], centre: string, empty: string) => (
+    <Panel key={key} className="min-w-0 p-5">
+      <h2 className="text-base font-semibold">{title}</h2>
+      <p className="mb-2 text-[13px] text-ink-2">{note}</p>
+      {data.every((d) => d.value === 0) ? <p className="grid min-h-[150px] place-items-center text-sm text-ink-2">{empty}</p> : <DonutChart data={data} size={wide ? 170 : 150} thickness={11} centerLabel={centre} />}
+    </Panel>
+  )
+  const rings = [
+    ringBox('today', 'Today against your goal', `${heldToday} of ${goal} minutes.`, todayRing, 'Minutes', 'Nothing held yet today.'),
+    ringBox('held', 'When you hold', 'Minutes held, by part of the day.', heldParts, 'Minutes', 'Hold a session and this fills in.'),
+    ringBox('drift', 'When you drift', 'Times you left, by part of the day.', driftParts, 'Drifts', 'No drifts yet. That is the goal.'),
+    ringBox('out', 'How sessions end', 'Finished against stopped early.', outcome, 'Sessions', 'No sessions yet.'),
+    ringBox('src', 'What you held with', 'Minutes by source, all time.', srcRing, 'Minutes', 'Nothing held yet.'),
+    ringBox('wk', 'Weekdays and weekends', 'Minutes held over the last 10 weeks.', weekRing, 'Minutes', 'Hold a few sessions to compare.'),
+  ]
+  // two to a slide on a wide screen, one on a phone, so no legend is ever cut off
+  const ringSlides = (wide ? [rings.slice(0, 2), rings.slice(2, 4), rings.slice(4)] : rings.map((r) => [r])).map((group, i) => (
+    <div key={i} className="grid h-full min-h-0 content-start gap-4 lg:grid-cols-2">{group}</div>
+  ))
 
   const trendSlides = [
     <div key="t1" className="grid h-full min-h-0 content-start gap-4 lg:grid-cols-2">
@@ -200,6 +237,17 @@ export function InsightsView() {
                   </AnimatePresence>
                 </div>
                 <div className="flex justify-center"><SlidePagination pageCount={trendSlides.length} page={slide} onChange={setSlide} /></div>
+              </div>
+            )}
+
+            {tab === 'rings' && (
+              <div className="flex h-full min-h-0 flex-col gap-3">
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div key={Math.min(ring, ringSlides.length)} className="h-full" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>{ringSlides[Math.min(ring, ringSlides.length) - 1]}</motion.div>
+                  </AnimatePresence>
+                </div>
+                <div className="flex justify-center"><SlidePagination pageCount={ringSlides.length} page={Math.min(ring, ringSlides.length)} onChange={setRing} /></div>
               </div>
             )}
 

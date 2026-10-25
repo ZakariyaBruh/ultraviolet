@@ -26,9 +26,9 @@ import { RadioView } from '@/views/RadioView'
 import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
+import { Celebration } from '@/components/app/Celebration'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
-import { Lab } from '@/lab/Lab'
 
 function Placeholder({ name }: { name: string }) {
   return <div className="grid h-full place-items-center text-ink-2">{name} is being rebuilt.</div>
@@ -109,8 +109,7 @@ export default function App() {
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
-            {view === 'lab' && <Lab />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'books', 'insights', 'debrief', 'settings', 'lab'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'books', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>
@@ -159,6 +158,7 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
+      <Celebration />
       <UndoToast
         key={notice?.id}
         open={!!notice}

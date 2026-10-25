@@ -11,6 +11,8 @@ interface UI {
   landing: boolean
   tourOpen: boolean
   receipt: SessionRec | null
+  /** a small win worth marking: shows the celebration card */
+  celebrate: { title: string; detail: string } | null
   set: (patch: Partial<Omit<UI, 'set'>>) => void
 }
 
@@ -23,5 +25,6 @@ export const useUI = create<UI>((set) => ({
   landing: false,
   tourOpen: false,
   receipt: null,
+  celebrate: null,
   set: (patch) => set(patch),
 }))
