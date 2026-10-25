@@ -26,7 +26,6 @@ import { RadioView } from '@/views/RadioView'
 import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
-import { Swoop } from '@/components/app/Swoop'
 import { Celebration } from '@/components/app/Celebration'
 import { captureRef, countRecommend } from '@/lib/leaders'
 import { useMilestones, } from '@/lib/notify'
@@ -186,7 +185,6 @@ export default function App() {
       </Sheet>
 
       {route !== 'home' && <Onboarding />}
-      <Swoop />
       <Celebration />
       <UndoToast
         key={notice?.id}

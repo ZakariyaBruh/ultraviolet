@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Shards } from '@/components/app/Shards'
 import { FieldLines } from '@/components/app/FieldLines'
 import { SpeedWarp } from '@/components/ui/speed-warp'
 import { useStore } from '@/lib/store'
@@ -22,8 +21,6 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
     <div aria-hidden className={`fixed inset-0 overflow-hidden bg-ground bp-ground ${level === 0 ? 'motion-calm' : ''}`}>
       <FieldLines level={level} />
       {theme === 'paper' && <><div className="screentone" /><div className="paper-grain" /></>}
-      <Shards drift className="absolute -right-[6vmax] -top-[5vmax] w-[38vmax] max-w-none opacity-[0.13]" />
-      <Shards drift className="absolute -bottom-[8vmax] -left-[7vmax] w-[30vmax] max-w-none rotate-180 opacity-[0.09]" />
       {theme === 'sunset' && <div className="sun" />}
       {level >= 1 && running && (
         <div className={`absolute inset-0 ${light ? 'invert' : ''}`}>

@@ -91,7 +91,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
     <section className={`flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : 'justify-center'}`}>
       {!wide && (
         <div>
-          <div className="retro mb-1 flex items-center gap-2 text-[13px] text-signal"><span className="stripes" aria-hidden><i /><i /><i /></span>{session ? 'Session live' : 'Ready'}</div>
+          <div className="pix mb-2 flex items-center text-signal"><span className="pixbullet" aria-hidden />{session ? 'Session live' : 'Ready'}</div>
           <h1 className="dot text-[1.6rem] font-bold">FOCUS</h1>
           <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
         </div>
@@ -99,7 +99,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       <div className={`grid min-h-0 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${wide ? 'flex-1' : ''}`}>
         {wide && (
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }} className="min-w-0 self-center">
-            <div className="retro mb-2 flex items-center gap-2 text-[13px] text-signal"><span className="stripes" aria-hidden><i /><i /><i /></span>{session ? 'Session live' : 'Ready'}</div>
+            <div className="pix mb-2 flex items-center text-signal"><span className="pixbullet" aria-hidden />{session ? 'Session live' : 'Ready'}</div>
             <h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1>
             <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
             <Panel className="grid gap-4 p-5">
@@ -119,7 +119,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
             {!session ? (
               <motion.div key="idle" className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <div className="flex items-center gap-2">
-                  <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
+                  <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 pix text-[14px] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
               </motion.div>

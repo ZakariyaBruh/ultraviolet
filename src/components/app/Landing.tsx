@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
-import { Shards } from '@/components/app/Shards'
+import { INVADER, Sprite, TV } from '@/components/app/Sprite'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
@@ -51,13 +51,14 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           </span>
         </div>
         <motion.div
-          initial={reduced ? false : { opacity: 0, x: 60, y: 40 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.2, 0, 0, 1], delay: 0.1 }}
-          className="pointer-events-none absolute right-0 top-[8%] aspect-square h-[88%] max-w-[78%]" aria-hidden
+          initial={reduced ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.15 }}
+          className="pointer-events-none absolute bottom-6 right-5 grid justify-items-center gap-4 sm:right-[8%]" aria-hidden
         >
-          <Shards drift className="size-full" />
-          <p className="retro absolute bottom-[14%] right-[12%] -rotate-[8deg] text-[clamp(1.1rem,3.2vw,2.2rem)] text-ink [text-shadow:3px_3px_0_var(--ground)]">Now<br />broadcasting</p>
+          <Sprite rows={INVADER} px={5} className="bob" />
+          <Sprite rows={TV} px={11} />
+          <p className="pix blink text-ink">Press start</p>
         </motion.div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}
@@ -83,7 +84,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           Friction
         </motion.h1>
         <div className="flex min-w-0 flex-col gap-3">
-          <p className="retro text-[15px] text-signal">Stand by for friction</p>
+          <p className="pix flex items-center text-signal"><span className="pixbullet" aria-hidden />Stand by for friction</p>
           <p className="max-w-[44ch] text-[16px] leading-[23px]">
             Scrolling has no friction. That is the whole problem. Stay on one radio station or one live channel and every time you drift away gets counted. This site never scrolls. You hold, drag and tune.
           </p>
