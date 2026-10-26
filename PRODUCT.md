@@ -44,4 +44,4 @@ No real user data, testimonials or customers. A "Load demo history" button produ
 Target WCAG 2.2 AA. Motion has a reduced path. Controls keyboard reachable with visible focus. Touch targets at least 44px.
 
 
-No backend and no AI anywhere: no chat, no model calls. The Debrief is plain sentences computed from stored numbers.
+No chat anywhere, and AI in exactly one place: a lesson can ask Gemini to write a small interactive demo for its topic (`api/demo.ts`, only the topic title is sent, the demo runs in a sealed frame, it is labelled AI-made, and Settings turns it off). If it does not arrive the lesson goes on without it. The Debrief is plain sentences computed from stored numbers.

@@ -106,6 +106,8 @@ export interface Settings {
   /** custom accent and background colours (#rrggbb), '' keeps the theme's own */
   accent: string
   bg: string
+  /** ask an AI to write a small interactive demo for each new lesson (only the topic title leaves the browser) */
+  aiDemos: boolean
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -192,6 +194,7 @@ export const DEFAULT_SETTINGS: Settings = {
   era: 80,
   accent: '',
   bg: '',
+  aiDemos: true,
 }
 
 const emptyData = (): Data => ({

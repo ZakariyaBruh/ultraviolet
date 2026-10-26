@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitText, PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { Demo, demoFor } from '@/components/app/demos'
+import { AiDemoFrame, DemoWaiting } from '@/components/app/demos/AiDemo'
+import { useAiDemo } from '@/lib/aidemo'
 import { Build, Estimate, Match, Sequence, Timeline, TrueFalse, TypeIt } from '@/components/app/LessonSteps'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
@@ -63,7 +65,11 @@ const cardFor = (title: string, step: Step, i: number): { id: string; front: str
 }
 
 function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: boolean) => void }) {
-  const steps = useMemo(() => buildSteps(lesson, demoFor(lesson.title)), [lesson])
+  // a demo is written for each lesson while the first ideas are read; the built-in one for the topic (if any) covers a miss
+  const aiOn = useStore((s) => s.settings.aiDemos !== false)
+  const curated = useMemo(() => demoFor(lesson.title), [lesson.title])
+  const ai = useAiDemo(lesson.title, aiOn)
+  const steps = useMemo(() => buildSteps(lesson, aiOn ? 'ai' : curated), [lesson, aiOn, curated])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
   const [res, setRes] = useState<boolean | null>(null)
@@ -75,10 +81,17 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
   const saved = useStore((s) => s.learn?.deck?.some((c) => c.id === `i:${lesson.title}:${step.kind === 'idea' ? step.i : -1}`))
   const swipe = useSwipe(() => at < steps.length - 1 && step.kind === 'idea' && go(), () => at > 0 && step.kind === 'idea' && back())
   const scored = SCORED.has(step.kind)
-  const canBack = at > 0 && step.kind !== 'end' && !scored && !SCORED.has(steps[at - 1].kind)
+  // when the demo never came and there is no built-in one, its place in the lesson is simply skipped
+  const gone = ai.status === 'failed' && !curated
+  const skip = (i: number) => gone && steps[i].kind === 'demo' && steps[i].id === 'ai'
+  const nextAt = (from: number) => { let j = from + 1; while (j < steps.length - 1 && skip(j)) j++; return Math.min(j, steps.length - 1) }
+  const prevAt = (from: number) => { let j = from - 1; while (j > 0 && skip(j)) j--; return Math.max(j, 0) }
+  const live = steps.map((_, i) => i).filter((i) => !skip(i))
+  const canBack = at > 0 && step.kind !== 'end' && !scored && !SCORED.has(steps[prevAt(at)].kind)
 
-  const go = () => { setPicked(null); setRes(null); setAt((a) => Math.min(steps.length - 1, a + 1)) }
-  const back = () => { if (canBack) { setPicked(null); setRes(null); setAt(at - 1) } }
+  const go = () => { setPicked(null); setRes(null); setAt(nextAt(at)) }
+  const back = () => { if (canBack) { setPicked(null); setRes(null); setAt(prevAt(at)) } }
+  useEffect(() => { if (skip(at)) go() }) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -124,7 +137,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 items-center gap-3">
         <button onClick={() => onExit()} aria-label="Leave the lesson" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><X className="size-5" /></button>
-        <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-semibold">{lesson.title}</div><Bar at={at} total={steps.length - 1} /></div>
+        <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-semibold">{lesson.title}</div><Bar at={live.filter((i) => i < at).length} total={live.length - 1} /></div>
         <span className="fig hud shrink-0">+{xp} XP</span>
       </div>
       <Panel className="relative min-h-0 flex-1 overflow-hidden p-4 md:p-6" {...swipe}>
@@ -159,7 +172,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
             {step.kind === 'match' && <Match step={step} result={res} onResult={record} />}
             {step.kind === 'build' && <Build step={step} result={res} onResult={record} />}
             {step.kind === 'timeline' && <Timeline step={step} />}
-            {step.kind === 'demo' && <Demo id={step.id} played={played} />}
+            {step.kind === 'demo' && (step.id !== 'ai' ? <Demo id={step.id} played={played} /> : ai.status === 'ready' ? <AiDemoFrame demo={ai.demo} played={played} onFail={ai.fail} /> : ai.status === 'pending' ? <DemoWaiting title={lesson.title} /> : curated ? <Demo id={curated} played={played} /> : null)}
             {step.kind === 'end' && (
               <div className="grid h-full content-center justify-items-start gap-3">
                 <p className="hud">Lesson complete</p>
@@ -178,7 +191,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
       {step.kind !== 'end' && (
         <div className="flex shrink-0 items-center justify-between gap-2">
           <button onClick={back} disabled={!canBack} className="inline-flex h-11 items-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" />Back</button>
-          <button onClick={go} disabled={scored && res === null} className="inline-flex h-11 min-w-32 items-center justify-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">{at === steps.length - 2 ? 'Finish' : 'Continue'}<ArrowRight className="size-4" /></button>
+          <button onClick={go} disabled={scored && res === null} className="inline-flex h-11 min-w-32 items-center justify-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">{nextAt(at) === steps.length - 1 ? 'Finish' : 'Continue'}<ArrowRight className="size-4" /></button>
         </div>
       )}
     </div>
@@ -341,6 +354,7 @@ function Review() {
 
 export function LearnView() {
   const learn = useStore((s) => s.learn)
+  const aiDemos = useStore((s) => s.settings.aiDemos !== false)
   const [tab, setTab] = useState<'lessons' | 'trivia' | 'review'>('lessons')
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
@@ -358,7 +372,7 @@ export function LearnView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       {lesson ? <h1 className="sr-only">Learn: {lesson.title}</h1> : (
-        <PageHeader kicker="Learn" title="Learn" sub="Short lessons from Wikipedia, checks written from the text itself, trivia, and a review deck. No account, no AI.">
+        <PageHeader kicker="Learn" title="Learn" sub={`Short lessons from Wikipedia, checks written from the text itself, ${aiDemos ? 'an AI-written demo for each lesson, ' : ''}trivia, and a review deck. No account.`}>
           <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
             <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
             <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
