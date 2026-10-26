@@ -65,11 +65,11 @@ const cardFor = (title: string, step: Step, i: number): { id: string; front: str
 }
 
 function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: boolean) => void }) {
-  // a demo is written for each lesson while the first ideas are read; the built-in one for the topic (if any) covers a miss
+  // the built-in demo for the topic comes first; only a topic without one has a demo written for it while the first ideas are read
   const aiOn = useStore((s) => s.settings.aiDemos !== false)
   const curated = useMemo(() => demoFor(lesson.title), [lesson.title])
-  const ai = useAiDemo(lesson.title, aiOn)
-  const steps = useMemo(() => buildSteps(lesson, aiOn ? 'ai' : curated), [lesson, aiOn, curated])
+  const ai = useAiDemo(lesson.title, aiOn && !curated)
+  const steps = useMemo(() => buildSteps(lesson, curated ?? (aiOn ? 'ai' : null)), [lesson, aiOn, curated])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
   const [res, setRes] = useState<boolean | null>(null)
@@ -82,7 +82,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
   const swipe = useSwipe(() => at < steps.length - 1 && step.kind === 'idea' && go(), () => at > 0 && step.kind === 'idea' && back())
   const scored = SCORED.has(step.kind)
   // when the demo never came and there is no built-in one, its place in the lesson is simply skipped
-  const gone = ai.status === 'failed' && !curated
+  const gone = ai.status === 'failed'
   const skip = (i: number) => gone && steps[i].kind === 'demo' && steps[i].id === 'ai'
   const nextAt = (from: number) => { let j = from + 1; while (j < steps.length - 1 && skip(j)) j++; return Math.min(j, steps.length - 1) }
   const prevAt = (from: number) => { let j = from - 1; while (j > 0 && skip(j)) j--; return Math.max(j, 0) }
@@ -172,7 +172,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
             {step.kind === 'match' && <Match step={step} result={res} onResult={record} />}
             {step.kind === 'build' && <Build step={step} result={res} onResult={record} />}
             {step.kind === 'timeline' && <Timeline step={step} />}
-            {step.kind === 'demo' && (step.id !== 'ai' ? <Demo id={step.id} played={played} /> : ai.status === 'ready' ? <AiDemoFrame demo={ai.demo} played={played} onFail={ai.fail} /> : ai.status === 'pending' ? <DemoWaiting title={lesson.title} /> : curated ? <Demo id={curated} played={played} /> : null)}
+            {step.kind === 'demo' && (step.id !== 'ai' ? <Demo id={step.id} played={played} /> : ai.status === 'ready' ? <AiDemoFrame demo={ai.demo} played={played} onFail={ai.fail} /> : ai.status === 'pending' ? <DemoWaiting title={lesson.title} /> : null)}
             {step.kind === 'end' && (
               <div className="grid h-full content-center justify-items-start gap-3">
                 <p className="hud">Lesson complete</p>
@@ -372,7 +372,7 @@ export function LearnView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       {lesson ? <h1 className="sr-only">Learn: {lesson.title}</h1> : (
-        <PageHeader kicker="Learn" title="Learn" sub={`Short lessons from Wikipedia, checks written from the text itself, ${aiDemos ? 'an AI-written demo for each lesson, ' : ''}trivia, and a review deck. No account.`}>
+        <PageHeader kicker="Learn" title="Learn" sub={`Short lessons from Wikipedia, checks written from the text itself, ${aiDemos ? 'a demo for each lesson, ' : ''}trivia, and a review deck. No account.`}>
           <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
             <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
             <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>

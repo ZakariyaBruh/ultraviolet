@@ -47,7 +47,7 @@ function Focus() {
         <div className="mb-1 flex items-baseline justify-between"><h2 className="text-[15px] font-semibold">Session length</h2><span className="fig text-sm text-ink-2">{s.sessionMin} min</span></div>
         <LengthBand value={s.sessionMin} onChange={(v) => set({ sessionMin: v })} min={10} max={90} step={5} className="max-w-none" />
       </div>
-      <Row title="Lesson demos" hint="A new lesson asks Gemini (Google) to write a small interactive demo. Only the topic title is sent. It runs sealed in a frame with no network, is marked AI-made, and can be wrong. If it does not arrive, the lesson goes on without it.">
+      <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI-made, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>
     </Panel>
