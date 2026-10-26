@@ -14,7 +14,7 @@ export function Osd({ view }: { view: View }) {
   return (
     <div className="osd osd-wrap items-center gap-4 max-md:!hidden" aria-hidden>
       <span>CH {CH[view]} {NAME[view]}</span>
-      {left !== null ? <span className={paused ? '' : 'rec'}>{paused ? 'Pause' : 'Rec'} {fmtClock(left)}</span> : status === 'playing' ? <span>▶ Play</span> : <span className="opacity-60">■ Stby</span>}
+      {left !== null ? <span className={paused ? '' : 'rec'}>{paused ? 'Break' : 'Rec'} {fmtClock(left)}</span> : status === 'playing' ? <span>▶ Play</span> : <span className="opacity-60">■ Stby</span>}
     </div>
   )
 }

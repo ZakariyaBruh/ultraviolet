@@ -14,6 +14,9 @@ const KEYS = ['--signal', '--on-signal', '--signal-soft', '--ground', '--surface
 /** Text colour that reads on a given fill. */
 export const onColour = (h: string) => (contrast(h, '#0a0c12') >= contrast(h, '#ffffff') ? '#0a0c12' : '#ffffff')
 
+/** which of the six era stops a dial value is on (0 future to 5 full ASCII) */
+export const eraStage = (era: number) => Math.round((100 - Math.min(100, Math.max(0, era))) / 20)
+
 /** One attribute on <html> picks the look; optional accent and background colours sit on top of it. */
 export function useTheme() {
   const id = useStore((s) => s.settings.theme)
@@ -21,9 +24,12 @@ export function useTheme() {
   const bg = useStore((s) => s.settings.bg)
   const era = useStore((s) => s.settings.era)
   useEffect(() => {
-    // the era dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction.
-    const stage = Math.round((100 - Math.min(100, Math.max(0, era))) / 20)
+    // the era dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction; --fx is the same
+    // but never past Broadcast, because the screen effects (scanline, grain, warmth, glow) stop there. Past it the dial
+    // adds more solids drawn in text, not more filters.
+    const stage = eraStage(era)
     document.documentElement.style.setProperty('--retro', (stage / 5).toFixed(2))
+    document.documentElement.style.setProperty('--fx', (Math.min(stage, 2) / 5).toFixed(2))
     document.documentElement.dataset.retro = String(stage)
   }, [era])
   useEffect(() => {

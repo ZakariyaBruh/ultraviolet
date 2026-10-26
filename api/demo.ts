@@ -6,7 +6,11 @@
  * titles, nothing about the person). A GET with a long shared cache means each topic is written once a month for everyone.
  * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, a comma separated list tried in order).
  */
-const MODELS = (process.env.GEMINI_MODEL || 'gemini-3.5-flash,gemini-3.8-flash,gemini-3.5-flash-lite').split(',').map((m) => m.trim()).filter(Boolean)
+/** models to try, as `model` or `model:thinking` (thinking level minimal, low, medium or high; leave it off for models that do not think) */
+const CANDIDATES = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3-flash-preview:low,gemini-3.5-flash:minimal,gemini-3.7-flash:low,gemini-3.8-flash:low').split(',').map((m) => m.trim()).filter(Boolean).map((m) => { const [model, think] = m.split(':'); return { model, think } })
+/** a second model is started if the first has not answered by then, and a third after the same wait again; the first good answer wins */
+const HEDGE_MS = Number(process.env.GEMINI_HEDGE_MS) || 9000
+const BUDGET_MS = 50e3
 const MAX_HTML = 16000
 const MIN_HTML = 400
 
@@ -48,7 +52,7 @@ RULES THAT MATTER
 - Vanilla JavaScript only. No libraries, imports, fetch, XMLHttpRequest, WebSocket, eval, new Function, document.write, alert, confirm, prompt, window.open, localStorage, sessionStorage, cookies, parent or top. No external URLs, fonts or images.
 - No infinite or very long synchronous loops. Animate with requestAnimationFrame or setInterval and only after the learner presses something. If matchMedia('(prefers-reduced-motion: reduce)').matches, jump straight to the end state instead of animating.
 - Every control has a visible label or an aria-label. Controls work with keyboard and touch. Show results as text as well as graphics (an element with aria-live="polite"). Never rely on colour alone.
-- All text is at least 12px. Keep the script under about 160 lines. Simple, robust code beats clever code. Initialise to a sensible state so the first view is already meaningful.
+- All text is at least 12px. Keep the whole HTML section under about 6000 characters and the script under about 100 lines. Simple, robust code beats clever code. Initialise to a sensible state so the first view is already meaningful.
 
 Skeleton of the HTML section (shape only, write your own content):
 <div class="row"><span class="hud">Label</span><span class="big" id="out">0</span></div>
@@ -82,7 +86,7 @@ export function parse(raw: string): { title: string; task: string; note: string;
   let html = part('HTML', 'END')
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
   if (body) html = body[1].trim()
-  html = html.replace(/<!doctype[^>]*>|<\/?(html|head|body)[^>]*>/gi, '').trim()
+  html = html.replace(/<!doctype[^>]*>|<\/?(html|head|body)[^>]*>/gi, '').replace(/\s*<<<[A-Z]*>{0,3}\s*$/, '').trim()
   if (!title || !task || !note) return { error: 'missing text sections' }
   if (html.length < MIN_HTML || html.length > MAX_HTML) return { error: 'html size' }
   if (!/<script\b/i.test(html)) return { error: 'no script' }
@@ -100,32 +104,68 @@ async function summary(title: string): Promise<string> {
   } catch { return '' }
 }
 
-async function write(title: string, about: string, key: string): Promise<{ ok: true; value: Exclude<ReturnType<typeof parse>, { error: string }> & { model: string } } | { ok: false; why: string }> {
-  const until = Date.now() + 55e3
-  const why: string[] = []
-  for (const model of MODELS) {
-    const left = until - Date.now()
-    if (left < 6e3) break
-    try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: 'user', parts: [{ text: `Lesson topic: ${title}\n${about ? `What Wikipedia says: ${about}\n` : ''}\nWrite the demo.` }] }],
-          generationConfig: { temperature: 0.8, maxOutputTokens: 14000, ...(/^gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: 'low' } } : {}) },
-        }),
-        signal: AbortSignal.timeout(Math.min(left, why.length ? 35e3 : 28e3)),
-      })
-      if (!r.ok) { why.push(`${model} ${r.status}`); continue }
-      const d = (await r.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
-      const text = d.candidates?.[0]?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? '').join('') ?? ''
-      const out = parse(text)
-      if ('error' in out) { why.push(`${model} ${out.error}`); continue }
-      return { ok: true, value: { ...out, model } }
-    } catch (e) { why.push(`${model} ${(e as Error).name}`) }
+type Won = Exclude<ReturnType<typeof parse>, { error: string }> & { model: string }
+
+/** a model that said it is out of quota (or busy) is left alone for a while, so the next visitor does not wait for it */
+const resting = new Map<string, number>()
+
+async function attempt(c: { model: string; think?: string }, title: string, about: string, key: string, signal: AbortSignal): Promise<{ ok: true; value: Won } | { ok: false; why: string }> {
+  if ((resting.get(c.model) ?? 0) > Date.now()) return { ok: false, why: `${c.model} resting` }
+  try {
+    let think = c.think
+    let r = await go(think)
+    if (r.status === 400 && think) { think = undefined; r = await go(think) } // some models refuse a thinking level: ask again without one
+    if (r.status === 429) resting.set(c.model, Date.now() + 30 * 60e3)
+    else if (r.status === 503) resting.set(c.model, Date.now() + 60e3)
+    return await read(r)
+  } catch (e) { return { ok: false, why: `${c.model} ${(e as Error).name}` } }
+
+  function go(level?: string) {
+    return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${c.model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: 'user', parts: [{ text: `Lesson topic: ${title}\n${about ? `What Wikipedia says: ${about}\n` : ''}\nWrite the demo.` }] }],
+        generationConfig: { temperature: 0.8, maxOutputTokens: 12000, ...(level ? { thinkingConfig: { thinkingLevel: level } } : {}) },
+      }),
+      signal,
+    })
   }
-  return { ok: false, why: why.join('; ') || 'no time' }
+  async function read(r: Response): Promise<{ ok: true; value: Won } | { ok: false; why: string }> {
+    if (!r.ok) return { ok: false, why: `${c.model} ${r.status}` }
+    const d = (await r.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+    const text = d.candidates?.[0]?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? '').join('') ?? ''
+    const out = parse(text)
+    if ('error' in out) return { ok: false, why: `${c.model} ${out.error}` }
+    return { ok: true, value: { ...out, model: c.model } }
+  }
+}
+
+/** Asks the models in turn, but does not wait for a slow one: a backup starts if the first is quiet, and the first good answer wins. */
+function write(title: string, about: string, key: string): Promise<{ ok: true; value: Won } | { ok: false; why: string }> {
+  return new Promise((resolve) => {
+    const stop = new AbortController()
+    const why: string[] = []
+    const timers: ReturnType<typeof setTimeout>[] = []
+    let started = 0, live = 0, done = false
+    const finish = (r: { ok: true; value: Won } | { ok: false; why: string }) => { if (done) return; done = true; timers.forEach(clearTimeout); stop.abort(); resolve(r) }
+    const launch = () => {
+      if (done || started >= CANDIDATES.length) return
+      const c = CANDIDATES[started++]
+      live++
+      void attempt(c, title, about, key, stop.signal).then((r) => {
+        live--
+        if (r.ok) return finish(r)
+        why.push(r.why)
+        if (started < CANDIDATES.length) launch() // that one failed: do not wait to start the next
+        else if (live === 0) finish({ ok: false, why: why.join('; ') })
+      })
+      if (started < CANDIDATES.length) timers.push(setTimeout(launch, HEDGE_MS))
+    }
+    timers.push(setTimeout(() => finish({ ok: false, why: `${why.join('; ')} out of time`.trim() }), BUDGET_MS))
+    launch()
+  })
 }
 
 export default {

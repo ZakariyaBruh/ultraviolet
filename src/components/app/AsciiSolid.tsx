@@ -1,65 +1,57 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type PointerEvent } from 'react'
+import { clearGrid, gridText, makeGrid, plot, type Shape } from '@/lib/ascii3d'
 
-const RAMP = ' .,-~:;=!*#$@'
-
-/** A 3D torus drawn in text. Spin speed follows `speed`; reduced motion draws one frame. */
-export function AsciiSolid({ cols = 44, rows = 22, speed = 1, still = false, className = '' }: { cols?: number; rows?: number; speed?: number; still?: boolean; className?: string }) {
+/**
+ * A solid drawn in text and slowly turning. Spin follows `speed`; `still` (calm motion or reduced motion) draws one frame.
+ * With `interactive`, dragging across it turns it by hand (and it still drifts on its own afterwards).
+ */
+export function AsciiSolid({ shape = 'torus', cols = 44, rows = 22, speed = 1, still = false, phase = 0, interactive = false, className = '' }: { shape?: Shape; cols?: number; rows?: number; speed?: number; still?: boolean; phase?: number; interactive?: boolean; className?: string }) {
   const ref = useRef<HTMLPreElement>(null)
   const spd = useRef(speed)
   spd.current = speed
+  const turn = useRef({ A: 1.1 + phase, B: 0.4 + phase * 0.6, C: 0, x: 0, y: 0, down: false })
+  const draw = useRef<() => void>(() => undefined)
+
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    let A = 1.1
-    let B = 0.4
+    const g = makeGrid(cols, rows, 0.6)
+    const t = turn.current
     let raf = 0
     let last = 0
+    const size = Math.min(cols * 0.46, rows * 0.8)
     const frame = () => {
-      const out = new Array<string>(cols * rows).fill(' ')
-      const z = new Array<number>(cols * rows).fill(0)
-      const cA = Math.cos(A), sA = Math.sin(A), cB = Math.cos(B), sB = Math.sin(B)
-      const K2 = 5
-      const K1 = (cols * K2 * 3) / (8 * 3.2)
-      for (let th = 0; th < TAU; th += 0.07) {
-        const cT = Math.cos(th), sT = Math.sin(th)
-        for (let ph = 0; ph < TAU; ph += 0.03) {
-          const cP = Math.cos(ph), sP = Math.sin(ph)
-          const cx = 2 + cT
-          const cy = sT
-          const x = cx * (cB * cP + sA * sB * sP) - cy * cA * sB
-          const y = cx * (sB * cP - sA * cB * sP) + cy * cA * cB
-          const zz = K2 + cA * cx * sP + cy * sA
-          const ooz = 1 / zz
-          const xp = Math.floor(cols / 2 + K1 * ooz * x)
-          const yp = Math.floor(rows / 2 - K1 * ooz * y * 0.5)
-          const L = cP * cT * sB - cA * cT * sP - sA * sT + cB * (cA * sT - cT * sA * sP)
-          if (L > 0 && xp >= 0 && xp < cols && yp >= 0 && yp < rows) {
-            const o = xp + yp * cols
-            if (ooz > z[o]) {
-              z[o] = ooz
-              out[o] = RAMP[Math.min(RAMP.length - 1, Math.floor(L * 8))]
-            }
-          }
-        }
-      }
-      let s = ''
-      for (let r = 0; r < rows; r++) s += out.slice(r * cols, (r + 1) * cols).join('') + '\n'
-      el.textContent = s
+      clearGrid(g)
+      plot(g, shape, cols / 2, rows / 2, size, t.A, t.B, t.C)
+      el.textContent = gridText(g)
     }
+    draw.current = frame
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
-      if (now - last < 1000 / 24) return
-      const dt = last ? (now - last) / 1000 : 0
+      if (document.hidden || now - last < 1000 / 24) return
+      const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
       last = now
-      A += 0.9 * spd.current * dt
-      B += 0.5 * spd.current * dt
+      if (!t.down) { t.A += 0.9 * spd.current * dt; t.B += 0.5 * spd.current * dt; t.C += 0.12 * spd.current * dt }
       frame()
     }
     frame()
     if (!still) raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [cols, rows, still])
-  return <pre ref={ref} aria-hidden className={`m-0 select-none font-mono leading-[1] ${className}`} />
-}
+  }, [cols, rows, still, shape])
 
-const TAU = Math.PI * 2
+  const grab = interactive
+    ? {
+        onPointerDown: (e: PointerEvent<HTMLPreElement>) => { const t = turn.current; t.down = true; t.x = e.clientX; t.y = e.clientY; e.currentTarget.setPointerCapture(e.pointerId) },
+        onPointerMove: (e: PointerEvent<HTMLPreElement>) => {
+          const t = turn.current
+          if (!t.down) return
+          t.B += (e.clientX - t.x) * 0.02; t.A += (e.clientY - t.y) * 0.02
+          t.x = e.clientX; t.y = e.clientY
+          draw.current() // follow the finger even when the spin is still
+        },
+        onPointerUp: () => { turn.current.down = false },
+        onPointerCancel: () => { turn.current.down = false },
+      }
+    : {}
+  return <pre ref={ref} aria-hidden={!interactive} {...(interactive ? { 'data-no-drag': true, role: 'img', 'aria-label': 'A solid drawn in text. Drag to turn it.' } : {})} {...grab} className={`m-0 select-none font-mono leading-[1] ${interactive ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${className}`} />
+}

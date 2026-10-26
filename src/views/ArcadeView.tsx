@@ -1,6 +1,6 @@
 import { Apple, ArrowUpDown, Car, CircleDot, Coins, Crosshair, Disc, Ghost, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, Skull, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { PageHeader, Panel, Seg } from '@/components/app/shared'
+import { Panel, Seg } from '@/components/app/shared'
 import { Shop } from '@/components/app/Shop'
 import { Scrubber } from '@/components/app/Scrubber'
 import { COST, GAMES } from '@/games'
@@ -119,16 +119,17 @@ export function ArcadeView() {
   const slice = GAMES.slice((safe - 1) * per, safe * per)
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Arcade" title="Arcade" sub="Credits come from real work. A minute of focus pays 1, and the longer you stay clean the more each minute pays. Lessons and trivia pay by score. Spend them here.">
-        <div className="flex items-center gap-4 text-sm" aria-label="Your credits">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+        <h1 className="dot text-[clamp(1.3rem,2.6vw,1.8rem)] font-bold uppercase leading-[1.4] text-ink">Arcade</h1>
+        {!game && <Seg id="tabs-arcade" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'games', label: 'Games' }, { id: 'shop', label: 'Shop' }]} />}
+        <div className="ml-auto flex items-center gap-4 text-sm" aria-label="Your credits">
           <span className="inline-flex items-center gap-1.5"><Coins className="size-4 text-signal" /><span className="fig font-semibold" role="status">{cr.bal}</span> credits</span>
           <span className="text-ink-2 max-sm:hidden"><span className="fig">{cr.earned}</span> earned · <span className="fig">{cr.spent}</span> spent</span>
         </div>
-      </PageHeader>
-      {!game && <Seg id="tabs-arcade" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'games', label: 'Games' }, { id: 'shop', label: 'Shop' }]} />}
+      </header>
       {game ? <Play key={game.id} game={game} onExit={() => setGame(null)} /> : tab === 'shop' ? <Shop /> : (
         <>
-          <p className="hud shrink-0" role="status">{live ? 'Locked in: the arcade opens when you finish' : cr.bal >= COST ? `${GAMES.length} games, ${COST} credits a round` : `Not enough credits yet. A round costs ${COST}.`}</p>
+          <p className="hud shrink-0" role="status">{live ? 'Locked in: the arcade opens when you finish' : cr.bal >= COST ? `${GAMES.length} games, ${COST} credits a round. Credits come from focus, lessons and trivia.` : `Not enough credits yet. A round costs ${COST}. Lock in to earn some.`}</p>
           <div ref={ref} className="min-h-[84px] flex-1 overflow-hidden">
             <div className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '84px' }}>
               {slice.map((g) => (

@@ -1,14 +1,18 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
-import { INVADER, Sprite, TV } from '@/components/app/Sprite'
+import { AsciiSolid } from '@/components/app/AsciiSolid'
+import { eraStage } from '@/lib/theme'
+import type { Shape } from '@/lib/ascii3d'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
+import { useStore } from '@/lib/store'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
 
-const LOG = ['STATION  FRICTION', 'FEED ........ OFF', 'SCROLLING ... NOT REQUIRED', 'STORAGE ..... THIS BROWSER', 'SERVER ...... LEADERBOARD ONLY', 'AI .......... NONE', 'STANDBY']
+const SOLIDS: Shape[] = ['torus', 'cube', 'knot', 'sphere']
+const LOG = ['STATION  FRICTION', 'FEED ........ OFF', 'SCROLLING ... NOT REQUIRED', 'STORAGE ..... THIS BROWSER', 'SERVER ...... BOARD + ROOMS', 'AI .......... LESSON DEMOS', 'STANDBY']
 
 /** Retro: the station ident types itself out, one stepped character at a time. */
 function Ident({ still }: { still: boolean }) {
@@ -30,6 +34,7 @@ function Ident({ still }: { still: boolean }) {
 /** The front page, and the only page that is always black. A broadcast ident over a field of lines. */
 export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View) => void }) {
   const reduced = !!useReducedMotion()
+  const stage = useStore((s) => eraStage(s.settings.era))
   const readout = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -50,10 +55,8 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             <span ref={readout} className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
           </span>
         </div>
-        <div className="retro2 pointer-events-none absolute bottom-6 right-5 justify-items-center gap-4 sm:right-[8%]" aria-hidden>
-          <Sprite rows={INVADER} px={5} className="bob" />
-          <Sprite rows={TV} px={11} />
-          <p className="pix blink text-ink">Press start</p>
+        <div className="pointer-events-none absolute bottom-6 right-5 hidden items-end gap-2 text-signal sm:flex sm:right-[6%]" aria-hidden>
+          {SOLIDS.slice(0, 1 + Math.ceil(stage / 2)).map((sh, i) => <AsciiSolid key={sh} shape={sh} cols={i ? 30 : 44} rows={i ? 14 : 22} speed={0.8} still={reduced} phase={i * 2} className="text-[9px] opacity-80" />)}
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}

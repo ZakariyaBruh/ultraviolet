@@ -1,4 +1,4 @@
-import { BookOpen, BarChart3, Bot, Home, Pause, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
+import { BookOpen, BarChart3, Bot, Home, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
 import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
 import { fx_say, quickPlay } from './actions'
@@ -32,19 +32,17 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
     { id: 'go-insights', title: 'Insights', category: 'Navigation', icon: <BarChart3 className={ic} />, action: () => go('insights') },
     { id: 'go-debrief', title: 'Debrief', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('debrief') },
     { id: 'go-settings', title: 'Settings', category: 'Navigation', icon: <Settings className={ic} />, action: () => go('settings') },
-    {
+    ...(s.session ? [] : [{
       id: 'act-lock',
-      title: s.session ? (s.session.paused ? 'Resume session' : 'Pause session') : `Lock in for ${s.settings.sessionMin} minutes`,
+      title: `Lock in for ${s.settings.sessionMin} minutes`,
       category: 'Actions',
-      icon: s.session && !s.session.paused ? <Pause className={ic} /> : <Play className={ic} />,
+      icon: <Play className={ic} />,
       shortcut: ['L'],
       action: () => {
         go('focus')
-        const st = useStore.getState()
-        if (st.session) st.togglePause()
-        else st.startSession(st.settings.sessionMin, 'silent', 'Silent focus')
+        useStore.getState().startSession(useStore.getState().settings.sessionMin, 'silent', 'Silent focus')
       },
-    },
+    }]),
     { id: 'act-tune', title: 'Tune in…', category: 'Actions', icon: <Radio className={ic} />, action: () => useUI.getState().set({ tuneOpen: true }) },
     ...PRESETS.map((p) => ({ id: `tune-${p.tag}`, title: `Tune: ${p.label}`, category: 'Stations', description: p.kind === 'radio' ? 'Radio' : 'TV', icon: p.kind === 'radio' ? <Radio className={ic} /> : <Tv className={ic} />, action: () => void quickPlay(p.kind, p.tag).catch(() => fx_say({ title: 'Could not reach the directory', variant: 'danger' })) })),
     ...[...s.favorites, ...s.recent.filter((r) => !s.favorites.some((f) => f.id === r.id))].slice(0, 12).map((m) => ({ id: `play-${m.id}`, title: m.name, category: 'Stations', description: m.kind === 'tv' ? 'TV' : 'Radio', icon: m.kind === 'tv' ? <Tv className={ic} /> : <Radio className={ic} />, action: () => play(m, [m]) })),

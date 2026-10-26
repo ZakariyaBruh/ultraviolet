@@ -25,6 +25,24 @@ export const forgetDemo = (title: string) => { void del(KEY(title)).catch(() => 
 
 export type DemoState = { status: 'off' | 'pending' | 'failed' } | { status: 'ready'; demo: AiDemo }
 
+/** one request per topic at a time, shared by whoever asks (the prefetch when a topic is tapped, and the lesson itself) */
+const inflight = new Map<string, Promise<AiDemo>>()
+/** a miss is remembered for a minute, so tapping a topic and then opening its lesson does not ask twice */
+const missed = new Map<string, number>()
+function getDemo(title: string): Promise<AiDemo> {
+  const key = KEY(title)
+  let p = inflight.get(key)
+  if (!p) {
+    if (Date.now() - (missed.get(key) ?? 0) < 60e3) return Promise.reject(new Error('demo'))
+    p = cached(key, MONTH, () => fetchDemo(title, AbortSignal.timeout(70e3))).catch((e) => { missed.set(key, Date.now()); throw e }).finally(() => inflight.delete(key))
+    inflight.set(key, p)
+  }
+  return p
+}
+
+/** start writing a topic's demo right away, before its lesson has even loaded */
+export const prefetchDemo = (title: string) => { void getDemo(title).catch(() => undefined) }
+
 /**
  * The demo for a lesson, written while the learner reads the first ideas. It never blocks and never throws: the lesson only
  * ever sees "pending", "ready" or "failed". A failure of any kind (no key, no network, a slow or refused answer) is just "failed".
@@ -35,12 +53,10 @@ export function useAiDemo(title: string, enabled: boolean): DemoState & { fail: 
     if (!enabled) { setState({ status: 'off' }); return }
     setState({ status: 'pending' })
     let dead = false
-    const ctl = new AbortController()
-    const timer = setTimeout(() => ctl.abort(), 70e3)
-    cached(KEY(title), MONTH, () => fetchDemo(title, ctl.signal))
+    getDemo(title)
       .then((demo) => { if (!dead) setState({ status: 'ready', demo }) })
       .catch(() => { if (!dead) setState({ status: 'failed' }) })
-    return () => { dead = true; clearTimeout(timer); ctl.abort() }
+    return () => { dead = true }
   }, [title, enabled])
   return { ...state, fail: () => { forgetDemo(title); setState({ status: 'failed' }) } }
 }

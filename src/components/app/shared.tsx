@@ -1,10 +1,13 @@
 import { Heart, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Glass } from '@/components/app/glass'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { play, step, toggle, usePlayer } from '@/lib/player'
+import { AsciiSolid } from '@/components/app/AsciiSolid'
+import type { Shape } from '@/lib/ascii3d'
+import { eraStage } from '@/lib/theme'
 import { useStore, type MediaItem } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -45,14 +48,45 @@ export function Panel({ children, className, ...rest }: { children: ReactNode; c
   )
 }
 
+/** solids for each page, in the order they join as the era dial turns back */
+const HEAD: Record<string, Shape[]> = {
+  Learn: ['knot', 'cube', 'pyramid'], Arcade: ['cube', 'pyramid', 'torus'], Podcasts: ['helix', 'sphere', 'knot'], News: ['pyramid', 'cube', 'sphere'], Together: ['sphere', 'torus', 'helix'],
+  Settings: ['torus', 'cube', 'knot'], Debrief: ['sphere', 'knot', 'helix'], Recommend: ['pyramid', 'torus', 'cube'], 'Free ebooks': ['cube', 'helix', 'sphere'], 'Your attention, measured': ['helix', 'torus', 'pyramid'], Radio: ['sphere', 'torus', 'helix'], TV: ['cube', 'pyramid', 'torus'],
+}
+
+/** A few little 3D text solids in the free space between the page title and its controls: one at the clean end of the dial, more as it turns back, never more than the room holds. */
+function HeadSolids({ name }: { name: string }) {
+  const stage = useStore((s) => eraStage(s.settings.era))
+  const calm = useStore((s) => s.settings.motion === 0)
+  const list = HEAD[name] ?? ['torus', 'cube', 'knot']
+  const want = stage >= 4 ? 3 : stage >= 2 ? 2 : 1
+  const still = calm || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const box = useRef<HTMLDivElement>(null)
+  const [room, setRoom] = useState(0)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setRoom(e.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const fit = Math.min(want, Math.floor(room / 92))
+  return (
+    <div ref={box} aria-hidden className="pointer-events-none hidden min-w-0 flex-1 items-start justify-center gap-1 self-start overflow-hidden text-signal opacity-55 lg:flex">
+      {list.slice(0, fit).map((sh, i) => <AsciiSolid key={sh} shape={sh} cols={22} rows={10} speed={0.7 + i * 0.2} still={still} phase={i * 1.7} className="text-[6.5px]" />)}
+    </div>
+  )
+}
+
 export function PageHeader({ title, sub, kicker, children }: { title: string; sub?: ReactNode; kicker?: string; children?: ReactNode }) {
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <header className="relative flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         {kicker && <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{kicker}</div>}
         <h1 className="dot text-[clamp(1.6rem,3.4vw,2.4rem)] font-bold uppercase text-ink">{title}</h1>
         {sub && <p className="mt-0.5 max-w-[60ch] text-sm text-ink-2">{sub}</p>}
       </div>
+      <HeadSolids name={kicker ?? title} />
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
   )

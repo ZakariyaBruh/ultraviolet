@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { BREAK_MIN, finishBonus, rateAt, SHOP } from './credits'
+import { BREAK_MIN, CAPSULE_MAX, finishBonus, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
@@ -75,6 +75,8 @@ export interface ActiveSession {
   /** a paid break is running until this time (ms) */
   breakUntil?: number
   breaks?: number
+  /** drifts a streak shield absorbed this session */
+  shielded?: number
 }
 
 export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
@@ -118,8 +120,27 @@ export interface Credits {
   best: Record<string, number>
   log: { t: number; n: number; why: string }[]
   /** things bought in the shop */
-  items?: { breaks: number; brick: boolean; clunks: number }
+  items?: Items
 }
+
+/** What the shop has sold you: things to spend (counts) and things to keep (`owned`), plus the settings of the ones you can adjust. */
+export interface Items {
+  breaks: number
+  longBreaks: number
+  shields: number
+  lifelines: number
+  owned: string[]
+  clunks: number
+  spins: number
+  /** the solid in the timer, when the Solids pack is owned ('' is the donut) */
+  dial: string
+  /** sound machine levels, 0 to 1 per layer */
+  mix: Record<string, number>
+  /** a note waiting to open after the next finished session */
+  capsule: string
+}
+export const noItems = (): Items => ({ breaks: 0, longBreaks: 0, shields: 0, lifelines: 0, owned: [], clunks: 0, spins: 0, dial: '', mix: {}, capsule: '' })
+export const itemsOf = (c: Credits): Items => ({ ...noItems(), ...c.items })
 
 type HourLog = Record<string, number[]>
 export type SourceKey = MediaKind | 'silent'
@@ -150,8 +171,13 @@ interface Data {
 interface Actions {
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
-  buyItem: (id: 'break' | 'brick') => boolean
-  useBreak: () => void
+  buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
+  sealCapsule: (text: string) => boolean
+  useBreak: (long?: boolean) => void
+  useLifeline: () => boolean
+  setDial: (shape: string) => void
+  setMix: (layer: string, level: number) => void
+  addSpins: (n: number) => void
   endBreak: () => void
   clunk: () => void
   setBest: (game: string, score: number) => void
@@ -160,7 +186,6 @@ interface Actions {
   setSessionSource: (source: MediaKind | 'silent', title: string) => void
   tick: (sec?: number) => void
   addLapse: () => void
-  togglePause: () => void
   endSession: (completed: boolean) => void
   toggleFavorite: (item: MediaItem) => void
   toggleBook: (book: BookRef) => void
@@ -214,7 +239,7 @@ const emptyData = (): Data => ({
   books: [],
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
-  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: { breaks: 0, brick: false, clunks: 0 } },
+  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -264,7 +289,11 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         if (isObj(v.best)) for (const [g, sc] of Object.entries(v.best)) if (typeof sc === 'number' && isFinite(sc) && sc >= 0) best[g.slice(0, 20)] = Math.floor(sc)
         const log = Array.isArray(v.log) ? v.log.filter((r) => isObj(r) && typeof r.t === 'number' && typeof r.n === 'number' && typeof r.why === 'string').slice(0, 40) : []
         const it = isObj(v.items) ? v.items : {}
-        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), brick: it.brick === true, clunks: n(it.clunks) } }
+        const owned = Array.isArray(it.owned) ? it.owned.filter((x): x is string => typeof x === 'string' && x in SHOP).slice(0, 20) : []
+        if (it.brick === true && !owned.includes('brick')) owned.push('brick') // from before there was a list
+        const mix: Record<string, number> = {}
+        if (isObj(it.mix)) for (const [l, lv] of Object.entries(it.mix)) if (typeof lv === 'number' && isFinite(lv)) mix[l.slice(0, 12)] = Math.min(1, Math.max(0, lv))
+        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), longBreaks: n(it.longBreaks), shields: n(it.shields), lifelines: n(it.lifelines), owned, clunks: n(it.clunks), spins: n(it.spins), dial: typeof it.dial === 'string' ? it.dial.slice(0, 12) : '', mix, capsule: typeof it.capsule === 'string' ? it.capsule.slice(0, CAPSULE_MAX) : '' } }
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -381,16 +410,18 @@ export const useStore = create<AppState>()(
         const key = dateKey(now)
         const row = hours(s.urgeLog, key)
         row[now.getHours()] += 1
+        // a streak shield keeps a long clean streak alive through one drift; the drift itself is still counted
+        const have = itemsOf(s.credits)
+        const shielded = !!s.session && have.shields > 0 && (s.session.cleanSec ?? 0) >= 600
         set({
           urgeLog: { ...s.urgeLog, [key]: row },
           lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
-          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: 0 } : null,
+          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: shielded ? s.session.cleanSec : 0, shielded: (s.session.shielded ?? 0) + (shielded ? 1 : 0) } : null,
+          ...(shielded ? { credits: { ...s.credits, items: { ...have, shields: have.shields - 1 } } } : {}),
         })
-        get().log('wander', s.session ? `You left the tab during ${s.session.title}` : 'You left the tab mid-session')
+        get().log('wander', s.session ? `You left the tab during ${s.session.title}${shielded ? '. A streak shield kept the clean streak' : ''}` : 'You left the tab mid-session')
+        if (shielded) useFx.getState().say({ title: 'Shield used', description: 'Your clean streak carries on. The drift still counts.' })
       },
-
-      togglePause: () =>
-        set((s) => (s.session ? { session: { ...s.session, paused: !s.session.paused, breakUntil: undefined } } : s)),
 
       endSession: (completed) => {
         const s = get()
@@ -415,7 +446,10 @@ export const useStore = create<AppState>()(
         })
         const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses) : 0)
         if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
-        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
+        // a sealed time capsule opens once, after a session that was finished
+        const note = completed ? itemsOf(get().credits).capsule : ''
+        if (note) set((st) => ({ credits: { ...st.credits, items: { ...itemsOf(st.credits), capsule: '' } } }))
+        if (completed) useUI.getState().set({ celebrate: { title: note ? 'A note from past you' : 'Session complete', detail: `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
         // a finished session gets the celebration card instead of a toast
         if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
@@ -432,24 +466,51 @@ export const useStore = create<AppState>()(
         return true
       },
       buyItem: (id) => {
-        const price = SHOP[id].price
-        const have = get().credits.items ?? { breaks: 0, brick: false, clunks: 0 }
-        if (id === 'brick' && have.brick) return false
-        if (!get().spendCredits(price, `Bought ${SHOP[id].name}`)) return false
-        set((s) => ({ credits: { ...s.credits, items: { ...have, breaks: have.breaks + (id === 'break' ? 1 : 0), brick: have.brick || id === 'brick' } } }))
+        const it = SHOP[id]
+        const have = itemsOf(get().credits)
+        if (it.kind === 'unlock' && have.owned.includes(id)) return false
+        if (!get().spendCredits(it.price, `Bought ${it.name}`)) return false
+        set((s) => {
+          const h = itemsOf(s.credits)
+          const next: Items = { ...h }
+          if (id === 'break') next.breaks += 1
+          else if (id === 'longbreak') next.longBreaks += 1
+          else if (id === 'shield') next.shields += 1
+          else if (id === 'lifeline') next.lifelines += LIFELINES_PER_PACK
+          else if (!next.owned.includes(id)) next.owned = [...next.owned, id]
+          return { credits: { ...s.credits, items: next } }
+        })
         return true
       },
-      /** Spend a break: the session pauses for five minutes, leaving the tab is not a drift, and it is recorded as a break. */
-      useBreak: () => {
+      /** Seal a note to yourself. It opens, once, after your next finished session. */
+      sealCapsule: (text) => {
+        const note = text.replace(/\s+/g, ' ').trim().slice(0, CAPSULE_MAX)
+        if (!note || itemsOf(get().credits).capsule) return false
+        if (!get().spendCredits(SHOP.capsule.price, 'Bought a Time capsule')) return false
+        set((s) => ({ credits: { ...s.credits, items: { ...itemsOf(s.credits), capsule: note } } }))
+        return true
+      },
+      /** Spend a break: the session pauses, leaving the tab is not a drift, and it is recorded as a break. */
+      useBreak: (long = false) => {
         const s = get()
         const a = s.session
-        const have = s.credits.items
-        if (!a || a.paused || !have || have.breaks < 1) return
-        set({ session: { ...a, paused: true, breakUntil: Date.now() + BREAK_MIN * 60e3, breaks: (a.breaks ?? 0) + 1 }, credits: { ...s.credits, items: { ...have, breaks: have.breaks - 1 } } })
-        get().log('session', `Took a ${BREAK_MIN} minute break during ${a.title}`)
+        const have = itemsOf(s.credits)
+        if (!a || a.paused || (long ? have.longBreaks : have.breaks) < 1) return
+        const min = long ? LONG_BREAK_MIN : BREAK_MIN
+        set({ session: { ...a, paused: true, breakUntil: Date.now() + min * 60e3, breaks: (a.breaks ?? 0) + 1 }, credits: { ...s.credits, items: { ...have, breaks: have.breaks - (long ? 0 : 1), longBreaks: have.longBreaks - (long ? 1 : 0) } } })
+        get().log('session', `Took a ${min} minute break during ${a.title}`)
       },
       endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
-      clunk: () => set((s) => ({ credits: { ...s.credits, items: { breaks: 0, brick: false, ...s.credits.items, clunks: (s.credits.items?.clunks ?? 0) + 1 } } })),
+      useLifeline: () => {
+        const have = itemsOf(get().credits)
+        if (have.lifelines < 1) return false
+        set((s) => ({ credits: { ...s.credits, items: { ...have, lifelines: have.lifelines - 1 } } }))
+        return true
+      },
+      setDial: (shape) => set((s) => ({ credits: { ...s.credits, items: { ...itemsOf(s.credits), dial: shape } } })),
+      setMix: (layer, level) => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, mix: { ...h.mix, [layer]: Math.min(1, Math.max(0, level)) } } } } }),
+      addSpins: (n) => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, spins: h.spins + n } } } }),
+      clunk: () => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, clunks: h.clunks + 1 } } } }),
       setBest: (game, score) => set((s) => (score > (s.credits.best[game] ?? 0) ? { credits: { ...s.credits, best: { ...s.credits.best, [game]: Math.floor(score) } } } : s)),
 
       setLearn: (learn) => set({ learn }),

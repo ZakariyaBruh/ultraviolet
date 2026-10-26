@@ -1,5 +1,4 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { RetroBits } from '@/components/app/RetroBits'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
 import { ArcadeView } from '@/views/ArcadeView'
@@ -34,6 +33,7 @@ import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
+import { Mixer } from '@/components/app/shop/Mixer'
 import { TogetherView } from '@/views/TogetherView'
 import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
@@ -147,6 +147,15 @@ export default function App() {
 
       <SpotlightSearch open={ui.searchOpen} onOpenChange={(o) => ui.set({ searchOpen: o })} onClose={() => ui.set({ searchOpen: false })} items={items} placeholder="Search screens, stations, actions, components" />
 
+      <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <SheetTitle>Sound machine</SheetTitle>
+            <SheetDescription>Made here, out of noise. Nothing is downloaded.</SheetDescription>
+          </SheetHeader>
+          <SheetBody><Mixer /></SheetBody>
+        </SheetContent>
+      </Sheet>
       <Sheet open={ui.tuneOpen} onOpenChange={(o) => ui.set({ tuneOpen: o })}>
         <SheetContent side="bottom">
           <SheetHeader>
@@ -188,7 +197,7 @@ export default function App() {
       </Sheet>
 
       <Onboarding />
-      <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden /><RetroBits />
+      <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast
         key={notice?.id}

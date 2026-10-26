@@ -1,4 +1,4 @@
-import { Coffee, Pause, Play, Radio } from 'lucide-react'
+import { Coffee, Hourglass, Play, Radio, Volume2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
@@ -10,6 +10,9 @@ import { AnimatedNumber } from '@/components/ui/animated-number'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { Stepper } from '@/components/ui/stepper'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
+import { useStretch, useBreath } from '@/components/app/BreakKit'
+import type { Shape } from '@/lib/ascii3d'
+import { useAmbience } from '@/lib/ambience'
 import { fx_say, quickPlay } from '@/lib/actions'
 import { PRESETS } from '@/lib/commands'
 import { nextTier, rateAt } from '@/lib/credits'
@@ -17,23 +20,23 @@ import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, streak, sum } from '@/lib/stats'
-import { useStore } from '@/lib/store'
+import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import type { View } from '@/components/app/Shell'
 
 
 /** Retro ground (ASCII torus in a CRT window) under a futuristic clock: wide light numerals and a hairline progress rule. */
-function FrictionDial({ progress, left, running, paused, live, note }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean; note?: ReactNode }) {
+function FrictionDial({ progress, left, running, paused, live, note, shape }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean; note?: ReactNode; shape: Shape }) {
   const level = useStore((s) => s.settings.motion)
   const phone = useMedia('(max-width: 639px)')
   return (
     <Glass className="relative flex h-[min(38dvh,340px)] min-h-[220px] w-[clamp(300px,32vw,440px)] max-w-full shrink-0 flex-col items-center justify-between overflow-hidden px-4 py-4 max-lg:h-[min(32dvh,270px)]">
       <div className="hud relative z-10 flex w-full items-center justify-between">
-        <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'Paused' : 'Locked in'}</span>
+        <span className="flex items-center gap-2">{running && <span className="live-dot" />}{!live ? 'Ready' : paused ? 'On a break' : 'Locked in'}</span>
         <span className="text-ice">{live ? `${Math.round(progress * 100)}%` : '00%'}</span>
       </div>
       <div className="crt pointer-events-none absolute inset-3 grid place-items-center overflow-hidden text-signal opacity-60" aria-hidden>
-        <AsciiSolid cols={phone ? 40 : 58} rows={phone ? 20 : 26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[6px] sm:text-[8px] lg:text-[10px]" />
+        <AsciiSolid shape={shape} cols={phone ? 40 : 58} rows={phone ? 20 : 26} speed={running ? 2.2 : paused ? 0 : 0.7} still={level === 0} className="text-[6px] sm:text-[8px] lg:text-[10px]" />
       </div>
       <div className="dot relative z-10 text-[clamp(2.2rem,6.4vw,3.9rem)] font-light text-ink [text-shadow:0_0_12px_var(--ground),0_0_3px_var(--ground)]" role="timer" aria-label={`${fmtClock(left)} left`}>
         {fmtClock(left)}
@@ -49,14 +52,16 @@ function FrictionDial({ progress, left, running, paused, live, note }: { progres
   )
 }
 
-/** On a break the dial says so, and for how long. */
-function BreakClock({ until }: { until: number }) {
+/** On a break the dial says so, and for how long. With the Break kit it also breathes with you and offers a stretch. */
+function BreakClock({ until, kit }: { until: number; kit: boolean }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t) }, [])
+  const { label, left } = useBreath()
+  const { text } = useStretch()
   return (
-    <p className="hud flex flex-col items-center text-center leading-[1.5]" role="status">
+    <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5]" role="status">
       <span>On a break · <span className="fig text-ink">{fmtClock(Math.max(0, Math.ceil((until - now) / 1000)))}</span> left</span>
-      <span className="text-ink-3">Timer waits · tab is free</span>
+      {kit ? <><span className="text-signal">{label} <span className="fig">{left}</span></span><span className="max-w-[30ch] text-ink-2 normal-case">{text}</span></> : <span className="text-ink-3">Timer waits · tab is free</span>}
     </p>
   )
 }
@@ -65,18 +70,36 @@ function BreakClock({ until }: { until: number }) {
 function CreditMeter() {
   const cleanSec = useStore((x) => x.session?.cleanSec ?? 0)
   const credit = useStore((x) => x.session?.credit ?? 0)
+  const shields = useStore((x) => itemsOf(x.credits).shields)
   const next = nextTier(cleanSec)
   return (
-    <p className="hud flex flex-col items-center text-center leading-[1.5]" role="status" aria-live="off">
+    <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5] ![text-shadow:0_0_5px_var(--ground),0_0_5px_var(--ground),0_0_2px_var(--ground)]" role="status" aria-live="off">
       <span><span className="fig text-ink">{rateAt(cleanSec)}</span> credits a min · clean <span className="fig text-ink">{fmtClock(Math.floor(cleanSec))}</span> · +<span className="fig text-ink">{Math.floor(credit)}</span></span>
-      {next && <span className="text-ink-3">{next.rate} a min in <span className="fig">{fmtClock(Math.ceil(next.inSec))}</span> if you stay</span>}
+      {next && <span className="text-ink-3">{next.rate} a min in <span className="fig">{fmtClock(Math.ceil(next.inSec))}</span> if you stay{shields > 0 && <> · shield <span className="fig text-signal">×{shields}</span></>}</span>}
+      {!next && shields > 0 && <span className="text-ink-3">shield <span className="fig text-signal">×{shields}</span> ready</span>}
     </p>
+  )
+}
+
+/** The sound machine's button, when you own it: opens the mixer and shows whether it is playing. */
+function SoundsButton() {
+  const on = useAmbience((s) => s.on)
+  return (
+    <Glass radius={999} clear as="button" onClick={() => useUI.getState().set({ soundOpen: true })} aria-label={on ? 'Sound machine, playing' : 'Sound machine'} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
+      <Volume2 className="size-4" />Sounds{on && <span className="live-dot" aria-hidden />}
+    </Glass>
   )
 }
 
 export function FocusView({ go }: { go: (v: View) => void }) {
   const session = useStore((s) => s.session)
-  const breaks = useStore((s) => s.credits.items?.breaks ?? 0)
+  const credits = useStore((s) => s.credits)
+  const items = itemsOf(credits)
+  const breaks = items.breaks
+  const longBreaks = items.longBreaks
+  const hasSound = items.owned.includes('sound')
+  const hasKit = items.owned.includes('kit')
+  const dial = (items.owned.includes('solids') && items.dial ? items.dial : 'torus') as Shape
   const sessionMin = useStore((s) => s.settings.sessionMin)
   const setSettings = useStore((s) => s.setSettings)
   const focusLog = useStore((s) => s.focusLog)
@@ -142,7 +165,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         )}
 
         <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
-          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} /> : <CreditMeter />) : undefined} />
+          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : <CreditMeter />) : undefined} />
 
           <AnimatePresence mode="wait" initial={false}>
             {!session ? (
@@ -151,20 +174,33 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                   <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
+                {hasSound && <SoundsButton />}
               </motion.div>
             ) : (
               <motion.div key="live" className="flex w-full max-w-[420px] flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <Glass radius={999} clear as="button" onClick={() => (session.breakUntil ? useStore.getState().endBreak() : useStore.getState().togglePause())} className="inline-flex h-12 items-center gap-2 px-7 text-[15px] font-medium text-ink">
-                    {session.paused ? <Play className="size-4 fill-current" /> : <Pause className="size-4 fill-current" />}
-                    {session.breakUntil ? 'Back now' : session.paused ? 'Resume' : 'Pause'}
-                  </Glass>
-                  {!session.paused && breaks > 0 && (
-                    <Glass radius={999} clear as="button" onClick={() => useStore.getState().useBreak()} className="inline-flex h-12 items-center gap-2 px-6 text-[15px] font-medium text-ink">
-                      <Coffee className="size-4" />Break <span className="fig text-ink-2">{breaks}</span>
-                    </Glass>
-                  )}
-                </div>
+                {(session.breakUntil || breaks > 0 || longBreaks > 0 || hasSound) && (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {session.breakUntil ? (
+                      <Glass radius={999} clear as="button" onClick={() => useStore.getState().endBreak()} className="inline-flex h-12 items-center gap-2 px-7 text-[15px] font-medium text-ink">
+                        <Play className="size-4 fill-current" />Back now
+                      </Glass>
+                    ) : (
+                      <>
+                        {breaks > 0 && (
+                          <Glass radius={999} clear as="button" onClick={() => useStore.getState().useBreak()} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
+                            <Coffee className="size-4" />Break <span className="fig text-ink-2">{breaks}</span>
+                          </Glass>
+                        )}
+                        {longBreaks > 0 && (
+                          <Glass radius={999} clear as="button" onClick={() => useStore.getState().useBreak(true)} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
+                            <Hourglass className="size-4" />Long <span className="fig text-ink-2">{longBreaks}</span>
+                          </Glass>
+                        )}
+                      </>
+                    )}
+                    {hasSound && <SoundsButton />}
+                  </div>
+                )}
                 <div className="w-full">
                   <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />
                 </div>

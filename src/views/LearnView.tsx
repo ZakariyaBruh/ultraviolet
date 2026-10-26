@@ -5,7 +5,7 @@ import { FitText, PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
 import { Demo, demoFor } from '@/components/app/demos'
 import { AiDemoFrame, DemoWaiting } from '@/components/app/demos/AiDemo'
-import { useAiDemo } from '@/lib/aidemo'
+import { prefetchDemo, useAiDemo } from '@/lib/aidemo'
 import { Build, Estimate, Match, Sequence, Timeline, TrueFalse, TypeIt } from '@/components/app/LessonSteps'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
@@ -14,7 +14,7 @@ import { lessonCredits, triviaCredits } from '@/lib/credits'
 import { addCards, buildSteps, dropCard, earn, fetchTrivia, finishLesson, gradeCard, hideYear, learnOf, loadLesson, randomTopic, SCORED, searchTopics, streakOf, TOPICS, triviaCategories, type Hit, type Lesson, type Step, type Trivia } from '@/lib/learn'
 import { dateKey } from '@/lib/dates'
 import { notify } from '@/lib/notify'
-import { useStore } from '@/lib/store'
+import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
@@ -22,25 +22,38 @@ const ease = [0.2, 0, 0, 1] as const
 /** trivia can be played all day, but it pays credits for three rounds a day */
 const TRIVIA_PAID_PER_DAY = 3
 
-/** One multiple-choice question. Right and wrong are shown by icon and word as well as colour. */
+/** One multiple-choice question. Right and wrong are shown by icon and word as well as colour. A 50:50 lifeline takes two wrong answers away. */
 function Choices({ options, answer, picked, onPick }: { options: string[]; answer: number; picked: number | null; onPick: (i: number) => void }) {
+  const lifelines = useStore((s) => itemsOf(s.credits).lifelines)
+  const [gone, setGone] = useState<number[]>([])
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { const n = Number(e.key); if (picked === null && n >= 1 && n <= options.length && !(e.target as Element).closest('input,textarea')) onPick(n - 1) }
+    const k = (e: KeyboardEvent) => { const n = Number(e.key); if (picked === null && n >= 1 && n <= options.length && !gone.includes(n - 1) && !(e.target as Element).closest('input,textarea')) onPick(n - 1) }
     addEventListener('keydown', k)
     return () => removeEventListener('keydown', k)
-  }, [picked, options.length, onPick])
+  }, [picked, options.length, onPick, gone])
+  const fifty = () => {
+    if (picked !== null || gone.length || options.length < 4 || !useStore.getState().useLifeline()) return
+    const wrong = options.map((_, i) => i).filter((i) => i !== answer).sort(() => Math.random() - 0.5)
+    setGone(wrong.slice(0, 2))
+  }
   return (
-    <div role="group" aria-label="Answers" className="grid gap-2 sm:grid-cols-2">
-      {options.map((o, i) => {
-        const right = picked !== null && i === answer
-        const wrong = picked === i && i !== answer
-        return (
-          <button key={o + i} disabled={picked !== null} onClick={() => onPick(i)} className={cn('flex min-h-[52px] items-center gap-3 border px-3 py-2 text-left text-[15px] transition-colors disabled:cursor-default', right ? 'border-signal bg-signal/15' : wrong ? 'border-ink/60 bg-ink/10 line-through decoration-1' : 'border-ink/25 hover:border-signal/70 hover:bg-ink/[0.06] disabled:opacity-60')}>
-            <span className={cn('grid size-7 shrink-0 place-items-center border text-[13px] font-semibold', right ? 'border-signal bg-signal text-on-signal' : 'border-ink/30')}>{right ? <Check className="size-4" /> : wrong ? <X className="size-4" /> : i + 1}</span>
-            <span className="min-w-0">{o}{right && <span className="sr-only"> (correct)</span>}{wrong && <span className="sr-only"> (your answer, not correct)</span>}</span>
-          </button>
-        )
-      })}
+    <div className="grid gap-2">
+      <div role="group" aria-label="Answers" className="grid gap-2 sm:grid-cols-2">
+        {options.map((o, i) => {
+          const right = picked !== null && i === answer
+          const wrong = picked === i && i !== answer
+          const out = gone.includes(i)
+          return (
+            <button key={o + i} disabled={picked !== null || out} onClick={() => onPick(i)} className={cn('flex min-h-[52px] items-center gap-3 border px-3 py-2 text-left text-[15px] transition-colors disabled:cursor-default', right ? 'border-signal bg-signal/15' : wrong ? 'border-ink/60 bg-ink/10 line-through decoration-1' : out ? 'border-ink/15 opacity-35 line-through decoration-1' : 'border-ink/25 hover:border-signal/70 hover:bg-ink/[0.06] disabled:opacity-60')}>
+              <span className={cn('grid size-7 shrink-0 place-items-center border text-[13px] font-semibold', right ? 'border-signal bg-signal text-on-signal' : 'border-ink/30')}>{right ? <Check className="size-4" /> : wrong ? <X className="size-4" /> : i + 1}</span>
+              <span className="min-w-0">{o}{right && <span className="sr-only"> (correct)</span>}{wrong && <span className="sr-only"> (your answer, not correct)</span>}{out && <span className="sr-only"> (taken away)</span>}</span>
+            </button>
+          )
+        })}
+      </div>
+      {picked === null && !gone.length && lifelines > 0 && options.length >= 4 && (
+        <button onClick={fifty} className="inline-flex h-11 w-fit items-center gap-2 border border-signal px-4 text-sm font-semibold text-signal hover:bg-signal/10">50:50 <span className="fig text-ink-2">{lifelines} left</span></button>
+      )}
     </div>
   )
 }
@@ -365,6 +378,7 @@ export function LearnView() {
 
   const open = async (title: string) => {
     setLoading(title); setErr('')
+    if (useStore.getState().settings.aiDemos !== false && !demoFor(title)) prefetchDemo(title) // the demo takes the longest, so it starts first
     try { setLesson(await loadLesson(title)) } catch { setErr(`“${title}” has too little to teach from. Try a broader topic.`) } finally { setLoading(null) }
   }
   const stats = learnOf()

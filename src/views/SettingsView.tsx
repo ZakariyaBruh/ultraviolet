@@ -97,12 +97,12 @@ function Colours() {
 }
 
 const STOPS = [
-  { name: 'Future', note: 'Clean and sharp. No scanlines, no grain, no pixels.' },
-  { name: 'Afterglow', note: 'A faint scanline, a little grain, a warm tint around the clean lines.' },
-  { name: 'Broadcast', note: 'Adds an on-screen display (channel and REC) and pixel kickers.' },
-  { name: 'Arcade', note: 'Adds pixel titles, stepped corners, hard shadows, a pixel pointer, a marquee and sprites.' },
-  { name: 'Tube TV', note: 'Every word turns to pixel type. Curved glass, a rolling bar and split colour on titles.' },
-  { name: 'Full 8-bit', note: 'Press Start titles, dithered panels with hard borders, a bezel and a row of sprites.' },
+  { name: 'Future', note: 'Clean and sharp. No filters. A small solid drawn in text turns beside each page title and inside the timer.' },
+  { name: 'Afterglow', note: 'A faint scanline, a little grain, a warm tint, and a text solid turning in the corner of the screen.' },
+  { name: 'Broadcast', note: 'Adds an on-screen display (channel and REC), pixel kickers and a second solid. This is as far as the screen effects go.' },
+  { name: 'Arcade', note: 'Pixel titles and labels, hard shadows, three solids and a perspective floor, all drawn in text.' },
+  { name: 'Terminal', note: 'Dashed panels, a prompt before page titles, stars and five solids. Same light touch on the screen itself.' },
+  { name: 'Full ASCII', note: 'Seven solids and a whole text world behind everything, square panels, heavier dashes. Words stay easy to read.' },
 ]
 function Era() {
   const era = useStore((x) => x.settings.era)
