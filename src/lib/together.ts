@@ -1,3 +1,4 @@
+import { apiFetch } from './api'
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { fx_say } from './actions'
@@ -40,7 +41,7 @@ const set = useRoom.setState
 
 async function call<T = RoomState>(body: Record<string, unknown>): Promise<T> {
   const me = await identity()
-  const r = await fetch('/api/room', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: me.code, ...body }) })
+  const r = await apiFetch('/api/room', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: me.code, ...body }) })
   const j = (await r.json().catch(() => ({}))) as { error?: string }
   if (!r.ok) throw new Error(j.error || 'The room did not answer.')
   return j as T

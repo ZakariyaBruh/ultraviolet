@@ -1,3 +1,4 @@
+import { apiFetch } from './api'
 /**
  * Recommendations and the leaderboard. Your browser holds a private key; a short public code is made from it
  * and goes in your share link. When someone new arrives through that link and tunes in, the code is counted once.
@@ -53,17 +54,17 @@ export async function countRecommend() {
   ls.set(COUNTED, '1')
   try {
     if (from === (await identity()).code) return
-    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'recommend', code: from }) })
+    await apiFetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'recommend', code: from }) })
   } catch { /* offline: the recommend is simply not counted */ }
 }
 
 export async function loadBoard(): Promise<{ min: number; rows: Row[] }> {
-  const r = await fetch('/api/lb?a=board')
+  const r = await apiFetch('/api/lb?a=board')
   if (!r.ok) throw new Error('board')
   return r.json()
 }
 export async function loadStanding(me: Me): Promise<Standing> {
-  const r = await fetch(`/api/lb?a=me&key=${me.key}`)
+  const r = await apiFetch(`/api/lb?a=me&key=${me.key}`)
   if (!r.ok) throw new Error('me')
   return r.json()
 }
@@ -71,7 +72,7 @@ export type NameResult = 'ok' | 'taken' | 'reserved' | 'invalid' | 'error'
 /** Asks the board to show this alias. Names are unique: "Zak", "zak" and "Z.a.k" are the same name. */
 export async function sendName(me: Me, name: string): Promise<NameResult> {
   try {
-    const r = await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'name', key: me.key, name }) })
+    const r = await apiFetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'name', key: me.key, name }) })
     if (!r.ok) return 'error'
     const j = (await r.json()) as { ok: boolean; reason?: string }
     return j.ok ? 'ok' : (j.reason as NameResult) || 'error'
@@ -80,7 +81,7 @@ export async function sendName(me: Me, name: string): Promise<NameResult> {
 /** Is this alias already on the board (or not allowed)? Checked before you commit to it. */
 export async function checkName(name: string): Promise<'free' | 'taken' | 'reserved' | 'error'> {
   try {
-    const r = await fetch(`/api/lb?a=check&name=${encodeURIComponent(name)}`)
+    const r = await apiFetch(`/api/lb?a=check&name=${encodeURIComponent(name)}`)
     if (!r.ok) return 'error'
     const j = (await r.json()) as { taken: boolean; reserved: boolean }
     return j.reserved ? 'reserved' : j.taken ? 'taken' : 'free'

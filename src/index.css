@@ -427,3 +427,11 @@ html[data-retro='5'] :is(.hud, .kicker) { font-size: 11px; }
 html[data-retro='5'] :is(.glass, .material) { border: 2px solid var(--signal); background-image: repeating-conic-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 0 25%, transparent 0 50%); background-size: 4px 4px; box-shadow: 4px 4px 0 0 #000; }
 html[data-retro='5'] button { border-radius: 0 !important; }
 
+
+/* the end-session slider, set in the station's own voice: flat, ruled, one yellow, condensed capitals */
+.slide-end { max-width: 19rem; margin-inline: auto; }
+.slide-end > div:first-child { border-radius: 0 !important; background: transparent !important; border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent) !important; box-shadow: none !important; }
+.slide-end > div:first-child > div:first-child { border-radius: 0 !important; background: color-mix(in srgb, var(--signal) 24%, transparent) !important; border-right: 1px solid var(--signal) !important; }
+.slide-end > div:first-child > div:nth-child(2) { font-family: var(--font-cond); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.slide-end [role='slider'] { border-radius: 0 !important; background: var(--signal) !important; border: 0 !important; box-shadow: none !important; color: var(--on-signal) !important; }
+.slide-end [role='slider'] svg { color: var(--on-signal) !important; }

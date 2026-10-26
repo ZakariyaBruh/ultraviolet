@@ -1,0 +1,16 @@
+{
+  "name": "friction-whop",
+  "private": true,
+  "type": "module",
+  "description": "Builds the same app as a Whop-hosted site (a Cloudflare Worker plus static files). See ../CLAUDE.md.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy": "whop apps deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.26.0",
+    "@whop/cli": "latest",
+    "wrangler": "^4.70.0"
+  }
+}

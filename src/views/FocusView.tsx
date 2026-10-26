@@ -130,7 +130,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                   {session.paused ? 'Resume' : 'Pause'}
                 </Glass>
                 <div className="w-full">
-                  <DragToConfirm label="Slide to end session" confirmedLabel="Ended" actionType="delete" size="md" onConfirm={() => useStore.getState().endSession(false)} />
+                  <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />
                 </div>
               </motion.div>
             )}
