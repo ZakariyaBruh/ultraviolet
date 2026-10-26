@@ -1,18 +1,24 @@
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ExternalLink, Flame, Layers, Shuffle, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitText, PageHeader, Panel, Seg } from '@/components/app/shared'
 import { Scrubber, useSwipe } from '@/components/app/Scrubber'
+import { Demo, demoFor } from '@/components/app/demos'
+import { Build, Estimate, Match, Sequence, Timeline, TrueFalse, TypeIt } from '@/components/app/LessonSteps'
 import { IOSSearchBar } from '@/components/ui/ios-search-bar'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { useGridFit } from '@/lib/hooks'
-import { addCards, buildSteps, dropCard, earn, fetchTrivia, finishLesson, gradeCard, learnOf, loadLesson, randomTopic, searchTopics, streakOf, TOPICS, triviaCategories, type Hit, type Lesson, type Step, type Trivia } from '@/lib/learn'
+import { lessonCredits, triviaCredits } from '@/lib/credits'
+import { addCards, buildSteps, dropCard, earn, fetchTrivia, finishLesson, gradeCard, hideYear, learnOf, loadLesson, randomTopic, SCORED, searchTopics, streakOf, TOPICS, triviaCategories, type Hit, type Lesson, type Step, type Trivia } from '@/lib/learn'
+import { dateKey } from '@/lib/dates'
 import { notify } from '@/lib/notify'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
 const ease = [0.2, 0, 0, 1] as const
+/** trivia can be played all day, but it pays credits for three rounds a day */
+const TRIVIA_PAID_PER_DAY = 3
 
 /** One multiple-choice question. Right and wrong are shown by icon and word as well as colour. */
 function Choices({ options, answer, picked, onPick }: { options: string[]; answer: number; picked: number | null; onPick: (i: number) => void }) {
@@ -43,37 +49,73 @@ const Bar = ({ at, total }: { at: number; total: number }) => (
   </div>
 )
 
+const XP: Partial<Record<Step['kind'], number>> = { check: 10, tf: 8, type: 14, estimate: 12, sequence: 16, match: 18, build: 14 }
+
+/** what a miss leaves in the review deck; formats that are practice rather than facts leave nothing */
+const cardFor = (title: string, step: Step, i: number): { id: string; front: string; back: string } | null => {
+  const id = `c:${title}:${i}`
+  if (step.kind === 'check') return { id, front: step.prompt, back: `${step.options[step.answer]}. ${step.explain}` }
+  if (step.kind === 'tf') return { id, front: `True or false? ${step.statement}`, back: `${step.truth ? 'True.' : 'False.'} ${step.explain}` }
+  if (step.kind === 'type') return { id, front: step.prompt, back: `${step.answer}. ${step.explain}` }
+  if (step.kind === 'estimate') return { id, front: step.prompt, back: step.explain }
+  if (step.kind === 'sequence') return { id, front: `Which came first? ${step.items.map((it) => hideYear(it.text)).join(' / ')}`, back: `${step.items.map((it) => `${it.year}: ${it.text}`).join(' ')}` }
+  return null
+}
+
 function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: boolean) => void }) {
-  const steps = useMemo(() => buildSteps(lesson), [lesson])
+  const steps = useMemo(() => buildSteps(lesson, demoFor(lesson.title)), [lesson])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
+  const [res, setRes] = useState<boolean | null>(null)
   const [score, setScore] = useState({ ok: 0, n: 0, added: 0 })
   const [xp, setXp] = useState(0)
+  const [credit, setCredit] = useState<number | null>(null)
+  const playedAt = useRef(-1)
   const step: Step = steps[at]
   const saved = useStore((s) => s.learn?.deck?.some((c) => c.id === `i:${lesson.title}:${step.kind === 'idea' ? step.i : -1}`))
-  const swipe = useSwipe(() => at < steps.length - 1 && step.kind === 'idea' && setAt(at + 1), () => at > 0 && step.kind === 'idea' && setAt(at - 1))
+  const swipe = useSwipe(() => at < steps.length - 1 && step.kind === 'idea' && go(), () => at > 0 && step.kind === 'idea' && back())
+  const scored = SCORED.has(step.kind)
+  const canBack = at > 0 && step.kind !== 'end' && !scored && !SCORED.has(steps[at - 1].kind)
+
+  const go = () => { setPicked(null); setRes(null); setAt((a) => Math.min(steps.length - 1, a + 1)) }
+  const back = () => { if (canBack) { setPicked(null); setRes(null); setAt(at - 1) } }
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.target as Element).closest('input,textarea')) return
       if (e.key === 'ArrowRight' && step.kind === 'idea') go()
-      if (e.key === 'ArrowLeft' && at > 0 && step.kind === 'idea') setAt(at - 1)
+      if (e.key === 'ArrowLeft' && step.kind === 'idea') back()
       if (e.key === 'Escape') onExit()
     }
     addEventListener('keydown', k)
     return () => removeEventListener('keydown', k)
   })
 
-  const go = () => { setPicked(null); setAt((a) => Math.min(steps.length - 1, a + 1)) }
-  const answer = (i: number) => {
-    if (picked !== null || (step.kind !== 'check' && step.kind !== 'order')) return
-    setPicked(i)
-    const ok = step.kind === 'check' ? i === step.answer : i === step.first
-    setScore((s) => ({ ok: s.ok + (ok ? 1 : 0), n: s.n + 1, added: s.added + (ok ? 0 : 1) }))
-    if (ok) { earn(10); setXp((x) => x + 10) }
-    else if (step.kind === 'check') addCards([{ id: `c:${lesson.title}:${step.idea}`, front: step.prompt, back: `${step.options[step.answer]}. ${step.explain}` }])
+  /** one answer to one scored step: marks it, pays XP, and keeps a miss for review */
+  const record = (ok: boolean) => {
+    if (res !== null || !SCORED.has(step.kind)) return
+    setRes(ok)
+    const card = ok ? null : cardFor(lesson.title, step, at)
+    if (card) addCards([card])
+    setScore((s) => ({ ok: s.ok + (ok ? 1 : 0), n: s.n + 1, added: s.added + (card ? 1 : 0) }))
+    const gain = XP[step.kind] ?? 0
+    if (ok && gain) { earn(gain); setXp((x) => x + gain) }
   }
-  useEffect(() => { if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) } else if (step.kind === 'end') { { const prev = useStore.getState().learn.done[lesson.title]?.at; if (!prev || Date.now() - prev > 864e5) useStore.getState().earnCredits(6, `Lesson: ${lesson.title}`) } finishLesson(lesson.title, score.ok, score.n); useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}.` } }) } }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
+  const answer = (i: number) => { if (picked !== null || step.kind !== 'check') return; setPicked(i); record(i === step.answer) }
+  const played = () => { if (playedAt.current === at) return; playedAt.current = at; earn(5); setXp((x) => x + 5) }
+
+  useEffect(() => {
+    if (step.kind === 'idea') { earn(2); setXp((x) => x + 2) }
+    else if (step.kind === 'end') {
+      const prev = useStore.getState().learn.done[lesson.title]?.at
+      const fresh = !prev || Date.now() - prev > 864e5
+      const c = lessonCredits(score.ok, score.n)
+      if (fresh) useStore.getState().earnCredits(c, `Lesson: ${lesson.title}`)
+      setCredit(fresh ? c : 0)
+      finishLesson(lesson.title, score.ok, score.n)
+      useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}${fresh ? `. +${c} credits` : ''}.` } })
+    }
+  }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const idea = step.kind === 'idea' ? lesson.ideas[step.i] : null
   const keep = () => idea && step.kind === 'idea' && (saved ? dropCard(`i:${lesson.title}:${step.i}`) : addCards([{ id: `i:${lesson.title}:${step.i}`, front: `${lesson.title}: ${idea.heading}`, back: idea.text }]))
@@ -85,9 +127,9 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
         <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-semibold">{lesson.title}</div><Bar at={at} total={steps.length - 1} /></div>
         <span className="fig hud shrink-0">+{xp} XP</span>
       </div>
-      <Panel className="relative min-h-0 flex-1 overflow-hidden p-5 md:p-8" {...swipe}>
+      <Panel className="relative min-h-0 flex-1 overflow-hidden p-4 md:p-6" {...swipe}>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={at} className="flex h-full min-h-0 flex-col justify-between gap-4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease }}>
+          <motion.div key={at} className="flex h-full min-h-0 flex-col justify-between gap-3 md:gap-4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease }}>
             {idea && step.kind === 'idea' && (
               <>
                 <div className="flex min-h-0 flex-1 gap-4">
@@ -107,21 +149,23 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
               <>
                 <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">Check · fill the gap</p><FitText max={22} className="max-w-[52ch] leading-[1.45]">{step.prompt}</FitText></div>
                 <Choices options={step.options} answer={step.answer} picked={picked} onPick={answer} />
-                {picked !== null && <p role="status" className="text-[14px] text-ink-2"><strong className="text-ink">{picked === step.answer ? 'Right. ' : 'Not quite. '}</strong>{step.explain}{picked !== step.answer && ' It is in your review deck now.'}</p>}
+                {picked !== null && <p role="status" className="shrink-0 text-[14px] text-ink-2"><strong className="text-ink">{picked === step.answer ? 'Right. ' : 'Not quite. '}</strong>{step.explain}{picked !== step.answer && ' It is in your review deck now.'}</p>}
               </>
             )}
-            {step.kind === 'order' && (
-              <>
-                <div><p className="hud mb-2">Check · which came first?</p></div>
-                <Choices options={[step.a, step.b]} answer={step.first} picked={picked} onPick={answer} />
-                {picked !== null && <p role="status" className="text-[14px] text-ink-2"><strong className="text-ink">{picked === step.first ? 'Right. ' : 'Not quite. '}</strong>{step.explain}</p>}
-              </>
-            )}
+            {step.kind === 'tf' && <TrueFalse step={step} result={res} onResult={record} />}
+            {step.kind === 'type' && <TypeIt step={step} result={res} onResult={record} />}
+            {step.kind === 'estimate' && <Estimate step={step} result={res} onResult={record} />}
+            {step.kind === 'sequence' && <Sequence step={step} result={res} onResult={record} />}
+            {step.kind === 'match' && <Match step={step} result={res} onResult={record} />}
+            {step.kind === 'build' && <Build step={step} result={res} onResult={record} />}
+            {step.kind === 'timeline' && <Timeline step={step} />}
+            {step.kind === 'demo' && <Demo id={step.id} played={played} />}
             {step.kind === 'end' && (
               <div className="grid h-full content-center justify-items-start gap-3">
                 <p className="hud">Lesson complete</p>
-                <h2 className="dot text-[clamp(1.6rem,4vw,2.6rem)] font-bold">{score.n ? `${score.ok} of ${score.n} right` : 'Done'}</h2>
+                <h2 className="dot text-[clamp(1.6rem,4vw,2.6rem)] font-bold leading-[1.4]">{score.n ? `${score.ok} of ${score.n} right` : 'Done'}</h2>
                 <p className="max-w-[48ch] text-[15px] text-ink-2">{lesson.ideas.length} ideas read, +{xp} XP{score.added ? `, ${score.added} gap${score.added === 1 ? '' : 's'} added to your review deck` : ''}. Come back to the deck tomorrow and it will ask again.</p>
+                {credit !== null && <p className="fig max-w-[48ch] text-[15px]" role="status">{credit > 0 ? <><strong>+{credit} credits</strong><span className="text-ink-2"> · 3 for finishing{score.ok ? `, ${score.ok} for right answers` : ''}{score.n > 0 && score.ok === score.n ? ', 4 for a clean sheet' : ''}</span></> : <span className="text-ink-2">Credits for this lesson were paid in the last day. Come back tomorrow to earn them again.</span>}</p>}
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => onExit()} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Another topic</button>
                   <button onClick={() => onExit(true)} className="h-11 border border-ink/30 px-5 text-sm hover:bg-ink/10">Review deck</button>
@@ -133,8 +177,8 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
       </Panel>
       {step.kind !== 'end' && (
         <div className="flex shrink-0 items-center justify-between gap-2">
-          <button onClick={() => { setPicked(null); setAt(Math.max(0, at - 1)) }} disabled={at === 0 || step.kind !== 'idea'} className="inline-flex h-11 items-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" />Back</button>
-          <button onClick={go} disabled={step.kind !== 'idea' && picked === null} className="inline-flex h-11 min-w-32 items-center justify-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">{at === steps.length - 2 ? 'Finish' : 'Continue'}<ArrowRight className="size-4" /></button>
+          <button onClick={back} disabled={!canBack} className="inline-flex h-11 items-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" />Back</button>
+          <button onClick={go} disabled={scored && res === null} className="inline-flex h-11 min-w-32 items-center justify-center gap-2 bg-signal px-5 text-sm font-semibold text-on-signal disabled:opacity-40">{at === steps.length - 2 ? 'Finish' : 'Continue'}<ArrowRight className="size-4" /></button>
         </div>
       )}
     </div>
@@ -197,18 +241,25 @@ function TriviaGame() {
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
   const [ok, setOk] = useState(0)
+  const [paid, setPaid] = useState<number | null>(null)
   useEffect(() => { triviaCategories().then(setCats).catch(() => undefined) }, [])
   const start = async () => {
     setState('loading')
-    try { setQs(await fetchTrivia(cat, diff)); setAt(0); setPicked(null); setOk(0); setState('idle') } catch (e) { setState((e as Error).message === 'slow' ? 'slow' : 'error') }
+    try { setQs(await fetchTrivia(cat, diff)); setAt(0); setPicked(null); setOk(0); setPaid(null); setState('idle') } catch (e) { setState((e as Error).message === 'slow' ? 'slow' : 'error') }
   }
   const pick = (i: number) => {
     if (picked !== null || !qs) return
     setPicked(i)
-    if (i === qs[at].answer) {
-      setOk((n) => n + 1); earn(5)
-      if (at === qs.length - 1) notify('learn', `Trivia round: ${ok + 1} of ${qs.length} right.`, 'Trivia')
-      if (at === qs.length - 1 && ok + 1 >= 8) { useStore.getState().earnCredits(4, 'Sharp trivia round'); useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${ok + 1} of ${qs.length} right.` } }) }
+    const right = i === qs[at].answer
+    if (right) { setOk((n) => n + 1); earn(5) }
+    if (at === qs.length - 1) {
+      const total = ok + (right ? 1 : 0)
+      notify('learn', `Trivia round: ${total} of ${qs.length} right.`, 'Trivia')
+      const c = triviaCredits(total, qs.length)
+      const today = dateKey()
+      const paidToday = useStore.getState().credits.log.filter((e) => e.why === 'Trivia round' && dateKey(new Date(e.t)) === today).length
+      if (c > 0 && paidToday < TRIVIA_PAID_PER_DAY) { useStore.getState().earnCredits(c, 'Trivia round'); setPaid(c) } else setPaid(c > 0 ? 0 : null)
+      if (total >= 8) useUI.getState().set({ celebrate: { title: 'Sharp round', detail: `${total} of ${qs.length} right${c > 0 && paidToday < TRIVIA_PAID_PER_DAY ? `. +${c} credits` : ''}.` } })
     }
   }
   const q = qs?.[at]
@@ -216,7 +267,7 @@ function TriviaGame() {
   if (!qs || finished) {
     return (
       <Panel className="grid min-h-0 content-start gap-4 p-5">
-        {finished && <div><p className="hud">Round over</p><h2 className="dot text-[clamp(1.6rem,4vw,2.4rem)] font-bold">{ok} of {qs.length}</h2><p className="text-sm text-ink-2">+{ok * 5} XP. Another round?</p></div>}
+        {finished && <div><p className="hud">Round over</p><h2 className="dot text-[clamp(1.6rem,4vw,2.4rem)] font-bold">{ok} of {qs.length}</h2><p className="text-sm text-ink-2">+{ok * 5} XP{paid ? `, +${paid} credits` : ''}. {paid === 0 ? `Credits are paid for ${TRIVIA_PAID_PER_DAY} rounds a day. ` : ''}Another round?</p></div>}
         {!finished && <div><h2 className="text-base font-semibold">Ten questions, any subject</h2><p className="text-[13px] text-ink-2">From the Open Trivia Database. Each right answer is 5 XP.</p></div>}
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" data-allow-scroll role="group" aria-label="Subject">
           {[{ id: 0, name: 'Anything' }, ...cats].map((c) => <button key={c.id} onClick={() => setCat(c.id || null)} aria-pressed={(cat ?? 0) === c.id} className={cn('h-11 shrink-0 px-3.5 text-[13px] md:h-9', (cat ?? 0) === c.id ? 'bg-ink text-ground' : 'bg-ink/[0.07] text-ink ring-1 ring-ink/12 hover:bg-ink/12')}>{c.name.replace('Entertainment: ', '').replace('Science: ', '')}</button>)}
@@ -234,8 +285,8 @@ function TriviaGame() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <Bar at={at} total={qs.length} />
-      <Panel className="grid min-h-0 flex-1 content-between gap-4 p-5 md:p-8">
-        <div><p className="hud mb-2">{q!.category} · {q!.difficulty} · {at + 1} of {qs.length}</p><p className="max-w-[56ch] text-[clamp(1.05rem,2vw,1.5rem)] leading-[1.4]">{q!.prompt}</p></div>
+      <Panel className="flex min-h-0 flex-1 flex-col justify-between gap-4 p-5 md:p-8">
+        <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">{q!.category} · {q!.difficulty} · {at + 1} of {qs.length}</p><FitText max={24} className="max-w-[56ch] leading-[1.4]">{q!.prompt}</FitText></div>
         <Choices options={q!.options} answer={q!.answer} picked={picked} onPick={pick} />
         <div className="flex items-center justify-between gap-3">
           <p role="status" className="text-[14px] text-ink-2">{picked === null ? 'Press 1 to 4 or tap an answer.' : picked === q!.answer ? 'Right.' : `Not quite. It was “${q!.options[q!.answer]}”.`}</p>
@@ -273,8 +324,8 @@ function Review() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="hud" role="status">{queue.length} to go · box {card.box + 1} of 5</p>
-      <Panel className="grid min-h-0 flex-1 content-between gap-4 p-5 md:p-8">
-        <div className="min-h-0"><p className="hud mb-2">{flip ? 'Answer' : 'Remember this'}</p><p className="max-w-[52ch] text-[clamp(1.05rem,2vw,1.5rem)] leading-[1.45]">{flip ? card.back : card.front}</p></div>
+      <Panel className="flex min-h-0 flex-1 flex-col justify-between gap-4 p-5 md:p-8">
+        <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">{flip ? 'Answer' : 'Remember this'}</p><FitText max={24} className="max-w-[52ch] leading-[1.45]">{flip ? card.back : card.front}</FitText></div>
         <div className="flex flex-wrap gap-2">
           {!flip ? <button onClick={() => setFlip(true)} className="h-11 bg-signal px-6 text-sm font-semibold text-on-signal">Show answer</button> : (
             <>
@@ -306,12 +357,14 @@ export function LearnView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Learn" title="Learn" sub="Short lessons from Wikipedia, checks written from the text itself, trivia, and a review deck. No account, no AI.">
-        <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
-          <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
-          <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
-        </div>
-      </PageHeader>
+      {lesson ? <h1 className="sr-only">Learn: {lesson.title}</h1> : (
+        <PageHeader kicker="Learn" title="Learn" sub="Short lessons from Wikipedia, checks written from the text itself, trivia, and a review deck. No account, no AI.">
+          <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
+            <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
+            <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
+          </div>
+        </PageHeader>
+      )}
       {lesson ? (
         <div className="min-h-0 flex-1"><LessonPlayer lesson={lesson} onExit={(review) => { setLesson(null); if (review) setTab('review') }} /></div>
       ) : (

@@ -84,23 +84,69 @@ export async function loadLesson(title: string): Promise<Lesson> {
 export type Step =
   | { kind: 'idea'; i: number }
   | { kind: 'check'; prompt: string; options: string[]; answer: number; explain: string; idea: number }
-  | { kind: 'order'; a: string; b: string; first: 0 | 1; explain: string }
+  | { kind: 'tf'; statement: string; truth: boolean; explain: string; idea: number }
+  | { kind: 'type'; prompt: string; answer: string; explain: string; idea: number }
+  | { kind: 'estimate'; prompt: string; value: number; unit: string; year: boolean; lo: number; hi: number; log: boolean; tol: number; explain: string; idea: number }
+  | { kind: 'sequence'; items: { text: string; year: number }[]; explain: string }
+  | { kind: 'match'; pairs: { left: string; right: string }[]; explain: string }
+  | { kind: 'build'; chunks: string[]; explain: string }
+  | { kind: 'timeline'; events: { year: number; text: string }[] }
+  | { kind: 'demo'; id: string }
   | { kind: 'end' }
+
+/** the kinds that are marked right or wrong (the rest are things to play with) */
+export const SCORED = new Set<Step['kind']>(['check', 'tf', 'type', 'estimate', 'sequence', 'match', 'build'])
+
+/** a sentence with its year hidden, so ordering it takes knowing the history, not reading the date */
+export const hideYear = (t: string) => t.replace(YEAR, '____')
+export const yearIn = (t: string) => Number(t.match(YEAR)?.[1])
 
 const hash = (s: string) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0 }
 const rng = (seed: number) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
 const shuffle = <T,>(a: T[], r: () => number) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]] } return b }
 
-const YEAR = /\b(1[0-9]{3}|20[0-4][0-9]|[5-9][0-9]{2})\b/
+const YEAR = /\b(1[0-9]{3}|20[0-4][0-9]|[5-9][0-9]{2})\b(?!\s?(?:BC|BCE|years|percent|%))/
 const NAME = /(?<=[a-z,;] )((?:[A-Z][\p{L}'’-]+)(?: (?:of|the|de|von|van|and) [A-Z][\p{L}'’-]+| [A-Z][\p{L}'’-]+){0,2})/gu
-const NOT = new Set(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'The', 'This', 'These', 'English', 'He', 'She', 'It', 'They'])
+const NOT = new Set(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'The', 'This', 'These', 'That', 'Those', 'There', 'Their', 'Some', 'Many', 'Most', 'However', 'English', 'European', 'American', 'British', 'French', 'German', 'Greek', 'Latin', 'Roman', 'Chinese', 'Indian', 'Arabic', 'Christian', 'Islamic', 'Western', 'Eastern', 'Northern', 'Southern', 'Common', 'Modern', 'Early', 'Late'])
 const names = (s: string) => (s.match(NAME) ?? []).filter((n) => !NOT.has(n) && n.length > 3)
 
-export function buildSteps(lesson: Lesson): Step[] {
+/** numbers with a unit or a comma group: the ones worth guessing */
+const NUM = /\b(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?![\d,]|\s?(?:BC|BCE)\b)(?:\s?(million|billion|trillion|thousand|percent|per cent|%|kilometres|kilometers|km|miles|metres|meters|tonnes|years|days|degrees))?/gi
+interface Num { raw: string; n: number; unit: string; year: boolean }
+const numbers = (s: string): Num[] => {
+  const out: Num[] = []
+  for (const m of s.matchAll(NUM)) {
+    const n = Number(m[1].replace(/,/g, ''))
+    const unit = (m[2] ?? '').toLowerCase().replace('per cent', 'percent').replace('%', 'percent').replace('kilometres', 'km').replace('kilometers', 'km').replace('meters', 'metres')
+    if (!isFinite(n)) continue
+    const year = !unit && Number.isInteger(n) && n >= 500 && n <= 2049
+    if (!year && !unit && n < 1000) continue
+    if (!year && n < 2) continue
+    out.push({ raw: m[0], n, unit, year })
+  }
+  return out
+}
+const niceMax = (v: number) => { const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p }
+
+const normAns = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+const lev = (a: string, b: string) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length] }
+/** is what was typed close enough: the whole answer, its last word, or one slip away */
+export function sameAnswer(typed: string, answer: string) {
+  const t = normAns(typed), a = normAns(answer)
+  if (!t) return false
+  if (t === a) return true
+  const last = a.split(' ').pop() ?? ''
+  if (last.length >= 4 && t === last) return true
+  return a.length >= 6 && lev(t, a) <= 1
+}
+
+export function buildSteps(lesson: Lesson, demo?: string | null): Step[] {
   const r = rng(hash(lesson.title))
   const sents = lesson.ideas.map((x) => sentences(x.text).filter((s) => s.length >= 50 && s.length <= 240))
   const pool = Array.from(new Set(sents.flat().flatMap(names)))
-  const checks: (Step | null)[] = lesson.ideas.map((_, idea) => {
+  const yearsPool = Array.from(new Set(sents.flat().map((s) => s.match(YEAR)?.[1]).filter((y): y is string => !!y))).map(Number)
+
+  const fillGap = (idea: number): Step | null => {
     for (const s of sents[idea]) {
       const y = s.match(YEAR)
       if (y) {
@@ -122,23 +168,79 @@ export function buildSteps(lesson: Lesson): Step[] {
       }
     }
     return null
-  })
+  }
+  const trueFalse = (idea: number): Step | null => {
+    for (const s of sents[idea]) {
+      const lie = r() < 0.5
+      if (!lie) return { kind: 'tf', statement: s, truth: true, explain: s, idea }
+      const y = s.match(YEAR)
+      if (y) { const yr = Number(y[1]); const alt = shuffle(yearsPool.filter((v) => Math.abs(v - yr) >= 6), r)[0] ?? yr + 23; return { kind: 'tf', statement: s.replace(y[1], String(alt)), truth: false, explain: `${s}`, idea } }
+      for (const n of names(s)) { const alt = shuffle(pool.filter((p) => p !== n && !s.includes(p) && !p.includes(n) && !n.includes(p)), r)[0]; if (alt) return { kind: 'tf', statement: s.replace(n, alt), truth: false, explain: s, idea } }
+      const nm = numbers(s).find((x) => !x.year)
+      if (nm) { const alt = nm.raw.replace(/[\d,.]+/, (d) => { const v = Number(d.replace(/,/g, '')); const f = r() < 0.5 ? 2.5 : 0.4; const w = Math.max(1, Math.round(v * f)); return w === v ? String(w + 3) : w.toLocaleString('en-US') }); return { kind: 'tf', statement: s.replace(nm.raw, alt), truth: false, explain: s, idea } }
+      return { kind: 'tf', statement: s, truth: true, explain: s, idea }
+    }
+    return null
+  }
+  const typeIt = (idea: number): Step | null => {
+    for (const s of sents[idea]) {
+      const n = names(s).find((x) => x.split(' ').length <= 2 && x.length <= 20)
+      if (n && s.split(' ').length >= 8) return { kind: 'type', prompt: s.replace(n, '_____'), answer: n, explain: s, idea }
+    }
+    return null
+  }
+  const estimate = (idea: number): Step | null => {
+    for (const s of sents[idea]) {
+      const nm = numbers(s).sort((a, b) => Number(!!b.unit) - Number(!!a.unit))[0]
+      if (!nm) continue
+      const prompt = s.replace(nm.raw, nm.year ? '_____' : nm.unit && nm.unit !== 'percent' ? `_____ ${nm.unit}` : '_____' + (nm.unit === 'percent' ? ' percent' : ''))
+      if (nm.year) return { kind: 'estimate', prompt, value: nm.n, unit: '', year: true, lo: nm.n - 150, hi: nm.n + 150, log: false, tol: 10, explain: s, idea }
+      if (nm.unit === 'percent') return { kind: 'estimate', prompt, value: nm.n, unit: 'percent', year: false, lo: 0, hi: 100, log: false, tol: 8, explain: s, idea }
+      if (nm.n >= 1000) return { kind: 'estimate', prompt, value: nm.n, unit: nm.unit, year: false, lo: nm.n / 30, hi: nm.n * 30, log: true, tol: 0.25, explain: s, idea }
+      return { kind: 'estimate', prompt, value: nm.n, unit: nm.unit, year: false, lo: 0, hi: niceMax(nm.n * 2), log: false, tol: nm.n * 0.2, explain: s, idea }
+    }
+    return null
+  }
+
+  // one check after every second idea, rotating the format, falling back to what the sentences allow
+  const ROT = ['check', 'tf', 'type', 'estimate'] as const
+  const makers = { check: fillGap, tf: trueFalse, type: typeIt, estimate } as const
+  let turn = 0
   const steps: Step[] = []
+  let demoAt = -1
   lesson.ideas.forEach((_, i) => {
     steps.push({ kind: 'idea', i })
-    // a check after every second idea (and at the end), asking about one of the two just read
+    if (demo && demoAt < 0 && i === 1) { steps.push({ kind: 'demo', id: demo }); demoAt = steps.length - 1 }
     if (i % 2 === 1 || i === lesson.ideas.length - 1) {
-      const c = checks[i] ?? (i % 2 === 1 ? checks[i - 1] : null)
-      if (c) steps.push(c)
+      for (let k = 0; k < ROT.length; k++) {
+        const want = ROT[(turn + k) % ROT.length]
+        const c = makers[want](i) ?? (i % 2 === 1 ? makers[want](i - 1) : null)
+        if (c) { steps.push(c); turn += k + 1; break }
+      }
     }
   })
-  const dated = sents.map((ss, i) => { const s = ss.find((x) => YEAR.test(x)); return s ? { s, y: Number(s.match(YEAR)![1]), i } : null }).filter((x): x is { s: string; y: number; i: number } => !!x)
-  for (let a = 0; a < dated.length; a++) for (let b = a + 1; b < dated.length; b++) {
-    if (Math.abs(dated[a].y - dated[b].y) >= 8 && !steps.some((s) => s.kind === 'order')) {
-      const flip = r() < 0.5
-      const [A, B] = flip ? [dated[b], dated[a]] : [dated[a], dated[b]]
-      steps.push({ kind: 'order', a: A.s, b: B.s, first: A.y < B.y ? 0 : 1, explain: `${A.y < B.y ? A.y : B.y} came before ${A.y < B.y ? B.y : A.y}.` })
-    }
+  // things built from the whole lesson
+  const dated = sents.map((ss, i) => { const s = ss.filter((x) => YEAR.test(x) && x.length <= 210).sort((a, b) => a.length - b.length)[0]; return s ? { s, y: Number(s.match(YEAR)![1]), i } : null }).filter((x): x is { s: string; y: number; i: number } => !!x)
+  const spread = dated.filter((d, i) => dated.findIndex((e) => Math.abs(e.y - d.y) < 8) === i)
+  if (spread.length >= 3) {
+    const keep = spread.length > 7 ? Array.from({ length: 7 }, (_, k) => [...spread].sort((a, b) => a.y - b.y)[Math.round((k * (spread.length - 1)) / 6)]) : [...spread].sort((a, b) => a.y - b.y)
+    steps.push({ kind: 'timeline', events: keep.map((d) => ({ year: d.y, text: d.s })) })
+  }
+  if (spread.length >= 2) {
+    const picks = shuffle(spread, r).slice(0, 4).sort((a, b) => a.y - b.y)
+    steps.push({ kind: 'sequence', items: picks.map((d) => ({ text: d.s, year: d.y })), explain: picks.map((d) => d.y).join(', then ') + '.' })
+  }
+  const blank = (text: string, heading: string) => { const words = heading.split(/[\s-]+/).filter((w) => w.length >= 5).map((w) => w.replace(/[^\p{L}]/gu, '')); return words.length ? text.replace(new RegExp(`\\b(${words.join('|')})\\w*`, 'gi'), '_____') : text }
+  const heads = lesson.ideas.map((x, i) => ({ left: x.heading, right: blank(sentences(x.text)[0] ?? x.text, x.heading), i })).filter((x) => x.left !== 'The short version' && x.left !== 'Going further' && x.right.length >= 40)
+  const uniq = heads.filter((h, i) => heads.findIndex((o) => o.left === h.left) === i)
+  if (uniq.length >= 4) { const pick = shuffle(uniq, r).slice(0, 4); steps.push({ kind: 'match', pairs: pick.map((p) => ({ left: p.left, right: p.right.length > 110 ? p.right.slice(0, 107).replace(/\s+\S*$/, '') + '…' : p.right })), explain: 'Each section starts with the sentence it was matched to.' }) }
+  const short = shuffle(sents.flat().filter((s) => { const w = s.split(' ').length; return w >= 8 && w <= 16 }), r)[0]
+  if (short) {
+    const words = short.replace(/[.!?]+$/, '').split(' ')
+    const size = words.length > 12 ? 3 : 2
+    const chunks: string[] = []
+    for (let i = 0; i < words.length; i += size) chunks.push(words.slice(i, i + size).join(' '))
+    if (chunks.length >= 4 && chunks.length <= 8) steps.push({ kind: 'build', chunks, explain: short })
   }
   steps.push({ kind: 'end' })
   return steps

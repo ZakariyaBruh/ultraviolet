@@ -8,7 +8,8 @@ export interface Pal { bg: string; ink: string; ink2: string; signal: string; ic
 export type Sfx = 'coin' | 'hit' | 'shoot' | 'jump' | 'die' | 'pop' | 'blip' | 'win' | 'boom'
 
 export interface Opts {
-  onEnd: (score: number, why: 'out' | 'time') => void
+  /** `canContinue`: the round ended by losing with time left, and has not been continued yet */
+  onEnd: (score: number, why: 'out' | 'time', canContinue: boolean) => void
   onPause?: (p: boolean) => void
   /** screen shake and particles: off when motion is calm or reduced */
   motion: boolean
@@ -83,6 +84,12 @@ export interface Game {
   /** also played with the pointer */
   pointer?: boolean
   make: (g: G) => Step
+  /** credits a round costs (default 4) */
+  cost?: number
+  /** seconds a round can last (default 75) */
+  round?: number
+  /** a run that ends is over: no paid continue */
+  noContinue?: boolean
 }
 
 const KEYMAP: Record<string, Key> = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ' ': 'act', Enter: 'act', z: 'act', Z: 'act' }
@@ -270,7 +277,9 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
     clear: () => { c.fillStyle = pal.bg; c.fillRect(-20, -20, W + 40, H + 40) },
   }
 
-  const step = game.make(g)
+  const R = game.round ?? ROUND
+  let step = game.make(g)
+  let revivals = 0
   const at = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); ptr.x = ((e.clientX - r.left) / r.width) * W; ptr.y = ((e.clientY - r.top) / r.height) * H }
   const setPause = (p: boolean) => { if (done || ending >= 0 || p === paused) return; paused = p; o.onPause?.(p); if (p) audio.suspend(); else { audio.resume(); last = performance.now() } }
   const pd = (e: PointerEvent) => { audio.resume(); if (paused) { setPause(false); return } at(e); ptr.down = true; ptr.hit = true; canvas.setPointerCapture?.(e.pointerId) }
@@ -351,10 +360,10 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
       g.text(`${Math.floor(g.score)}`, 10, 6 - pulse * 2, pulse > 0.2 ? pal.ink : pal.signal, 22 + pulse * 4)
       if (g.best > 0) g.text(`best ${g.best}`, 10, 30, pal.ink2, 12)
       if (g.mult > 1) { g.rrect(10, 44, 34, 18, 4, pal.signal); g.text(`x${g.mult}`, 27, 46, pal.bg, 14, 'center') }
-      const left = Math.max(0, ROUND - g.time)
+      const left = Math.max(0, R - g.time)
       c.fillStyle = left < 10 ? pal.hot : pal.ink2
       c.globalAlpha = 0.5
-      c.fillRect(0, H - 3, W * (left / ROUND), 3)
+      c.fillRect(0, H - 3, W * (left / R), 3)
       c.globalAlpha = 1
       g.text(`${Math.ceil(left)}`, W - 10, 6, left < 10 ? pal.hot : pal.ink2, 16, 'right')
     }
@@ -387,10 +396,10 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
       } else if (ending >= 0) {
         ending += dt
         tick(dt)
-        if (ending > 0.9) { done = true; audio.close(); o.onEnd(Math.floor(g.score), endWhy); return }
+        if (ending > 0.9) { done = true; o.onEnd(Math.floor(g.score), endWhy, endWhy === 'out' && !game.noContinue && revivals < 1 && g.time < R - 8); return }
       } else {
         g.time += dt
-        if (g.time >= ROUND) {
+        if (g.time >= R) {
           // time is up: freeze what is on screen
           ending = 0; endWhy = 'time'; audio.stopMusic(); g.sfx('win'); snap.getContext('2d')!.drawImage(canvas, 0, 0); snapped = true
         } else tick(dt)
@@ -408,6 +417,20 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
     /** virtual keys for touch */
     press: (k: Key, down: boolean) => { if (paused) { if (down) setPause(false); return } if (down) { if (!keys.has(k)) tap.add(k); keys.add(k) } else keys.delete(k) },
     pause: (p: boolean) => setPause(p),
+    /** carry on after a game over: the same score and clock, a fresh set of lives and a cleared field */
+    revive: () => {
+      if (!done || ending < 0 || endWhy !== 'out' || revivals >= 1) return
+      revivals++
+      parts.length = 0
+      ending = -1; snapped = false; done = false; shakeM = 0; freezeT = 0
+      g.over = false; g.lives = 3; g.mult = 1; g.intensity = 0.3
+      keys.clear(); tap.clear()
+      step = game.make(g)
+      countdown = 1.5
+      audio.resume()
+      last = performance.now()
+      raf = requestAnimationFrame(frame)
+    },
     mute: (m: boolean) => { muted = m },
     stop: () => {
       done = true

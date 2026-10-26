@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFx } from './fx'
+import { notify } from './notify'
 import { useStore } from './store'
 
 /** Drives the focus timer and notices when you wander off to another tab. */
@@ -19,6 +20,20 @@ export function useSessionEngine() {
     }, 1000)
     return () => clearInterval(t)
   }, [active])
+
+  // a paid break ends by itself
+  const breakUntil = useStore((s) => s.session?.breakUntil)
+  useEffect(() => {
+    if (!breakUntil) return
+    const check = () => {
+      if (Date.now() < breakUntil) return
+      useStore.getState().endBreak()
+      notify('session', 'Your break is over. The timer is running again.', 'Back to it')
+    }
+    const t = setInterval(check, 1000)
+    document.addEventListener('visibilitychange', check)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', check) }
+  }, [breakUntil])
 
   useEffect(() => {
     const onVis = () => {

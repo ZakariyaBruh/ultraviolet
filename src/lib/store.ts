@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { BREAK_MIN, finishBonus, rateAt, SHOP } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
@@ -54,6 +55,7 @@ export interface SessionRec {
   source: MediaKind | 'silent'
   title: string
   completed: boolean
+  breaks?: number
 }
 
 export interface ActiveSession {
@@ -66,6 +68,13 @@ export interface ActiveSession {
   paused: boolean
   source: MediaKind | 'silent'
   title: string
+  /** seconds since the session began or the last drift: sets the credit rate */
+  cleanSec?: number
+  /** credits earned so far this session (fractional) */
+  credit?: number
+  /** a paid break is running until this time (ms) */
+  breakUntil?: number
+  breaks?: number
 }
 
 export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
@@ -106,6 +115,8 @@ export interface Credits {
   spent: number
   best: Record<string, number>
   log: { t: number; n: number; why: string }[]
+  /** things bought in the shop */
+  items?: { breaks: number; brick: boolean; clunks: number }
 }
 
 type HourLog = Record<string, number[]>
@@ -137,6 +148,10 @@ interface Data {
 interface Actions {
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
+  buyItem: (id: 'break' | 'brick') => boolean
+  useBreak: () => void
+  endBreak: () => void
+  clunk: () => void
   setBest: (game: string, score: number) => void
   setSettings: (patch: Partial<Settings>) => void
   startSession: (goalMin: number, source: MediaKind | 'silent', title: string) => void
@@ -196,7 +211,7 @@ const emptyData = (): Data => ({
   books: [],
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
-  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [] },
+  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: { breaks: 0, brick: false, clunks: 0 } },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -245,7 +260,8 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const best: Record<string, number> = {}
         if (isObj(v.best)) for (const [g, sc] of Object.entries(v.best)) if (typeof sc === 'number' && isFinite(sc) && sc >= 0) best[g.slice(0, 20)] = Math.floor(sc)
         const log = Array.isArray(v.log) ? v.log.filter((r) => isObj(r) && typeof r.t === 'number' && typeof r.n === 'number' && typeof r.why === 'string').slice(0, 40) : []
-        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log }
+        const it = isObj(v.items) ? v.items : {}
+        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), brick: it.brick === true, clunks: n(it.clunks) } }
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -326,6 +342,9 @@ export const useStore = create<AppState>()(
             paused: false,
             source,
             title,
+            cleanSec: 0,
+            credit: 0,
+            breaks: 0,
           },
         }),
 
@@ -348,7 +367,7 @@ export const useStore = create<AppState>()(
           focusLog: { ...s.focusLog, [key]: row },
           sourceLog: { ...s.sourceLog, [key]: { ...day, [a.source]: srcRow } },
           sourceSecs: { ...s.sourceSecs, [a.source]: s.sourceSecs[a.source] + sec },
-          session: { ...a, elapsedSec: elapsed },
+          session: { ...a, elapsedSec: elapsed, cleanSec: (a.cleanSec ?? 0) + sec, credit: (a.credit ?? 0) + (sec / 60) * rateAt(a.cleanSec ?? 0) },
         })
         if (elapsed >= a.goalMin * 60) get().endSession(true)
       },
@@ -362,13 +381,13 @@ export const useStore = create<AppState>()(
         set({
           urgeLog: { ...s.urgeLog, [key]: row },
           lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
-          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1 } : null,
+          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: 0 } : null,
         })
         get().log('wander', s.session ? `You left the tab during ${s.session.title}` : 'You left the tab mid-session')
       },
 
       togglePause: () =>
-        set((s) => (s.session ? { session: { ...s.session, paused: !s.session.paused } } : s)),
+        set((s) => (s.session ? { session: { ...s.session, paused: !s.session.paused, breakUntil: undefined } } : s)),
 
       endSession: (completed) => {
         const s = get()
@@ -385,14 +404,15 @@ export const useStore = create<AppState>()(
           source: a.source,
           title: a.title,
           completed,
+          breaks: a.breaks || undefined,
         }
         set({
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
         })
-        const credit = Math.floor(a.elapsedSec / 60) + (completed ? 5 : 0)
+        const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses) : 0)
         if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
-        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits.` : ''}` } })
+        if (completed) useUI.getState().set({ celebrate: { title: 'Session complete', detail: `${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
         // a finished session gets the celebration card instead of a toast
         if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
@@ -408,6 +428,25 @@ export const useStore = create<AppState>()(
         set((s) => ({ credits: { ...s.credits, bal: s.credits.bal - n, spent: s.credits.spent + n, log: [{ t: Date.now(), n: -n, why }, ...s.credits.log].slice(0, 40) } }))
         return true
       },
+      buyItem: (id) => {
+        const price = SHOP[id].price
+        const have = get().credits.items ?? { breaks: 0, brick: false, clunks: 0 }
+        if (id === 'brick' && have.brick) return false
+        if (!get().spendCredits(price, `Bought ${SHOP[id].name}`)) return false
+        set((s) => ({ credits: { ...s.credits, items: { ...have, breaks: have.breaks + (id === 'break' ? 1 : 0), brick: have.brick || id === 'brick' } } }))
+        return true
+      },
+      /** Spend a break: the session pauses for five minutes, leaving the tab is not a drift, and it is recorded as a break. */
+      useBreak: () => {
+        const s = get()
+        const a = s.session
+        const have = s.credits.items
+        if (!a || a.paused || !have || have.breaks < 1) return
+        set({ session: { ...a, paused: true, breakUntil: Date.now() + BREAK_MIN * 60e3, breaks: (a.breaks ?? 0) + 1 }, credits: { ...s.credits, items: { ...have, breaks: have.breaks - 1 } } })
+        get().log('session', `Took a ${BREAK_MIN} minute break during ${a.title}`)
+      },
+      endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
+      clunk: () => set((s) => ({ credits: { ...s.credits, items: { breaks: 0, brick: false, ...s.credits.items, clunks: (s.credits.items?.clunks ?? 0) + 1 } } })),
       setBest: (game, score) => set((s) => (score > (s.credits.best[game] ?? 0) ? { credits: { ...s.credits, best: { ...s.credits.best, [game]: Math.floor(score) } } } : s)),
 
       setLearn: (learn) => set({ learn }),

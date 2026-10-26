@@ -188,5 +188,5 @@ export function FitText({ children, max = 26, min = 13, className }: { children:
     void document.fonts?.ready.then(again)
     return () => { ro.disconnect(); cancelAnimationFrame(raf) }
   }, [children, max, min])
-  return <div ref={box} className="min-h-0 flex-1 overflow-hidden"><p ref={txt} className={className}>{children}</p></div>
+  return <div ref={box} data-fit className="min-h-0 flex-1 overflow-hidden"><p ref={txt} className={className}>{children}</p></div>
 }

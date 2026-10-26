@@ -1,4 +1,5 @@
-import { Pause, Play, Radio } from 'lucide-react'
+import { Coffee, Pause, Play, Radio } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
 import { LengthBand } from '@/components/app/LengthBand'
@@ -11,6 +12,7 @@ import { Stepper } from '@/components/ui/stepper'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { fx_say, quickPlay } from '@/lib/actions'
 import { PRESETS } from '@/lib/commands'
+import { nextTier, rateAt } from '@/lib/credits'
 import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
@@ -21,7 +23,7 @@ import type { View } from '@/components/app/Shell'
 
 
 /** Retro ground (ASCII torus in a CRT window) under a futuristic clock: wide light numerals and a hairline progress rule. */
-function FrictionDial({ progress, left, running, paused, live }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean }) {
+function FrictionDial({ progress, left, running, paused, live, note }: { progress: number; left: number; running: boolean; paused: boolean; live: boolean; note?: ReactNode }) {
   const level = useStore((s) => s.settings.motion)
   const phone = useMedia('(max-width: 639px)')
   return (
@@ -36,6 +38,7 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
       <div className="dot relative z-10 text-[clamp(2.2rem,6.4vw,3.9rem)] font-light text-ink [text-shadow:0_0_12px_var(--ground),0_0_3px_var(--ground)]" role="timer" aria-label={`${fmtClock(left)} left`}>
         {fmtClock(left)}
       </div>
+      {note && <div className="relative z-10 [text-shadow:0_0_8px_var(--ground),0_0_3px_var(--ground)]">{note}</div>}
       <div className="relative z-10 h-3 w-full" aria-hidden>
         <div className="absolute inset-x-0 top-1/2 h-px bg-ink/30" />
         {Array.from({ length: 21 }, (_, i) => <i key={i} className={`absolute top-1/2 w-px -translate-y-1/2 bg-ink/40 ${i % 5 === 0 ? 'h-3' : 'h-1.5'}`} style={{ left: `${i * 5}%` }} />)}
@@ -46,8 +49,34 @@ function FrictionDial({ progress, left, running, paused, live }: { progress: num
   )
 }
 
+/** On a break the dial says so, and for how long. */
+function BreakClock({ until }: { until: number }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t) }, [])
+  return (
+    <p className="hud flex flex-col items-center text-center leading-[1.5]" role="status">
+      <span>On a break · <span className="fig text-ink">{fmtClock(Math.max(0, Math.ceil((until - now) / 1000)))}</span> left</span>
+      <span className="text-ink-3">Timer waits · tab is free</span>
+    </p>
+  )
+}
+
+/** What this session is paying, live: the rate climbs while you stay clean and drops back at a drift. */
+function CreditMeter() {
+  const cleanSec = useStore((x) => x.session?.cleanSec ?? 0)
+  const credit = useStore((x) => x.session?.credit ?? 0)
+  const next = nextTier(cleanSec)
+  return (
+    <p className="hud flex flex-col items-center text-center leading-[1.5]" role="status" aria-live="off">
+      <span><span className="fig text-ink">{rateAt(cleanSec)}</span> credits a min · clean <span className="fig text-ink">{fmtClock(Math.floor(cleanSec))}</span> · +<span className="fig text-ink">{Math.floor(credit)}</span></span>
+      {next && <span className="text-ink-3">{next.rate} a min in <span className="fig">{fmtClock(Math.ceil(next.inSec))}</span> if you stay</span>}
+    </p>
+  )
+}
+
 export function FocusView({ go }: { go: (v: View) => void }) {
   const session = useStore((s) => s.session)
+  const breaks = useStore((s) => s.credits.items?.breaks ?? 0)
   const sessionMin = useStore((s) => s.settings.sessionMin)
   const setSettings = useStore((s) => s.setSettings)
   const focusLog = useStore((s) => s.focusLog)
@@ -113,7 +142,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         )}
 
         <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
-          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} />
+          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} /> : <CreditMeter />) : undefined} />
 
           <AnimatePresence mode="wait" initial={false}>
             {!session ? (
@@ -125,10 +154,17 @@ export function FocusView({ go }: { go: (v: View) => void }) {
               </motion.div>
             ) : (
               <motion.div key="live" className="flex w-full max-w-[420px] flex-col items-center gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
-                <Glass radius={999} clear as="button" onClick={() => useStore.getState().togglePause()} className="inline-flex h-12 items-center gap-2 px-7 text-[15px] font-medium text-ink">
-                  {session.paused ? <Play className="size-4 fill-current" /> : <Pause className="size-4 fill-current" />}
-                  {session.paused ? 'Resume' : 'Pause'}
-                </Glass>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Glass radius={999} clear as="button" onClick={() => (session.breakUntil ? useStore.getState().endBreak() : useStore.getState().togglePause())} className="inline-flex h-12 items-center gap-2 px-7 text-[15px] font-medium text-ink">
+                    {session.paused ? <Play className="size-4 fill-current" /> : <Pause className="size-4 fill-current" />}
+                    {session.breakUntil ? 'Back now' : session.paused ? 'Resume' : 'Pause'}
+                  </Glass>
+                  {!session.paused && breaks > 0 && (
+                    <Glass radius={999} clear as="button" onClick={() => useStore.getState().useBreak()} className="inline-flex h-12 items-center gap-2 px-6 text-[15px] font-medium text-ink">
+                      <Coffee className="size-4" />Break <span className="fig text-ink-2">{breaks}</span>
+                    </Glass>
+                  )}
+                </div>
                 <div className="w-full">
                   <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />
                 </div>
