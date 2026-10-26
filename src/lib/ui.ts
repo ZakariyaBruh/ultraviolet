@@ -6,6 +6,7 @@ interface UI {
   theatre: boolean
   tuneOpen: boolean
   soundOpen: boolean
+  widgetsOpen: boolean
   searchOpen: boolean
   profileOpen: boolean
   moreOpen: boolean
@@ -23,6 +24,7 @@ export const useUI = create<UI>((set) => ({
   theatre: false,
   tuneOpen: false,
   soundOpen: false,
+  widgetsOpen: false,
   searchOpen: false,
   profileOpen: false,
   moreOpen: false,

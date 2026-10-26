@@ -239,7 +239,7 @@ export function FunnelChart({
         </Tooltip>
       </div>
 
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>{ariaLabel ?? "Funnel data"}</caption>
         <thead>
           <tr>
@@ -257,7 +257,7 @@ export function FunnelChart({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

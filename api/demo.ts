@@ -48,6 +48,14 @@ THE FRAME YOUR FRAGMENT IS PLACED IN
 - Provided CSS variables (use these and never hard-coded colours): --ink (text), --ink2, --ink3 (quieter text), --ground (background), --signal (the one accent), --on-signal (text on the accent), --rule (hairlines), plus --ice (a second accent) and the status colours --good, --bad, --warn. Use --good and --bad for right and wrong or safe and danger, never your own reds and greens. In canvas code read them with getComputedStyle(document.body).getPropertyValue('--signal').
 - Provided styles: button, input[type=range], select, input[type=text], label are already styled and 44px high. Classes: .row (flex, wrapping, gap), .col (flex column), .grow, .hud (small uppercase label), .big (large numeric readout), .card (ruled box), .muted, .stage (ruled box for a canvas or svg). A button with aria-pressed="true" shows as selected. Font is the system font.
 
+MAKE IT ACTUALLY WORK (the most common ways these demos fail)
+- Start unfinished. The first view must show the thing the learner is about to change, never the finished answer. If the task is to decrypt, solve, balance, match or find something, begin in the problem state and let the controls reach the solved state.
+- Never start on a degenerate example. Check your default values by hand: an input that maps to itself (a number that encrypts to itself, 0 or 1 as a multiplier, two equal quantities) hides the whole idea, so pick defaults and example values that visibly change something.
+- Controls must cover the full range of the idea, including zero, off, none or the opposite end whenever that is meaningful (a shift can be 0, a rate can be 0, a count can be 0). Do not start a slider at an extreme or at its answer, and do not clamp it short of the values the task asks for.
+- Every control must change something the learner can see, every time. Before you answer, walk each control through its minimum, a middle value and its maximum in your head and confirm the readout and the graphic change in each case and never throw an error.
+- When the task has a goal, say how close the learner is in words (for example "not yet" then "done") in an aria-live element.
+- Keep arithmetic plain: use ordinary Numbers (never mix BigInt with Number), avoid recursion, and guard every division and every loop bound.
+
 RULES THAT MATTER
 - Vanilla JavaScript only. No libraries, imports, fetch, XMLHttpRequest, WebSocket, eval, new Function, document.write, alert, confirm, prompt, window.open, localStorage, sessionStorage, cookies, parent or top. No external URLs, fonts or images.
 - No infinite or very long synchronous loops. Animate with requestAnimationFrame or setInterval and only after the learner presses something. If matchMedia('(prefers-reduced-motion: reduce)').matches, jump straight to the end state instead of animating.

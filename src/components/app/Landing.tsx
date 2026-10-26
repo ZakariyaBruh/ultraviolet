@@ -44,9 +44,9 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
     return () => removeEventListener('pointermove', move)
   }, [])
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-ground text-ink">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto overscroll-contain bg-ground text-ink">
       <div className="flex h-2.5 shrink-0" aria-hidden>{BARS.map((c) => <i key={c} className="flex-1" style={{ background: c }} />)}</div>
-      <div className="relative min-h-0 flex-[1.3]">
+      <div className="land-mid relative min-h-[3.25rem] flex-[1.3]">
         <DotGrid still={reduced} className="absolute inset-0 size-full" />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-4 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] sm:px-8">
           <span className="bg-ground px-2 py-1">Ch 00 / Friction</span>
@@ -55,14 +55,14 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             <span ref={readout} className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
           </span>
         </div>
-        <div className="pointer-events-none absolute bottom-6 right-5 hidden items-end gap-2 text-signal sm:flex sm:right-[6%]" aria-hidden>
+        <div className="land-solids pointer-events-none absolute bottom-6 right-5 items-end gap-2 text-signal sm:right-[6%]" aria-hidden>
           {SOLIDS.slice(0, 1 + Math.ceil(stage / 2)).map((sh, i) => <AsciiSolid key={sh} shape={sh} cols={i ? 30 : 44} rows={i ? 14 : 22} speed={0.8} still={reduced} phase={i * 2} className="text-[9px] opacity-80" />)}
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.2, 0, 0, 1], delay: 0.15 }}
-          className="crt crt-flicker absolute bottom-5 left-5 w-[min(21rem,calc(100%-2.5rem))] border border-signal bg-ground sm:bottom-8 sm:left-8"
+          className="land-ident crt crt-flicker absolute bottom-5 left-5 w-[min(21rem,calc(100%-2.5rem))] border border-signal bg-ground sm:bottom-8 sm:left-8"
         >
           <div className="flex items-center justify-between border-b border-signal/60 px-3 py-1.5 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] text-signal">
             <span>Station ident</span>

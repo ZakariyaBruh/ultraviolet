@@ -57,9 +57,9 @@ export function frameDocument(html: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Demo</title><meta http-equiv="Content-Security-Policy" content="${CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{${vars};color-scheme:${document.documentElement.classList.contains('light') ? 'light' : 'dark'}}${BASE}</style><script>${REPORT}</script></head><body><main id="app">${html}</main></body></html>`
 }
 
-interface Props extends DemoProps { demo: Written; onFail: () => void }
+interface Props extends DemoProps { demo: Written; onFail: () => void; onAgain?: () => void }
 
-export function AiDemoFrame({ demo, played, onFail }: Props) {
+export function AiDemoFrame({ demo, played, onFail, onAgain }: Props) {
   const box = useRef<HTMLIFrameElement>(null)
   const [round, setRound] = useState(0)
   const [broke, setBroke] = useState(false)
@@ -89,6 +89,7 @@ export function AiDemoFrame({ demo, played, onFail }: Props) {
         <p className="hud">Try it · {demo.title} · AI-made</p>
         <p className="max-w-[58ch] text-[15px] leading-[1.4]">{demo.task}</p>
         <p className="hidden text-[13px] leading-[1.4] text-ink-2 md:block">{demo.note} <span className="text-ink-3">AI-made: check it against the article.</span></p>
+        {onAgain && <button onClick={onAgain} className={`${ghost} hidden self-start md:inline-flex`}><RotateCcw className="size-4" />Not working? Write another</button>}
       </div>
       <div className="relative min-h-[150px] flex-1 border border-ink/20">
         <iframe ref={box} key={round} title={`Interactive demo: ${demo.title}`} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={doc} data-no-drag className="absolute inset-0 size-full border-0" />
@@ -99,7 +100,10 @@ export function AiDemoFrame({ demo, played, onFail }: Props) {
           </div>
         )}
       </div>
-      <p className="shrink-0 text-[13px] leading-[1.4] text-ink-2 md:hidden">{demo.note} <span className="text-ink-3">AI-made: check it against the article.</span></p>
+      <div className="flex shrink-0 flex-col gap-2 md:hidden">
+        <p className="text-[13px] leading-[1.4] text-ink-2">{demo.note} <span className="text-ink-3">AI-made: check it against the article.</span></p>
+        {onAgain && <button onClick={onAgain} className={`${ghost} self-start`}><RotateCcw className="size-4" />Not working? Write another</button>}
+      </div>
     </div>
   )
 }

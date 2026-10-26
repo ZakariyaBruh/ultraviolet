@@ -153,15 +153,15 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
         <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-semibold">{lesson.title}</div><Bar at={live.filter((i) => i < at).length} total={live.length - 1} /></div>
         <span className="fig hud shrink-0">+{xp} XP</span>
       </div>
-      <Panel className="relative min-h-0 flex-1 overflow-hidden p-4 md:p-6" {...swipe}>
+      <Panel className="scroll-y relative min-h-0 flex-1 p-4 md:p-6" {...swipe}>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={at} className="flex h-full min-h-0 flex-col justify-between gap-3 md:gap-4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease }}>
+          <motion.div key={at} className="flex h-full min-h-[270px] flex-col justify-between gap-3 md:gap-4" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease }}>
             {idea && step.kind === 'idea' && (
               <>
-                <div className="flex min-h-0 flex-1 gap-4">
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div className="flex flex-1 gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <p className="hud mb-2 shrink-0">Idea {step.i + 1} of {lesson.ideas.length} · {idea.heading}</p>
-                    <FitText max={26} className="max-w-[44ch] font-medium leading-[1.4]">{idea.text}</FitText>
+                    <FitText max={26} floor className="max-w-[44ch] font-medium leading-[1.4]">{idea.text}</FitText>
                   </div>
                   {step.i === 0 && lesson.thumb && <img src={lesson.thumb} alt="" className="hidden max-h-[220px] w-[200px] object-cover md:block" />}
                 </div>
@@ -173,7 +173,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
             )}
             {step.kind === 'check' && (
               <>
-                <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">Check · fill the gap</p><FitText max={22} className="max-w-[52ch] leading-[1.45]">{step.prompt}</FitText></div>
+                <div className="flex flex-1 flex-col"><p className="hud mb-2 shrink-0">Check · fill the gap</p><FitText max={22} floor className="max-w-[52ch] leading-[1.45]">{step.prompt}</FitText></div>
                 <Choices options={step.options} answer={step.answer} picked={picked} onPick={answer} />
                 {picked !== null && <p role="status" className="shrink-0 text-[14px] text-ink-2"><strong className="text-ink">{picked === step.answer ? 'Right. ' : 'Not quite. '}</strong>{step.explain}{picked !== step.answer && ' It is in your review deck now.'}</p>}
               </>
@@ -185,7 +185,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
             {step.kind === 'match' && <Match step={step} result={res} onResult={record} />}
             {step.kind === 'build' && <Build step={step} result={res} onResult={record} />}
             {step.kind === 'timeline' && <Timeline step={step} />}
-            {step.kind === 'demo' && (step.id !== 'ai' ? <Demo id={step.id} played={played} /> : ai.status === 'ready' ? <AiDemoFrame demo={ai.demo} played={played} onFail={ai.fail} /> : ai.status === 'pending' ? <DemoWaiting title={lesson.title} /> : null)}
+            {step.kind === 'demo' && (step.id !== 'ai' ? <Demo id={step.id} played={played} /> : ai.status === 'ready' ? <AiDemoFrame demo={ai.demo} played={played} onFail={ai.fail} onAgain={ai.again} /> : ai.status === 'pending' ? <DemoWaiting title={lesson.title} /> : null)}
             {step.kind === 'end' && (
               <div className="grid h-full content-center justify-items-start gap-3">
                 <p className="hud">Lesson complete</p>
@@ -351,7 +351,7 @@ function Review() {
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="hud" role="status">{queue.length} to go · box {card.box + 1} of 5</p>
       <Panel className="flex min-h-0 flex-1 flex-col justify-between gap-4 p-5 md:p-8">
-        <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">{flip ? 'Answer' : 'Remember this'}</p><FitText max={24} className="max-w-[52ch] leading-[1.45]">{flip ? card.back : card.front}</FitText></div>
+        <div className="flex min-h-0 flex-1 flex-col"><p className="hud mb-2 shrink-0">{flip ? 'Answer' : 'Remember this'}</p><FitText max={24} floor className="max-w-[52ch] leading-[1.45]">{flip ? card.back : card.front}</FitText></div>
         <div className="flex flex-wrap gap-2">
           {!flip ? <button onClick={() => setFlip(true)} className="h-11 bg-signal px-6 text-sm font-semibold text-on-signal">Show answer</button> : (
             <>

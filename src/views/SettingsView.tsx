@@ -109,7 +109,7 @@ function Era() {
   const set = useStore((x) => x.setSettings)
   const stage = Math.round((100 - era) / 20)
   return (
-    <div className="grid gap-2 border-t border-rule py-3">
+    <div className="grid gap-2">
       <h3 className="text-sm font-medium">Era</h3>
       <p className="text-[13px] text-ink-2">Six stops from the future back to the past. Each one adds to the last, so you can see how retro you want it as you go.</p>
       <div className="flex items-center gap-3">
@@ -133,7 +133,7 @@ function Era() {
 function Alerts() {
   const [state, setState] = useState(osState())
   return (
-    <div className="grid gap-1 border-t border-rule py-3">
+    <div className="grid gap-1 pb-3">
       <h3 className="text-sm font-medium">Notifications</h3>
       <p className="text-[13px] text-ink-2">The bell collects goals, streaks, lessons, leaderboard moves and messages from your rooms. With system notifications on, the ones that matter also reach you while this tab is in the background.</p>
       {state === 'unsupported' ? <p className="text-[13px] text-ink-3">This browser does not offer system notifications.</p> : state === 'granted' ? <p className="text-[13px] text-ink">System notifications are on.</p> : state === 'denied' ? <p className="text-[13px] text-ink-3">System notifications are blocked. Allow them in your browser's site settings.</p> : (
@@ -143,6 +143,7 @@ function Alerts() {
   )
 }
 
+/** how it looks: motion, the theme, your own colours */
 function Look() {
   const s = useStore((x) => x.settings)
   const set = useStore((x) => x.setSettings)
@@ -161,9 +162,25 @@ function Look() {
         <p className="text-[13px] text-ink-2">Your own accent and background, on top of any theme.</p>
         <Colours />
       </div>
-      <Era />
+    </Panel>
+  )
+}
+
+/** the era dial, in a panel of its own */
+function EraPanel() {
+  return <Panel className="content-start rounded-3xl p-5"><Era /></Panel>
+}
+
+/** notifications and volume */
+function Sound() {
+  const s = useStore((x) => x.settings)
+  const set = useStore((x) => x.setSettings)
+  return (
+    <Panel className="content-start rounded-3xl p-5">
       <Alerts />
-      <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
+      <div className="border-t border-rule pt-1">
+        <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
+      </div>
     </Panel>
   )
 }
@@ -221,10 +238,11 @@ export function SettingsView() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader kicker="Settings" title="Make it yours">
-        <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Settings' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
+        <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Settings' }, { id: 'look', label: 'Look' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
       </PageHeader>
       <div className="min-h-0 flex-1">
-        {tab === 'focus' && <div className="grid gap-4 lg:grid-cols-2"><Focus /><Look /></div>}
+        {tab === 'focus' && <div className="grid content-start gap-4 lg:grid-cols-2"><Focus /><Sound /></div>}
+        {tab === 'look' && <div className="grid content-start gap-4 lg:grid-cols-2"><Look /><EraPanel /></div>}
         {tab === 'data' && <Data />}
         {tab === 'help' && <Help />}
       </div>

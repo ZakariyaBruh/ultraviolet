@@ -1,5 +1,6 @@
-import { Apple, ArrowUpDown, Car, CircleDot, Coins, Crosshair, Disc, Ghost, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, Skull, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
+import { Apple, ArrowUpDown, Car, CircleDot, Coins, Crosshair, Disc, Ghost, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, Skull, Swords, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { Panel, Seg } from '@/components/app/shared'
 import { Shop } from '@/components/app/Shop'
 import { Scrubber } from '@/components/app/Scrubber'
@@ -10,7 +11,7 @@ import { CONTINUE_COST } from '@/lib/credits'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
-const ICONS: Record<string, LucideIcon> = { dodge: Rocket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, invaders: Skull, asteroids: Disc, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding }
+const ICONS: Record<string, LucideIcon> = { dodge: Rocket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, invaders: Skull, asteroids: Disc, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding, rogue: Swords }
 const MUTE = 'friction:arcade-mute'
 const readMute = () => { try { return localStorage.getItem(MUTE) === '1' } catch { return false } }
 
@@ -105,6 +106,23 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
   )
 }
 
+/** the roguelite is the deepest game here, so it gets a banner of its own above the grid instead of one tile among sixteen */
+function Featured({ game, onPick, best, locked }: { game: Game; onPick: () => void; best?: number; locked: boolean }) {
+  const calm = useStore((s) => s.settings.motion === 0)
+  return (
+    <button onClick={onPick} className="material relative flex min-h-[88px] shrink-0 items-center gap-4 overflow-hidden border-signal p-3 text-left hover:bg-ink/5 sm:min-h-[104px] sm:p-4" style={{ borderColor: 'var(--signal)' }}>
+      <span className="grid size-14 shrink-0 place-items-center bg-signal text-on-signal sm:size-16"><Swords className="size-8 sm:size-9" aria-hidden /></span>
+      <span className="min-w-0 flex-1">
+        <span className="hud block text-signal">Featured · roguelite · {best ? `best ${best}` : 'new'}</span>
+        <span className="dot block truncate text-[clamp(1.4rem,3.6vw,2.2rem)] font-bold uppercase leading-[1.25]">{game.name}</span>
+        <span className="line-clamp-2 block text-[13px] leading-[17px] text-ink-2 sm:text-[14px] sm:leading-[19px]">Clear rooms, pick one of three upgrades after each, and take on a boss every third room. Every run plays differently.</span>
+      </span>
+      <span aria-hidden className="pointer-events-none hidden shrink-0 text-signal opacity-70 md:block"><AsciiSolid shape="pyramid" cols={22} rows={9} still={calm} speed={0.8} className="text-[8px]" /></span>
+      <span className="inline-flex h-12 shrink-0 items-center bg-signal px-4 text-sm font-bold text-on-signal sm:px-6">{locked ? 'Locked in' : <>Play<span className="ml-2 font-semibold opacity-80 max-sm:hidden">· {game.cost ?? COST} credits</span></>}</span>
+    </button>
+  )
+}
+
 function Ic({ id }: { id: string }) { const I = ICONS[id] ?? Rocket; return <I className="size-4 shrink-0 text-signal" aria-hidden /> }
 
 export function ArcadeView() {
@@ -114,9 +132,11 @@ export function ArcadeView() {
   const [tab, setTab] = useState<'games' | 'shop'>('games')
   const [page, setPage] = useState(1)
   const { ref, per, cols } = useGridFit(190, 84, 8, 5)
-  const pages = Math.max(1, Math.ceil(GAMES.length / per))
+  const star = GAMES.find((g) => g.id === 'rogue')
+  const rest = GAMES.filter((g) => g !== star)
+  const pages = Math.max(1, Math.ceil(rest.length / per))
   const safe = Math.min(page, pages)
-  const slice = GAMES.slice((safe - 1) * per, safe * per)
+  const slice = rest.slice((safe - 1) * per, safe * per)
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
@@ -130,6 +150,7 @@ export function ArcadeView() {
       {game ? <Play key={game.id} game={game} onExit={() => setGame(null)} /> : tab === 'shop' ? <Shop /> : (
         <>
           <p className="hud shrink-0" role="status">{live ? 'Locked in: the arcade opens when you finish' : cr.bal >= COST ? `${GAMES.length} games, ${COST} credits a round. Credits come from focus, lessons and trivia.` : `Not enough credits yet. A round costs ${COST}. Lock in to earn some.`}</p>
+          {star && <Featured game={star} onPick={() => setGame(star)} best={cr.best[star.id]} locked={live} />}
           <div ref={ref} className="min-h-[84px] flex-1 overflow-hidden">
             <div className="grid h-full content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: '84px' }}>
               {slice.map((g) => (
@@ -140,7 +161,7 @@ export function ArcadeView() {
               ))}
             </div>
           </div>
-          <Scrubber count={GAMES.length} per={per} page={safe} onPage={setPage} labelAt={(i) => GAMES[i]?.name ?? ''} />
+          <Scrubber count={rest.length} per={per} page={safe} onPage={setPage} labelAt={(i) => rest[i]?.name ?? ''} />
         </>
       )}
     </section>

@@ -5,14 +5,16 @@ import { cached } from './cache'
 /** One demo written for a lesson topic: plain text for the frame around it, and the demo's own markup and script. */
 export interface AiDemo { title: string; task: string; note: string; html: string }
 
-const KEY = (title: string) => `learn:demo:v1:${title.toLowerCase()}`
+/** v2: demos written before the prompt learned to start unfinished and cover the full range are written again */
+const KEY = (title: string) => `learn:demo:v2:${title.toLowerCase()}`
 const MONTH = 30 * 24 * 3600e3
 
 const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && v.length <= max ? v : null)
 
 /** Asks the server for a demo. Anything that is not a well-formed demo is an error, never a partial one. */
-async function fetchDemo(title: string, signal: AbortSignal): Promise<AiDemo> {
-  const r = await fetch(`/api/demo?t=${encodeURIComponent(title)}`, { signal, headers: { accept: 'application/json' } })
+async function fetchDemo(title: string, signal: AbortSignal, fresh = false): Promise<AiDemo> {
+  // v is the edge-cache generation; n makes one request that skips whatever is cached for the topic
+  const r = await fetch(`/api/demo?t=${encodeURIComponent(title)}&v=2${fresh ? `&n=${Date.now()}` : ''}`, { signal, headers: { accept: 'application/json' } })
   if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) throw new Error('demo')
   const d = (await r.json()) as Record<string, unknown>
   const demo = { title: text(d.title, 80), task: text(d.task, 400), note: text(d.note, 500), html: text(d.html, 20000) }
@@ -40,6 +42,15 @@ function getDemo(title: string): Promise<AiDemo> {
   return p
 }
 
+/** throw a demo away and write another, for when the one on screen does not work */
+function rewrite(title: string): Promise<AiDemo> {
+  const key = KEY(title)
+  missed.delete(key)
+  const p = del(key).catch(() => undefined).then(() => cached(key, MONTH, () => fetchDemo(title, AbortSignal.timeout(70e3), true))).catch((e) => { missed.set(key, Date.now()); throw e }).finally(() => inflight.delete(key))
+  inflight.set(key, p)
+  return p
+}
+
 /** start writing a topic's demo right away, before its lesson has even loaded */
 export const prefetchDemo = (title: string) => { void getDemo(title).catch(() => undefined) }
 
@@ -47,7 +58,7 @@ export const prefetchDemo = (title: string) => { void getDemo(title).catch(() =>
  * The demo for a lesson, written while the learner reads the first ideas. It never blocks and never throws: the lesson only
  * ever sees "pending", "ready" or "failed". A failure of any kind (no key, no network, a slow or refused answer) is just "failed".
  */
-export function useAiDemo(title: string, enabled: boolean): DemoState & { fail: () => void } {
+export function useAiDemo(title: string, enabled: boolean): DemoState & { fail: () => void; again: () => void } {
   const [state, setState] = useState<DemoState>({ status: enabled ? 'pending' : 'off' })
   useEffect(() => {
     if (!enabled) { setState({ status: 'off' }); return }
@@ -58,5 +69,9 @@ export function useAiDemo(title: string, enabled: boolean): DemoState & { fail: 
       .catch(() => { if (!dead) setState({ status: 'failed' }) })
     return () => { dead = true }
   }, [title, enabled])
-  return { ...state, fail: () => { forgetDemo(title); setState({ status: 'failed' }) } }
+  return {
+    ...state,
+    fail: () => { forgetDemo(title); setState({ status: 'failed' }) },
+    again: () => { setState({ status: 'pending' }); rewrite(title).then((demo) => setState({ status: 'ready', demo })).catch(() => setState({ status: 'failed' })) },
+  }
 }

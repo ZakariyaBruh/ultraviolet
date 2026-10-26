@@ -7,6 +7,7 @@ import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
 import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
+import { WidgetsPicker } from '@/components/app/widgets/Layer'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { SpotlightSearch } from '@/components/ui/spotlight-search'
 import { UndoToast } from '@/components/ui/undo-toast'
@@ -147,6 +148,15 @@ export default function App() {
 
       <SpotlightSearch open={ui.searchOpen} onOpenChange={(o) => ui.set({ searchOpen: o })} onClose={() => ui.set({ searchOpen: false })} items={items} placeholder="Search screens, stations, actions, components" />
 
+      <Sheet open={ui.widgetsOpen} onOpenChange={(o) => ui.set({ widgetsOpen: o })}>
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <SheetTitle>Widgets</SheetTitle>
+            <SheetDescription>Study windows for the Focus screen. Open as many as you like and move them where they suit you.</SheetDescription>
+          </SheetHeader>
+          <SheetBody><WidgetsPicker /></SheetBody>
+        </SheetContent>
+      </Sheet>
       <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
         <SheetContent side="bottom">
           <SheetHeader>

@@ -70,7 +70,7 @@ function MutePanel({ picking, onDone, className }: { picking: Story | null; onDo
           <button key={x.id} role="radio" aria-checked={dur === x.id} onClick={() => setDur(x.id)} className={cn('h-11 px-3 text-[13px] transition-colors md:h-9', dur === x.id ? 'bg-ink text-ground' : 'bg-ink/[0.07] text-ink ring-1 ring-ink/12 hover:bg-ink/12')}>{x.label}</button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden border-t border-ink/15 pt-2">
+      <div data-no-drag className="scroll-y min-h-[3.5rem] flex-1 border-t border-ink/15 pt-2">
         <div className="hud mb-1">Hidden now{live.length ? ` · ${live.length}` : ''}</div>
         {live.length === 0 ? <p className="text-[13px] text-ink-2">Nothing hidden. Every story shows.</p> : (
           <ul>

@@ -70,7 +70,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
                 />
               )}
               <span className="relative [&>svg]:size-[18px]">{n.icon}</span>
-              <span className={cn('relative', on ? 'inline' : 'max-2xl:sr-only')}>{n.label}</span>
+              <span className={cn('relative', on ? 'inline' : 'sr-only')}>{n.label}</span>
             </a>
           )
         })}

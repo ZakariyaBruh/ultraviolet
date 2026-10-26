@@ -166,9 +166,23 @@ interface Data {
   mutes: Mute[]
   learn: Learn
   credits: Credits
+  widgets: Widgets
 }
 
+/** the study windows on the Focus screen: which are open, and what the notepad and the to-do list hold */
+export interface Todo { id: string; t: string; done: boolean }
+export interface Widgets { open: string[]; note: string; todos: Todo[] }
+export const NOTE_MAX = 20000
+export const TODO_MAX = 60
+
 interface Actions {
+  setWidget: (id: string, on: boolean) => void
+  closeWidgets: () => void
+  setNote: (text: string) => void
+  addTodo: (text: string) => void
+  toggleTodo: (id: string) => void
+  removeTodo: (id: string) => void
+  clearDoneTodos: () => void
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
   buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
@@ -240,6 +254,7 @@ const emptyData = (): Data => ({
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
   credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
+  widgets: { open: [], note: '', todos: [] },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -294,6 +309,12 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const mix: Record<string, number> = {}
         if (isObj(it.mix)) for (const [l, lv] of Object.entries(it.mix)) if (typeof lv === 'number' && isFinite(lv)) mix[l.slice(0, 12)] = Math.min(1, Math.max(0, lv))
         ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), longBreaks: n(it.longBreaks), shields: n(it.shields), lifelines: n(it.lifelines), owned, clunks: n(it.clunks), spins: n(it.spins), dial: typeof it.dial === 'string' ? it.dial.slice(0, 12) : '', mix, capsule: typeof it.capsule === 'string' ? it.capsule.slice(0, CAPSULE_MAX) : '' } }
+      }
+    } else if (k === 'widgets') {
+      if (isObj(v)) {
+        const open = Array.isArray(v.open) ? [...new Set(v.open.filter((x): x is string => typeof x === 'string' && x.length < 20))].slice(0, 12) : []
+        const todos = Array.isArray(v.todos) ? v.todos.filter((x) => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && typeof x.done === 'boolean').slice(0, TODO_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 160), done: !!x.done })) : []
+        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos }
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -537,13 +558,25 @@ export const useStore = create<AppState>()(
           events: [{ id: uid(), t: Date.now(), kind, text, read: false }, ...s.events].slice(0, 200),
         })),
 
+      setWidget: (id, on) => set((s) => ({ widgets: { ...s.widgets, open: on ? (s.widgets.open.includes(id) ? s.widgets.open : [...s.widgets.open, id]) : s.widgets.open.filter((x) => x !== id) } })),
+      closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [] } })),
+      setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX) } })),
+      addTodo: (text) => {
+        const t = text.trim().slice(0, 160)
+        if (!t) return
+        set((s) => (s.widgets.todos.length >= TODO_MAX ? s : { widgets: { ...s.widgets, todos: [...s.widgets.todos, { id: uid(), t, done: false }] } }))
+      },
+      toggleTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.map((x) => (x.id === id ? { ...x, done: !x.done } : x)) } })),
+      removeTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => x.id !== id) } })),
+      clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
+
       markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),
 
       markEventRead: (id) => set((s) => ({ events: s.events.map((e) => (e.id === id ? { ...e, read: true } : e)) })),
 
       loadDemo: () => {
         const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, learn: get().learn, credits: get().credits, seenIntro: true, demo: true })
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, widgets: get().widgets, learn: get().learn, credits: get().credits, seenIntro: true, demo: true })
       },
 
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),

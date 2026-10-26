@@ -201,7 +201,7 @@ export function GlassIconButton({ label, onClick, children, className }: { label
 }
 
 /** Text that shrinks until it fits the room it has, so a long passage never runs into the controls under it. */
-export function FitText({ children, max = 26, min = 13, className }: { children: ReactNode; max?: number; min?: number; className?: string }) {
+export function FitText({ children, max = 26, min = 13, floor = false, className }: { children: ReactNode; max?: number; min?: number; floor?: boolean; className?: string }) {
   const box = useRef<HTMLDivElement>(null)
   const txt = useRef<HTMLParagraphElement>(null)
   useLayoutEffect(() => {
@@ -212,6 +212,10 @@ export function FitText({ children, max = 26, min = 13, className }: { children:
       let size = max
       t.style.fontSize = `${size}px`
       while (size > min && t.scrollHeight > b.clientHeight + 1) { size -= 1; t.style.fontSize = `${size}px` }
+      // smaller than this stops being readable, so what still does not fit scrolls inside its box (and is not grabbed as a panel drag)
+      const over = t.scrollHeight > b.clientHeight + 1
+      if (over) { b.setAttribute('data-no-drag', ''); b.tabIndex = 0; b.setAttribute('role', 'region'); b.setAttribute('aria-label', 'Text, scrolls') }
+      else { b.removeAttribute('data-no-drag'); b.removeAttribute('tabindex'); b.removeAttribute('role'); b.removeAttribute('aria-label') }
     }
     fit()
     let raf = 0
@@ -222,5 +226,5 @@ export function FitText({ children, max = 26, min = 13, className }: { children:
     void document.fonts?.ready.then(again)
     return () => { ro.disconnect(); cancelAnimationFrame(raf) }
   }, [children, max, min])
-  return <div ref={box} data-fit className="min-h-0 flex-1 overflow-hidden"><p ref={txt} className={className}>{children}</p></div>
+  return <div ref={box} data-fit className={cn('scroll-y flex-1', floor ? 'min-h-[5.5rem]' : 'min-h-0')}><p ref={txt} className={className}>{children}</p></div>
 }

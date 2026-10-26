@@ -40,7 +40,7 @@ export function DebriefView() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader kicker="Debrief" title="What happened" sub="Worked out from the numbers saved in this browser. No AI, no server, nothing to type." />
-      <Panel className="relative min-h-0 flex-1 overflow-hidden p-0">
+      <Panel className="scroll-y relative min-h-[9rem] flex-1 p-0">
         {wide && <div className="pointer-events-none absolute bottom-3 right-4 text-signal opacity-70" aria-hidden><AsciiSolid cols={64} rows={30} speed={0.7} className="text-[9px]" /></div>}
         <ul className="grid h-full content-start">
           {rows.map((r, i) => (

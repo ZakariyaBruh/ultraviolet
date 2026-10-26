@@ -49,7 +49,7 @@ export function TrueFalse({ step, result, onResult }: Common & { step: Of<'tf'> 
   })
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col"><Kicker>Check · true or false?</Kicker><FitText max={24} className="max-w-[52ch] leading-[1.45]">{step.statement}</FitText></div>
+      <div className="flex flex-1 flex-col"><Kicker>Check · true or false?</Kicker><FitText max={24} floor className="max-w-[52ch] leading-[1.45]">{step.statement}</FitText></div>
       <div role="group" aria-label="Answer" className="grid shrink-0 grid-cols-2 gap-2">
         {[true, false].map((v) => {
           const right = pick !== null && v === step.truth
@@ -83,7 +83,7 @@ export function TypeIt({ step, result, onResult }: Common & { step: Of<'type'> }
   const fine = typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col"><Kicker>Check · type the missing word</Kicker><FitText max={22} className="max-w-[52ch] leading-[1.45]">{done ? step.explain : step.prompt}</FitText></div>
+      <div className="flex flex-1 flex-col"><Kicker>Check · type the missing word</Kicker><FitText max={22} floor className="max-w-[52ch] leading-[1.45]">{done ? step.explain : step.prompt}</FitText></div>
       <form onSubmit={(e) => { e.preventDefault(); submit() }} className="flex shrink-0 flex-wrap gap-2">
         <input value={val} onChange={(e) => setVal(e.target.value)} disabled={done} autoFocus={fine} autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" aria-label="Your answer" placeholder="Type it here" className={cn('h-11 min-w-0 flex-1 basis-40 border bg-transparent px-3 text-base text-ink placeholder:text-ink-3', done ? (result ? 'border-signal' : 'border-ink/60') : 'border-ink/30 focus:border-signal')} />
         <button type="submit" disabled={done || !val.trim()} className={solid}>Check</button>
@@ -111,7 +111,7 @@ export function Estimate({ step, result, onResult }: Common & { step: Of<'estima
   const lock = () => { if (!done) onResult(close) }
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col"><Kicker>Check · how close can you get?</Kicker><FitText max={22} className="max-w-[52ch] leading-[1.45]">{done ? step.explain : step.prompt}</FitText></div>
+      <div className="flex flex-1 flex-col"><Kicker>Check · how close can you get?</Kicker><FitText max={22} floor className="max-w-[52ch] leading-[1.45]">{done ? step.explain : step.prompt}</FitText></div>
       <div className="shrink-0">
         <div className="mb-1 flex items-baseline justify-between gap-3">
           <span className="fig dot text-[clamp(1.5rem,5vw,2.2rem)] leading-[1.4]" aria-live="polite">{fmtNum(guess, step.year)}{unit}</span>
@@ -140,7 +140,7 @@ export function Sequence({ step, result, onResult }: Common & { step: Of<'sequen
   return (
     <>
       <div className="shrink-0"><Kicker>{n === 2 ? 'Check · which came first?' : 'Check · earliest first'}</Kicker><p className="text-[14px] text-ink-2">{done ? 'Here they are in order.' : n === 2 ? 'Tap the one that came first, then the other.' : 'Tap them in the order they happened. Tap one again to take it back.'}</p></div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         {rows.map((i) => {
           const rank = picks.indexOf(i)
           const state = done ? (rank === i ? 'right' : 'wrong') : rank >= 0 ? 'picked' : 'idle'
@@ -194,7 +194,7 @@ export function Match({ step, result, onResult }: Common & { step: Of<'match'> }
   return (
     <>
       <div className="shrink-0"><Kicker>Check · match them up</Kicker><p className="text-[14px] text-ink-2">{done ? `${right} of ${n} matched.` : 'Pick a heading, then the opening line it belongs to.'}</p></div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 md:flex-row md:gap-4">
+      <div className="flex flex-1 flex-col gap-2 md:flex-row md:gap-4">
         <div role="group" aria-label="Headings" className="grid shrink-0 gap-2 md:flex md:w-[34%] md:flex-col" style={wide ? undefined : { gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
           {pairs.map((pr, i) => {
             const used = asg.includes(i)
@@ -207,7 +207,7 @@ export function Match({ step, result, onResult }: Common & { step: Of<'match'> }
             )
           })}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-2">
           {order.map((p, pos) => {
             const got = asg[pos]
             const state = done ? (got === p ? 'right' : 'wrong') : got !== null ? 'picked' : 'idle'
@@ -243,7 +243,7 @@ export function Build({ step, result, onResult }: Common & { step: Of<'build'> }
   return (
     <>
       <div className="shrink-0"><Kicker>Check · put the sentence back together</Kicker><p className="text-[14px] text-ink-2">{done ? 'The sentence, as it was written:' : 'Tap the pieces in order. Tap a placed piece to take it back.'}</p></div>
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
+      <div className="flex flex-1 flex-col justify-center gap-4">
         <div aria-label="Your sentence" className={cn('flex min-h-[64px] flex-wrap content-start gap-2 border border-dashed p-2', done ? (result ? 'border-signal' : 'border-ink/60') : 'border-ink/30')}>
           {done ? <p className="p-1 text-[16px] leading-[1.4]">{step.explain}</p> : placed.length === 0 ? <span className="p-2 text-[14px] text-ink-3">Your sentence goes here.</span> : placed.map((i) => <button key={i} onClick={() => setPlaced((p) => p.filter((x) => x !== i))} className="min-h-11 border border-signal/70 bg-signal/10 px-3 text-[15px]">{step.chunks[i]}</button>)}
         </div>
@@ -278,7 +278,7 @@ export function Timeline({ step }: { step: Of<'timeline'> }) {
         <div role="tablist" aria-label="Events" className="flex shrink-0 gap-1.5">
           {ev.map((e, k) => <button key={k} role="tab" aria-selected={k === i} onClick={() => setI(k)} className={cn('fig min-h-11 min-w-0 flex-1 border px-0.5 text-[13px] font-semibold', k === i ? 'border-signal bg-signal text-on-signal' : 'border-ink/25 hover:border-signal/70 hover:bg-ink/[0.06]')}>{e.year}</button>)}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col" role="tabpanel"><FitText max={24} className="max-w-[52ch] leading-[1.45]">{ev[i].text}</FitText></div>
+        <div className="flex flex-1 flex-col" role="tabpanel"><FitText max={24} floor className="max-w-[52ch] leading-[1.45]">{ev[i].text}</FitText></div>
       </div>
     </>
   )

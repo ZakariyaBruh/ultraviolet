@@ -325,6 +325,23 @@ html[data-theme='sunset'] .dot { font-weight: 800; letter-spacing: -0.02em; }
   -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); }
 
 /* ───────── every panel can be picked up: grab it, throw it ───────── */
+/* a control that is 44px (or taller) never squashes below that when its container runs short: the container scrolls instead */
+button[class~="h-11"], input[class~="h-11"], a[class~="h-11"] { min-height: 2.75rem; }
+button[class~="h-12"], input[class~="h-12"], a[class~="h-12"] { min-height: 3rem; }
+button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
+@keyframes winin { from { opacity: 0; } }
+.win-in { animation: winin 160ms var(--ease-out, ease-out); }
+/* text that does not fit its box scrolls inside it, with a thin bar, instead of being cut off */
+.scroll-y { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+/* the landing's middle band measures itself: the station ident and the solids only show when the band is tall enough to hold them */
+.land-mid { container-type: size; }
+.land-ident { display: none; }
+.land-solids { display: none; }
+@container (min-height: 18rem) { .land-ident { display: block; } }
+@container (min-height: 17.5rem) and (min-width: 40rem) { .land-solids { display: flex; } }
+/* a window too small for its screen: the page area becomes its own scroll box, sitting exactly between the header and the nav, so nothing runs underneath them */
+#canvas[data-scroll] { top: var(--pt); bottom: var(--pb); padding-top: 0; padding-bottom: 6px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+#canvas[data-scroll] [data-movable] { touch-action: pan-y; }
 [data-movable] { touch-action: none; cursor: grab; transition: scale 200ms var(--ease-out); }
 [data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.03; transition: none; user-select: none; }
 [data-movable][data-moved] { z-index: 6; }

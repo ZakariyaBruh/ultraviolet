@@ -7,32 +7,36 @@ import { Chips, clamp, fmt, Frame, ghost, Slide, solid, type DemoProps } from '.
 
 const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const shiftText = (t: string, k: number) => t.replace(/[A-Z]/gi, (c) => { const up = c === c.toUpperCase(); const l = ABC[(ABC.indexOf(c.toUpperCase()) + k + 26) % 26]; return up ? l : l.toLowerCase() })
-const SECRET = 'MEET ME AT THE LIBRARY AT NOON'
-const KEY = 7
+/** messages to crack, each locked with its own shift, so a second try is not the same puzzle */
+const PUZZLES: [string, number][] = [['MEET ME AT THE LIBRARY AT NOON', 7], ['ATTACK AT DAWN', 3], ['BRING MORE COFFEE', 11], ['THE KEY IS UNDER THE MAT', 19], ['VENI VIDI VICI', 14]]
 
 export function Cipher({ played }: DemoProps) {
   const [mode, setMode] = useState<'crack' | 'write'>('crack')
+  const [puzzle, setPuzzle] = useState(0)
   const [back, setBack] = useState(0)
   const [say, setSay] = useState('HELLO WORLD')
   const [fwd, setFwd] = useState(3)
-  const cipher = useMemo(() => shiftText(SECRET, KEY), [])
+  const [secret, key] = PUZZLES[puzzle]
+  const cipher = useMemo(() => shiftText(secret, key), [secret, key])
   const crack = mode === 'crack'
   const k = crack ? -back : fwd
   const out = crack ? shiftText(cipher, -back) : shiftText(say, fwd)
-  const solved = crack && out === SECRET
+  const solved = crack && out === secret
+  const next = () => { setPuzzle((puzzle + 1) % PUZZLES.length); setBack(0); played() }
   return (
-    <Frame kicker="Caesar cipher" task={crack ? 'This message was locked by sliding every letter along the alphabet. Slide them back until it reads as English.' : 'Type a message and choose how far to slide each letter. This is the cipher Julius Caesar is said to have used.'} note={solved ? `Cracked. There are only 25 shifts to try, so a person (or a computer, instantly) can test every one. Modern ciphers use keys of 128 bits or more: over 10³⁸ possibilities, far too many to try.` : 'The weakness is the small number of keys: 25. Better ciphers make guessing the key hopeless, not just hidden.'}>
+    <Frame kicker="Caesar cipher" task={crack ? 'This message was locked by sliding every letter along the alphabet. Slide them back until it reads as English.' : 'Type a message and choose how far to slide each letter. This is the cipher Julius Caesar is said to have used.'} note={solved ? `Cracked. There are only 25 shifts to try, so a person (or a computer, instantly) can test every one. Modern ciphers use keys of 128 bits or more: over 10³⁸ possibilities, far too many to try.` : crack ? 'The weakness is the small number of keys: 25. Better ciphers make guessing the key hopeless, not just hidden.' : fwd === 0 ? 'A shift of 0 changes nothing, so it hides nothing. Every other shift from 1 to 25 is a different lock.' : 'Whoever knows the shift can slide the letters back. Someone who does not has only 25 shifts to try.'}>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <Chips label="Mode" value={mode} onChange={setMode} items={[{ id: 'crack', label: 'Crack a message' }, { id: 'write', label: 'Write your own' }]} />
+        {crack && <button onClick={next} className={ghost}>{solved ? 'Next message' : 'Try another'}</button>}
         {!crack && <input value={say} maxLength={20} onChange={(e) => { setSay(e.target.value.toUpperCase()); played() }} aria-label="Your message" autoCapitalize="characters" spellCheck={false} className="h-11 min-w-0 flex-1 basis-40 border border-ink/30 bg-transparent px-3 text-base tracking-[0.14em] text-ink focus:border-signal" />}
       </div>
       <div className="grid shrink-0 gap-0.5" aria-hidden>
         <div className="grid text-center text-[11px] text-ink-2 md:text-[13px]" style={{ gridTemplateColumns: 'repeat(26, minmax(0, 1fr))' }}>{[...ABC].map((l) => <span key={l}>{l}</span>)}</div>
         <div className="grid text-center text-[11px] font-semibold md:text-[13px]" style={{ gridTemplateColumns: 'repeat(26, minmax(0, 1fr))' }}>{[...shiftText(ABC, k)].map((l, i) => <span key={i} className={cn(l !== ABC[i] && 'text-signal')}>{l}</span>)}</div>
       </div>
-      <Slide label={crack ? 'Slide back by' : 'Slide forward by'} value={crack ? back : fwd} min={crack ? 0 : 1} max={25} onChange={(v) => { if (crack) setBack(v); else setFwd(v); played() }} />
+      <Slide label={crack ? 'Slide back by' : 'Slide forward by'} value={crack ? back : fwd} min={0} max={25} onChange={(v) => { if (crack) setBack(v); else setFwd(v); played() }} />
       <div className={cn('flex min-h-[64px] shrink-0 flex-col justify-center border px-3 py-2', solved ? 'border-signal bg-signal/10' : 'border-ink/25')}>
-        <p className="hud mb-1">{crack ? (solved ? 'Cracked' : 'What it says now') : 'Locked message'}</p>
+        <p className="hud mb-1">{crack ? (solved ? 'Cracked' : back === 0 ? 'Still locked' : 'What it says now') : 'Locked message'}</p>
         <p className="text-base font-semibold tracking-[0.14em] break-words md:text-lg" aria-live="polite">{out || '…'}</p>
       </div>
     </Frame>
@@ -57,7 +61,7 @@ export function Dilemma({ played }: DemoProps) {
   return (
     <Frame kicker="The prisoner’s dilemma" task={`Eight rounds, both choose at once. Both cooperate: 3 each. Both defect: 1 each. Defect on a cooperator: 5 for you, 0 for them. Try to finish ahead.`} note={over ? (you >= them && opp !== 'copy' ? 'You can finish ahead of a fixed opponent, but nobody gets rich that way. Against a copycat, steady cooperation is worth 24, and every betrayal costs more than the 5 it earns.' : 'Cooperating every round against a copycat pays 24. A single early betrayal earns 5, then both of you drop to 1 or 0 for the rounds that follow.') : 'Copycat starts kind and then does whatever you did last round.'}>
       <Chips label="Opponent" value={opp} onChange={(v) => { setOpp(v); setLog([]) }} items={Object.entries(OPP).map(([id, label]) => ({ id: id as keyof typeof OPP, label }))} />
-      <div className="grid min-h-0 flex-1 content-center gap-1" role="table" aria-label="Rounds so far">
+      <div className="grid min-h-0 flex-1 [align-content:safe_center] gap-1" role="table" aria-label="Rounds so far">
         {(['me', 'them'] as const).map((who) => (
           <div key={who} role="row" className="grid items-center gap-1" style={{ gridTemplateColumns: `4.5rem repeat(${ROUNDS}, minmax(0, 1fr))` }}>
             <span role="rowheader" className="hud">{who === 'me' ? 'You' : 'Them'}</span>
@@ -93,7 +97,7 @@ export function Control({ played }: DemoProps) {
   return (
     <Frame kicker="The dichotomy of control" task="Epictetus opens his handbook with a split: some things are up to us, others are not. Sort each one." note="The Stoic move is not to stop caring about the second kind, but to put effort only where effort can change something.">
       {done ? (
-        <div className="grid min-h-0 flex-1 content-center justify-items-start gap-3">
+        <div className="grid min-h-0 flex-1 [align-content:safe_center] justify-items-start gap-3">
           <p className="dot text-[clamp(1.6rem,5vw,2.4rem)] leading-[1.4]">{right} of {CARDS.length}</p>
           <p className="text-[15px] text-ink-2">{right === CARDS.length ? 'Every one in the right place.' : 'Most people find the “whether you win” cards the hardest to sort.'}</p>
           <button onClick={() => { setAt(0); setPick(null); setRight(0) }} className={ghost}>Again</button>
@@ -205,7 +209,7 @@ export function Growth({ played }: DemoProps) {
   const d = useMemo(() => Array.from({ length: 61 }, (_, i) => { const y = (i / 60) * years; const m = Math.pow(1 + rate / 100, y); return `${(8 + (i / 60) * 384).toFixed(1)},${(112 - ((m - 1) / Math.max(0.0001, mult - 1)) * 100).toFixed(1)}` }).join(' '), [rate, years, mult])
   return (
     <Frame kicker="Compounding" task="Income that grows a little every year multiplies far more than it seems. Set a yearly growth rate and a span of years." note="For most of history the average person’s income barely grew. In the leading economies after the Industrial Revolution, 1 to 2 percent a year became common, and over generations that is the difference between farming and a modern life.">
-      <svg viewBox="0 0 400 120" role="img" aria-label={`Growth of ${Math.round(mult * 10) / 10} times over ${years} years`} className="min-h-0 w-full flex-1 border border-ink/20">
+      <svg viewBox="0 0 400 120" role="img" aria-label={`Growth of ${Math.round(mult * 10) / 10} times over ${years} years`} className="min-h-[64px] w-full flex-1 border border-ink/20">
         <line x1={8} x2={392} y1={112} y2={112} className="stroke-ink/40" />
         <polyline points={d} fill="none" className="stroke-signal" strokeWidth={2} />
       </svg>
@@ -232,7 +236,7 @@ export function Perspective({ played }: DemoProps) {
   const pillar = (px: number, k: number) => { const s = Math.pow(0.68, k); const x = vp.x + (px - vp.x) * s; const y = vp.y + (yb - vp.y) * s; return <rect key={`${px}-${k}`} x={x - 9 * s} y={y - 110 * s} width={18 * s} height={110 * s} className="fill-ground stroke-ink" strokeWidth={1.2} /> }
   return (
     <Frame kicker="Linear perspective" task="Drag the dot. Every line that runs away from you heads for the same point on the horizon, and things shrink by the same rule as they go." note="Brunelleschi worked this out in Florence in the early 1400s and Alberti wrote the method down soon after. Painters could now make a flat wall look like a hall.">
-      <svg ref={box} data-no-drag viewBox="0 0 400 240" tabIndex={0} role="img" aria-label={`A colonnade in perspective. The vanishing point is at ${Math.round(vp.x)}, ${Math.round(vp.y)}. Drag the dot or use the arrow keys to move it.`} className="min-h-0 w-full flex-1 touch-none select-none border border-ink/20"
+      <svg ref={box} data-no-drag viewBox="0 0 400 240" tabIndex={0} role="img" aria-label={`A colonnade in perspective. The vanishing point is at ${Math.round(vp.x)}, ${Math.round(vp.y)}. Drag the dot or use the arrow keys to move it.`} className="min-h-[90px] w-full flex-1 touch-none select-none border border-ink/20"
         onPointerDown={(e) => { drag.current = true; e.currentTarget.setPointerCapture(e.pointerId); at(e) }} onPointerMove={(e) => drag.current && at(e)} onPointerUp={() => { drag.current = false }} onPointerCancel={() => { drag.current = false }}
         onKeyDown={(e) => { const d = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[e.key]; if (d) { e.preventDefault(); setVp((v) => ({ x: clamp(v.x + d[0], 40, 360), y: clamp(v.y + d[1], 40, 170) })); played() } }}>
         <line x1={0} x2={400} y1={vp.y} y2={vp.y} className="stroke-ink/40" strokeDasharray="4 4" />
@@ -289,7 +293,7 @@ export function Scales({ played }: DemoProps) {
         <div className="absolute inset-0 grid grid-cols-7">{WHITE.map((s) => <i key={s} className={cn('border-r border-ink/25 last:border-r-0', now !== null && now % 12 === s ? 'bg-ink' : lit.has(s) ? 'bg-signal' : 'bg-ink/10')} />)}</div>
         {BLACK.map((k) => <i key={k.s} className={cn('absolute top-0 h-[58%] w-[9%] -translate-x-1/2 border border-ink/70', now !== null && now % 12 === k.s ? 'bg-ink' : lit.has(k.s) ? 'bg-signal' : 'bg-ground')} style={{ left: `${(k.at / 7) * 100}%` }} />)}
       </div>
-      <div role="group" aria-label="Notes in the scale" className="grid min-h-0 flex-1 content-center gap-2" style={{ gridTemplateColumns: `repeat(${m.steps.length}, minmax(0, 1fr))` }}>
+      <div role="group" aria-label="Notes in the scale" className="grid min-h-0 flex-1 [align-content:safe_center] gap-2" style={{ gridTemplateColumns: `repeat(${m.steps.length}, minmax(0, 1fr))` }}>
         {m.steps.map((s, i) => <button key={i} onClick={() => hit(s)} className={cn('min-h-12 border text-base font-semibold hover:border-signal/70', now === s ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 bg-ink/[0.05]')}>{NAMES[s]}</button>)}
       </div>
       <div className="flex shrink-0 gap-2"><button onClick={run} className={solid}>Play the scale</button></div>

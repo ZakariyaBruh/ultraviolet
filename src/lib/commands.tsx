@@ -1,6 +1,7 @@
-import { BookOpen, BarChart3, Bot, Home, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
+import { BookOpen, BarChart3, Bot, Home, LayoutPanelTop, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
 import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
+import { WIDGETS } from '@/components/app/widgets/defs'
 import { fx_say, quickPlay } from './actions'
 import { play } from './player'
 import { useStore } from './store'
@@ -43,6 +44,8 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
         useStore.getState().startSession(useStore.getState().settings.sessionMin, 'silent', 'Silent focus')
       },
     }]),
+    { id: 'act-widgets', title: 'Widgets…', category: 'Actions', icon: <LayoutPanelTop className={ic} />, action: () => { go('focus'); useUI.getState().set({ widgetsOpen: true }) } },
+    ...WIDGETS.map((w) => ({ id: `widget-${w.id}`, title: `Open ${w.name}`, category: 'Widgets', description: 'Focus screen', icon: <w.icon className={ic} />, action: () => { go('focus'); useStore.getState().setWidget(w.id, true) } })),
     { id: 'act-tune', title: 'Tune in…', category: 'Actions', icon: <Radio className={ic} />, action: () => useUI.getState().set({ tuneOpen: true }) },
     ...PRESETS.map((p) => ({ id: `tune-${p.tag}`, title: `Tune: ${p.label}`, category: 'Stations', description: p.kind === 'radio' ? 'Radio' : 'TV', icon: p.kind === 'radio' ? <Radio className={ic} /> : <Tv className={ic} />, action: () => void quickPlay(p.kind, p.tag).catch(() => fx_say({ title: 'Could not reach the directory', variant: 'danger' })) })),
     ...[...s.favorites, ...s.recent.filter((r) => !s.favorites.some((f) => f.id === r.id))].slice(0, 12).map((m) => ({ id: `play-${m.id}`, title: m.name, category: 'Stations', description: m.kind === 'tv' ? 'TV' : 'Radio', icon: m.kind === 'tv' ? <Tv className={ic} /> : <Radio className={ic} />, action: () => play(m, [m]) })),

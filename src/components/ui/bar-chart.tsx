@@ -312,7 +312,7 @@ export function BarChart({
         </div>
       )}
 
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>{ariaLabel ?? "Chart data"}</caption>
         <thead>
           <tr>
@@ -332,7 +332,7 @@ export function BarChart({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

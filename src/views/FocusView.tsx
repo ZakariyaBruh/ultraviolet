@@ -6,6 +6,7 @@ import { LengthBand } from '@/components/app/LengthBand'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Listings } from '@/components/app/Listings'
 import { Logo, Panel, Readout } from '@/components/app/shared'
+import { WidgetLayer, WidgetsButton } from '@/components/app/widgets/Layer'
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { Stepper } from '@/components/ui/stepper'
@@ -140,19 +141,19 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         : 'Nothing held yet today. Choose a length, tune in, lock in.'
 
   return (
-    <section className={`flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : 'justify-center'}`}>
+    <section className={`relative flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : '[justify-content:safe_center]'}`}>
       {!wide && (
         <div>
           <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
-          <h1 className="dot text-[1.6rem] font-bold">FOCUS</h1>
+          <div className="flex items-center justify-between gap-3"><h1 className="dot text-[1.6rem] font-bold">FOCUS</h1><WidgetsButton /></div>
           <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
         </div>
       )}
-      <div className={`grid min-h-0 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${wide ? 'flex-1' : ''}`}>
+      <div className={`grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${wide ? 'flex-1' : ''}`}>
         {wide && (
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }} className="min-w-0 self-center">
             <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
-            <h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1>
+            <div className="flex items-center justify-between gap-3"><h1 className="dot text-[clamp(1.6rem,3vw,2.2rem)] font-bold">FOCUS</h1><WidgetsButton /></div>
             <p className="mb-4 mt-1 max-w-[34ch] text-sm text-ink-2">{finding}</p>
             <Panel className="grid gap-4 p-5">
               <Readout label="Drifts today" value={<AnimatedNumber value={blocked} />} note="times you left" />
@@ -273,6 +274,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
           ))}
         </div>
       )}
+      <WidgetLayer />
     </section>
   )
 }

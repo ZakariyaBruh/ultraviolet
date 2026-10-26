@@ -150,7 +150,7 @@ export function Coin({ played }: DemoProps) {
   const d = run.line.map((p, i) => `${(14 + (Math.log(i + 1) / Math.log(5000)) * 372).toFixed(1)},${(150 - p * 140).toFixed(1)}`).join(' ')
   return (
     <Frame kicker="The law of large numbers" task="Flip a fair coin and watch the share of heads. A few flips wander. Keep going." note="The line is the running share of heads, with the number of flips on a log scale. Past 1,000 flips it rarely strays more than 3 points from half.">
-      <svg viewBox="0 0 400 160" role="img" aria-label={n ? `${run.h} heads in ${n} flips, ${Math.round((run.h / n) * 100)} percent` : 'No flips yet'} className="min-h-0 w-full flex-1 border border-ink/20">
+      <svg viewBox="0 0 400 160" role="img" aria-label={n ? `${run.h} heads in ${n} flips, ${Math.round((run.h / n) * 100)} percent` : 'No flips yet'} className="min-h-[80px] w-full flex-1 border border-ink/20">
         <line x1={14} x2={386} y1={80} y2={80} className="stroke-ink/40" strokeDasharray="3 4" />
         <text x={18} y={76} className="fill-ink-2" fontSize={10}>50%</text>
         {[10, 100, 1000].map((t) => <g key={t}><line x1={14 + (Math.log(t) / Math.log(5000)) * 372} x2={14 + (Math.log(t) / Math.log(5000)) * 372} y1={10} y2={150} className="stroke-ink/15" /><text x={16 + (Math.log(t) / Math.log(5000)) * 372} y={158} className="fill-ink-2" fontSize={9}>{fmt(t)}</text></g>)}
@@ -175,7 +175,7 @@ export function Light({ played }: DemoProps) {
   const says = a < b - 5 ? 'Light is the limit. Adding CO₂ would change nothing.' : b < a - 5 ? 'CO₂ is the limit. Adding light would change nothing.' : rate < 60 ? 'Both are holding it back about equally. Raise both to go faster.' : 'Both are plentiful. Now temperature, water or the leaf itself sets the pace.'
   return (
     <Frame kicker="Limiting factors" task="A leaf needs light and carbon dioxide to make sugar. Move the sliders and see which one is the bottleneck." note="A simplified model in arbitrary units. Real curves differ between plants and with temperature, but the rule holds: the scarcest ingredient sets the rate.">
-      <div className="grid min-h-0 flex-1 content-center gap-4 md:grid-cols-2 md:gap-x-8">
+      <div className="grid min-h-0 flex-1 [align-content:safe_center] gap-4 md:grid-cols-2 md:gap-x-8">
         <div className="grid content-center gap-3">
           <Slide label="Light" value={light} min={0} max={100} onChange={(v) => { setLight(v); played() }} show={(v) => `${v}%`} />
           <Slide label="Carbon dioxide" value={co2} min={0} max={100} onChange={(v) => { setCo2(v); played() }} show={(v) => `${v}%`} />
@@ -210,7 +210,7 @@ export function Slit({ played }: DemoProps) {
   return (
     <Frame kicker="The double slit" task="Fire electrons one at a time at two slits. Each lands in one place. Fire enough and see the pattern, then switch on a detector at the slits." note="Each electron arrives as a single dot. The stripes only show up in the crowd, as if every electron went through both slits. Measure which slit and the stripes vanish.">
       <Chips label="Detector" value={look ? 'on' : 'off'} onChange={(v) => { setLook(v === 'on'); setHits(Array(BINS).fill(0)) }} items={[{ id: 'off', label: 'Not looking' }, { id: 'on', label: 'Watch the slits' }]} />
-      <svg viewBox="0 0 400 130" role="img" aria-label={`${fmt(total)} electrons landed. ${look ? 'Two bands, no stripes.' : 'A striped pattern builds up.'}`} className="min-h-0 w-full flex-1 border border-ink/20">
+      <svg viewBox="0 0 400 130" role="img" aria-label={`${fmt(total)} electrons landed. ${look ? 'Two bands, no stripes.' : 'A striped pattern builds up.'}`} className="min-h-[80px] w-full flex-1 border border-ink/20">
         {hits.map((c, i) => <rect key={i} x={8 + (i * 384) / BINS} y={122 - (c / top) * 110} width={384 / BINS - 1} height={(c / top) * 110} className="fill-signal" />)}
         <line x1={8} x2={392} y1={122.5} y2={122.5} className="stroke-ink/40" />
       </svg>
@@ -291,7 +291,7 @@ export function Climate({ played }: DemoProps) {
   const t = (s: number) => (s * doubling).toFixed(1)
   return (
     <Frame kicker="Climate sensitivity" task="Move the carbon dioxide level and see how much the planet warms once it settles. Warming follows each doubling, not each added part per million." note="Simplified: 3 °C per doubling, the IPCC’s best estimate (likely 2.5 to 4). Oceans lag by decades, so this is where it settles, not a forecast.">
-      <div className="grid min-h-0 flex-1 content-center gap-3">
+      <div className="grid min-h-0 flex-1 [align-content:safe_center] gap-3">
         <Slide label="Carbon dioxide in the air" value={ppm} min={280} max={1120} step={5} onChange={(v) => { setPpm(v); played() }} show={(v) => `${v} ppm`} marks={[{ at: 280, label: '1750' }, { at: 425, label: 'now' }, { at: 560, label: '2×' }, { at: 1120, label: '4×' }]} />
         <div className="mt-1 flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border-t border-ink/20 pt-3">
           <div><p className="hud">Eventual warming above 1750</p><p className="dot fig text-[clamp(1.8rem,7vw,3rem)] leading-[1.4]">+{t(3)} °C</p></div>

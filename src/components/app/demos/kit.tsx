@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -16,13 +16,36 @@ export const calm = () => (typeof matchMedia === 'function' && matchMedia('(pref
 
 /** the shared layout: what to try, the thing to try it on, and what it shows */
 export function Frame({ kicker, task, children, note }: { kicker: string; task: string; children: ReactNode; note?: ReactNode }) {
+  const body = useRef<HTMLDivElement>(null)
+  /**
+   * The body gives way to its graphic first (an svg or canvas shrinks), but never below what its controls need: when it would,
+   * it asks for that height and the lesson panel scrolls, so controls never run over the note under them.
+   */
+  useLayoutEffect(() => {
+    const el = body.current
+    const host = el?.parentElement
+    if (!el || !host) return
+    let raf = 0
+    const fit = () => {
+      el.style.minHeight = ''
+      if (el.scrollHeight > el.clientHeight + 1) el.style.minHeight = `${el.scrollHeight}px`
+    }
+    const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit) }
+    fit()
+    const ro = new ResizeObserver(later)
+    ro.observe(host)
+    const mo = new MutationObserver(later)
+    mo.observe(el, { childList: true, subtree: true, characterData: true })
+    void document.fonts?.ready.then(later)
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); mo.disconnect() }
+  }, [])
   return (
     <>
       <div className="shrink-0">
         <p className="hud mb-1">Try it · {kicker}</p>
         <p className="max-w-[58ch] text-[15px] leading-[1.4]">{task}</p>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-3">{children}</div>
+      <div ref={body} className="flex min-h-0 flex-1 flex-col gap-3">{children}</div>
       {note && <p className="shrink-0 text-[13px] leading-[1.4] text-ink-2">{note}</p>}
     </>
   )

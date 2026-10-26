@@ -1,6 +1,6 @@
 import { Palette, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
 import { PlayerIsland } from '@/components/app/PlayerIsland'
 import { GlassIconButton } from '@/components/app/shared'
@@ -63,6 +63,34 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
   const wide = useMedia('(min-width: 1024px)')
   const theatre = useUI((s) => s.theatre)
   const set = useUI((s) => s.set)
+  const main = useRef<HTMLElement>(null)
+  const page = useRef<HTMLDivElement>(null)
+
+  /**
+   * The screens are laid out to fit, so at normal sizes nothing scrolls. When a window is too small for what a screen needs,
+   * the page area scrolls inside itself (`data-scroll` in index.css) rather than running underneath the player and the nav.
+   */
+  useEffect(() => {
+    const m = main.current, p = page.current
+    if (!m || !p) return
+    let on = false
+    const measure = () => {
+      const over = p.scrollHeight - p.clientHeight
+      const want = on ? over > 3 : over > 24 // a panel picked up or zoomed a little is not a reason to scroll
+      if (want === on) return
+      on = want
+      m.toggleAttribute('data-scroll', on)
+      if (on) m.tabIndex = 0; else m.removeAttribute('tabindex') // a scrolling area has to be reachable from the keyboard
+      if (!on) m.scrollTop = 0
+    }
+    const timer = setInterval(measure, 500)
+    const ro = new ResizeObserver(measure)
+    ro.observe(p)
+    addEventListener('resize', measure)
+    measure()
+    return () => { clearInterval(timer); ro.disconnect(); removeEventListener('resize', measure) }
+  }, [])
+  useEffect(() => { main.current?.scrollTo({ top: 0 }) }, [view])
 
   return (
     <div className="relative h-dvh w-screen overflow-hidden text-ink">
@@ -78,10 +106,12 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
       </AnimatePresence>
 
       <main
+        ref={main}
         id="canvas"
         className={cn('absolute inset-0 px-4 transition-opacity duration-300 md:px-8 lg:px-12', wide ? 'pb-[112px] pt-[76px]' : 'pb-[calc(150px+env(safe-area-inset-bottom))] pt-[60px]', theatre && 'pointer-events-none opacity-0')}
+        style={{ '--pt': wide ? '76px' : '60px', '--pb': wide ? '112px' : 'calc(150px + env(safe-area-inset-bottom))' } as React.CSSProperties}
       >
-        <div className="mx-auto h-full w-full max-w-[1240px]">{children}</div>
+        <div ref={page} className="mx-auto h-full w-full max-w-[1240px]">{children}</div>
       </main>
 
       {!theatre && (
