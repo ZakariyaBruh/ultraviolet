@@ -6,7 +6,7 @@ import { fx_say } from '@/lib/actions'
 import { fmtClock } from '@/lib/dates'
 import { usePlayer } from '@/lib/player'
 import { useStore } from '@/lib/store'
-import { clearUnread, createRoom, friendName, inviteLink, joinLock, joinRoom, leaveRoom, lockTogether, pendingInvite, sendChat, setFollow, setHook, shareNow, stopSharing, tuneTo, useRoom, type Member } from '@/lib/together'
+import { clearUnread, createRoom, friendName, inviteLink, joinLock, joinRoom, leaveRoom, lockTogether, pendingInvite, sendChat, setFollow, nudge, setHook, shareNow, stopSharing, tuneTo, useRoom, type Member } from '@/lib/together'
 import { cn } from '@/lib/utils'
 
 const btn = 'inline-flex h-11 items-center justify-center gap-2 border border-ink/30 px-4 text-sm hover:bg-ink/10 disabled:opacity-40'
@@ -65,7 +65,7 @@ export function TogetherView() {
   const [tab, setTab] = useState('room')
   const end = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { clearUnread() }, [])
+  useEffect(() => { clearUnread(); nudge() }, [])
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(t) }, [])
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [msgs.length])
 
@@ -119,12 +119,12 @@ export function TogetherView() {
             {m ? (
               <div className="flex items-center gap-3 border border-ink/15 p-3">
                 <Radio className="size-5 shrink-0 text-signal" />
-                <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{m.name}</div><div className="truncate text-[13px] text-ink-2">{m.by} is {m.kind === 'tv' ? 'watching' : 'listening'}</div></div>
+                <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{m.name}</div><div className="truncate text-[13px] text-ink-2">{m.by} is {m.kind === 'tv' ? 'watching' : 'listening'}{m.id.startsWith('pod:') ? ' · episode' : ''}</div></div>
                 <button className={btn} onClick={() => tuneTo(m)}>Tune in</button>
               </div>
-            ) : <p className="text-[13px] text-ink-2">Nothing shared yet. Play a station or channel, then share it.</p>}
+            ) : <p className="text-[13px] text-ink-2">Nothing shared yet. Play a station, channel or podcast, then share it.</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <button className={primary} disabled={!current || current.id.startsWith('pod:')} onClick={() => void act(shareNow())}>{current ? `Share ${current.name.slice(0, 22)}` : 'Share what I am playing'}</button>
+              <button className={primary} onClick={() => void act(shareNow())}>{current ? `Share ${current.name.slice(0, 22)}` : 'Share what I am playing'}</button>
               {m && mine && <button className={btn} onClick={() => void act(stopSharing())}>Stop sharing</button>}
               <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} className="size-4 accent-[var(--signal)]" />Follow what others share</label>
             </div>

@@ -3,12 +3,12 @@ import { create } from 'zustand'
 import { fx_say } from './actions'
 import { identity } from './leaders'
 import { notify } from './notify'
-import { play, usePlayer } from './player'
+import { audioEl, play, usePlayer } from './player'
 import { useStore, type MediaItem } from './store'
 
 export interface Member { name: string; me: boolean; status: 'idle' | 'locked' | 'done'; left: number; away: boolean }
 export interface Msg { id: number; who: string; text: string; sys: boolean; t: number }
-export interface Shared { id: string; kind: 'radio' | 'tv'; name: string; url: string; logo?: string; meta?: string; by: string; at: number }
+export interface Shared { id: string; kind: 'radio' | 'tv'; name: string; url: string; logo?: string; meta?: string; by: string; at: number; /** where a podcast episode was, in seconds, when it was shared */ pos?: number }
 export interface RoomState {
   code: string; host: string; isHost: boolean; hasHook: boolean
   media: Shared | null
@@ -76,6 +76,8 @@ function status(): { status: 'idle' | 'locked' | 'done'; left: number } {
 function absorb(r: RoomState, first: boolean) {
   const prev = useRoom.getState()
   const inView = location.pathname === '/together' && !document.hidden
+  const next = r.msgs.length + '|' + r.sess?.start + '|' + r.media?.at + '|' + r.members.map((m) => m.name + m.status + m.away).join(',')
+  if (next !== sig) { sig = next; lastChange = Date.now() }
   let msgs = prev.msgs
   const known = new Set(msgs.map((m) => m.id))
   const fresh = r.msgs.filter((m) => !known.has(m.id))
@@ -91,8 +93,15 @@ function absorb(r: RoomState, first: boolean) {
       fx_say({ title: `${r.sess.by} locked in`, description: `${r.sess.min} minutes. Join them from the Together screen.` })
     }
     if (r.media && r.media.at > prev.seenMedia && r.media.by !== friendName()) {
-      notify('together', `${r.media.by} is ${r.media.kind === 'tv' ? 'watching' : 'listening to'} ${r.media.name}.`, 'Together')
-      if (prev.follow) tuneTo(r.media)
+      const m = r.media
+      notify('together', `${m.by} is ${m.kind === 'tv' ? 'watching' : 'listening to'} ${m.name}.`, 'Together')
+      if (prev.follow) tuneTo(m)
+      // a browser may refuse to start sound it was not asked for, so offer a button that counts as asking
+      setTimeout(() => {
+        const st = usePlayer.getState()
+        const playing = st.current?.id === m.id && (st.status === 'playing' || st.status === 'loading')
+        if (!playing) fx_say({ title: `${m.by} is ${m.kind === 'tv' ? 'watching' : 'listening to'} ${m.name}`, description: 'Tune in to join them.', undo: () => tuneTo(m), label: 'Tune in' })
+      }, 900)
     }
   }
   set({ room: r, msgs, unread: inView ? 0 : unread, err: '', seenSess: Math.max(prev.seenSess, r.sess?.start ?? 0), seenMedia: Math.max(prev.seenMedia, r.media?.at ?? 0) })
@@ -101,6 +110,12 @@ function absorb(r: RoomState, first: boolean) {
 export function tuneTo(m: Shared) {
   const item: MediaItem = { id: m.id, kind: m.kind, name: m.name, url: m.url, logo: m.logo, meta: m.meta ? `${m.meta} · with ${m.by}` : `With ${m.by}` }
   play(item, [item])
+  // an episode carries on from where the sharer was, plus the time since they shared it
+  if (m.pos !== undefined) {
+    const to = m.pos + Math.max(0, (Date.now() - m.at) / 1000)
+    const seek = () => { if (Number.isFinite(audioEl.duration)) audioEl.currentTime = Math.min(to, Math.max(0, audioEl.duration - 2)) }
+    audioEl.addEventListener('loadedmetadata', seek, { once: true })
+  }
 }
 
 /** One round trip to the room. */
@@ -120,15 +135,25 @@ async function poll(first = false) {
   }
 }
 
-/** The one polling loop: every couple of seconds while you can see the tab, slower when you cannot. */
+/**
+ * The one polling loop. Every poll is a serverless call, and the free plan allows a million a month, so it runs
+ * fast only while it matters: on the Together screen with something changing. Elsewhere it ticks slowly, which is
+ * still well inside the 25 seconds before a member shows as away.
+ */
 let gen = 0
+let lastChange = Date.now()
+let sig = ''
+const delay = () => (document.hidden ? 12000 : location.pathname !== '/together' ? 8000 : Date.now() - lastChange < 60000 ? 3000 : 6000)
 async function loop(first = false) {
   clearTimeout(timer)
   const g = ++gen
   await poll(first)
-  if (g === gen && useRoom.getState().code) timer = setTimeout(() => void loop(), document.hidden ? 9000 : 2500)
+  if (g === gen && useRoom.getState().code) timer = setTimeout(() => void loop(), delay())
 }
-const tick = () => poll()
+const tick = () => { lastChange = Date.now(); return poll() }
+/** Called when the Together screen opens or the tab comes back: look now, and keep looking quickly for a minute. */
+export function nudge() { lastChange = Date.now(); if (useRoom.getState().code) void loop() }
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (!document.hidden) nudge() })
 
 function begin() { void loop(true) }
 function leaveLocal() { clearTimeout(timer); gen++; ls.del(KEY); set({ code: null, room: null, msgs: [], unread: 0, seenSess: 0, seenMedia: 0 }) }
@@ -180,9 +205,11 @@ export function joinLock() {
 }
 export const shareNow = async () => {
   const cur = usePlayer.getState().current
-  if (!cur || (cur.kind !== 'radio' && cur.kind !== 'tv')) { fx_say({ title: 'Play something first', description: 'Then share it with the room.' }); return }
-  if (cur.id.startsWith('pod:')) { fx_say({ title: 'Podcast episodes cannot be shared yet', description: 'Radio and TV can.' }); return }
-  await call({ a: 'media', code: useRoom.getState().code, media: { id: cur.id, kind: cur.kind, name: cur.name, url: cur.url, logo: cur.logo, meta: cur.meta } })
+  if (!cur || (cur.kind !== 'radio' && cur.kind !== 'tv')) { fx_say({ title: 'Play something first', description: 'Start a station, channel or podcast, then share it with the room.' }); return }
+  const ep = cur.id.startsWith('pod:')
+  const pos = ep && Number.isFinite(audioEl.currentTime) ? Math.round(audioEl.currentTime) : undefined
+  await call({ a: 'media', code: useRoom.getState().code, media: { id: cur.id, kind: cur.kind, name: cur.name, url: cur.url, logo: cur.logo, meta: cur.meta, pos } })
+  fx_say({ title: ep ? 'Episode shared' : cur.kind === 'tv' ? 'Channel shared' : 'Station shared', description: `${cur.name.slice(0, 40)} is in the room now.`, variant: 'success' })
   void tick()
 }
 export const stopSharing = () => call({ a: 'media', code: useRoom.getState().code, media: null }).then(() => tick())

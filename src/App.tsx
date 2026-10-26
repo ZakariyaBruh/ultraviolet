@@ -196,7 +196,7 @@ export default function App() {
         title={notice?.title}
         description={notice?.description}
         variant={notice?.variant === 'danger' ? 'error' : notice?.variant === 'warning' ? 'warning' : notice?.variant === 'success' ? 'success' : notice?.undo ? 'default' : 'info'}
-        undoLabel="Undo"
+        undoLabel={notice?.label ?? 'Undo'}
         position="top-center"
         duration={notice?.undo ? 7000 : 3800}
         showProgress

@@ -72,6 +72,23 @@ async function say(room: string, who: string, text: string, sys = 0) {
   await c.execute({ sql: 'DELETE FROM msgs WHERE room = ? AND id <= (SELECT id FROM msgs WHERE room = ? ORDER BY id DESC LIMIT 1 OFFSET ?)', args: [room, room, KEEP_MSGS] })
 }
 
+type Rows = { rows: Record<string, unknown>[] }
+/** Turns the three reads into what browsers get. */
+function shape(code: string, id: string, room: Record<string, unknown>, mem: Rows, msgs: Rows) {
+  const now = Date.now()
+  return {
+    code,
+    host: mem.rows.find((m) => m.id === room.host)?.name ?? '',
+    isHost: room.host === id,
+    hasHook: !!room.hook,
+    media: room.media ? JSON.parse(room.media as string) : null,
+    sess: room.sess ? JSON.parse(room.sess as string) : null,
+    members: mem.rows.map((m) => ({ name: m.name as string, me: m.id === id, status: m.status as string, left: Number(m.left), away: now - Number(m.seen) > AWAY_MS })),
+    msgs: [...msgs.rows].reverse().map((m) => ({ id: Number(m.id), who: m.who as string, text: m.text as string, sys: !!m.sys, t: Number(m.t) })),
+    now,
+  }
+}
+
 async function state(code: string, id: string, since: number) {
   const c = client()
   const [room, mem, msgs] = await Promise.all([
@@ -80,19 +97,7 @@ async function state(code: string, id: string, since: number) {
     c.execute({ sql: 'SELECT id, who, text, sys, t FROM msgs WHERE room = ? AND id > ? ORDER BY id DESC LIMIT 60', args: [code, since] }),
   ])
   if (!room.rows[0]) return null
-  const now = Date.now()
-  const r = room.rows[0]
-  return {
-    code,
-    host: mem.rows.find((m) => m.id === r.host)?.name ?? '',
-    isHost: r.host === id,
-    hasHook: !!r.hook,
-    media: r.media ? JSON.parse(r.media as string) : null,
-    sess: r.sess ? JSON.parse(r.sess as string) : null,
-    members: mem.rows.map((m) => ({ name: m.name as string, me: m.id === id, status: m.status as string, left: Number(m.left), away: now - Number(m.seen) > AWAY_MS })),
-    msgs: msgs.rows.reverse().map((m) => ({ id: Number(m.id), who: m.who as string, text: m.text as string, sys: !!m.sys, t: Number(m.t) })),
-    now,
-  }
+  return shape(code, id, room.rows[0] as Record<string, unknown>, mem as Rows, msgs as Rows)
 }
 
 export default {
@@ -114,6 +119,25 @@ export default {
       if (Math.random() < 0.03) {
         const old = await c.execute({ sql: 'SELECT code FROM rooms WHERE t < ?', args: [now - ROOM_TTL] })
         for (const r of old.rows) await c.batch([{ sql: 'DELETE FROM msgs WHERE room = ?', args: [r.code as string] }, { sql: 'DELETE FROM members WHERE room = ?', args: [r.code as string] }, { sql: 'DELETE FROM rooms WHERE code = ?', args: [r.code as string] }])
+      }
+
+      // The common case, a member who is already in the room, is one round trip to the database instead of five.
+      if (a === 'sync' && CODE.test(code)) {
+        const st = ['idle', 'locked', 'done'].includes(String(b.status)) ? String(b.status) : 'idle'
+        const since = Math.max(0, Number(b.since) || 0)
+        const r = await c.batch([
+          { sql: 'UPDATE members SET status = ?, left = ?, seen = ? WHERE room = ? AND id = ?', args: [st, Math.max(0, Math.min(86400, Number(b.left) || 0)), now, code, id] },
+          { sql: 'UPDATE rooms SET t = ? WHERE code = ?', args: [now, code] },
+          { sql: 'SELECT host, hook, media, sess FROM rooms WHERE code = ?', args: [code] },
+          { sql: 'SELECT id, name, status, left, seen FROM members WHERE room = ? ORDER BY name', args: [code] },
+          { sql: 'SELECT id, who, text, sys, t FROM msgs WHERE room = ? AND id > ? ORDER BY id DESC LIMIT 60', args: [code, since] },
+        ])
+        const room = r[2].rows[0] as Record<string, unknown> | undefined
+        if (r[0].rowsAffected > 0 && room) {
+          if (b.finished === true) await relay((room.hook as string | null) ?? null, `${(r[3].rows.find((m) => m.id === id)?.name as string) ?? name} finished a lock-in.`)
+          return json(shape(code, id, room, r[3] as Rows, r[4] as Rows))
+        }
+        // not in the room yet (joining) or no such room: the full path below says which
       }
 
       if (a === 'create') {
@@ -168,11 +192,11 @@ export default {
         return json({ ok: true })
       }
       if (a === 'media') {
-        const m = b.media as { id?: string; kind?: string; name?: string; url?: string; logo?: string; meta?: string } | null
+        const m = b.media as { id?: string; kind?: string; name?: string; url?: string; logo?: string; meta?: string; pos?: number | null } | null
         if (!m) { await c.execute({ sql: 'UPDATE rooms SET media = NULL WHERE code = ?', args: [code] }); return json({ ok: true }) }
         const url = String(m.url ?? '')
         if (!/^https:\/\//.test(url) || url.length > 600 || !['radio', 'tv'].includes(String(m.kind))) return json({ error: 'bad media' }, 400)
-        const item = { id: clean(m.id, 200), kind: m.kind, name: clean(m.name, 120), url, logo: /^https:\/\//.test(String(m.logo ?? '')) ? String(m.logo).slice(0, 600) : undefined, meta: clean(m.meta, 120), by: who, at: now }
+        const item = { id: clean(m.id, 200), kind: m.kind, name: clean(m.name, 120), url, logo: /^https:\/\//.test(String(m.logo ?? '')) ? String(m.logo).slice(0, 600) : undefined, meta: clean(m.meta, 120), pos: Number.isFinite(Number(m.pos)) && m.pos !== undefined && m.pos !== null ? Math.max(0, Math.min(86400, Math.round(Number(m.pos)))) : undefined, by: who, at: now }
         await c.execute({ sql: 'UPDATE rooms SET media = ? WHERE code = ?', args: [JSON.stringify(item), code] })
         await say(code, who, `${who} is ${item.kind === 'tv' ? 'watching' : 'listening to'} ${item.name}.`, 1)
         await relay(hook, `${who} is ${item.kind === 'tv' ? 'watching' : 'listening to'} ${item.name}.`)

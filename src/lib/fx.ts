@@ -13,6 +13,8 @@ export interface Notice {
   description?: string
   variant?: 'default' | 'success' | 'warning' | 'danger'
   undo?: () => void
+  /** the button text for `undo` (default "Undo") */
+  label?: string
 }
 
 interface Fx {
