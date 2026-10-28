@@ -1,3 +1,4 @@
+import { hasItemTour, showItem } from '@/components/app/Tour'
 import { MusicControls } from '@/components/app/MusicControls'
 import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
@@ -43,7 +44,7 @@ function Tile({ id, onOpen }: { id: ItemId; onOpen: (id: ItemId) => void }) {
   const owned = item.kind === 'unlock' && it.owned.includes(id)
   const can = credits.bal >= item.price
   const buy = () => {
-    if (useStore.getState().buyItem(id as Exclude<ItemId, 'capsule'>)) fx_say({ title: item.kind === 'use' ? `${item.name} bought` : `${item.name} is yours`, description: HOW[id] ?? 'Open it from the Shop.', variant: 'success' })
+    if (useStore.getState().buyItem(id as Exclude<ItemId, 'capsule'>)) { if (hasItemTour(id)) showItem(id === 'automusic' ? 'music' : id); fx_say({ title: item.kind === 'use' ? `${item.name} bought` : `${item.name} is yours`, description: HOW[id] ?? 'Open it from the Shop.', variant: 'success' }) }
   }
   return (
     <Panel className="flex min-w-0 flex-col gap-1.5 p-3">
@@ -78,6 +79,7 @@ function Page({ id, onBack }: { id: ItemId; onBack: () => void }) {
         <span className="fig text-sm text-ink-2">{owned ? 'owned' : `${fmt(item.price)} credits`}</span>
       </div>
       {HOW[id] && <p className="text-[13px] text-ink-2">{HOW[id]}</p>}
+      {owned && hasItemTour(id) && <button onClick={() => showItem(id === 'automusic' ? 'music' : id)} className="h-11 justify-self-start border border-ink/30 px-4 text-sm hover:bg-ink/10">Show me how it works</button>}
       <div className="min-h-0 flex-1 overflow-hidden">
         {id === 'capsule' && <Capsule />}
         {id === 'sound' && (owned ? <Mixer /> : <p className="text-sm text-ink-2">Buy the sound machine to open it.</p>)}

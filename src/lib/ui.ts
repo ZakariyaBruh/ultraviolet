@@ -12,6 +12,8 @@ interface UI {
   moreOpen: boolean
   landing: boolean
   tourOpen: boolean
+  /** the item whose how-to walk-through is showing (a bought window: sound machine, spinner, cannon, auto music) */
+  itemTour: string | null
   /** run the welcome again (Settings, Help) */
   onboardOpen: boolean
   receipt: SessionRec | null
@@ -30,6 +32,7 @@ export const useUI = create<UI>((set) => ({
   moreOpen: false,
   landing: false,
   tourOpen: false,
+  itemTour: null,
   onboardOpen: false,
   receipt: null,
   celebrate: null,

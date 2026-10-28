@@ -3,14 +3,15 @@ import { Glass } from '@/components/app/glass'
 import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
-import { WIDGETS } from './defs'
+import { useAvailableWidgets } from './defs'
 import { WidgetWindow } from './Window'
 
 /** The open windows, floating over the Focus screen. The layer lets everything under it through; only the windows catch the pointer. */
 export function WidgetLayer() {
   const open = useStore((s) => s.widgets.open)
   const wide = useMedia('(min-width: 640px)')
-  const live = open.map((id) => WIDGETS.find((w) => w.id === id)).filter((w): w is (typeof WIDGETS)[number] => !!w)
+  const have = useAvailableWidgets()
+  const live = open.map((id) => have.find((w) => w.id === id)).filter((w): w is (typeof have)[number] => !!w)
   if (!live.length) return null
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
@@ -36,10 +37,11 @@ export function WidgetsPicker() {
   const open = useStore((s) => s.widgets.open)
   const setWidget = useStore((s) => s.setWidget)
   const closeAll = useStore((s) => s.closeWidgets)
+  const have = useAvailableWidgets()
   return (
     <div className="grid gap-2">
       <ul className="grid gap-1.5 sm:grid-cols-2">
-        {WIDGETS.map((w) => {
+        {have.map((w) => {
           const on = open.includes(w.id)
           return (
             <li key={w.id}>

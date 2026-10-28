@@ -34,7 +34,7 @@ import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
-import { Tour } from '@/components/app/Tour'
+import { ItemTour, Tour } from '@/components/app/Tour'
 import { useMusicSync } from '@/lib/music'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { TogetherView } from '@/views/TogetherView'
@@ -213,6 +213,7 @@ export default function App() {
 
       <Onboarding />
       {route !== 'home' && <Tour view={view} go={change} />}
+      {route !== 'home' && <ItemTour view={view} go={change} />}
       <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast
