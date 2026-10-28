@@ -44,4 +44,4 @@ No real user data, testimonials or customers. A "Load demo history" button produ
 Target WCAG 2.2 AA. Motion has a reduced path. Controls keyboard reachable with visible focus. Touch targets at least 44px.
 
 
-No chat anywhere, and AI in exactly one place: a lesson on a topic with no built-in demo can ask Gemini to write one (`api/demo.ts`, only the topic title is sent, the demo runs in a sealed frame, it is labelled AI generated, and Settings turns it off). If it does not arrive the lesson goes on without it. The Debrief is plain sentences computed from stored numbers.
+No chat between people outside Together, and AI in two places, both optional and labelled: an Ask AI window (a study helper in a widget, free services through `api/chat.ts`, nothing saved), and a lesson on a topic with no built-in demo can ask Gemini to write one (`api/demo.ts`, only the topic title is sent, the demo runs in a sealed frame, it is labelled AI generated, and Settings turns it off). If it does not arrive the lesson goes on without it. The Debrief is plain sentences computed from stored numbers.

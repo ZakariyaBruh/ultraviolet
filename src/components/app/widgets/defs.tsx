@@ -1,10 +1,12 @@
-import { Calculator as CalcIcon, CloudRain, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
+import { Calculator as CalcIcon, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { MusicControls } from '@/components/app/MusicControls'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { Cannon, Spinner } from '@/components/app/shop/Toys'
 import { useStore } from '@/lib/store'
 import type { ItemId } from '@/lib/credits'
+import { Ask } from './Ask'
+import { Browser } from './Browser'
 import { Calculator } from './Calculator'
 import { Converter } from './Converter'
 import { Notepad } from './Notepad'
@@ -12,7 +14,7 @@ import { Sketch } from './Sketch'
 import { Timer } from './Timer'
 import { Todo } from './Todo'
 
-export interface WidgetDef { id: string; name: string; blurb: string; icon: LucideIcon; Body: ComponentType; /** a Shop item that has to be bought before the window exists */ needs?: ItemId }
+export interface WidgetDef { id: string; name: string; blurb: string; icon: LucideIcon; Body: ComponentType; /** a Shop item that has to be bought before the window exists */ needs?: ItemId; /** a wide window, for things that need room */ large?: boolean }
 
 /** the toys are put away while a session is running */
 const SpinnerBody = () => <Spinner locked={useStore((s) => !!s.session)} />
@@ -29,6 +31,8 @@ export const WIDGETS: WidgetDef[] = [
   { id: 'sound', name: 'Sound machine', blurb: 'Rain, wind, fire, waves and a low hum, mixed by you.', icon: CloudRain, Body: Mixer, needs: 'sound' },
   { id: 'spinner', name: 'Fidget spinner', blurb: 'Flick it and watch it go. It counts every turn.', icon: RotateCw, Body: SpinnerBody, needs: 'spinner' },
   { id: 'confetti', name: 'Confetti cannon', blurb: 'A rocket and confetti, on demand.', icon: PartyPopper, Body: CannonBody, needs: 'confetti' },
+  { id: 'browser', name: 'Browser', blurb: 'The web for studying: search, read and watch YouTube videos. Games and short-form social media are blocked.', icon: Globe, Body: Browser, large: true },
+  { id: 'ask', name: 'Ask AI', blurb: 'A study helper you can ask. AI generated, so check what matters.', icon: Sparkles, Body: Ask },
   { id: 'sketch', name: 'Scratch board', blurb: 'Draw a diagram or work a problem by hand. Save it as a picture.', icon: PencilRuler, Body: Sketch },
 ]
 /** the windows this person may use: the free ones, and the ones whose item they own */

@@ -16,7 +16,7 @@ export function WidgetLayer() {
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
       {live.map((w, i) => (
-        <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide}><w.Body /></WidgetWindow>
+        <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide} large={w.large}><w.Body /></WidgetWindow>
       ))}
     </div>
   )

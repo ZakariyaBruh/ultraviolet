@@ -10,7 +10,7 @@ import { useStore } from '@/lib/store'
 let front = 30
 const STEP = 28
 
-export function WidgetWindow({ id, title, index, wide, children }: { id: string; title: string; index: number; wide: boolean; children: ReactNode }) {
+export function WidgetWindow({ id, title, index, wide, large, children }: { id: string; title: string; index: number; wide: boolean; large?: boolean; children: ReactNode }) {
   const setWidget = useStore((s) => s.setWidget)
   const n = index % 5 // after five, start the stack again so a window never lands off the screen
   return (
@@ -20,7 +20,7 @@ export function WidgetWindow({ id, title, index, wide, children }: { id: string;
       aria-label={title}
       onPointerDownCapture={(e) => { e.currentTarget.style.zIndex = String(++front) }} // whichever you touch comes to the front
       className="win-in pointer-events-auto !absolute flex flex-col"
-      style={wide ? { top: 8 + n * STEP, right: 8 + n * STEP, width: 'min(21rem, calc(100% - 1rem))' } : { top: 6 + n * 14, left: 8, right: 8 }}
+      style={wide ? { top: 8 + n * STEP, right: 8 + n * STEP, width: large ? 'min(44rem, calc(100% - 1rem))' : 'min(21rem, calc(100% - 1rem))' } : { top: 6 + n * 14, left: 8, right: 8 }}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-ink/15 pl-3">
         <h2 className="hud !text-ink">{title}</h2>
