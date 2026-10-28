@@ -162,10 +162,13 @@ export function Browser() {
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
     const id = youtubeId(v.url)
     if (id) return show({ kind: 'video', id, url: v.url.toString() }, push)
-    const s = searched(v.url)
-    if (s) return void (s.yt ? ytSearch(s.q) : search(s.q))
-    if (ytHome(v.url)) return show({ kind: 'youtube', q: '', list: [] }, push)
-    if (engineHome(v.url)) return show({ kind: 'search' }, push)
+    // with page scripts on, Google, YouTube and the rest are opened as themselves; the window's own search pages stand in only when scripts are off
+    if (scripts === 'off' || how === 'static') {
+      const s = searched(v.url)
+      if (s) return void (s.yt ? ytSearch(s.q) : search(s.q))
+      if (ytHome(v.url)) return show({ kind: 'youtube', q: '', list: [] }, push)
+      if (engineHome(v.url)) return show({ kind: 'search' }, push)
+    }
     const target = v.url.toString()
     // scripts run in the person's own browser (in the sealed frame), never on a server, once the address has passed the list and a
     // page the list does not know has been looked at
@@ -276,8 +279,8 @@ export function Browser() {
             <p className="hud">Start</p>
             <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Start pages">
               <li><Tile icon={<BookOpen className="size-6" />} name="Wikipedia" sub="The encyclopedia" onClick={() => void open('https://en.wikipedia.org/wiki/Main_Page')} /></li>
-              <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => show({ kind: 'youtube', q: '', list: [] })} /></li>
-              <li><Tile icon={<Search className="size-6" />} name={engineName} sub="Search the web" onClick={() => show({ kind: 'search' })} label={`${engineName}, your search engine`} /></li>
+              <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => (scripts === 'off' ? show({ kind: 'youtube', q: '', list: [] }) : void open('https://www.youtube.com/'))} /></li>
+              <li><Tile icon={<Search className="size-6" />} name={engineName} sub="Search the web" onClick={() => (scripts === 'off' ? show({ kind: 'search' }) : void open(engine === 'bing' ? 'https://www.bing.com/' : engine === 'duckduckgo' ? 'https://duckduckgo.com/' : 'https://www.google.com/'))} label={`${engineName}, your search engine`} /></li>
               {saved.map((p) => (
                 <li key={p.url}>
                   {editing
