@@ -116,6 +116,8 @@ export interface Settings {
   music: boolean
   musicMood: string
   musicLevel: number
+  /** the age rating of songs to offer: -1 not chosen yet, 0 everyone, 1 teens, 2 adults */
+  songAge: number
   /** the first-run walkthrough has been shown */
   toured: boolean
 }
@@ -179,9 +181,7 @@ interface Data {
 
 /** the study windows on the Focus screen: which are open, and what the notepad and the to-do list hold */
 export interface Todo { id: string; t: string; done: boolean }
-export interface Widgets { open: string[]; note: string; todos: Todo[]; spotify: string }
-/** the one kind of address the Spotify embed takes: a track, album, playlist, episode, show or artist */
-export const SPOTIFY_LINK = /^https:\/\/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]{22})(?:[?#].*)?$/
+export interface Widgets { open: string[]; note: string; todos: Todo[] }
 export const NOTE_MAX = 20000
 export const TODO_MAX = 60
 
@@ -189,7 +189,6 @@ interface Actions {
   setWidget: (id: string, on: boolean) => void
   closeWidgets: () => void
   setNote: (text: string) => void
-  setSpotify: (link: string) => void
   addTodo: (text: string) => void
   toggleTodo: (id: string) => void
   removeTodo: (id: string) => void
@@ -249,6 +248,7 @@ export const DEFAULT_SETTINGS: Settings = {
   music: false,
   musicMood: 'calm',
   musicLevel: 0.6,
+  songAge: -1,
   toured: false,
 }
 
@@ -270,7 +270,7 @@ const emptyData = (): Data => ({
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
   credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
-  widgets: { open: [], note: '', todos: [], spotify: '' },
+  widgets: { open: [], note: '', todos: [] },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -308,6 +308,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         // a save from before the tour existed that already has a name is someone who knows their way around: no tour pops up for them (it is still in Settings > Help)
         if (typeof v.toured !== 'boolean' && isObj(raw.profile)) st.toured = true
         st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
+        if (![-1, 0, 1, 2].includes(st.songAge as number)) st.songAge = -1
         if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
@@ -337,7 +338,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
       if (isObj(v)) {
         const open = Array.isArray(v.open) ? [...new Set(v.open.filter((x): x is string => typeof x === 'string' && x.length < 20))].slice(0, 12) : []
         const todos = Array.isArray(v.todos) ? v.todos.filter((x) => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && typeof x.done === 'boolean').slice(0, TODO_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 160), done: !!x.done })) : []
-        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, spotify: typeof v.spotify === 'string' && SPOTIFY_LINK.test(v.spotify) ? v.spotify.slice(0, 200) : '' }
+        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos }
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -584,7 +585,6 @@ export const useStore = create<AppState>()(
       setWidget: (id, on) => set((s) => ({ widgets: { ...s.widgets, open: on ? (s.widgets.open.includes(id) ? s.widgets.open : [...s.widgets.open, id]) : s.widgets.open.filter((x) => x !== id) } })),
       closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [] } })),
       setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX) } })),
-      setSpotify: (link) => set((s) => ({ widgets: { ...s.widgets, spotify: SPOTIFY_LINK.test(link) ? link.slice(0, 200) : '' } })),
       addTodo: (text) => {
         const t = text.trim().slice(0, 160)
         if (!t) return

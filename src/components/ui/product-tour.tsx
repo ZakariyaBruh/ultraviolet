@@ -452,6 +452,7 @@ export function ProductTour({
               className="stroke-signal"
               strokeWidth={2}
             />
+            <motion.rect x={sx} y={sy} width={safeW} height={safeH} rx={safeR} fill="none" className="tour-ping stroke-signal" strokeWidth={2} />
           </svg>
 
           {/* Reads env(safe-area-inset-bottom) so the docked card clears the home indicator */}
@@ -466,9 +467,9 @@ export function ProductTour({
             onKeyDown={trapTab}
             className="absolute left-0 top-0 w-[calc(100vw-24px)] max-w-[440px] overflow-hidden rounded-2xl border border-ink/40 bg-ground text-ink sm:w-[340px] sm:max-w-none"
             style={{ x: cx, y: cy }}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: ready ? 1 : 0, scale: ready ? 1 : 0.96 }}
-            transition={{ duration: 0.2, ease: EASE_OUT }}
+            initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+            animate={{ opacity: ready ? 1 : 0, scale: ready ? 1 : 0.9, rotate: ready ? 0 : -2 }}
+            transition={{ type: "spring", stiffness: 420, damping: 24, opacity: { duration: 0.15 } }}
           >
             <div className="flex items-center justify-between pl-4 pr-1 pt-1 text-[11px] uppercase tracking-[0.12em] tabular-nums text-ink-3">
               <span>

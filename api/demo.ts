@@ -60,7 +60,7 @@ button.primary{background:var(--signal);color:var(--on-signal)}
 button[aria-pressed=true]{background:var(--ink);color:var(--ground)}
 /* Paper, light: ink keylines and hard offset shadows */
 .card,.stage{box-shadow:0 0 0 2px var(--ink),4px 4px 0 var(--ink)}  button{border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
-/* Phosphor, a green terminal: double frame, mono type, capitals.  Blueprint: ink frame with a dashed line inside.  Sunset: pills and round cards. */
+/* Phosphor, an old monitor: ruled panel with a green edge, mono labels.  Blueprint: ink frame with a dashed line inside.  Sunset: pills and round cards. */
 Drawing: gridlines and axes in var(--rule), tick labels in var(--ink3), the thing being studied in var(--signal), a second series or comparison in var(--ice), 1.5 to 2px lines, flat caps, solid fills only. Axis and legend text is short and in capitals. A scaled SVG or canvas shrinks its text with it, so put words in HTML (a .hud label above or beside the stage), never inside a scaled drawing, and keep every word at 12px or more on the smallest frame. Space things like a ruler: even ticks, one decimal at most, units written out.
 
 MAKE IT ACTUALLY WORK (the most common ways these demos fail)

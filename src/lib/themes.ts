@@ -15,7 +15,7 @@ export interface ThemeDef {
 export const THEMES: ThemeDef[] = [
   { id: 'station', name: 'Station', note: 'Blue-black, broadcast yellow', light: false, ground: '#05070c', signal: '#ffd23f', ink: '#f3f1ea', ice: '#7fd3ff' },
   { id: 'paper', name: 'Paper', note: 'Newsprint and signal blue', light: true, ground: '#f2efe6', signal: '#1f3bff', ink: '#0a0c12', ice: '#0a6e8a' },
-  { id: 'phosphor', name: 'Phosphor', note: 'Green CRT, all monospace', light: false, ground: '#020a04', signal: '#39ff6e', ink: '#c8ffd6', ice: '#7dffc2' },
+  { id: 'phosphor', name: 'Phosphor', note: 'Old monitor, soft green on dark', light: false, ground: '#0d130e', signal: '#9fe870', ink: '#d4dccb', ice: '#8fd0b4' },
   { id: 'blueprint', name: 'Blueprint', note: 'White linework on drawing blue', light: false, ground: '#0a2557', signal: '#7ff0ff', ink: '#eaf3ff', ice: '#ffffff' },
   { id: 'sunset', name: 'Sunset', note: 'Plum night, hot pink, peach', light: false, ground: '#140a24', signal: '#ff4fa3', ink: '#fff1f7', ice: '#ffb86b' },
 ]

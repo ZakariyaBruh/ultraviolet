@@ -5,13 +5,21 @@ import { cn } from '@/lib/utils'
 
 /** The music's controls: play or pause, which mood, how loud. Used in Settings and in the Music window. */
 export function MusicControls({ compact = false }: { compact?: boolean }) {
-  const on = useStore((s) => s.settings.music)
+  const owned = useStore((s) => !!s.credits?.items?.owned?.includes('automusic'))
+  const on = useStore((s) => s.settings.music) && owned
   const mood = useStore((s) => s.settings.musicMood) as MoodId
   const level = useStore((s) => s.settings.musicLevel)
   const set = useStore((s) => s.setSettings)
   const ducked = useMusic((s) => s.ducked)
   const motion = useStore((s) => s.settings.motion)
   const note = MOODS.find((m) => m.id === mood)?.blurb ?? ''
+  if (!owned) return (
+    <div className="grid gap-2">
+      <p className="text-[15px] font-semibold">Auto music is in the Shop</p>
+      <p className="text-[13px] leading-[1.4] text-ink-2">Music made on the spot, different every session. Buy it with credits from focused time, in the Arcade’s Shop tab. Songs from the Music screen are free.</p>
+      <a href="/arcade" className="inline-flex h-11 items-center justify-center bg-signal px-4 text-sm font-semibold text-on-signal">Open the Shop</a>
+    </div>
+  )
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-3">

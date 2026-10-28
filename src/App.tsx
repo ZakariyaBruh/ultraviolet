@@ -41,6 +41,7 @@ import { TogetherView } from '@/views/TogetherView'
 import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
+import { MusicView } from '@/views/MusicView'
 
 function Placeholder({ name }: { name: string }) {
   return <div className="grid h-full place-items-center text-ink-2">{name} is being rebuilt.</div>
@@ -126,13 +127,14 @@ export default function App() {
       <Backdrop reduced={reduced} />
       <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
-          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 24 * d, scale: 0.985 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -14 * d, scale: 0.992, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+          <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 36 * d, y: 6, scale: 0.975 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }} exit={{ opacity: 0, x: -18 * d, scale: 0.99, transition: { duration: 0.11, ease: [0.4, 0, 1, 1] } }} transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.8, opacity: { duration: 0.16, ease: 'easeOut' } }}>
             <FitView watch={view}>
             {level >= 1 && <StaticBurst />}
             {view === 'focus' && <FocusView go={change} />}
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
             {view === 'podcasts' && <PodcastsView />}
+            {view === 'music' && <MusicView />}
             {view === 'news' && <NewsView />}
             {view === 'learn' && <LearnView />}
             {view === 'together' && <TogetherView />}
@@ -142,7 +144,7 @@ export default function App() {
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'music', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>

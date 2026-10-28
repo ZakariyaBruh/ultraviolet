@@ -27,7 +27,7 @@ export function parseNews(xml: string, source: string): Story[] {
     const link = (l?.getAttribute('href') || text(l) || text(first(n, 'guid'))).trim()
     if (!title || !/^https?:\/\//i.test(link)) continue
     const date = Date.parse(text(first(n, 'pubDate', 'published', 'updated', 'dc:date'))) || 0
-    out.push({ id: `${source}:${link}`, title, link: link.replace(/^http:\/\//i, 'https://'), date, about: plain(text(first(n, 'description', 'summary', 'content'))).slice(0, 240), source })
+    out.push({ id: `${source}:${link}`, title, link: link.replace(/^http:\/\//i, 'https://'), date, about: plain(text(first(n, 'description', 'summary', 'content'))).slice(0, 2400), source })
     if (out.length >= 25) break
   }
   if (!out.length) throw new Error('feed')

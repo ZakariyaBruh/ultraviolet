@@ -16,7 +16,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
   const narrow = useMedia('(max-width: 639px)')
   const [more, setMore] = useState(false)
   // on a phone the first six screens sit in the deck and the rest open from "More"
-  const PRIMARY = ['focus', 'radio', 'tv', 'podcasts', 'news', 'learn']
+  const PRIMARY = ['focus', 'radio', 'tv', 'podcasts', 'music', 'news']
   const shown = narrow ? NAV.filter((n) => PRIMARY.includes(n.id)) : NAV
   const rest = narrow ? NAV.filter((n) => !PRIMARY.includes(n.id)) : []
   const inMore = rest.some((n) => n.id === view)

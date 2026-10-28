@@ -185,14 +185,14 @@ html.light {
 }
 /* ───────── themes. Station is the default above; paper is html.light ───────── */
 html[data-theme='phosphor'] {
-    --font-sans: 'Geist Mono Variable', ui-monospace, monospace;
+    --font-sans: 'Hanken Grotesk Variable', system-ui, sans-serif;
     --font-cond: 'Geist Mono Variable', ui-monospace, monospace;
     --font-dot: 'Geist Mono Variable', ui-monospace, monospace;
-    --ground: #020a04; --surface: #04120a; --raised: #08201a; --raised-2: #0d2d22;
-    --ink: #c8ffd6; --ink-2: #8fdca6; --ink-3: #78c28f;
-    --rule: rgba(200, 255, 214, 0.2); --control: rgba(200, 255, 214, 0.4);
-    --signal: #39ff6e; --on-signal: #001a07; --signal-soft: rgba(57, 255, 110, 0.16);
-    --hot: #b6ff3a; --warn: #e8ff3a; --danger: #ff6b6b; --ok: #39ff6e; --ice: #7dffc2; --popover: #04120a;
+    --ground: #0d130e; --surface: #121a13; --raised: #19231a; --raised-2: #212d22;
+    --ink: #d4dccb; --ink-2: #a9b8a3; --ink-3: #8a9c86;
+    --rule: rgba(212, 220, 203, 0.16); --control: rgba(212, 220, 203, 0.36);
+    --signal: #9fe870; --on-signal: #0d1a07; --signal-soft: rgba(159, 232, 112, 0.14);
+    --hot: #e6f27a; --warn: #e6c85a; --danger: #ef8a7a; --ok: #9fe870; --ice: #8fd0b4; --popover: #121a13;
 }
 html[data-theme='blueprint'] {
     --ground: #0a2557; --surface: #0d2f6e; --raised: #123a82; --raised-2: #184592;
@@ -208,7 +208,7 @@ html[data-theme='sunset'] {
     --signal: #ff4fa3; --on-signal: #1a0010; --signal-soft: rgba(255, 79, 163, 0.18);
     --hot: #ffb86b; --warn: #ffb86b; --danger: #ff6b7d; --ok: #7ef0c0; --ice: #ffb86b; --popover: #1c0f33;
 }
-html[data-theme='phosphor'] .dot { text-transform: uppercase; }
+html[data-theme='phosphor'] .dot { font-weight: 600; letter-spacing: -0.02em; }
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
@@ -293,13 +293,12 @@ html.light .crt::after { background: repeating-linear-gradient(0deg, rgba(11,11,
 /* ───────── theme structure: each theme is a different object, not a recolour ───────── */
 /* Phosphor: a CRT terminal. Square, double-framed, uppercase mono, scanlines over everything. */
 html[data-theme='phosphor'] .glass, html[data-theme='phosphor'] .glass-clear, html[data-theme='phosphor'] .material {
-  border-radius: 0; background-color: var(--ground);
-  box-shadow: inset 0 0 0 1px var(--signal), inset 0 0 0 4px var(--ground), inset 0 0 0 5px var(--rule);
+  border-radius: 0; background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule), inset 3px 0 0 0 var(--signal);
 }
 html[data-theme='phosphor'] .glass::before, html[data-theme='phosphor'] .glass-clear::before { display: none; }
-html[data-theme='phosphor'] body::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px); }
-html[data-theme='phosphor'] .hud, html[data-theme='phosphor'] h2, html[data-theme='phosphor'] [data-tab] { text-transform: uppercase; }
-html[data-theme='phosphor'] h1::before { content: "> "; color: var(--signal); }
+html[data-theme='phosphor'] body::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 4px); }
+html[data-theme='phosphor'] .hud { letter-spacing: 0.06em; }
 /* Blueprint: a drafting sheet. Graph paper, hairline dashed frames, drawn-on lettering. */
 html[data-theme='blueprint'] body, html[data-theme='blueprint'] .bp-ground {
   background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
@@ -429,3 +428,8 @@ html[data-retro='5'] button { border-radius: 0 !important; }
 .slide-end > div:first-child > div:nth-child(2) { font-family: var(--font-cond); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
 .slide-end [role='slider'] { border-radius: 0 !important; background: var(--signal) !important; border: 0 !important; box-shadow: none !important; color: var(--on-signal) !important; }
 .slide-end [role='slider'] svg { color: var(--on-signal) !important; }
+
+/* the tour: a ring that leaves the spotlight like a sonar ping, so the eye goes to what is being pointed at */
+.tour-ping { transform-box: fill-box; transform-origin: center; pointer-events: none; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) { .tour-ping { animation: tourping 1.7s cubic-bezier(0.2, 0, 0, 1) infinite; } }
+@keyframes tourping { 0% { transform: scale(1); opacity: 0.8; } 70%, 100% { transform: scale(1.16, 1.3); opacity: 0; } }

@@ -1,6 +1,6 @@
 /**
  * The stylesheet every AI generated demo is placed in. It is the app's own look in small: the same faces, hairlines, flat buttons and
- * condensed labels, and the same structural change each theme makes (Paper keylines and hard shadows, Phosphor double frames,
+ * condensed labels, and the same structural change each theme makes (Paper keylines and hard shadows, Phosphor a ruled panel with a green edge,
  * Blueprint dashed frames, Sunset pills). A demo only has to use these classes and the colour variables to look like part of the app.
  * api/demo.ts describes the same classes to the model, with sample markup; change them together.
  */
@@ -63,9 +63,8 @@ html[data-theme=paper] .stage::before,html[data-theme=paper] .stage::after{displ
 html[data-theme=paper] button{border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
 html[data-theme=paper] button:active{transform:translate(2px,2px);box-shadow:none}
 html[data-theme=paper] .big{font-weight:400;text-transform:uppercase;letter-spacing:0}
-/* Phosphor, a green terminal: double frames, everything capitals */
-html[data-theme=phosphor] .card,html[data-theme=phosphor] .stage{border-color:var(--signal);box-shadow:inset 0 0 0 3px var(--ground),inset 0 0 0 4px var(--rule)}
-html[data-theme=phosphor] .big{text-transform:uppercase}
+/* Phosphor, an old monitor: a ruled panel with a green edge */
+html[data-theme=phosphor] .card,html[data-theme=phosphor] .stage{background:var(--surface);box-shadow:inset 3px 0 0 0 var(--signal)}
 /* Blueprint, a drafting sheet: ink frames with a dashed line inside */
 html[data-theme=blueprint] .card,html[data-theme=blueprint] .stage{border:1px solid var(--ink);outline:1px dashed var(--ink);outline-offset:-4px;background:var(--ground)}
 html[data-theme=blueprint] .big{font-weight:700;letter-spacing:.06em;text-transform:uppercase}

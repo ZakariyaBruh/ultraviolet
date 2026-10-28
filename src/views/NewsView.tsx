@@ -1,4 +1,4 @@
-import { EyeOff, Newspaper, X } from 'lucide-react'
+import { ChevronDown, EyeOff, Newspaper, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader, Panel } from '@/components/app/shared'
@@ -133,6 +133,7 @@ export function NewsView() {
   const loading = prog.done < prog.total
   const activeMutes = mutes.filter((m) => !m.until || m.until > now).length
   const showPanel = wide || panel
+  const [open, setOpen] = useState<Story | null>(null)
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
@@ -157,15 +158,16 @@ export function NewsView() {
               {loading ? `Reading ${prog.done} of ${prog.total} sources…` : `${prog.ok} of ${prog.total} sources answered`}
               {hidden > 0 && ` · ${hidden} hidden by your topics`}
             </p>
-            <div ref={ref} className="min-h-[84px] flex-1 overflow-hidden" {...swipe}>
+            <div ref={ref} className="relative min-h-[84px] flex-1 overflow-hidden" {...swipe}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.ul key={`${cat}-${safe}`} className="grid h-full content-start gap-2" style={{ gridAutoRows: '84px' }} exit={{ opacity: 0, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }}>
                   {slice.map((s, i) => (
                     <motion.li key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1], delay: Math.min(i, 6) * 0.025 }} className="relative">
-                      <a href={s.link} target="_blank" rel="noopener noreferrer" className="flex h-[84px] min-w-0 flex-col justify-center gap-0.5 border border-ink/15 bg-ink/[0.03] py-2 pl-3 pr-14 transition-colors hover:border-signal/60 hover:bg-ink/[0.06]">
+                      <a href={s.link} target="_blank" rel="noopener noreferrer" className="flex h-[84px] min-w-0 flex-col justify-center gap-0.5 border border-ink/15 bg-ink/[0.03] py-2 pl-3 pr-24 transition-colors hover:border-signal/60 hover:bg-ink/[0.06]">
                         <span className="line-clamp-2 text-[14px] font-semibold leading-[18px]">{s.title}</span>
                         <span className="hud truncate">{s.source}{s.date ? ` · ${ago(s.date, now)}` : ''}</span>
                       </a>
+                      {s.about && <button onClick={() => setOpen(s)} aria-label={`Read the summary of “${s.title}”`} aria-haspopup="dialog" className="absolute right-12 top-1/2 grid size-11 -translate-y-1/2 place-items-center text-ink-2 hover:text-signal"><ChevronDown className="size-[18px]" /></button>}
                       <button onClick={() => { setPicking(s); setPanel(true) }} aria-label={`Hide topics from “${s.title}”`} className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center text-ink-2 hover:text-signal"><EyeOff className="size-[18px]" /></button>
                     </motion.li>
                   ))}
@@ -174,6 +176,18 @@ export function NewsView() {
                     <li className="border border-dashed border-ink/25 p-8 text-center text-sm text-ink-2">{all.length ? 'Every story here is hidden by your topics. Lift one to see them.' : 'None of these sources would open. Check your connection and try another category.'}</li>
                   )}
                 </motion.ul>
+              </AnimatePresence>
+              <AnimatePresence>
+                {open && (
+                  <motion.div key="sum" role="dialog" aria-label={open.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6, transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }} onKeyDown={(e) => e.key === 'Escape' && setOpen(null)} className="absolute inset-0 z-10 flex flex-col gap-2 border border-signal/60 bg-ground p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0"><h2 className="text-[16px] font-semibold leading-[1.3]">{open.title}</h2><p className="hud mt-0.5">{open.source}{open.date ? ` · ${ago(open.date, now)}` : ''}</p></div>
+                      <button autoFocus onClick={() => setOpen(null)} aria-label="Close the summary" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><X className="size-4" /></button>
+                    </div>
+                    <p className="scroll-y min-h-0 flex-1 text-[14px] leading-[1.5] text-ink-2" data-no-drag>{open.about}</p>
+                    <a href={open.link} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 shrink-0 items-center justify-center bg-signal px-4 text-sm font-semibold text-on-signal">Read the full story</a>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
             <Scrubber count={shown.length} per={per} page={safe} onPage={setPage} labelAt={(i) => shown[i]?.title ?? ''} />

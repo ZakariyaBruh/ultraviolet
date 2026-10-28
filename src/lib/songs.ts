@@ -2,25 +2,33 @@ import { cached } from './cache'
 import type { MediaItem } from './store'
 
 /**
- * Songs, from two free services that ask for no key and allow a browser to call them:
- *  - Audius: independent artists, whole tracks, streamed straight from its own servers.
- *  - Apple's iTunes Search: any song or artist, but only the 30 second preview Apple publishes for it.
- * Nothing is sent but the words you typed. A song plays in the same player as a radio station (`song:` ids), so the controls,
- * the queue and the room sharing all work, and the generated music steps aside while one plays.
+ * Songs, from services that ask for no key and let a browser call them:
+ *  - Audius: independent artists, whole tracks.
+ *  - Openverse: openly licensed music from Jamendo and others, whole tracks.
+ *  - Internet Archive: public domain and openly licensed recordings, whole tracks.
+ * Only the words you type are sent. A song plays in the same player as a radio station (`song:` ids), so the controls, the queue
+ * and room sharing all work, and the music made in the browser steps aside while one plays. None of these sources rates its
+ * music, so the age setting works from the flags they do give (explicit, mature) and a short list of words.
  */
-export type SongSource = 'audius' | 'itunes'
-export interface Song {
-  item: MediaItem
-  source: SongSource
-  seconds: number
-  /** where to hear or buy the whole thing */
-  link: string
-}
+export type SongSource = 'audius' | 'openverse' | 'archive'
+export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive' }
+export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2 }
+
+/** what the person asked to hear: 0 everyone, 1 teens, 2 adults */
+export const AGES = [
+  { id: 0, name: 'Everyone', note: 'Only songs with no explicit flag and no strong or mild bad words in the title or tags.' },
+  { id: 1, name: 'Teens, 13+', note: 'No explicit flag and no strong words. Mild words are allowed.' },
+  { id: 2, name: 'Adults, 18+', note: 'Everything, including songs marked explicit.' },
+] as const
 
 const APP = 'friction'
 const AUDIUS = 'https://api.audius.co/v1'
 const HOUR = 3600e3
+const STRONG = /\b(fuck\w*|shit\w*|bitch\w*|cunt|nigg\w*|whore|slut|porn\w*|sex\w*|rape|nsfw|explicit|dick|pussy|cock|motherf\w*)\b/i
+const MILD = /\b(damn|hell|ass|bastard|crap|piss)\b/i
 
+/** 2 for anything flagged or with strong words, 1 for mild words, 0 for the rest */
+const rate = (flag: boolean, hay: string): 0 | 1 | 2 => (flag || STRONG.test(hay) ? 2 : MILD.test(hay) ? 1 : 0)
 const https = (u: unknown): string | undefined => (typeof u === 'string' && /^https:\/\//.test(u) ? u : undefined)
 const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 
@@ -34,51 +42,84 @@ async function getJson(url: string, ms = 9000): Promise<unknown> {
   } finally { clearTimeout(t) }
 }
 
-interface AudiusTrack { id?: string; title?: string; duration?: number; permalink?: string; is_streamable?: boolean; access?: { stream?: boolean }; user?: { name?: string }; artwork?: Record<string, string> }
-
+interface AudiusTrack { id?: string; title?: string; duration?: number; permalink?: string; is_streamable?: boolean; access?: { stream?: boolean }; user?: { name?: string }; artwork?: Record<string, string>; parental_warning_type?: string | null; tags?: string | null }
 function fromAudius(t: AudiusTrack): Song | null {
   if (!t.id || !t.title || t.is_streamable === false || t.access?.stream === false) return null
   const art = https(t.artwork?.['150x150']) ?? https(t.artwork?.['480x480'])
   return {
-    source: 'audius',
+    source: 'audius', rating: rate(!!t.parental_warning_type, `${t.title} ${t.tags ?? ''}`),
     seconds: Math.max(0, Math.round(Number(t.duration) || 0)),
     link: `https://audius.co${/^\/[\w\-./]+$/.test(t.permalink ?? '') ? t.permalink : ''}`,
     item: { id: `song:audius:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.user?.name, 60) || 'Audius', url: `${AUDIUS}/tracks/${encodeURIComponent(t.id)}/stream?app_name=${APP}`, logo: art },
   }
 }
 
-interface ItunesTrack { trackId?: number; trackName?: string; artistName?: string; previewUrl?: string; artworkUrl100?: string; trackViewUrl?: string; trackTimeMillis?: number }
-
-function fromItunes(t: ItunesTrack): Song | null {
-  const url = https(t.previewUrl)
-  if (!t.trackId || !t.trackName || !url) return null
-  const art = https(t.artworkUrl100)?.replace('100x100bb', '200x200bb')
+interface OvTrack { id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
+function fromOpenverse(t: OvTrack): Song | null {
+  const url = https(t.url)
+  if (!t.id || !t.title || !url) return null
+  const hay = `${t.title} ${(t.tags ?? []).map((x) => x.name).join(' ')}`
   return {
-    source: 'itunes',
-    seconds: 30, // Apple's preview, whatever the song's own length
-    link: https(t.trackViewUrl) ?? 'https://music.apple.com',
-    item: { id: `song:itunes:${t.trackId}`, kind: 'radio', name: txt(t.trackName, 90), meta: `${txt(t.artistName, 60)} · 30 s preview`, url, logo: art },
+    source: 'openverse', rating: rate(!!t.mature, hay),
+    seconds: Math.round((Number(t.duration) || 0) / 1000),
+    link: https(t.foreign_landing_url) ?? 'https://openverse.org',
+    item: { id: `song:openverse:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.creator, 60) || 'Openverse', url, logo: https(t.thumbnail) },
   }
 }
 
-/** What is being played on Audius this week, for when nothing has been typed. */
-export const trending = (): Promise<Song[]> =>
-  cached('songs:trend:v1', HOUR, async () => {
-    const d = (await getJson(`${AUDIUS}/tracks/trending?time=week&limit=16&app_name=${APP}`)) as { data?: AudiusTrack[] }
-    return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s).slice(0, 12)
-  })
+const trendingAudius = () => cached('songs:trend:audius:v2', HOUR, async () => {
+  const d = (await getJson(`${AUDIUS}/tracks/trending?time=week&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
+  return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
+})
+const searchAudius = (q: string) => cached(`songs:audius:v2:${q.toLowerCase()}`, HOUR, async () => {
+  const d = (await getJson(`${AUDIUS}/tracks/search?query=${encodeURIComponent(q)}&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
+  return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
+})
+const searchOpenverse = (q: string) => cached(`songs:ov:v2:${q.toLowerCase()}`, HOUR, async () => {
+  const d = (await getJson(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q || 'music')}&category=music&page_size=24`)) as { results?: OvTrack[] }
+  return (d.results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
+})
 
-export const searchAudius = (q: string): Promise<Song[]> =>
-  cached(`songs:audius:v1:${q.toLowerCase()}`, HOUR, async () => {
-    const d = (await getJson(`${AUDIUS}/tracks/search?query=${encodeURIComponent(q)}&limit=20&app_name=${APP}`)) as { data?: AudiusTrack[] }
-    return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s).slice(0, 12)
-  })
+interface ArchiveDoc { identifier?: string; title?: string; creator?: string | string[] }
+interface ArchiveMeta { d1?: string; dir?: string; files?: { name?: string; length?: string; format?: string }[] }
+/** The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. */
+const searchArchive = (q: string) => cached(`songs:ia:v2:${q.toLowerCase()}`, HOUR, async () => {
+  const term = q.replace(/["\\:()[\]{}]/g, ' ').trim() || 'music'
+  const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`(title:(${term}) OR creator:(${term})) AND mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=10&output=json`
+  const d = (await getJson(url)) as { response?: { docs?: ArchiveDoc[] } }
+  const docs = (d.response?.docs ?? []).filter((x) => x.identifier && /^[\w.\-]+$/.test(x.identifier))
+  const got = await Promise.allSettled(docs.map(async (x): Promise<Song | null> => {
+    const m = (await getJson(`https://archive.org/metadata/${x.identifier}`, 7000)) as ArchiveMeta
+    const f = (m.files ?? []).find((y) => /\.mp3$/i.test(y.name ?? ''))
+    if (!f?.name) return null
+    const by = Array.isArray(x.creator) ? x.creator[0] : x.creator
+    const hay = `${x.title ?? ''}`
+    return {
+      source: 'archive', rating: rate(false, hay), seconds: Math.round(Number(f.length) || 0),
+      link: `https://archive.org/details/${x.identifier}`,
+      item: { id: `song:archive:${x.identifier}`, kind: 'radio', name: txt(x.title, 90) || f.name, meta: txt(by, 60) || 'Internet Archive', url: `https://archive.org/download/${x.identifier}/${encodeURIComponent(f.name).replace(/%2F/g, '/')}`, logo: `https://archive.org/services/img/${x.identifier}` },
+    }
+  }))
+  return got.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
+})
 
-export const searchItunes = (q: string): Promise<Song[]> =>
-  cached(`songs:itunes:v1:${q.toLowerCase()}`, HOUR, async () => {
-    const d = (await getJson(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=20`)) as { results?: ItunesTrack[] }
-    return (d.results ?? []).map(fromItunes).filter((s): s is Song => !!s).slice(0, 12)
-  })
+/** whether a song may be offered to someone who chose this age */
+export const allowed = (s: Song, age: number) => s.rating <= age
+
+/** Songs for a search (or what is trending when nothing is typed), from every source at once, mixed so no one source fills the list. */
+export async function findSongs(q: string, age: number): Promise<{ list: Song[]; failed: SongSource[] }> {
+  const term = q.trim()
+  const jobs: [SongSource, Promise<Song[]>][] = term.length < 2
+    ? [['audius', trendingAudius()], ['openverse', searchOpenverse('')]]
+    : [['audius', searchAudius(term)], ['openverse', searchOpenverse(term)], ['archive', searchArchive(term)]]
+  const done = await Promise.allSettled(jobs.map(([, p]) => p))
+  const failed: SongSource[] = []
+  const lanes = done.map((r, i) => { if (r.status === 'rejected') { failed.push(jobs[i][0]); return [] as Song[] } return r.value.filter((s) => allowed(s, age)) })
+  const list: Song[] = []
+  const seen = new Set<string>()
+  for (let i = 0; list.length < 30 && lanes.some((l) => i < l.length); i++) for (const l of lanes) if (i < l.length && !seen.has(l[i].item.id)) { seen.add(l[i].item.id); list.push(l[i]) }
+  return { list, failed }
+}
 
 /** m:ss */
 export const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`

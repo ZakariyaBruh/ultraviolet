@@ -50,13 +50,18 @@ export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
     { target: '[data-tour="widgets"]', title: 'Widgets', body: 'Open a notepad, calculator, to-do list, timer, converter or scratch board as a window on this screen, and drag it wherever it helps.', placement: 'bottom' },
     { target: tab('learn'), title: 'Lessons', body: 'Lessons are made from Wikipedia text by fixed rules. No AI writes them, or their questions. A lesson’s demo is built in when there is one for the topic. When there is not, an AI generates it, and it is labelled AI generated.', placement: 'top' },
     { target: tab('arcade'), title: 'Credits', body: 'Focused minutes earn credits. Spend them on games and in the shop. Credits are never won in a game.', placement: 'top' },
-    { title: 'Music', body: (<><span>Friction can play its own music, made as it goes, so no two sessions sound the same. It is off until you turn it on. In Widgets, the Music window also plays whole songs from Audius, 30 second previews of any song, and your Spotify link.</span><MusicChoice /></>) },
+    { title: 'Music', body: (<><span>Friction can play its own music, made as it goes, so no two sessions sound the same. It is off until you turn it on. Real songs are on the Music screen. Auto music, made on the spot, is a Shop item.</span><MusicChoice /></>) },
     { target: tab('settings'), title: 'Make it yours', body: 'Settings has a theme, your own colours, and two dials: Retro, for how old the screen looks, and ASCII, for how many shapes drawn in text roam the page. You can run this tour again from Help.', placement: 'top' },
     { title: 'That is all', body: 'Lock in when you are ready.' },
   ], [])
 
   // started from Settings: go to the Focus screen first, then show the steps there
   useEffect(() => { if (open && view !== 'focus') go('focus') }, [open, view, go])
-  const close = (_why: TourCloseReason) => { useUI.getState().set({ tourOpen: false }); setSettings({ toured: true }) }
+  const close = (why: TourCloseReason) => {
+    useUI.getState().set({ tourOpen: false })
+    setSettings({ toured: true })
+    // finishing the walk-through earns the small celebration; skipping it does not
+    if (why === 'done') useUI.getState().set({ celebrate: { title: 'You know your way around', detail: 'Lock in when you are ready.' } })
+  }
   return <ProductTour steps={steps} open={open && view === 'focus'} onClose={close} />
 }

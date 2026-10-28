@@ -1,3 +1,4 @@
+import { MusicControls } from '@/components/app/MusicControls'
 import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Panel } from '@/components/app/shared'
@@ -30,6 +31,7 @@ const HOW: Partial<Record<ItemId, string>> = {
   shield: 'It works by itself: when you drift after ten or more clean minutes, it is spent and the streak carries on.',
   lifeline: 'A 50:50 button appears under the answers in lessons and trivia.',
   sound: 'Open it from the Focus screen with the Sounds button.',
+  automusic: 'Open the Music widget from the Focus screen and press play.',
   kit: 'It appears on the timer when you take a break.',
   solids: 'Pick one below. It turns in the timer from then on.',
 }
@@ -79,6 +81,7 @@ function Page({ id, onBack }: { id: ItemId; onBack: () => void }) {
       <div className="min-h-0 flex-1 overflow-hidden">
         {id === 'capsule' && <Capsule />}
         {id === 'sound' && (owned ? <Mixer /> : <p className="text-sm text-ink-2">Buy the sound machine to open it.</p>)}
+        {id === 'automusic' && (owned ? <MusicControls compact /> : <p className="text-sm text-ink-2">Buy auto music to turn it on.</p>)}
         {id === 'kit' && <KitPreview />}
         {id === 'solids' && <Solids owned={owned} />}
         {id === 'spinner' && <Spinner locked={live} />}

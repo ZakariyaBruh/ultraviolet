@@ -309,7 +309,8 @@ function applyLevel() {
 
 /** Keeps the music in step with its settings and the player. Mount it once, high up. */
 export function useMusicSync() {
-  const on = useStore((s) => s.settings.music)
+  const owned = useStore((s) => !!s.credits?.items?.owned?.includes('automusic'))
+  const on = useStore((s) => s.settings.music) && owned
   const mood = useStore((s) => s.settings.musicMood) as MoodId
   const lvl = useStore((s) => s.settings.musicLevel)
   const vol = useStore((s) => s.settings.volume)
