@@ -428,6 +428,11 @@ html[data-retro='5'] button { border-radius: 0 !important; }
 .slide-end > div:first-child > div:nth-child(2) { font-family: var(--font-cond); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
 .slide-end [role='slider'] { border-radius: 0 !important; background: var(--signal) !important; border: 0 !important; box-shadow: none !important; color: var(--on-signal) !important; }
 .slide-end [role='slider'] svg { color: var(--on-signal) !important; }
+/* the erase slider is the same object in the danger colour, so it reads as the serious one */
+.slide-end.slide-danger > div:first-child { border-color: color-mix(in srgb, var(--danger) 60%, transparent) !important; }
+.slide-end.slide-danger > div:first-child > div:first-child { background: color-mix(in srgb, var(--danger) 26%, transparent) !important; border-right-color: var(--danger) !important; }
+.slide-end.slide-danger [role='slider'] { background: var(--danger) !important; color: var(--ground) !important; }
+.slide-end.slide-danger [role='slider'] svg { color: var(--ground) !important; }
 
 /* the tour: a ring that leaves the spotlight like a sonar ping, so the eye goes to what is being pointed at */
 .tour-ping { transform-box: fill-box; transform-origin: center; pointer-events: none; opacity: 0; }
