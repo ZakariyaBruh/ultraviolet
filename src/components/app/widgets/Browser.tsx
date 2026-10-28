@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, Search, Sparkles, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -150,6 +150,9 @@ export function Browser() {
   const [issues, setIssues] = useState(false)
   const [leave, setLeave] = useState<string | null>(null)
   const [cloudLeft, setCloudLeft] = useState<number | null>(null)
+  /** when the cloud browser began running a page, so the time left counts down while it works */
+  const [cloudFrom, setCloudFrom] = useState<number | null>(null)
+  const [, tick] = useState(0)
   const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
@@ -186,11 +189,11 @@ export function Browser() {
     // page the list does not know has been looked at
     const cloud = how === 'cloud' // the page run in a browser in the cloud (api/render.ts), metered per day, only on request
     const live = !cloud && (how === 'render' || (how === 'auto' && scripts !== 'off'))
-    type Got = { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
+    type Got = { left?: number; url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
     setDoing('Loading the page')
     setBusy(true)
     try {
-      if (cloud) setDoing('Running the page in the cloud')
+      if (cloud) { setDoing('Running the page in the cloud'); setCloudFrom(Date.now()) }
       const r = await fetch(cloud ? `/api/render?u=${encodeURIComponent(target)}&w=${box.current?.clientWidth ?? 1024}` : `/api/browse?u=${encodeURIComponent(target)}${live ? '&s=1' : ''}`, { signal: AbortSignal.timeout(cloud ? 55000 : 25000) })
       const d = (await r.json().catch(() => null)) as Got | null
       if (my !== token.current) return
@@ -207,9 +210,10 @@ export function Browser() {
       const sc = await screenPage(hv.url, d.html)
       if (my !== token.current) return
       if (sc.block) return show({ kind: 'blocked', url: here, why: 'a game or short-form site (checked by AI)' }, push)
+      if (cloud && typeof d.left === 'number') setCloudLeft(d.left)
       history = [here, ...history.filter((x) => x !== here)].slice(0, 8)
       show({ kind: 'page', url: here, html: d.html, rendered: live, cloud }, push)
-    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
+    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) { setBusy(false); setCloudFrom(null) } }
   }
 
   const search = async (q: string) => {
@@ -262,13 +266,13 @@ export function Browser() {
           const w = frame.current?.contentWindow
           if (!w) return
           if (r.ok) w.postMessage({ fxr: id, status: r.status, statusText: r.statusText, headers: r.headers, body: r.body, url: r.url }, '*', [r.body])
-          else { w.postMessage({ fxr: id, err: 1 }, '*'); if (r.limit) setNote('The free proxy that lets pages talk to other sites has reached its limit for now, so parts of this page may not load.') }
+          else { w.postMessage({ fxr: id, err: 1 }, '*'); if (r.limit) setNote('The service that lets pages fetch their own data is busy right now, so parts of this page may be missing. Try Reload in a moment.') }
         })
         return
       }
       if (typeof d.go === 'string' && d.go.length < 2000) void open(d.go)
       else if (d.note === 'form') setNote('That button sends a form. The Browser only reads pages, so it cannot send one.')
-      else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote(scripts === 'off' ? "That control needs the page's scripts, which are turned off in Settings." : "That control needs the page's scripts, which are not running on this page. Tap the lightning button to run them.") }
+      else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote(view.kind === 'page' && view.cloud ? 'This is a snapshot from the cloud browser, so buttons and menus cannot be pressed. Links and search boxes still work.' : 'That button needs the page to be running, and it is not. Try Reload.') }
     }
     addEventListener('message', hear)
     return () => removeEventListener('message', hear)
@@ -299,6 +303,20 @@ export function Browser() {
     fetch('/api/render?usage=1').then((r) => r.json()).then((d: { left?: number }) => setCloudLeft(typeof d.left === 'number' ? d.left : null)).catch(() => setCloudLeft(null))
   }, [issues, cloudOk])
   const wrap = pageUrl ? wrapFor(pageUrl) : null
+  // the time left counts down on screen while the cloud browser is working, and is re-read when it finishes
+  useEffect(() => {
+    if (cloudFrom === null) return
+    const t = setInterval(() => tick((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [cloudFrom])
+  const onCloud = cloudFrom !== null || (view.kind === 'page' && !!view.cloud)
+  const leftNow = cloudLeft === null ? null : Math.max(0, cloudLeft - (cloudFrom ? Math.floor((Date.now() - cloudFrom) / 1000) : 0))
+  const mmss = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
+  const reload = () => { if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, view.kind === 'page' && view.cloud ? 'cloud' : 'auto', false) } }
+  useEffect(() => {
+    if (!onCloud || cloudLeft !== null) return
+    fetch('/api/render?usage=1').then((r) => r.json()).then((d: { left?: number }) => setCloudLeft(typeof d.left === 'number' ? d.left : null)).catch(() => {})
+  }, [onCloud, cloudLeft])
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
   const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alts' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
@@ -313,9 +331,12 @@ export function Browser() {
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
         {view.kind === 'page' && (
-          <button type="button" onClick={() => setIssues(true)} aria-label="Problems with this page? Open the Issues panel" className={`inline-flex h-11 shrink-0 items-center gap-1.5 border px-3 text-sm transition-colors duration-150 ${empty ? 'border-signal bg-signal font-semibold text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><CircleHelp className="size-4" aria-hidden />Issues</button>
+          <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
         )}
-        <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
+        {view.kind === 'page' && (
+          <button type="button" onClick={() => setIssues(true)} aria-label="Page not working? Open the Issues panel" className={`inline-flex h-11 shrink-0 items-center gap-1.5 border px-3 text-sm transition-colors duration-150 ${empty ? 'border-signal bg-signal font-semibold text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><CircleHelp className="size-4" aria-hidden />Issues</button>
+        )}
+        <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal max-[480px]:sr-only">Go</button>
       </form>}
       <div ref={box} className="relative h-[min(62vh,34rem,calc(100cqh_-_9rem))] min-h-[10rem] overflow-hidden border border-ink/15" data-no-drag>
         {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label={doing} size={56} /></div>}
@@ -392,11 +413,14 @@ export function Browser() {
           </div>
         )}
         {view.kind === 'page' && (
-          <>
+          <div className="flex size-full flex-col">
+            {view.cloud && <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Cloud className="size-3.5 text-signal" aria-hidden />Cloud browser</span>{leftNow !== null && <span>Time left today <span className="fig text-ink" role="timer" aria-label={`${mmss(leftNow)} of cloud time left today`}>{mmss(leftNow)}</span></span>}<span className="text-ink-3">A snapshot: links work, buttons do not.</span></p>}
+            <div className="relative min-h-0 flex-1">
             <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) show({ kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
             {empty && !note && !issues && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-ground px-3 py-1 text-[13px] text-ink"><span>This page looks empty.</span><button onClick={() => setIssues(true)} className="h-11 shrink-0 px-3 font-semibold text-signal underline">Facing issues?</button></div>}
-          </>
+            </div>
+          </div>
         )}
         {view.kind === 'video' && (
           <div className="grid h-full content-start gap-2 p-2">
@@ -424,12 +448,12 @@ export function Browser() {
         )}
         {issues && (
           <div className="absolute inset-0 z-20 grid content-center justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
-            <p className="hud">Facing issues?</p>
-            <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not run well in here. ${wrap.name} is a version made for the Browser.` : 'Some sites need more than the Browser can give them, such as a login or a check that you are a person.'}</p>
-            {cloudOk && <p className="text-[13px] leading-[1.4] text-ink-2">The cloud browser runs this page on a server and shows you the result. It has 30 minutes a day for each person{cloudLeft !== null ? `; ${cloudLeft > 0 ? `about ${Math.max(1, Math.round(cloudLeft / 60))} min left today` : 'you have none left today'}` : ''}. What you see is a picture of the page: links and searches work, buttons and menus that need live scripts do not.</p>}
+            <p className="hud">Page not working?</p>
+            <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
+            {cloudOk && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> a computer far away opens the page for you and sends back a picture of it. You get 30 minutes a day{leftNow !== null ? <>, and you have <span className="fig text-ink">{mmss(leftNow)}</span> left</> : ''}. Links and search boxes work; buttons and menus do not.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {cloudOk && pageUrl && <button onClick={() => { setIssues(false); void open(pageUrl, 'cloud', false) }} disabled={cloudLeft === 0} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm disabled:opacity-40 ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Zap className="size-4" aria-hidden />Try the cloud browser</button>}
+              {cloudOk && pageUrl && <button onClick={() => { setIssues(false); void open(pageUrl, 'cloud', false) }} disabled={cloudLeft === 0} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm disabled:opacity-40 ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Zap className="size-4" aria-hidden />Open in the cloud browser</button>}
               {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}>Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
             </div>

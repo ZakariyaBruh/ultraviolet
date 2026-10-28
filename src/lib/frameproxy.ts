@@ -1,13 +1,12 @@
-import corsfix from 'corsfix'
 import { verdict } from '@/lib/blocklist'
 
 /**
  * Page scripts run in a sealed frame with an empty origin, so a request they make to another site is refused by CORS. This is the
  * answer: the frame's fetch and XMLHttpRequest are replaced (`FRAME_SHIM`, written into the page before its own scripts) by calls that
- * post the request to the Browser window, which makes it through Corsfix's free proxy (KillCORS is the backup) (the corsfix SDK, no key) from the app's own
+ * post the request to the Browser window, which makes it through the KillCORS proxy (no key; Corsfix's free tier ended) from the app's own
  * origin and posts the answer back. The shim also gives pages an empty cookie jar and in-memory storage, because a sealed frame
  * throws when a page reads them and many pages crash on that. Every address passes the blocklist and the private-network check first. No cookies are sent
- * and none come back. The proxy is a third party: it sees what a page's scripts ask for, and it has its own free-tier limit.
+ * and none come back. The proxy is a third party: it sees what a page's scripts ask for, and it can be slow or busy.
  */
 export const FRAME_SHIM = `(function(){var P=parent,n=0,w={};
 try{Object.defineProperty(document,'cookie',{get:function(){return''},set:function(){}})}catch(e){}
@@ -50,18 +49,15 @@ export async function frameRequest(d: { url?: unknown; method?: unknown; headers
   const target = v.url.toString()
   const init = { method, headers, body: /^(GET|HEAD)$/.test(method) ? undefined : body }
   let limit = false
-  // Corsfix first; if it refuses or fails (its free limit, or it is down) KillCORS, which has no stated limit, answers instead
-  for (const via of ['corsfix', 'killcors'] as const) {
-    try {
-      const r = via === 'corsfix'
-        ? await corsfix.fetch(target, { ...init, signal: AbortSignal.timeout(20000) })
-        : await fetch(`https://proxy.killcors.com?url=${encodeURIComponent(target)}`, { ...init, signal: AbortSignal.timeout(20000) })
-      // a refusal from the proxy itself (as opposed to from the site) is not an answer: the next proxy is tried
-      if (via === 'corsfix' && r.status >= 400 && (await r.clone().text().catch(() => '')).includes('corsfix_error')) { limit = r.status === 429; continue }
+  // KillCORS (no key, no stated limit; slower than the paid proxies but it does not run out). Corsfix's free tier ended, so it is gone.
+  try {
+    const r = await fetch(`https://proxy.killcors.com?url=${encodeURIComponent(target)}`, { ...init, signal: AbortSignal.timeout(25000) })
+    if (r.status === 429) limit = true
+    else {
       const out = await answer(r, target)
       if (out) return out
-    } catch (e) { if (via === 'corsfix') limit = (e as { code?: string })?.code === 'rate_limited' || (e as { status?: number })?.status === 429 }
-  }
+    }
+  } catch { /* offline or the proxy is down: the page's request fails */ }
   return { ok: false, limit }
 }
 

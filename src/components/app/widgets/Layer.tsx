@@ -1,5 +1,4 @@
 import { LayoutPanelTop } from 'lucide-react'
-import { Glass } from '@/components/app/glass'
 import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
@@ -25,13 +24,26 @@ export function WidgetLayer() {
   )
 }
 
-/** The button on the Focus screen that opens the picker. */
+/**
+ * The button on the Focus screen that opens the picker. A yellow channel block (the count of windows open) beside the label, with two
+ * ghost windows stacked behind it that fan out a little on hover: it reads as "a pile of study windows", not as a generic pill.
+ */
 export function WidgetsButton({ className = '' }: { className?: string }) {
   const n = useStore((s) => s.widgets.open.length)
   return (
-    <Glass radius={999} clear as="button" data-tour="widgets" onClick={() => useUI.getState().set({ widgetsOpen: true })} aria-label={n ? `Widgets, ${n} open` : 'Widgets'} className={`inline-flex h-11 items-center gap-2 px-4 text-[14px] font-medium text-ink ${className}`}>
-      <LayoutPanelTop className="size-4" />Widgets{n > 0 && <span className="fig text-signal">{n}</span>}
-    </Glass>
+    <button type="button" data-tour="widgets" onClick={() => useUI.getState().set({ widgetsOpen: true })} aria-label={n ? `Widgets, ${n} open` : 'Widgets: notes, timer, calculator and more'} className={`group relative mb-2 mr-2 inline-flex h-12 items-stretch text-left text-ink active:translate-x-px active:translate-y-px ${className}`}>
+      <span aria-hidden className="pointer-events-none absolute inset-0 translate-x-2 translate-y-2 border border-ink/20 transition-transform duration-200 ease-out group-hover:translate-x-3 group-hover:translate-y-3 motion-reduce:transition-none" />
+      <span aria-hidden className="pointer-events-none absolute inset-0 translate-x-1 translate-y-1 border border-ink/35 bg-ground transition-transform duration-200 ease-out group-hover:translate-x-1.5 group-hover:translate-y-1.5 motion-reduce:transition-none" />
+      <span className="relative flex items-stretch border border-ink/60 bg-ground transition-colors duration-150 group-hover:border-signal">
+        <span className="grid w-12 place-items-center bg-signal text-on-signal" aria-hidden>
+          {n > 0 ? <span className="fig text-[19px] font-bold leading-none">{n}</span> : <LayoutPanelTop className="size-5" />}
+        </span>
+        <span className="grid content-center px-3 pr-4">
+          <span className="font-[family-name:var(--font-cond)] text-[18px] font-semibold uppercase leading-none tracking-[0.1em]">Widgets</span>
+          <span className="mt-1 text-[11px] leading-none text-ink-3">{n ? `${n} open` : 'Notes, timer, more'}</span>
+        </span>
+      </span>
+    </button>
   )
 }
 
