@@ -116,7 +116,7 @@ export interface Settings {
   music: boolean
   musicMood: string
   musicLevel: number
-  /** the age rating of songs to offer: -1 not chosen yet, 0 everyone, 1 teens, 2 adults */
+  /** the age rating of songs to offer: 0 everyone (the default), 1 teens, 2 adults */
   songAge: number
   /** the first-run walkthrough has been shown */
   toured: boolean
@@ -248,7 +248,7 @@ export const DEFAULT_SETTINGS: Settings = {
   music: false,
   musicMood: 'calm',
   musicLevel: 0.6,
-  songAge: -1,
+  songAge: 0,
   toured: false,
 }
 
@@ -308,7 +308,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         // a save from before the tour existed that already has a name is someone who knows their way around: no tour pops up for them (it is still in Settings > Help)
         if (typeof v.toured !== 'boolean' && isObj(raw.profile)) st.toured = true
         st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
-        if (![-1, 0, 1, 2].includes(st.songAge as number)) st.songAge = -1
+        if (![0, 1, 2].includes(st.songAge as number)) st.songAge = 0
         if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st

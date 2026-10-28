@@ -14,8 +14,8 @@ export type SongSource = 'audius' | 'openverse' | 'archive'
 export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive' }
 export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2 }
 
-/** artists the owner has asked never to be offered, at any age setting */
-const BLOCKED = /la goony|miss bashful|mrs\.? bashful/i
+/** artists the owner wants offered to adults only, whatever their genre says */
+const ADULT_ONLY = /la goony|miss bashful|mrs\.? bashful/i
 
 /** what the person asked to hear: 0 everyone, 1 teens, 2 adults */
 export const AGES = [
@@ -68,10 +68,10 @@ function fromAudius(t: AudiusTrack): Song | null {
   }
 }
 
-interface OvTrack { genres?: string[]; id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
+interface OvTrack { category?: string | null; genres?: string[]; id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
 function fromOpenverse(t: OvTrack): Song | null {
   const url = https(t.url)
-  if (!t.id || !t.title || !url) return null
+  if (!t.id || !t.title || !url || t.category === 'sound_effect' || /^(sound_effect|pronunciation)$/.test(t.category ?? '')) return null
   const hay = `${t.title} ${(t.tags ?? []).map((x) => x.name).join(' ')}`
   return {
     source: 'openverse', rating: rate(!!t.mature, hay, (t.genres ?? []).join(' ')),
@@ -85,19 +85,24 @@ const trendingAudius = () => cached('songs:trend:audius:v2', HOUR, async () => {
   const d = (await getJson(`${AUDIUS}/tracks/trending?time=week&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
   return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
 })
-const searchAudius = (q: string) => cached(`songs:audius:v3:${q.toLowerCase()}`, HOUR, async () => {
+const searchAudius = (q: string) => cached(`songs:audius:v4:${q.toLowerCase()}`, HOUR, async () => {
   const d = (await getJson(`${AUDIUS}/tracks/search?query=${encodeURIComponent(q)}&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
   return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
 })
-const searchOpenverse = (q: string) => cached(`songs:ov:v3:${q.toLowerCase()}`, HOUR, async () => {
-  const d = (await getJson(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q || 'music')}&category=music&page_size=24`)) as { results?: OvTrack[] }
-  return (d.results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
+/** Openverse answers some searches at once and leaves others hanging, so the same search is asked twice, a couple of seconds apart, and the first answer wins. */
+const searchOpenverse = (q: string) => cached(`songs:ov:v4:${q.toLowerCase()}`, HOUR, async () => {
+  const ask = async (delay: number, size: number) => {
+    await new Promise((r) => setTimeout(r, delay))
+    const d = (await getJson(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q || 'music')}&page_size=${size}`, 14000)) as { results?: OvTrack[] }
+    return (d.results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
+  }
+  return Promise.any([ask(0, 12), ask(2500, 10), ask(6000, 8)])
 })
 
 interface ArchiveDoc { identifier?: string; title?: string; creator?: string | string[] }
 interface ArchiveMeta { d1?: string; dir?: string; files?: { name?: string; length?: string; format?: string }[] }
 /** The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. */
-const searchArchive = (q: string) => cached(`songs:ia:v3:${q.toLowerCase()}`, HOUR, async () => {
+const searchArchive = (q: string) => cached(`songs:ia:v4:${q.toLowerCase()}`, HOUR, async () => {
   const term = q.replace(/["\\:()[\]{}]/g, ' ').trim() || 'music'
   const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`(title:(${term}) OR creator:(${term})) AND mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=10&output=json`
   const d = (await getJson(url)) as { response?: { docs?: ArchiveDoc[] } }
@@ -118,21 +123,28 @@ const searchArchive = (q: string) => cached(`songs:ia:v3:${q.toLowerCase()}`, HO
 })
 
 /** whether a song may be offered to someone who chose this age */
-export const allowed = (s: Song, age: number) => s.rating <= age && !BLOCKED.test(`${s.item.name} ${s.item.meta}`)
+export const allowed = (s: Song, age: number) => s.rating <= age && (age >= 2 || !ADULT_ONLY.test(`${s.item.name} ${s.item.meta}`))
 
-/** Songs for a search (or what is trending when nothing is typed), from every source at once, mixed so no one source fills the list. */
-export async function findSongs(q: string, age: number): Promise<{ list: Song[]; failed: SongSource[] }> {
+/**
+ * Songs for a search (or what is trending when nothing is typed), from every source at once, mixed so no one source fills the list.
+ * `onPartial` is called each time another source answers, so a slow one never holds the rest back.
+ */
+export async function findSongs(q: string, age: number, onPartial?: (r: { list: Song[]; failed: SongSource[] }) => void): Promise<{ list: Song[]; failed: SongSource[] }> {
   const term = q.trim()
   const jobs: [SongSource, Promise<Song[]>][] = term.length < 2
     ? [['audius', trendingAudius()], ['openverse', searchOpenverse('')]]
     : [['audius', searchAudius(term)], ['openverse', searchOpenverse(term)], ['archive', searchArchive(term)]]
-  const done = await Promise.allSettled(jobs.map(([, p]) => p))
+  const lanes = new Map<SongSource, Song[]>()
   const failed: SongSource[] = []
-  const lanes = done.map((r, i) => { if (r.status === 'rejected') { failed.push(jobs[i][0]); return [] as Song[] } return r.value.filter((s) => allowed(s, age)) })
-  const list: Song[] = []
-  const seen = new Set<string>()
-  for (let i = 0; list.length < 30 && lanes.some((l) => i < l.length); i++) for (const l of lanes) if (i < l.length && !seen.has(l[i].item.id)) { seen.add(l[i].item.id); list.push(l[i]) }
-  return { list, failed }
+  const mix = () => {
+    const ls = jobs.map(([n]) => lanes.get(n) ?? [])
+    const list: Song[] = []
+    const seen = new Set<string>()
+    for (let i = 0; list.length < 30 && ls.some((l) => i < l.length); i++) for (const l of ls) if (i < l.length && !seen.has(l[i].item.id)) { seen.add(l[i].item.id); list.push(l[i]) }
+    return { list, failed: [...failed] }
+  }
+  await Promise.all(jobs.map(([n, p]) => p.then((r) => lanes.set(n, r.filter((s) => allowed(s, age))), () => { failed.push(n) }).then(() => onPartial?.(mix()))))
+  return mix()
 }
 
 /** m:ss */

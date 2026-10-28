@@ -16,7 +16,9 @@ function useSongs(q: string, age: number) {
   useEffect(() => {
     setState((s) => ({ ...s, status: 'loading' }))
     let dead = false
-    const t = setTimeout(() => { findSongs(q, age).then((r) => { if (!dead) setState({ status: 'ready', ...r }) }) }, q.trim() ? 380 : 0)
+    const t = setTimeout(() => {
+      findSongs(q, age, (r) => { if (!dead) setState({ status: 'loading', ...r }) }).then((r) => { if (!dead) setState({ status: 'ready', ...r }) })
+    }, q.trim() ? 380 : 0)
     return () => { dead = true; clearTimeout(t) }
   }, [q, age])
   return state
