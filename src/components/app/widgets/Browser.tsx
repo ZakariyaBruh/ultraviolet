@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
+import { FRAME_SHIM, frameRequest } from '@/lib/frameproxy'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
 import { field } from './Window'
 
@@ -64,7 +65,7 @@ document.addEventListener('submit',function(e){var f=e.target;e.preventDefault()
 const LIVE_CSP = "default-src 'none'; script-src https: 'unsafe-inline' 'unsafe-eval' blob:; style-src https: 'unsafe-inline'; img-src https: data: blob:; font-src https: data:; media-src https: blob:; connect-src https:; worker-src blob:; frame-src 'none'; form-action 'none'"
 
 const doc = (html: string, ground: string, ink: string, live: boolean) =>
-  `<!doctype html><meta http-equiv="Content-Security-Policy" content="${live ? LIVE_CSP : CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{background:${ground};color:${ink}}body{max-width:100%;overflow-x:auto}img,video{max-width:100%;height:auto}</style>${html.replace(/<!doctype[^>]*>/i, '')}<script>${BRIDGE}</script>`
+  `<!doctype html><meta http-equiv="Content-Security-Policy" content="${live ? LIVE_CSP : CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{background:${ground};color:${ink}}body{max-width:100%;overflow-x:auto}img,video{max-width:100%;height:auto}</style>${live ? `<script>${FRAME_SHIM}</script>` : ''}${html.replace(/<!doctype[^>]*>/i, '')}<script>${BRIDGE}</script>`
 
 function Tile({ icon, name, sub, onClick, label }: { icon: ReactNode; name: string; sub: string; onClick: () => void; label?: string }) {
   return (
@@ -237,8 +238,18 @@ export function Browser() {
   useEffect(() => {
     const hear = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return
-      const d = e.data as { friction?: number; go?: string; note?: string } | null
+      const d = e.data as { friction?: number; go?: string; note?: string; fx?: number; url?: unknown; method?: unknown; headers?: unknown; body?: unknown } | null
       if (d?.friction !== 1) return
+      if (typeof d.fx === 'number') {
+        const id = d.fx
+        void frameRequest(d).then((r) => {
+          const w = frame.current?.contentWindow
+          if (!w) return
+          if (r.ok) w.postMessage({ fxr: id, status: r.status, statusText: r.statusText, headers: r.headers, body: r.body, url: r.url }, '*', [r.body])
+          else { w.postMessage({ fxr: id, err: 1 }, '*'); if (r.limit) setNote('The free proxy that lets pages talk to other sites has reached its limit for now, so parts of this page may not load.') }
+        })
+        return
+      }
       if (typeof d.go === 'string' && d.go.length < 2000) void open(d.go)
       else if (d.note === 'form') setNote('That button sends a form. The Browser only reads pages, so it cannot send one.')
       else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote(scripts === 'off' ? "That control needs the page's scripts, which are turned off in Settings." : "That control needs the page's scripts, which are not running on this page. Tap the lightning button to run them.") }
