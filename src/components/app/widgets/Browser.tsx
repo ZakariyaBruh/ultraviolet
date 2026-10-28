@@ -144,6 +144,8 @@ export function Browser() {
   const engine = 'bing'
   const scripts: string = 'on'
   const [issues, setIssues] = useState(false)
+  const [leave, setLeave] = useState<string | null>(null)
+  const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
@@ -155,7 +157,7 @@ export function Browser() {
   const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setEmpty(false); loads.current = 0; setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setView(v) }
 
   /**
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
@@ -379,7 +381,7 @@ export function Browser() {
         {view.kind === 'video' && (
           <div className="grid h-full content-start gap-2 p-2">
             <iframe title="YouTube video" src={`https://www.youtube-nocookie.com/embed/${view.id}?rel=0`} sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="aspect-video max-h-[22rem] w-full border-0 bg-black" />
-            <a href={view.url} target="_blank" rel="noopener noreferrer" className="hud inline-flex min-h-11 items-center gap-1.5 hover:text-ink">Open on YouTube <ExternalLink className="size-3.5" /></a>
+            <button type="button" onClick={() => setLeave(view.url!)} className="hud inline-flex min-h-11 items-center gap-1.5 hover:text-ink">Open on YouTube <ExternalLink className="size-3.5" /></button>
           </div>
         )}
         {view.kind === 'blocked' && (
@@ -389,13 +391,24 @@ export function Browser() {
             <p className="break-all text-[12px] text-ink-3">{view.url.slice(0, 120)}</p>
           </div>
         )}
+        {leave && (
+          <div className="absolute inset-0 z-30 grid content-center justify-items-start gap-3 bg-ground p-4" role="alertdialog" aria-modal="true" aria-labelledby="leave-t" aria-describedby="leave-d">
+            <p id="leave-t" className="hud">Leaving Friction</p>
+            <p id="leave-d" className="text-[15px] leading-[1.4]">{locked ? 'Opening this in your browser takes you out of Friction, and that will count as drifting.' : 'Opening this in your browser takes you out of Friction. If you were locked in, that would count as drifting.'}</p>
+            <p className="break-all text-[12px] text-ink-3">{leave.slice(0, 100)}</p>
+            <div className="flex flex-wrap gap-2">
+              <button autoFocus onClick={() => setLeave(null)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Stay here</button>
+              <button onClick={() => { window.open(leave, '_blank', 'noopener,noreferrer'); setLeave(null) }} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">{locked ? 'Open and drift' : 'Open anyway'}</button>
+            </div>
+          </div>
+        )}
         {issues && (
           <div className="absolute inset-0 z-20 grid content-center justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Facing issues?</p>
             <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not run well in here. ${wrap.name} is a version made for the Browser.` : 'Some sites need more than the Browser can give them, such as a login or a check that you are a person.'}</p>
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {pageUrl && <a href={pageUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}>Open in your browser <ExternalLink className="size-3.5" /></a>}
+              {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}>Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
             </div>
           </div>
@@ -410,7 +423,7 @@ export function Browser() {
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}
               {view.url && <>
                 {view.retry !== false && <button onClick={() => void open(view.url!)} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}
-                <a href={view.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center gap-1.5 px-2 text-sm underline">Open in your browser <ExternalLink className="size-3.5" /></a>
+                <button type="button" onClick={() => setLeave(view.url!)} className="inline-flex h-11 items-center gap-1.5 px-2 text-sm underline">Open in your browser <ExternalLink className="size-3.5" /></button>
               </>}
             </div>
           </div>
