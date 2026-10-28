@@ -65,12 +65,13 @@ export function AiDemoFrame({ demo, played, onFail, onAgain }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-6">
       <div className="flex shrink-0 flex-col gap-2 md:w-[32%] md:max-w-[340px] md:justify-center">
-        <p className="hud flex flex-wrap items-center gap-x-2 gap-y-1">Try it · {demo.title}<span className="border border-signal px-1.5 py-0.5 text-signal">AI-made</span></p>
+        <p className="hud flex flex-wrap items-center gap-x-2 gap-y-1">Try it · {demo.title}<span className="border border-signal px-1.5 py-0.5 text-signal">AI generated</span></p>
         <p className="max-w-[58ch] text-[15px] leading-[1.4]">{demo.task}</p>
-        <p className="hidden text-[13px] leading-[1.4] text-ink-2 md:block">{demo.note} <span className="text-ink-3">An AI wrote this demo, not the lesson. Check it against the article.</span></p>
+        <p className="hidden text-[13px] leading-[1.4] text-ink-2 md:block">{demo.note} <span className="text-ink-3">An AI generated this demo, not the lesson, so it can be wrong. Check it against the article.</span></p>
         {onAgain && <div className="hidden md:block"><button onClick={onAgain} className={ghost}><RotateCcw className="size-4" />Not working? Write another</button></div>}
       </div>
-      <div className="relative min-h-[150px] flex-1 border border-ink/20">
+      <div className="flex min-h-[150px] flex-1 flex-col border border-ink/20">
+      <div className="relative min-h-0 flex-1">
         {doc && <iframe ref={box} key={round} title={`Interactive demo: ${demo.title}`} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={doc} data-no-drag className="absolute inset-0 size-full border-0" />}
         {broke && (
           <div role="alert" className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-ink/30 bg-ground p-2 text-[13px]">
@@ -79,8 +80,10 @@ export function AiDemoFrame({ demo, played, onFail, onAgain }: Props) {
           </div>
         )}
       </div>
+      <p className="hud shrink-0 border-t border-ink/20 px-2 py-1 text-[12px] leading-[16px]"><span className="text-signal">AI generated</span> · can contain mistakes · not part of the lesson</p>
+      </div>
       <div className="flex shrink-0 flex-col gap-2 md:hidden">
-        <p className="text-[13px] leading-[1.4] text-ink-2">{demo.note} <span className="text-ink-3">An AI wrote this demo, not the lesson. Check it against the article.</span></p>
+        <p className="text-[13px] leading-[1.4] text-ink-2">{demo.note} <span className="text-ink-3">An AI generated this demo, not the lesson, so it can be wrong. Check it against the article.</span></p>
         {onAgain && <button onClick={onAgain} className={`${ghost} self-start`}><RotateCcw className="size-4" />Not working? Write another</button>}
       </div>
     </div>

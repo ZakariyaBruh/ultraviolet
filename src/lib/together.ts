@@ -206,10 +206,10 @@ export function joinLock() {
 export const shareNow = async () => {
   const cur = usePlayer.getState().current
   if (!cur || (cur.kind !== 'radio' && cur.kind !== 'tv')) { fx_say({ title: 'Play something first', description: 'Start a station, channel or podcast, then share it with the room.' }); return }
-  const ep = cur.id.startsWith('pod:')
+  const ep = cur.id.startsWith('pod:') || cur.id.startsWith('song:')
   const pos = ep && Number.isFinite(audioEl.currentTime) ? Math.round(audioEl.currentTime) : undefined
   await call({ a: 'media', code: useRoom.getState().code, media: { id: cur.id, kind: cur.kind, name: cur.name, url: cur.url, logo: cur.logo, meta: cur.meta, pos } })
-  fx_say({ title: ep ? 'Episode shared' : cur.kind === 'tv' ? 'Channel shared' : 'Station shared', description: `${cur.name.slice(0, 40)} is in the room now.`, variant: 'success' })
+  fx_say({ title: cur.id.startsWith('song:') ? 'Song shared' : ep ? 'Episode shared' : cur.kind === 'tv' ? 'Channel shared' : 'Station shared', description: `${cur.name.slice(0, 40)} is in the room now.`, variant: 'success' })
   void tick()
 }
 export const stopSharing = () => call({ a: 'media', code: useRoom.getState().code, media: null }).then(() => tick())

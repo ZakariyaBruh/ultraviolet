@@ -49,7 +49,7 @@ function Focus() {
         <div className="mb-1 flex items-baseline justify-between"><h2 className="text-[15px] font-semibold">Session length</h2><span className="fig text-sm text-ink-2">{s.sessionMin} min</span></div>
         <LengthBand value={s.sessionMin} onChange={(v) => set({ sessionMin: v })} min={10} max={90} step={5} className="max-w-none" />
       </div>
-      <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI-made, and can be wrong. If it does not arrive, the lesson goes on without it.">
+      <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>
     </Panel>
@@ -204,6 +204,7 @@ function Sound() {
       <div className="grid gap-2 border-t border-rule pt-3">
         <h3 className="text-sm font-medium">Music</h3>
         <MusicControls compact />
+        <p className="text-[13px] leading-[1.4] text-ink-2">Want your own songs? Open Widgets on the Focus screen and choose Music: whole tracks from Audius, 30 second previews of any song, or a Spotify link.</p>
       </div>
     </Panel>
   )
@@ -242,8 +243,9 @@ function Help() {
         { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
-        { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. The one thing an AI writes is a lesson’s demo, and only when there is no built-in demo for that topic. The topic title is the only thing sent. An AI-made demo is labelled AI-made, runs sealed in a frame with no network, and can be wrong. Everything else in the app, including the Debrief, is plain code.' },
+        { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. The one thing an AI writes is a lesson’s demo, and only when there is no built-in demo for that topic. The topic title is the only thing sent. An AI generated demo is labelled AI generated, runs sealed in a frame with no network, and can be wrong. Everything else in the app, including the Debrief, is plain code.' },
         { id: '6', question: 'What happens when I erase everything?', answer: 'Your sessions, shelf, notes, layout and cached lessons are removed from this browser. Your place on the leaderboard goes too, with your alias, so the name is free again, and you leave any Together room. A backup file never holds the key to your place, so it cannot be used to take someone else’s.' },
+        { id: '7', question: 'Where do the songs come from?', answer: 'Three places, none needing an account or a key from you. Songs plays whole tracks from independent artists on Audius. Previews plays the 30 second clip Apple publishes for any song, and links to the full song in Apple Music. Spotify takes a link you paste and shows Spotify’s own player, which uses your Spotify login. Only the words you search for are sent, to Audius or Apple, and nothing is sent to Spotify until you load a link. The music made in your browser is separate and steps aside while a song plays.' },
       ]
   const per = 2
   const pages = Math.ceil(items.length / per)

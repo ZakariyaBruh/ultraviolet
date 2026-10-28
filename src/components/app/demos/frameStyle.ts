@@ -1,5 +1,5 @@
 /**
- * The stylesheet every AI-made demo is placed in. It is the app's own look in small: the same faces, hairlines, flat buttons and
+ * The stylesheet every AI generated demo is placed in. It is the app's own look in small: the same faces, hairlines, flat buttons and
  * condensed labels, and the same structural change each theme makes (Paper keylines and hard shadows, Phosphor double frames,
  * Blueprint dashed frames, Sunset pills). A demo only has to use these classes and the colour variables to look like part of the app.
  * api/demo.ts describes the same classes to the model, with sample markup; change them together.

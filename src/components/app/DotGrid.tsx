@@ -1,12 +1,6 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * Anything drawn in front of the dot matrix can ask it to leave those places empty: `test` says whether a point (in the
- * matrix's own pixels) is covered, and `bump` is called when that changes while the matrix is not animating itself.
- */
-export const dotHoles: { test: ((x: number, y: number) => boolean) | null; bump: (() => void) | null } = { test: null, bump: null }
-
-/**
  * A plain, regular dot matrix. Dots swell and light up near your pointer; a click sends one ring of light across the grid.
  * Colours come from the theme.
  */
@@ -45,7 +39,6 @@ export function DotGrid({ still = false, className = '' }: { still?: boolean; cl
       for (let j = 0; j < rows; j++) {
         for (let i = 0; i < cols; i++) {
           const x = ox + i * step, y = oy + j * step
-          if (dotHoles.test?.(x, y)) continue // something is drawn in front of this one
           const d = Math.hypot(x - ptr.x, y - ptr.y)
           let a = 0.4 + 0.08 * Math.sin(i * 0.35 + j * 0.25 + t * 0.9)
           let r = 1.7
@@ -82,9 +75,9 @@ export function DotGrid({ still = false, className = '' }: { still?: boolean; cl
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] })
     c.addEventListener('click', onClick)
     addEventListener('pointermove', onMove, { passive: true })
-    if (still) { dotHoles.bump = () => draw(2500); draw(2500) }
+    if (still) draw(2500)
     else raf = requestAnimationFrame(loop)
-    return () => { dotHoles.bump = null; cancelAnimationFrame(raf); ro.disconnect(); mo.disconnect(); c.removeEventListener('click', onClick); removeEventListener('pointermove', onMove) }
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); mo.disconnect(); c.removeEventListener('click', onClick); removeEventListener('pointermove', onMove) }
   }, [still])
   return <canvas ref={ref} role="img" aria-label="A grid of dots that light up around your pointer. Click to send a ring of light across it." className={`cursor-crosshair ${className}`} />
 }

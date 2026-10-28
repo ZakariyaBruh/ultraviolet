@@ -95,6 +95,11 @@ function wire(el: HTMLMediaElement) {
     if (el === active() && usePlayer.getState().status === 'playing') set({ status: 'paused' })
   })
   el.addEventListener('error', () => el === active() && el.getAttribute('src') && fail('Stream unavailable'))
+  // a song that finishes hands over to the next one in its list
+  el.addEventListener('ended', () => {
+    const { current, queue } = usePlayer.getState()
+    if (el === active() && current?.id.startsWith('song:') && queue.length > 1) step(1, true)
+  })
 }
 if (audio) wire(audio)
 if (video) wire(video)
@@ -109,7 +114,7 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
   if (item.kind === 'radio') registerClick(item.uuid)
   const el = item.kind === 'tv' ? video : audio
   // podcast hosts rarely send CORS headers, and a plain element needs none to play
-  if (item.id.startsWith('pod:')) audio.removeAttribute('crossorigin')
+  if (item.id.startsWith('pod:') || item.id.startsWith('song:')) audio.removeAttribute('crossorigin')
   else audio.crossOrigin = 'anonymous'
   const isHls = /\.m3u8(\?|$)/i.test(item.url)
   arm()

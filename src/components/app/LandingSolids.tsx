@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { dotHoles } from '@/components/app/DotGrid'
 import { clearGrid, makeGrid, plot, RAMP, SHAPES, type Shape } from '@/lib/ascii3d'
 
 /** a fresh order of the solids every visit, so the front page is never the same one twice in a row */
@@ -21,9 +20,9 @@ const FONT = 9
 const LINE = 10
 
 /**
- * The solids on the front page, drawn in text and in front of the dot matrix: where one is, the dots are left out
- * (`dotHoles`), so it reads as an object standing before the grid, not a drawing showing through it. Which solids, and which
- * is the big one, is picked at random each time the page opens.
+ * The solids on the front page, drawn in text and sitting behind the dot matrix: the dots pass in front of them. They are the
+ * ice colour, not the signal yellow the lit dots turn, so the two never merge. Which solids, and which is the big one, is picked
+ * at random each time the page opens.
  */
 export function LandingSolids({ count, still }: { count: number; still: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -34,8 +33,7 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
     if (!cv || !ctx) return
     let cols = 0, rows = 0, cw = 5.4, raf = 0, last = 0, t = 0, spin = 0, w = 0
     let g = makeGrid(1, 1)
-    let occ = new Uint8Array(0)
-    let signal = '#ffd23f'
+    let tone = '#7fd3ff'
     const list = SPOTS.slice(0, Math.max(1, Math.min(SPOTS.length, count)))
     const runs = [0.45, 0.75, 1].map(() => [] as string[])
     const lo = [1e9, 1e9, 1e9], hi = [-1, -1, -1]
@@ -51,13 +49,12 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
       cw = ctx.measureText('M').width || 5.4
       cols = Math.ceil(w / cw); rows = Math.ceil(h / LINE)
       g = makeGrid(cols, rows, cw / LINE)
-      occ = new Uint8Array(cols * rows)
       for (const r of runs) { r.length = cols; r.fill(' ') }
       lo.fill(1e9); hi.fill(-1)
     }
     const draw = () => {
-      if (!cols || !w) { dotHoles.test = null; return }
-      signal = getComputedStyle(document.documentElement).getPropertyValue('--signal').trim() || signal
+      if (!cols || !w) return
+      tone = getComputedStyle(document.documentElement).getPropertyValue('--ice').trim() || tone
       clearGrid(g)
       const big = Math.min(rows * 0.5, cols * 0.2)
       list.forEach((s, i) => {
@@ -66,15 +63,12 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
         plot(g, order[i % order.length], px, py, big * s.s, spin * (0.7 + i * 0.2) + i, spin * 0.4 + i * 0.9, spin * 0.12)
       })
       ctx.clearRect(0, 0, w, rows * LINE)
-      ctx.fillStyle = signal
-      occ.fill(0)
+      ctx.fillStyle = tone
       for (let y = 0; y < rows; y++) {
         let used = 0
         for (let x = 0; x < cols; x++) {
           const lum = g.lum[x + y * cols]
           if (lum < 0) continue
-          // the dots stay out of the solid and a cell around it
-          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && xx < cols && yy >= 0 && yy < rows) occ[xx + yy * cols] = 1 }
           const l = Math.pow(lum, 2.3) // a steep curve: the middle tones get their own marks, so a solid shows its form and not just its outline
           const b = l < 0.14 ? 0 : l < 0.4 ? 1 : 2
           runs[b][x] = RAMP[Math.min(RAMP.length - 1, 1 + Math.floor(l * (RAMP.length - 1)))] // never a blank inside the solid
@@ -88,8 +82,6 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
         }
       }
       ctx.globalAlpha = 1
-      dotHoles.test = (x, y) => { const cx = Math.floor(x / cw), cy = Math.floor(y / LINE); return cx >= 0 && cx < cols && cy >= 0 && cy < rows && occ[cx + cy * cols] === 1 }
-      if (still) dotHoles.bump?.()
     }
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
@@ -102,7 +94,7 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
     if (!still) raf = requestAnimationFrame(loop)
     const ro = new ResizeObserver(() => { size(); draw() })
     ro.observe(cv)
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); dotHoles.test = null; if (still) dotHoles.bump?.() }
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [count, still, order])
-  return <canvas ref={ref} aria-hidden className="land-solids pointer-events-none absolute inset-0 size-full text-signal" />
+  return <canvas ref={ref} aria-hidden className="land-solids pointer-events-none absolute inset-0 size-full" />
 }

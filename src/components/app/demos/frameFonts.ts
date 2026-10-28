@@ -7,7 +7,7 @@ import dela from '@fontsource/dela-gothic-one/files/dela-gothic-one-latin-400-no
 
 /**
  * The app's own faces, as data, for the sandboxed demo frame. The frame is not allowed to fetch anything, so a demo could never
- * load a font by itself; these @font-face rules carry them in the page instead. This file is only loaded when an AI-made demo is
+ * load a font by itself; these @font-face rules carry them in the page instead. This file is only loaded when an AI generated demo is
  * about to be shown, so it costs nothing until then.
  */
 const face = (family: string, src: string, weight: string) => `@font-face{font-family:"${family}";src:url(${src}) format("woff2");font-weight:${weight};font-style:normal;font-display:block}`
