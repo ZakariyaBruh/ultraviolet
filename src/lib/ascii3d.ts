@@ -183,3 +183,24 @@ export function gridText(g: Grid): string {
   }
   return s
 }
+
+/**
+ * Smooth, never-repeating wandering. `noise` is one-dimensional value noise (random values on a lattice, blended with a smooth
+ * curve), `fbm` stacks three of them so there are slow drifts with small quicker ripples. Used for where the solids go, how fast
+ * they turn and how much they breathe, so nothing moves on a visible loop.
+ */
+const hash = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s) }
+export function noise(x: number, seed = 0) {
+  const i = Math.floor(x), f = x - i
+  const u = f * f * f * (f * (f * 6 - 15) + 10)
+  return (hash(i + seed * 17.13) * (1 - u) + hash(i + 1 + seed * 17.13) * u) * 2 - 1
+}
+export const fbm = (x: number, seed = 0) => noise(x, seed) * 0.64 + noise(x * 2.3, seed + 5) * 0.27 + noise(x * 5.1, seed + 9) * 0.09
+
+/** A turning solid with weight: its spin speed drifts up and down (and now and then eases through a stop) instead of staying constant. */
+export interface Turn { a: number; b: number; c: number }
+export function turn(r: Turn, dt: number, t: number, seed: number, pace = 1) {
+  r.a += dt * pace * (0.55 + 0.6 * fbm(t * 0.11, seed))
+  r.b += dt * pace * (0.3 + 0.55 * fbm(t * 0.09, seed + 3))
+  r.c += dt * pace * 0.12 * fbm(t * 0.07, seed + 7)
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { dotHoles } from '@/components/app/DotGrid'
-import { clearGrid, makeGrid, plot, RAMP, SHAPES, type Shape } from '@/lib/ascii3d'
+import { clearGrid, fbm, makeGrid, plot, RAMP, SHAPES, turn, type Shape, type Turn } from '@/lib/ascii3d'
 
 /** a fresh order of the solids every visit, so the front page is never the same one twice in a row */
 const shuffled = (): Shape[] => {
@@ -32,6 +32,7 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
     const cv = ref.current
     const ctx = cv?.getContext('2d')
     if (!cv || !ctx) return
+    const rot: Turn[] = []
     let cols = 0, rows = 0, cw = 5.4, raf = 0, last = 0, t = 0, spin = 0, w = 0
     let g = makeGrid(1, 1)
     let occ = new Uint8Array(0)
@@ -61,9 +62,10 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
       clearGrid(g)
       const big = Math.min(rows * 0.5, cols * 0.2)
       list.forEach((s, i) => {
-        const px = (s.x + s.ax * Math.sin(s.w * t + i * 2)) * cols
-        const py = (s.y + s.ay * Math.cos(s.w * 0.8 * t + i * 1.3)) * rows
-        plot(g, order[i % order.length], px, py, big * s.s, spin * (0.7 + i * 0.2) + i, spin * 0.4 + i * 0.9, spin * 0.12)
+        const r = (rot[i] ??= { a: i, b: i * 0.9, c: 0 })
+        const px = (s.x + s.ax * 1.6 * fbm(t * s.w * 0.5, i * 4.1)) * cols
+        const py = (s.y + s.ay * 1.6 * fbm(t * s.w * 0.4, i * 6.7 + 2)) * rows
+        plot(g, order[i % order.length], px, py, big * s.s * (1 + 0.06 * fbm(t * 0.3, i + 9)), r.a, r.b, r.c)
       })
       ctx.clearRect(0, 0, w, rows * LINE)
       ctx.fillStyle = signal
@@ -96,6 +98,7 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
       if (document.hidden || now - last < 1000 / 24) return
       const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
       last = now; t += dt; spin += dt * 0.9
+      list.forEach((_, i) => turn((rot[i] ??= { a: i, b: i * 0.9, c: 0 }), dt, t, i * 2.3, 0.9))
       draw()
     }
     size(); draw()

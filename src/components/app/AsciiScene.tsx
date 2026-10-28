@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { clearGrid, makeGrid, plot, RAMP, type Shape } from '@/lib/ascii3d'
+import { clearGrid, fbm, makeGrid, plot, RAMP, turn, type Shape, type Turn } from '@/lib/ascii3d'
 import { useUI } from '@/lib/ui'
 
 /**
@@ -52,6 +52,8 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     let cols = 0, rows = 0, cw = 8
     let g = makeGrid(1, 1)
     let raf = 0, last = 0, t = 0, spin = 0
+    // each solid keeps its own turn, so one can slow while another speeds up
+    const rot: Turn[] = []
     let signal = '#ffd23f', ink = '#ffffff', colorAt = 0
     let mask = new Float32Array(0)
     // one row of characters per strength step, and where in the row each has anything
@@ -138,14 +140,15 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       const base = Math.min(cols, rows * 2.2)
       const e = still ? 0 : energy()
       const swing = 1 + 0.8 * e
-      for (const s of specs) {
+      for (const [i, s] of specs.entries()) {
+        const r = (rot[i] ??= { a: 0, b: 0, c: 0 })
         // each solid wanders on its own slow loop (two waves, so it never retraces itself), and breathes a little as it goes
-        const wx = Math.sin(s.w * t + s.ph * 2.1) + 0.35 * Math.sin(s.w * 2.3 * t + s.ph)
-        const wy = Math.sin(s.w * 0.8 * t + s.ph * 1.3 + 1) + 0.35 * Math.cos(s.w * 1.9 * t + s.ph * 0.6)
+        const wx = fbm(t * s.w * 0.55, s.ph * 3.1) * 1.5
+        const wy = fbm(t * s.w * 0.45, s.ph * 5.3 + 2) * 1.5
         const px = Math.min(0.94, Math.max(0.06, s.x + s.ax * swing * wx))
         const py = Math.min(0.9, Math.max(0.1, s.y + s.ay * swing * wy))
-        const breathe = 1 + 0.1 * Math.sin(s.w * 1.7 * t + s.ph) + 0.22 * e * Math.sin(spin * 3 + s.ph)
-        plot(g, s.shape, px * cols, py * rows, s.r * grow * breathe * base * 0.95, spin * s.sa + s.ph, spin * s.sb + s.ph * 0.7, spin * 0.15)
+        const breathe = 1 + 0.07 * fbm(t * 0.35, s.ph + 11) + 0.22 * e * Math.sin(spin * 3 + s.ph)
+        plot(g, s.shape, px * cols, py * rows, s.r * grow * breathe * base * 0.95, r.a + s.ph, r.b + s.ph * 0.7, r.c)
       }
       ctx.clearRect(0, 0, cv.width, cv.height)
       // a perspective floor from Arcade on: lines that run to the horizon, scrolling toward you
@@ -206,6 +209,7 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       const e = energy()
       t += dt * (1 + 3 * e)
       spin += dt * (1 + 5 * e)
+      specs.forEach((s, i) => turn((rot[i] ??= { a: 0, b: 0, c: 0 }), dt, t, s.ph, (0.7 + s.sa * 0.6) * (1 + 5 * e)))
       last = now
       draw()
     }
