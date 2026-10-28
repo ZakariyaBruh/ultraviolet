@@ -24,10 +24,10 @@ const snapshot = (s: AppState) => {
   return o
 }
 
-function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Row({ title, hint, children, wrap }: { title: string; hint?: string; children: React.ReactNode; wrap?: boolean }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-4 border-b border-ink/10 py-2 last:border-b-0">
-      <div className="min-w-0">
+    <div className={cn('flex min-h-14 items-center justify-between gap-x-4 gap-y-2 border-b border-ink/10 py-2 last:border-b-0', wrap && 'flex-wrap')}>
+      <div className={cn('min-w-0', wrap && 'min-w-[12rem] flex-1')}>
         <div className="text-[15px] text-ink">{title}</div>
         {hint && <div className="text-xs text-ink-3">{hint}</div>}
       </div>
@@ -51,6 +51,9 @@ function Focus() {
       </div>
       <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
+      </Row>
+      <Row wrap title="Browser search" hint="Which engine the Browser window searches with. If it cannot answer, another one does and the results say so.">
+        <Seg id="set-engine" value={s.searchEngine} onChange={(v) => set({ searchEngine: v })} tabs={[{ id: 'google', label: 'Google' }, { id: 'bing', label: 'Bing' }, { id: 'duckduckgo', label: 'DuckDuckGo' }]} />
       </Row>
     </Panel>
   )

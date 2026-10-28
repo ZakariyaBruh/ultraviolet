@@ -2,6 +2,7 @@ import { ArrowLeft, ExternalLink, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
+import { useStore } from '@/lib/store'
 import { field } from './Window'
 
 /**
@@ -10,23 +11,28 @@ import { field } from './Window'
  * and sites that need scripts to work will not. Games and short-form social media are refused here and again on the server;
  * full YouTube videos play in YouTube's own embedded player, and Shorts are refused.
  */
+type Hit = { title: string; url: string; about: string }
 type View =
   | { kind: 'home' }
-  | { kind: 'results'; q: string; list: { title: string; url: string; about: string }[] }
+  | { kind: 'results'; q: string; list: Hit[]; engine: string; note: string }
   | { kind: 'page'; url: string; html: string }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
-  | { kind: 'error'; msg: string; url?: string }
+  /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
+  | { kind: 'error'; msg: string; url?: string; retry?: boolean }
 
 /** pages opened this visit, newest first */
 let history: string[] = []
 
+const ENGINE: Record<string, string> = { google: 'Google', bing: 'Bing', duckduckgo: 'DuckDuckGo' }
+
+/** each of these was opened through the server and renders as a readable page without scripts (Khan Academy and Britannica do not: a shell, and a refusal) */
 const START = [
   { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Main_Page' },
-  { name: 'Khan Academy', url: 'https://www.khanacademy.org/' },
+  { name: 'Simple English', url: 'https://simple.wikipedia.org/wiki/Main_Page' },
   { name: 'MDN Web Docs', url: 'https://developer.mozilla.org/' },
   { name: 'Project Gutenberg', url: 'https://www.gutenberg.org/' },
-  { name: 'Britannica', url: 'https://www.britannica.com/' },
+  { name: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/' },
   { name: 'MathWorld', url: 'https://mathworld.wolfram.com/' },
 ]
 
@@ -44,6 +50,7 @@ export function Browser() {
   const [stack, setStack] = useState<View[]>([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const engine = useStore((s) => s.settings.searchEngine)
   const frame = useRef<HTMLIFrameElement>(null)
   const recent = history.slice(0, 4)
   const token = useRef(0)
@@ -59,11 +66,12 @@ export function Browser() {
     setBusy(true)
     try {
       const r = await fetch(`/api/browse?u=${encodeURIComponent(v.url.toString())}`, { signal: AbortSignal.timeout(25000) })
-      const d = (await r.json().catch(() => null)) as { url?: string; html?: string; error?: string; why?: string } | null
+      const d = (await r.json().catch(() => null)) as { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean } | null
       if (my !== token.current) return
       if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw })
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' })
-      if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw })
+      if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled })
+      if (d.thin) return show({ kind: 'error', msg: 'This site builds its page with scripts, which the Browser does not run, so there is nothing to show here', url: d.url ?? raw, retry: false })
       history = [d.url ?? raw, ...history.filter((x) => x !== (d.url ?? raw))].slice(0, 8)
       show({ kind: 'page', url: d.url ?? raw, html: d.html })
     } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }) } finally { if (my === token.current) setBusy(false) }
@@ -73,11 +81,14 @@ export function Browser() {
     const my = ++token.current
     setBusy(true)
     try {
-      const r = await fetch(`/api/browse?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(20000) })
-      const d = (await r.json().catch(() => null)) as { results?: { title: string; url: string; about: string }[]; error?: string } | null
+      const r = await fetch(`/api/browse?q=${encodeURIComponent(q)}&e=${engine}`, { signal: AbortSignal.timeout(20000) })
+      const d = (await r.json().catch(() => null)) as { results?: Hit[]; error?: string; engine?: string; asked?: string; googleOff?: boolean } | null
       if (my !== token.current) return
       if (!r.ok || !d?.results) return show({ kind: 'error', msg: 'Search is busy. Try again in a moment.' })
-      show({ kind: 'results', q, list: d.results })
+      const got = ENGINE[d.engine ?? ''] ?? 'Search'
+      // say so when it was not the engine that was asked for
+      const note = d.asked && d.engine && d.engine !== d.asked ? `${d.googleOff ? 'Google is not set up on this site yet' : `${ENGINE[d.asked] ?? 'That engine'} did not answer`}, so ${got} did.` : ''
+      show({ kind: 'results', q, list: d.results, engine: got, note })
     } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'Search took too long.' : 'Search could not be reached.' }) } finally { if (my === token.current) setBusy(false) }
   }
 
@@ -119,7 +130,7 @@ export function Browser() {
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
       </form>}
       {view.kind === 'home' && stack.length > 0 && <button onClick={back} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-sm text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back</button>}
-      <div className="relative h-[min(58vh,26rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
+      <div className="relative h-[min(60vh,32rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
         {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label="Loading the page" size={56} /></div>}
         {view.kind === 'home' && (
           <div className="scroll-y grid h-full content-start justify-items-center gap-4 px-3 pb-4 pt-6 text-center">
@@ -156,7 +167,8 @@ export function Browser() {
         )}
         {view.kind === 'results' && (
           <div className="scroll-y h-full p-2">
-            <p className="hud mb-1" role="status">{view.list.length ? `Results for “${view.q}”` : 'Nothing found'}</p>
+            <p className="hud mb-1" role="status">{view.list.length ? `Results for “${view.q}” · ${view.engine}` : 'Nothing found'}</p>
+            {view.note && <p className="mb-1 text-[12px] leading-[1.35] text-ink-3">{view.note}</p>}
             <ul className="m-0 list-none p-0">
               {view.list.map((r) => (
                 <li key={r.url} className="border-b border-ink/10">
@@ -188,7 +200,7 @@ export function Browser() {
           <div className="grid h-full content-center justify-items-start gap-2 p-4" role="alert">
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
-            {view.url && <div className="flex flex-wrap gap-2"><button onClick={() => void open(view.url!)} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button><a href={view.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center gap-1.5 px-2 text-sm underline">Open in your browser <ExternalLink className="size-3.5" /></a></div>}
+            {view.url && <div className="flex flex-wrap gap-2">{view.retry !== false && <button onClick={() => void open(view.url!)} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}<a href={view.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center gap-1.5 px-2 text-sm underline">Open in your browser <ExternalLink className="size-3.5" /></a></div>}
           </div>
         )}
       </div>

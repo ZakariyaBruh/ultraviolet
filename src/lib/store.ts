@@ -118,6 +118,8 @@ export interface Settings {
   musicLevel: number
   /** the age rating of songs to offer: 0 everyone (the default), 1 teens, 2 adults */
   songAge: number
+  /** which engine the Browser window searches with: google (the default), bing or duckduckgo */
+  searchEngine: string
   /** the first-run walkthrough has been shown */
   toured: boolean
 }
@@ -249,6 +251,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicMood: 'calm',
   musicLevel: 0.6,
   songAge: 0,
+  searchEngine: 'google',
   toured: false,
 }
 
@@ -309,6 +312,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         if (typeof v.toured !== 'boolean' && isObj(raw.profile)) st.toured = true
         st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
         if (![0, 1, 2].includes(st.songAge as number)) st.songAge = 0
+        if (!['google', 'bing', 'duckduckgo'].includes(String(st.searchEngine))) st.searchEngine = 'google'
         if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
