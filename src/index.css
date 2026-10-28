@@ -346,6 +346,8 @@ button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
 /* a window too small for its screen: the page area becomes its own scroll box, sitting exactly between the header and the nav, so nothing runs underneath them */
 #canvas[data-scroll] { top: var(--pt); bottom: var(--pb); padding-top: 0; padding-bottom: 6px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
 #canvas[data-scroll] [data-movable] { touch-action: pan-y; }
+/* a canvas is a picture, never text: nothing on it can be selected, no long-press callout, no tap flash */
+canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 [data-movable] { touch-action: none; cursor: grab; transition: scale 200ms var(--ease-out); }
 [data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.03; transition: none; user-select: none; }
 [data-movable][data-moved] { z-index: 6; }

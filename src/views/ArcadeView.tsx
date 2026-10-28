@@ -77,7 +77,7 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
           <button onClick={() => { run.current?.stop(); onExit() }} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">All games</button>
         </div>
       </div>
-      <div ref={box} className="relative flex min-h-0 flex-1 items-center justify-center">
+      <div ref={box} className="relative flex min-h-0 flex-1 select-none items-center justify-center [-webkit-touch-callout:none]">
         <div className="relative" style={{ width: cw, height: cw / 1.5 }}>
           <canvas ref={cv} role="img" aria-label={`${game.name}: ${game.how}`} className="size-full touch-none border border-rule bg-ground" />
           {phase !== 'play' && (

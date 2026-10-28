@@ -297,6 +297,13 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
   }
   const ku = (e: KeyboardEvent) => { const k = KEYMAP[e.key]; if (k) keys.delete(k) }
   const vis = () => { if (document.visibilityState !== 'visible') setPause(true) }
+  // a game screen is never text: no selection starts on it, no long-press menu, no dragging it away as an image
+  const noSel = (e: Event) => e.preventDefault()
+  const clearSel = () => getSelection()?.removeAllRanges()
+  canvas.addEventListener('selectstart', noSel)
+  canvas.addEventListener('contextmenu', noSel)
+  canvas.addEventListener('dragstart', noSel)
+  canvas.addEventListener('pointerdown', clearSel)
   canvas.addEventListener('pointerdown', pd)
   canvas.addEventListener('pointermove', pm)
   canvas.addEventListener('pointerup', pu)
@@ -436,6 +443,10 @@ export function runGame(canvas: HTMLCanvasElement, game: Game, o: Opts) {
       done = true
       audio.close()
       cancelAnimationFrame(raf)
+      canvas.removeEventListener('selectstart', noSel)
+      canvas.removeEventListener('contextmenu', noSel)
+      canvas.removeEventListener('dragstart', noSel)
+      canvas.removeEventListener('pointerdown', clearSel)
       canvas.removeEventListener('pointerdown', pd)
       canvas.removeEventListener('pointermove', pm)
       canvas.removeEventListener('pointerup', pu)

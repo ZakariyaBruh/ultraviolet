@@ -13,7 +13,7 @@ import { clean, internal, json, limited, readable, THIN, UA } from './_page.js'
  * and against private networks and is dropped if it fails; images, fonts, media and frames are not loaded (nothing is shown from them
  * here); no cookies or sign-ins exist; and it does not try to get past a bot check. A site that answers 401/403/451, or that shows a
  * "checking your browser" page, is reported as `walled` and left alone. Google's and YouTube's own pages are answered by the window
- * itself and refused here. Each request starts its own browser and closes it, at most two at a time, 30 an hour for one address.
+ * itself and refused here. Each request starts its own browser and closes it, at most two at a time, 150 an hour for one address.
  */
 const OWN = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$|^(www\.)?google\.[a-z.]{2,6}$/i
 const CHALLENGE = /just a moment|attention required|access denied|verify(ing)? (you are|that you|your browser)|are you a (robot|human)|captcha|checking (your|the) browser/i
@@ -145,7 +145,7 @@ export default {
     if (!site) { try { here = new URL(request.headers.get('referer') ?? '').host === request.headers.get('host') } catch { here = false } }
     if (!here) return json({ error: 'not here' }, 403)
     const ip = (request.headers.get('x-forwarded-for') ?? 'x').split(',')[0].trim()
-    if (limited(`render:${ip}`, 30, 3600e3)) return json({ error: 'slow down' }, 429)
+    if (limited(`render:${ip}`, 150, 3600e3)) return json({ error: 'slow down' }, 429)
     const p = new URL(request.url).searchParams
     const u = p.get('u') ?? ''
     if (!u) return json({ error: 'bad' }, 400)

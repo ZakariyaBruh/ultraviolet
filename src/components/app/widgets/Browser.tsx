@@ -55,9 +55,9 @@ const ytHome = (u: URL) => (/^(www\.|m\.)?youtube\.com$/.test(u.hostname) && (u.
 
 /** the frame is sandboxed with `allow-forms` only so that a form's submit reaches the bridge below (without it the browser drops Enter in a search box before any handler runs); the bridge cancels every submit and `form-action 'none'` backs it up */
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src https: 'unsafe-inline'; img-src https: data:; font-src https: data:; media-src https:; frame-src 'none'; form-action 'none'"
-/** inside the frame: every link and search form is handed to the window instead of being followed, so the blocklist always applies; a form that would send data is reported, not sent */
+/** inside the frame: every link and search form is handed to the window instead of being followed, so the blocklist always applies; a form that would send data, or a control that needs a live script, is reported, not run */
 const BRIDGE = `(function(){var P=parent;function go(u){P.postMessage({friction:1,go:u},'*')}
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();var h=a.getAttribute('href')||'';if(h.charAt(0)==='#'){var t=document.getElementById(h.slice(1))||document.getElementsByName(h.slice(1))[0];if(t&&t.scrollIntoView)t.scrollIntoView();return}go(a.href)},true);
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a){var c=e.target&&e.target.closest&&e.target.closest('button,[role=button],[role=tab],[role=menuitem],[aria-expanded],[aria-haspopup]');if(c&&!/^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(c.tagName)&&!(c.form&&(c.type||'submit')==='submit')&&!c.closest('summary'))P.postMessage({friction:1,note:'control'},'*');return}e.preventDefault();var h=a.getAttribute('href')||'';if(h.charAt(0)==='#'){var t=document.getElementById(h.slice(1))||document.getElementsByName(h.slice(1))[0];if(t&&t.scrollIntoView)t.scrollIntoView();return}go(a.href)},true);
 document.addEventListener('submit',function(e){var f=e.target;e.preventDefault();if((f.method||'get').toLowerCase()!=='get'||f.querySelector('input[type=password]')){P.postMessage({friction:1,note:'form'},'*');return}try{var u=new URL(f.action||document.baseURI);new FormData(f).forEach(function(v,k){if(typeof v==='string')u.searchParams.set(k,v)});go(u.href)}catch(x){}},true)})();`
 
 const doc = (html: string, ground: string, ink: string) =>
@@ -149,7 +149,7 @@ export function Browser() {
   const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setView(v) }
 
   /**
-   * `how`: auto reads the page as it is and, when that shows nothing, has its scripts run on our server (unless Settings says never);
+   * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
    * static never runs them; render always does. `push` is false when the same page is being shown again another way.
    */
   const open = async (raw: string, how: 'auto' | 'static' | 'render' = 'auto', push = true) => {
@@ -170,23 +170,38 @@ export function Browser() {
       const r = await fetch(q, { signal: AbortSignal.timeout(run ? 55000 : 25000) })
       return { r, d: (await r.json().catch(() => null)) as Got | null }
     }
-    const asked = how === 'render' || (how === 'auto' && scripts === 'always')
+    // scripts run by default; `fromSetting` is that default, `how === 'render'` is someone asking for it on this page
+    const fromSetting = how === 'auto' && scripts === 'always'
+    const asked = how === 'render' || fromSetting
     setDoing(asked ? "Running the page's scripts" : 'Loading the page')
     setBusy(true)
     try {
-      let got = await ask(asked).catch((e: Error) => { if (asked) return { r: null, d: null, e }; throw e })
+      type Res = { r: Response | null; d: Got | null }
+      const failed = (x: Res) => !x.r || !x.r.ok || !x.d?.html || !!x.d.thin
+      let got: Res = await ask(asked).catch((e: Error): Res => { if (asked) return { r: null, d: null }; throw e })
       let rendered = asked
-      let tried: 'no' | 'empty' | 'failed' = 'no'
-      // nothing to read without scripts: have them run
-      if (!asked && how === 'auto' && scripts === 'auto' && got.r?.ok && got.d?.thin) {
+      let tried: 'no' | 'empty' | 'failed' = 'no' // what running the scripts of a page that showed nothing came to
+      // a page that cannot be run (our runner is busy or down, the site turns it away, or it draws nothing) is still read the plain way
+      if (fromSetting && failed(got) && got.r?.status !== 403) {
+        const ranEmpty = !!(got.r?.ok && got.d?.html && got.d.thin)
+        const wall = !!got.d?.walled
+        setDoing('Loading the page')
+        const plain = await ask(false).catch((): Res | null => null)
+        if (my !== token.current) return
+        if (plain && !failed(plain)) { got = plain; rendered = false }
+        else if (plain && !ranEmpty && !wall) { got = plain; rendered = false; if (plain.d?.thin) tried = 'failed' }
+        else if (ranEmpty) tried = 'empty'
+      }
+      // only empty pages: read the page as it is and, when that shows nothing, have its scripts run
+      if (!asked && how === 'auto' && scripts === 'empty' && got.r?.ok && got.d?.thin) {
         if (my !== token.current) return
         setDoing("Running the page's scripts")
-        const run = await ask(true).catch(() => null)
-        if (run?.d?.html && run.r.ok) { if (run.d.thin) tried = 'empty'; else { got = run; rendered = true } } else if (run?.d?.walled) got = run
+        const run = await ask(true).catch((): Res | null => null)
+        if (run?.d?.html && run.r?.ok) { if (run.d.thin) tried = 'empty'; else { got = run; rendered = true } } else if (run?.d?.walled) got = run
         else tried = 'failed'
       }
       if (my !== token.current) return
-      const { r, d } = got as { r: Response | null; d: Got | null }
+      const { r, d } = got
       if (!r || !d) return show({ kind: 'error', msg: rendered ? 'Running page scripts is not available right now' : 'The page service is not answering right now', url: raw, retry: true }, push)
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' }, push)
       if (!r.ok || !d.html) return show({ kind: 'error', msg: r.status === 429 && rendered ? 'Running page scripts is busy right now. Try again in a moment' : d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
@@ -245,6 +260,7 @@ export function Browser() {
       if (d?.friction !== 1) return
       if (typeof d.go === 'string' && d.go.length < 2000) void open(d.go)
       else if (d.note === 'form') setNote('That button sends a form. The Browser only reads pages, so it cannot send one.')
+      else if (d.note === 'control') setNote(view.kind === 'page' && view.rendered ? "That control needs the page's scripts to answer. This is the page as its scripts drew it, so buttons and menus do not respond; links and searches do." : scripts === 'off' ? "That control needs the page's scripts, which are turned off in Settings." : "That control needs the page's scripts, which are not running on this page. Tap the lightning button to run them.")
     }
     addEventListener('message', hear)
     return () => removeEventListener('message', hear)
