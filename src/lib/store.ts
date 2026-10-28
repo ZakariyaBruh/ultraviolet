@@ -229,7 +229,6 @@ interface Actions {
   loadDemo: () => void
   resetAll: () => void
   restore: (snapshot: Data) => void
-  importData: (json: string) => boolean
 }
 
 interface Live {
@@ -621,17 +620,6 @@ export const useStore = create<AppState>()(
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
 
       restore: (snapshot) => set({ ...snapshot, session: null }),
-
-      importData: (json) => {
-        try {
-          const { data, matched } = sanitizeData(JSON.parse(json))
-          if (matched === 0) return false
-          set({ ...data, session: null })
-          return true
-        } catch {
-          return false
-        }
-      },
     }),
     {
       name: 'anti-scroll:v1',

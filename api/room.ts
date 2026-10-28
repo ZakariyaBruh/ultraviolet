@@ -78,6 +78,20 @@ async function nameTaken(room: string, id: string, name: string) {
 }
 const SAME_NAME = 'Someone in this room already has that name. Change your name in Settings and try again.'
 
+
+/** A person holds one seat at a time: taking a new one gives up any other, and a room nobody is left in goes with its chat. */
+async function oneSeat(id: string, keep: string) {
+  const c = client()
+  const old = await c.execute({ sql: 'SELECT room FROM members WHERE id = ? AND room != ?', args: [id, keep] })
+  if (!old.rows.length) return
+  await c.execute({ sql: 'DELETE FROM members WHERE id = ? AND room != ?', args: [id, keep] })
+  for (const r of old.rows) {
+    const room = r.room as string
+    const left = Number((await c.execute({ sql: 'SELECT COUNT(*) AS k FROM members WHERE room = ?', args: [room] })).rows[0].k)
+    if (!left) await c.batch([{ sql: 'DELETE FROM msgs WHERE room = ?', args: [room] }, { sql: 'DELETE FROM rooms WHERE code = ?', args: [room] }])
+  }
+}
+
 async function say(room: string, who: string, text: string, sys = 0) {
   const c = client()
   await c.execute({ sql: 'INSERT INTO msgs (room, who, text, sys, t) VALUES (?, ?, ?, ?, ?)', args: [room, who, text, sys, Date.now()] })
@@ -164,6 +178,7 @@ export default {
           if (r.rowsAffected) made = try_
         }
         if (!made) return json({ error: 'busy' }, 503)
+        await oneSeat(id, made)
         await c.execute({ sql: 'INSERT INTO members (room, id, name, status, left, seen) VALUES (?, ?, ?, ?, 0, ?)', args: [made, id, name, 'idle', now] })
         await say(made, name, `${name} opened the room.`, 1)
         return json(await state(made, id, 0))
@@ -181,6 +196,7 @@ export default {
           const k = Number((await c.execute({ sql: 'SELECT COUNT(*) AS k FROM members WHERE room = ?', args: [code] })).rows[0].k)
           if (k >= MAX_MEMBERS) return json({ error: 'room full' }, 403)
           if (await nameTaken(code, id, name)) return json({ error: SAME_NAME }, 409)
+          await oneSeat(id, code)
           await c.execute({ sql: 'INSERT INTO members (room, id, name, status, left, seen) VALUES (?, ?, ?, ?, 0, ?)', args: [code, id, name, 'idle', now] })
           await say(code, name, `${name} joined.`, 1)
           await relay(hook, `${name} joined the room.`)

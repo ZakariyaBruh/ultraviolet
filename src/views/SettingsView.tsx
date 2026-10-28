@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
-import { AnimatedFileUpload } from '@/components/ui/animated-file-upload'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
@@ -16,7 +15,6 @@ import { contrast } from '@/lib/theme'
 import { THEMES, themeDef } from '@/lib/themes'
 import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
-import { useMedia } from '@/lib/hooks'
 
 const snapshot = (s: AppState) => {
   const o: Record<string, unknown> = {}
@@ -212,24 +210,10 @@ function Sound() {
 
 function Data() {
   const [confirmed, setConfirmed] = useState(false)
-  const wide = useMedia('(min-width: 768px)')
-  const download = () => {
-    const json = JSON.stringify(snapshot(useStore.getState()), null, 2)
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([json], { type: 'application/json' })), download: 'friction-backup.json' })
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-  }
   return (
-    <div className="grid min-h-0 gap-4 md:grid-cols-2">
-      <Panel className="flex flex-col gap-3 rounded-3xl p-4">
-        <AnimatedFileUpload variant={wide ? 'standard' : 'compact'} accept={['.json']} multiple={false} maxFiles={1} dropTitle="Import a backup" dropSubtitle="or browse for a .json file" onFilesSelected={async (files) => {
-          const ok = useStore.getState().importData(await files[0].text())
-          fx_say({ title: ok ? 'Backup imported' : 'Could not read that file', description: ok ? undefined : 'It is not a Friction backup.', variant: ok ? 'success' : 'danger' })
-        }} />
-        <button className="h-11 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={download}>Download backup</button>
-      </Panel>
+    <div className="grid min-h-0 gap-4">
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
-        <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. Your backup never holds the key to your place, so a file cannot be used to take someone else's." checked readOnly />
+        <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. Nothing here can be exported or imported, so no file can be used to take someone else's place." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
       </Panel>
     </div>
@@ -244,7 +228,7 @@ function Help() {
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
         { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. Two optional things use AI, and both say so. A lesson’s demo is AI generated when there is no built-in demo for that topic (only the topic title is sent). And the Ask AI window, which only runs when you open it and type, sends your questions to free AI services (Pollinations, with LLM7 as a backup) through Friction’s server; nothing is saved, and it can be wrong. Everything else in the app, including the Debrief, is plain code.' },
-        { id: '6', question: 'What happens when I erase everything?', answer: 'Your sessions, shelf, notes, layout and cached lessons are removed from this browser. Your place on the leaderboard goes too, with your alias, so the name is free again, and you leave any Together room. A backup file never holds the key to your place, so it cannot be used to take someone else’s.' },
+        { id: '6', question: 'What happens when I erase everything?', answer: 'Your sessions, shelf, notes, layout and cached lessons are removed from this browser. Your place on the leaderboard goes too, with your alias, so the name is free again, and you leave any Together room. Each person holds at most one row on the server in each place, so there is little to remove.' },
         { id: '7', question: 'Where do the songs come from?', answer: 'The Music screen searches three free services at once, none needing an account or a key: Audius (independent artists), Openverse (openly licensed music, mostly from Jamendo) and the Internet Archive (public domain and openly licensed recordings). Only the words you search for are sent. None of them rates its music, so you choose an age (Everyone, Teens or Adults) and Friction filters by the explicit flags and words they give. That is a guide, not a guarantee. Songs play in the same player as radio. Auto music, made in your browser, is a separate Shop item and steps aside while a song plays.' },
       ]
   const per = 2

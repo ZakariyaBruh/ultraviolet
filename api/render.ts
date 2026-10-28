@@ -17,7 +17,7 @@ import { clean, internal, json, readable, THIN, UA } from './_page.js'
  * itself and refused here. Each request starts its own browser and closes it, at most two at a time.
  *
  * It is metered, because it costs money: the person asks for it (the Browser's Issues panel), each address gets `PER_IP` seconds of it a
- * day, and everyone together get `ALL` (env `RENDER_DAILY_CAP_MIN`, default 240 minutes), kept in Turso as hashed addresses by UTC day.
+ * day, and everyone together get `ALL` (env `RENDER_DAILY_CAP_MIN`, default 240 minutes), kept in Turso as one row for each hashed address (and one for everyone), by UTC day.
  * `?usage=1` says how much is left. With no Turso configured it refuses, so it can never run unmetered.
  */
 const OWN = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$|^(www\.)?google\.[a-z.]{2,6}$/i
@@ -31,7 +31,8 @@ const ALL = (Number(process.env.RENDER_DAILY_CAP_MIN) || 240) * 60
 let db: Client | undefined
 let ready: Promise<unknown> | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
-const init = () => (ready ??= client().execute('CREATE TABLE IF NOT EXISTS cloud_use (id TEXT NOT NULL, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0, PRIMARY KEY (id, day))'))
+// one row per address (and one for everyone), holding only today's seconds: the row starts again when the day changes
+const init = () => (ready ??= client().batch(['DROP TABLE IF EXISTS cloud_use', 'CREATE TABLE IF NOT EXISTS cloud_day (id TEXT PRIMARY KEY, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0)']))
 const today = () => new Date().toISOString().slice(0, 10)
 async function who(ip: string) {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`cloud:${ip}`))
@@ -39,14 +40,16 @@ async function who(ip: string) {
 }
 async function used(id: string) {
   await init()
-  const r = await client().execute({ sql: 'SELECT id, secs FROM cloud_use WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'ALL'] })
+  const r = await client().execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'ALL'] })
   const get = (k: string) => Number(r.rows.find((x) => x.id === k)?.secs ?? 0)
   return { ip: get(id), all: get('ALL') }
 }
 async function charge(id: string, secs: number) {
   const c = client()
-  const sql = 'INSERT INTO cloud_use (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id, day) DO UPDATE SET secs = secs + excluded.secs'
-  await c.batch([{ sql, args: [id, today(), secs] }, { sql, args: ['ALL', today(), secs] }, { sql: 'DELETE FROM cloud_use WHERE day < ?', args: [new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10)] }])
+  const sql = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
+  await c.batch([{ sql, args: [id, today(), secs] }, { sql, args: ['ALL', today(), secs] }])
+  // rows from earlier days would only be reset by their owner's next visit, so they are cleared now and then
+  if (Math.random() < 0.05) await c.execute({ sql: 'DELETE FROM cloud_day WHERE day < ?', args: [today()] })
 }
 
 /**
