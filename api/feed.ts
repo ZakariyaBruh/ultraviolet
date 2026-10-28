@@ -1,4 +1,4 @@
-import { FEEDS } from '../src/lib/feeds'
+import { FEED_URLS } from './_feeds.js'
 
 /**
  * A feed relay for the News screen. Most publishers do not let a browser read their RSS, and the free public relays answer only
@@ -6,7 +6,7 @@ import { FEEDS } from '../src/lib/feeds'
  * of feeds (`FEEDS`), so it cannot be used to reach anything else, and it keeps no data. Good answers are cached for 15 minutes
  * at the edge, so each feed is fetched about four times an hour however many people read it.
  */
-const ALLOWED = new Set(FEEDS.map((f) => f.url))
+const ALLOWED = new Set(FEED_URLS)
 const MAX = 3_000_000
 
 const reply = (body: string, status = 200, cache = 'no-store', type = 'text/plain; charset=utf-8') => new Response(body, { status, headers: { 'content-type': type, 'cache-control': cache } })

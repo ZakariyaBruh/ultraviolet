@@ -1,4 +1,4 @@
-import { verdict } from '../src/lib/blocklist'
+import { verdict } from './_blocklist.js'
 
 /**
  * The Browser window's server side. Two jobs, both read-only and neither storing anything:

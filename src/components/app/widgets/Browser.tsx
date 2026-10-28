@@ -18,13 +18,16 @@ type View =
   | { kind: 'blocked'; url: string; why: string }
   | { kind: 'error'; msg: string; url?: string }
 
+/** pages opened this visit, newest first */
+let history: string[] = []
+
 const START = [
   { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Main_Page' },
   { name: 'Khan Academy', url: 'https://www.khanacademy.org/' },
   { name: 'MDN Web Docs', url: 'https://developer.mozilla.org/' },
   { name: 'Project Gutenberg', url: 'https://www.gutenberg.org/' },
   { name: 'Britannica', url: 'https://www.britannica.com/' },
-  { name: 'Wolfram MathWorld', url: 'https://mathworld.wolfram.com/' },
+  { name: 'MathWorld', url: 'https://mathworld.wolfram.com/' },
 ]
 
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src https: 'unsafe-inline'; img-src https: data:; font-src https: data:; media-src https:; frame-src 'none'; form-action 'none'"
@@ -42,6 +45,7 @@ export function Browser() {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const frame = useRef<HTMLIFrameElement>(null)
+  const recent = history.slice(0, 4)
   const token = useRef(0)
 
   const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setView(v) }
@@ -55,12 +59,14 @@ export function Browser() {
     setBusy(true)
     try {
       const r = await fetch(`/api/browse?u=${encodeURIComponent(v.url.toString())}`, { signal: AbortSignal.timeout(25000) })
-      const d = (await r.json()) as { url?: string; html?: string; error?: string; why?: string }
+      const d = (await r.json().catch(() => null)) as { url?: string; html?: string; error?: string; why?: string } | null
       if (my !== token.current) return
+      if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw })
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' })
       if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw })
+      history = [d.url ?? raw, ...history.filter((x) => x !== (d.url ?? raw))].slice(0, 8)
       show({ kind: 'page', url: d.url ?? raw, html: d.html })
-    } catch { if (my === token.current) show({ kind: 'error', msg: 'The page did not load in time', url: raw }) } finally { if (my === token.current) setBusy(false) }
+    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }) } finally { if (my === token.current) setBusy(false) }
   }
 
   const search = async (q: string) => {
@@ -68,11 +74,11 @@ export function Browser() {
     setBusy(true)
     try {
       const r = await fetch(`/api/browse?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(20000) })
-      const d = (await r.json()) as { results?: { title: string; url: string; about: string }[]; error?: string }
+      const d = (await r.json().catch(() => null)) as { results?: { title: string; url: string; about: string }[]; error?: string } | null
       if (my !== token.current) return
-      if (!r.ok || !d.results) return show({ kind: 'error', msg: 'Search is busy. Try again in a moment.' })
+      if (!r.ok || !d?.results) return show({ kind: 'error', msg: 'Search is busy. Try again in a moment.' })
       show({ kind: 'results', q, list: d.results })
-    } catch { if (my === token.current) show({ kind: 'error', msg: 'Search did not answer in time.' }) } finally { if (my === token.current) setBusy(false) }
+    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'Search took too long.' : 'Search could not be reached.' }) } finally { if (my === token.current) setBusy(false) }
   }
 
   const go = (input: string) => {
@@ -103,7 +109,7 @@ export function Browser() {
 
   return (
     <div className="grid gap-2">
-      <form onSubmit={(e) => { e.preventDefault(); go(text); setText('') }} className="flex gap-2">
+      {view.kind !== 'home' && <form onSubmit={(e) => { e.preventDefault(); go(text); setText('') }} className="flex gap-2">
         <button type="button" onClick={back} disabled={!stack.length} aria-label="Back" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" /></button>
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Search the web or type an address</span>
@@ -111,17 +117,41 @@ export function Browser() {
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : 'Search the web or type an address'} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
-      </form>
+      </form>}
+      {view.kind === 'home' && stack.length > 0 && <button onClick={back} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-sm text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back</button>}
       <div className="relative h-[min(58vh,26rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
         {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label="Loading the page" size={56} /></div>}
         {view.kind === 'home' && (
-          <div className="scroll-y h-full p-3">
-            <p className="text-[14px] leading-[1.45]">The open web for studying. Games and short-form social media (TikTok, Reels, YouTube Shorts and the like) are blocked. Full YouTube videos play.</p>
-            <p className="hud mb-1.5 mt-3">Start somewhere</p>
-            <ul className="m-0 grid list-none gap-1.5 p-0 sm:grid-cols-2">
-              {START.map((s) => <li key={s.url}><button onClick={() => void open(s.url)} className="flex h-11 w-full items-center border border-ink/25 px-3 text-left text-[14px] hover:bg-ink/10">{s.name}</button></li>)}
+          <div className="scroll-y grid h-full content-start justify-items-center gap-4 px-3 pb-4 pt-6 text-center">
+            <div>
+              <p className="dot text-[clamp(1.4rem,4vw,2rem)] font-bold leading-[1.1]">Search the web</p>
+              <p className="mt-1 text-[13px] text-ink-2">for studying, reading and videos</p>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); go(text); setText('') }} className="flex w-full max-w-[28rem] gap-0">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Search the web or type an address</span>
+                <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ink-3" />
+                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search or type an address" autoComplete="off" spellCheck={false} enterKeyHint="go" className="h-14 w-full border border-ink/40 bg-ink/[0.04] pl-12 pr-3 text-[16px] text-ink placeholder:text-ink-3 focus:border-signal" data-no-drag />
+              </label>
+              <button type="submit" className="h-14 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal">Go</button>
+            </form>
+            <ul className="m-0 grid w-full max-w-[28rem] list-none grid-cols-3 gap-2 p-0" aria-label="Start pages">
+              {START.map((s) => (
+                <li key={s.url}>
+                  <button onClick={() => void open(s.url)} className="grid h-[5.25rem] w-full place-items-center content-center gap-1.5 border border-ink/20 px-1 hover:border-signal hover:bg-ink/[0.06]">
+                    <span className="grid size-9 place-items-center bg-ink/10 text-[17px] font-bold text-signal" aria-hidden>{s.name[0]}</span>
+                    <span className="max-w-full truncate text-[12px] leading-none">{s.name}</span>
+                  </button>
+                </li>
+              ))}
             </ul>
-            <p className="mt-3 text-[12px] leading-[1.4] text-ink-3">Pages are read by Friction’s server and shown without scripts, so documents and articles work best, and sites that are all scripts will not.</p>
+            {recent.length > 0 && (
+              <div className="w-full max-w-[28rem] text-left">
+                <p className="hud mb-1">Recent</p>
+                <ul className="m-0 list-none p-0">{recent.map((r) => <li key={r}><button onClick={() => void open(r)} className="block min-h-11 w-full truncate py-2 text-left text-[13px] text-ink-2 hover:text-ink">{r.replace(/^https?:\/\//, '')}</button></li>)}</ul>
+              </div>
+            )}
+            <p className="max-w-[28rem] text-[12px] leading-[1.4] text-ink-3">Games and short-form social media are blocked. Full YouTube videos play; Shorts do not. Pages are shown without scripts, so articles and documents work best.</p>
           </div>
         )}
         {view.kind === 'results' && (
