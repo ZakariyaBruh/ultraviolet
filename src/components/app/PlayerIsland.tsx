@@ -15,7 +15,7 @@ export function PlayerIsland() {
   const volume = useStore((s) => s.settings.volume)
   const [open, setOpen] = useState(false)
   const set = useUI((s) => s.set)
-  const sub = status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable, skipping' : current ? (current.kind === 'tv' ? 'Live TV' : 'Radio') : 'Nothing playing'
+  const sub = status === 'loading' ? 'Tuning…' : status === 'error' ? 'Stream unavailable, skipping' : current ? (current.kind === 'tv' ? 'Live TV' : current.id.startsWith('song:') ? 'Song' : current.id.startsWith('pod:') ? 'Podcast' : 'Radio') : 'Nothing playing'
 
   return (
     <Glass lens radius={36} className="w-[min(440px,calc(100vw-24px))] overflow-visible lg:max-xl:w-[340px]">

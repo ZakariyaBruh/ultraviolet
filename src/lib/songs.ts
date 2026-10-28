@@ -14,6 +14,9 @@ export type SongSource = 'audius' | 'openverse' | 'archive'
 export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive' }
 export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2 }
 
+/** artists the owner has asked never to be offered, at any age setting */
+const BLOCKED = /la goony|miss bashful|mrs\.? bashful/i
+
 /** what the person asked to hear: 0 everyone, 1 teens, 2 adults */
 export const AGES = [
   { id: 0, name: 'Everyone', note: 'Only songs with no explicit flag and no strong or mild bad words in the title or tags.' },
@@ -82,11 +85,11 @@ const trendingAudius = () => cached('songs:trend:audius:v2', HOUR, async () => {
   const d = (await getJson(`${AUDIUS}/tracks/trending?time=week&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
   return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
 })
-const searchAudius = (q: string) => cached(`songs:audius:v2:${q.toLowerCase()}`, HOUR, async () => {
+const searchAudius = (q: string) => cached(`songs:audius:v3:${q.toLowerCase()}`, HOUR, async () => {
   const d = (await getJson(`${AUDIUS}/tracks/search?query=${encodeURIComponent(q)}&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
   return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
 })
-const searchOpenverse = (q: string) => cached(`songs:ov:v2:${q.toLowerCase()}`, HOUR, async () => {
+const searchOpenverse = (q: string) => cached(`songs:ov:v3:${q.toLowerCase()}`, HOUR, async () => {
   const d = (await getJson(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q || 'music')}&category=music&page_size=24`)) as { results?: OvTrack[] }
   return (d.results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
 })
@@ -94,7 +97,7 @@ const searchOpenverse = (q: string) => cached(`songs:ov:v2:${q.toLowerCase()}`, 
 interface ArchiveDoc { identifier?: string; title?: string; creator?: string | string[] }
 interface ArchiveMeta { d1?: string; dir?: string; files?: { name?: string; length?: string; format?: string }[] }
 /** The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. */
-const searchArchive = (q: string) => cached(`songs:ia:v2:${q.toLowerCase()}`, HOUR, async () => {
+const searchArchive = (q: string) => cached(`songs:ia:v3:${q.toLowerCase()}`, HOUR, async () => {
   const term = q.replace(/["\\:()[\]{}]/g, ' ').trim() || 'music'
   const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`(title:(${term}) OR creator:(${term})) AND mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=10&output=json`
   const d = (await getJson(url)) as { response?: { docs?: ArchiveDoc[] } }
@@ -115,7 +118,7 @@ const searchArchive = (q: string) => cached(`songs:ia:v2:${q.toLowerCase()}`, HO
 })
 
 /** whether a song may be offered to someone who chose this age */
-export const allowed = (s: Song, age: number) => s.rating <= age
+export const allowed = (s: Song, age: number) => s.rating <= age && !BLOCKED.test(`${s.item.name} ${s.item.meta}`)
 
 /** Songs for a search (or what is trending when nothing is typed), from every source at once, mixed so no one source fills the list. */
 export async function findSongs(q: string, age: number): Promise<{ list: Song[]; failed: SongSource[] }> {
