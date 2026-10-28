@@ -4,7 +4,7 @@ import { verdict } from '@/lib/blocklist'
 /**
  * Page scripts run in a sealed frame with an empty origin, so a request they make to another site is refused by CORS. This is the
  * answer: the frame's fetch and XMLHttpRequest are replaced (`FRAME_SHIM`, written into the page before its own scripts) by calls that
- * post the request to the Browser window, which makes it through Corsfix's free proxy (the corsfix SDK, no key) from the app's own
+ * post the request to the Browser window, which makes it through Corsfix's free proxy (KillCORS is the backup) (the corsfix SDK, no key) from the app's own
  * origin and posts the answer back. The shim also gives pages an empty cookie jar and in-memory storage, because a sealed frame
  * throws when a page reads them and many pages crash on that. Every address passes the blocklist and the private-network check first. No cookies are sent
  * and none come back. The proxy is a third party: it sees what a page's scripts ask for, and it has its own free-tier limit.
@@ -47,12 +47,30 @@ export async function frameRequest(d: { url?: unknown; method?: unknown; headers
   if (d.headers && typeof d.headers === 'object') for (const [k, val] of Object.entries(d.headers as Record<string, unknown>)) if (typeof val === 'string' && !BAD_HEADER.test(k)) headers[k] = val
   const method = typeof d.method === 'string' ? d.method.toUpperCase() : 'GET'
   const body = d.body instanceof ArrayBuffer || typeof d.body === 'string' ? (d.body as BodyInit) : undefined
-  try {
-    const r = await corsfix.fetch(v.url.toString(), { method, headers, body: /^(GET|HEAD)$/.test(method) ? undefined : body, signal: AbortSignal.timeout(20000) })
+  const target = v.url.toString()
+  const init = { method, headers, body: /^(GET|HEAD)$/.test(method) ? undefined : body }
+  let limit = false
+  // Corsfix first; if it refuses or fails (its free limit, or it is down) KillCORS, which has no stated limit, answers instead
+  for (const via of ['corsfix', 'killcors'] as const) {
+    try {
+      const r = via === 'corsfix'
+        ? await corsfix.fetch(target, { ...init, signal: AbortSignal.timeout(20000) })
+        : await fetch(`https://proxy.killcors.com?url=${encodeURIComponent(target)}`, { ...init, signal: AbortSignal.timeout(20000) })
+      // a refusal from the proxy itself (as opposed to from the site) is not an answer: the next proxy is tried
+      if (via === 'corsfix' && r.status >= 400 && (await r.clone().text().catch(() => '')).includes('corsfix_error')) { limit = r.status === 429; continue }
+      const out = await answer(r, target)
+      if (out) return out
+    } catch (e) { if (via === 'corsfix') limit = (e as { code?: string })?.code === 'rate_limited' || (e as { status?: number })?.status === 429 }
+  }
+  return { ok: false, limit }
+}
+
+async function answer(r: Response, target: string) {
+  {
     const buf = await r.arrayBuffer()
-    if (buf.byteLength > MAX) return { ok: false, limit: false }
+    if (buf.byteLength > MAX) return null
     const out: Record<string, string> = {}
     r.headers.forEach((val, k) => { if (!/^(set-cookie|content-encoding|content-length)$/i.test(k)) out[k] = val })
-    return { ok: true, status: r.status, statusText: r.statusText, headers: out, body: buf, url: r.url || v.url.toString() }
-  } catch (e) { return { ok: false, limit: (e as { code?: string })?.code === 'rate_limited' || (e as { status?: number })?.status === 429 } }
+    return { ok: true as const, status: r.status, statusText: r.statusText, headers: out, body: buf, url: target }
+  }
 }

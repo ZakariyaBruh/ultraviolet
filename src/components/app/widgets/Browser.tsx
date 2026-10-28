@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, ExternalLink, Pencil, Play, Plus, Search, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, CircleHelp, ExternalLink, Pencil, Play, Plus, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -60,6 +60,7 @@ const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src https: 'u
 /** inside the frame: every link and search form is handed to the window instead of being followed, so the blocklist always applies; a form that would send data, or a control that needs a live script, is reported, not run */
 const BRIDGE = `(function(){var P=parent;function go(u){P.postMessage({friction:1,go:u},'*')}
 document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a){var c=e.target&&e.target.closest&&e.target.closest('button,[role=button],[role=tab],[role=menuitem],[aria-expanded],[aria-haspopup]');if(c&&!/^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(c.tagName)&&!(c.form&&(c.type||'submit')==='submit')&&!c.closest('summary'))P.postMessage({friction:1,note:'control'},'*');return}e.preventDefault();var h=a.getAttribute('href')||'';if(h.charAt(0)==='#'){var t=document.getElementById(h.slice(1))||document.getElementsByName(h.slice(1))[0];if(t&&t.scrollIntoView)t.scrollIntoView();return}go(a.href)},true);
+addEventListener('load',function(){setTimeout(function(){P.postMessage({friction:1,health:((document.body&&document.body.innerText)||'').replace(/\s+/g,' ').trim().length},'*')},3500)});
 document.addEventListener('submit',function(e){var f=e.target;e.preventDefault();if((f.method||'get').toLowerCase()!=='get'||f.querySelector('input[type=password]')){P.postMessage({friction:1,note:'form'},'*');return}try{var u=new URL(f.action||document.baseURI);new FormData(f).forEach(function(v,k){if(typeof v==='string')u.searchParams.set(k,v)});go(u.href)}catch(x){}},true)})();`
 
 const LIVE_CSP = "default-src 'none'; script-src https: 'unsafe-inline' 'unsafe-eval' blob:; style-src https: 'unsafe-inline'; img-src https: data: blob:; font-src https: data:; media-src https: blob:; connect-src https:; worker-src blob:; frame-src 'none'; form-action 'none'"
@@ -139,8 +140,11 @@ export function Browser() {
   const [note, setNote] = useState('')
   const [editing, setEditing] = useState(false)
   const [doing, setDoing] = useState('Loading the page')
-  const engine = useStore((s) => s.settings.searchEngine)
-  const scripts = useStore((s) => s.settings.browserScripts)
+  // Bing is the engine and page scripts are always on: neither is a setting any more
+  const engine = 'bing'
+  const scripts: string = 'on'
+  const [issues, setIssues] = useState(false)
+  const [empty, setEmpty] = useState(false)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
@@ -151,7 +155,7 @@ export function Browser() {
   const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); loads.current = 0; setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setEmpty(false); loads.current = 0; setView(v) }
 
   /**
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
@@ -240,6 +244,7 @@ export function Browser() {
       if (e.source !== frame.current?.contentWindow) return
       const d = e.data as { friction?: number; go?: string; note?: string; fx?: number; url?: unknown; method?: unknown; headers?: unknown; body?: unknown } | null
       if (d?.friction !== 1) return
+      if (typeof (d as { health?: unknown }).health === 'number') { if (((d as { health: number }).health) < 80) setEmpty(true); return }
       if (typeof d.fx === 'number') {
         const id = d.fx
         void frameRequest(d).then((r) => {
@@ -263,8 +268,18 @@ export function Browser() {
     return doc(view.html, '#fff', '#111', !!view.rendered)
   }, [view])
 
-  /** run this page's scripts on our server, or load it again without them */
-  const toggleScripts = () => { if (view.kind === 'page') void open(view.url, view.rendered ? 'static' : 'render', false) }
+  /** a friendlier version of this site that the window can open instead, when there is one */
+  const wrapFor = (raw: string): { name: string; go: () => void } | null => {
+    let u: URL
+    try { u = new URL(raw) } catch { return null }
+    const h = u.hostname.replace(/^(www|m)\./, '')
+    if (/^(youtube\.com|youtu\.be|music\.youtube\.com)$/.test(h)) return { name: 'Friction YouTube', go: () => show({ kind: 'youtube', q: '', list: [] }) }
+    if (/^(google\.[a-z.]{2,6}|bing\.com|duckduckgo\.com|search\.brave\.com|yahoo\.com|ecosia\.org)$/.test(h)) return { name: 'FrictionX search', go: () => show({ kind: 'search' }) }
+    if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
+    return null
+  }
+  const pageUrl = view.kind === 'page' || view.kind === 'error' ? view.url : undefined
+  const wrap = pageUrl ? wrapFor(pageUrl) : null
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
   const bar = view.kind !== 'search' && view.kind !== 'add' && !(view.kind === 'youtube' && !view.q)
@@ -278,8 +293,8 @@ export function Browser() {
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
-        {view.kind === 'page' && scripts !== 'off' && (
-          <button type="button" onClick={toggleScripts} aria-pressed={!!view.rendered} aria-label="Run this page's scripts" title={view.rendered ? "This page's scripts are running. Tap to load it without them." : "Run this page's scripts"} className={`grid size-11 shrink-0 place-items-center border transition-colors duration-150 ${view.rendered ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><Zap className="size-4" /></button>
+        {view.kind === 'page' && (
+          <button type="button" onClick={() => setIssues(true)} aria-label="Facing issues with this page?" title="Facing issues with this page?" className={`grid size-11 shrink-0 place-items-center border transition-colors duration-150 ${empty ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><CircleHelp className="size-4" /></button>
         )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
       </form>}
@@ -358,6 +373,7 @@ export function Browser() {
           <>
             <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) show({ kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
+            {empty && !note && !issues && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-ground px-3 py-1 text-[13px] text-ink"><span>This page looks empty.</span><button onClick={() => setIssues(true)} className="h-11 shrink-0 px-3 font-semibold text-signal underline">Facing issues?</button></div>}
           </>
         )}
         {view.kind === 'video' && (
@@ -373,11 +389,23 @@ export function Browser() {
             <p className="break-all text-[12px] text-ink-3">{view.url.slice(0, 120)}</p>
           </div>
         )}
+        {issues && (
+          <div className="absolute inset-0 z-20 grid content-center justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
+            <p className="hud">Facing issues?</p>
+            <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not run well in here. ${wrap.name} is a version made for the Browser.` : 'Some sites need more than the Browser can give them, such as a login or a check that you are a person.'}</p>
+            <div className="flex flex-wrap gap-2">
+              {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
+              {pageUrl && <a href={pageUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}>Open in your browser <ExternalLink className="size-3.5" /></a>}
+              <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
+            </div>
+          </div>
+        )}
         {view.kind === 'error' && (
           <div className="grid h-full content-center justify-items-start gap-2 p-4" role="alert">
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
+              {view.url && <button onClick={() => setIssues(true)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><CircleHelp className="size-4" />Facing issues?</button>}
               {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}
               {view.url && <>
