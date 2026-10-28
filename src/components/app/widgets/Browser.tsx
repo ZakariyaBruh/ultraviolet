@@ -275,7 +275,7 @@ export function Browser() {
         )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
       </form>}
-      <div ref={box} className="relative h-[min(62vh,34rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
+      <div ref={box} className="relative h-[min(62vh,34rem,calc(100cqh_-_9rem))] min-h-[10rem] overflow-hidden border border-ink/15" data-no-drag>
         {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label={doing} size={56} /></div>}
         {view.kind === 'home' && (
           <div className="scroll-y grid h-full content-start gap-3 p-3">

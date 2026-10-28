@@ -6,7 +6,10 @@ import { useUI } from '@/lib/ui'
 import { useAvailableWidgets } from './defs'
 import { WidgetWindow } from './Window'
 
-/** The open windows, floating over the Focus screen. The layer lets everything under it through; only the windows catch the pointer. */
+/**
+ * The open windows, floating over the Focus screen. The layer lets everything under it through; only the windows catch the pointer.
+ * It is a size container, so a window can be sized to the room the page area really has (`cqh`) and not to the whole screen.
+ */
 export function WidgetLayer() {
   const open = useStore((s) => s.widgets.open)
   const wide = useMedia('(min-width: 640px)')
@@ -14,7 +17,7 @@ export function WidgetLayer() {
   const live = open.map((id) => have.find((w) => w.id === id)).filter((w): w is (typeof have)[number] => !!w)
   if (!live.length) return null
   return (
-    <div className="pointer-events-none absolute inset-0 z-20">
+    <div className="pointer-events-none absolute inset-0 z-20 [container-type:size]">
       {live.map((w, i) => (
         <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide} large={w.large}><w.Body /></WidgetWindow>
       ))}

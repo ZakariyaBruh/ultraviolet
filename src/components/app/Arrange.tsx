@@ -37,19 +37,25 @@ function paint(el: HTMLElement, o: Offset, rot = 0) {
 /** The screen-px scale a FitView puts on the panel (1 when none). */
 const scaleOf = (el: HTMLElement) => (el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1) || 1
 
-/** Allowed offsets (in the panel's own px) that keep the whole panel on screen. */
+/**
+ * Allowed offsets (in the panel's own px) that keep the whole panel on screen. A study window floats over the page area, which is
+ * the part of the screen between the header and the player and nav, so it is kept inside that: below it the window would hang
+ * past the page, trip the small-window scroll and be cut off there.
+ */
 function range(el: HTMLElement) {
   const k = scaleOf(el)
   const r = el.getBoundingClientRect()
   const o = live(el)
   const left = r.left - o.x * k
   const top = r.top - o.y * k
-  const minX = (EDGE - left) / k
-  const minY = (EDGE - top) / k
+  const area = el.dataset.movable?.startsWith('widget-') ? el.parentElement?.getBoundingClientRect() : undefined
+  const x0 = area?.left ?? 0, x1 = area?.right ?? innerWidth, y0 = area?.top ?? 0, y1 = area?.bottom ?? innerHeight
+  const minX = (x0 + EDGE - left) / k
+  const minY = (y0 + EDGE - top) / k
   return {
     k,
-    minX, maxX: Math.max(minX, (innerWidth - EDGE - r.width - left) / k),
-    minY, maxY: Math.max(minY, (innerHeight - EDGE - r.height - top) / k),
+    minX, maxX: Math.max(minX, (x1 - EDGE - r.width - left) / k),
+    minY, maxY: Math.max(minY, (y1 - EDGE - r.height - top) / k),
   }
 }
 const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
