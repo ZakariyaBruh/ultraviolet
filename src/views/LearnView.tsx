@@ -143,6 +143,10 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
     }
   }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // what made the thing on screen: the lesson and its questions are built by rules from Wikipedia; only a demo with no built-in version is written by an AI
+  const aiStep = step.kind === 'demo' && step.id === 'ai'
+  const tag = aiStep ? 'AI-made demo' : step.kind === 'demo' ? 'Built-in demo' : 'Rules, no AI'
+  const provenance = aiStep ? 'An AI wrote this demo for a topic with no built-in one. The lesson itself is not AI.' : step.kind === 'demo' ? 'Written by hand for this topic.' : 'Built from Wikipedia text by fixed rules. No AI writes the lesson or its questions.'
   const idea = step.kind === 'idea' ? lesson.ideas[step.i] : null
   const keep = () => idea && step.kind === 'idea' && (saved ? dropCard(`i:${lesson.title}:${step.i}`) : addCards([{ id: `i:${lesson.title}:${step.i}`, front: `${lesson.title}: ${idea.heading}`, back: idea.text }]))
 
@@ -150,7 +154,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 items-center gap-3">
         <button onClick={() => onExit()} aria-label="Leave the lesson" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><X className="size-5" /></button>
-        <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-semibold">{lesson.title}</div><Bar at={live.filter((i) => i < at).length} total={live.length - 1} /></div>
+        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-baseline gap-2"><span className="truncate text-[15px] font-semibold">{lesson.title}</span><span className="hud shrink-0 whitespace-nowrap text-[12px]" title={provenance}>{tag}</span></div><Bar at={live.filter((i) => i < at).length} total={live.length - 1} /></div>
         <span className="fig hud shrink-0">+{xp} XP</span>
       </div>
       <Panel className="scroll-y relative min-h-0 flex-1 p-4 md:p-6" {...swipe}>
@@ -386,7 +390,7 @@ export function LearnView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       {lesson ? <h1 className="sr-only">Learn: {lesson.title}</h1> : (
-        <PageHeader kicker="Learn" title="Learn" sub={`Short lessons from Wikipedia, checks written from the text itself, ${aiDemos ? 'a demo for each lesson, ' : ''}trivia, and a review deck. No account.`}>
+        <PageHeader kicker="Learn" title="Learn" sub={`Lessons are built from Wikipedia by fixed rules, never by an AI. ${aiDemos ? 'Only a demo with no built-in version is AI-made, and it says so.' : 'AI-made demos are switched off.'}`}>
           <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
             <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
             <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>
@@ -399,7 +403,7 @@ export function LearnView() {
         <>
           <Seg id="tabs-learn" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'lessons', label: 'Lessons' }, { id: 'trivia', label: 'Trivia' }, { id: 'review', label: 'Review', badge: dueN || undefined }]} />
           {err && <p className="text-sm text-ink-2" role="alert">{err}</p>}
-          {loading && <div className="min-h-0 flex-1"><LoadingBlock label={`Writing a lesson on ${loading}`} size={96} /></div>}
+          {loading && <div className="min-h-0 flex-1"><LoadingBlock label={`Building a lesson on ${loading}`} size={96} /></div>}
           {tab === 'lessons' && !loading && <Explore onOpen={open} done={stats.done} />}
           {tab === 'trivia' && !loading && <TriviaGame />}
           {tab === 'review' && !loading && <Review />}

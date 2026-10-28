@@ -45,8 +45,23 @@ WHAT TO MAKE
 THE FRAME YOUR FRAGMENT IS PLACED IN
 - Your fragment goes inside <main id="app">, a flex column that fills the frame: between 280 and 900 px wide and 200 to 600 px tall. It must fit without scrolling at any size in that range. Give one child the class "grow" (a stage, canvas or svg that takes the leftover height, with min-height:0) and keep the controls compact in ".row" blocks under or beside it. The stage is the star: it must get at least half of the frame's height, so keep readouts to one small line (put the number and its label side by side in one .row, use .big only for a single figure) and use at most two or three controls. On wide frames (over 600px) you may put the controls in a column beside the stage.
 - Canvas: size it from its container with a ResizeObserver (width and height times devicePixelRatio) and redraw on resize. SVG: use a viewBox and let it scale.
-- Provided CSS variables (use these and never hard-coded colours): --ink (text), --ink2, --ink3 (quieter text), --ground (background), --signal (the one accent), --on-signal (text on the accent), --rule (hairlines), plus --ice (a second accent) and the status colours --good, --bad, --warn. Use --good and --bad for right and wrong or safe and danger, never your own reds and greens. In canvas code read them with getComputedStyle(document.body).getPropertyValue('--signal').
-- Provided styles: button, input[type=range], select, input[type=text], label are already styled and 44px high. Classes: .row (flex, wrapping, gap), .col (flex column), .grow, .hud (small uppercase label), .big (large numeric readout), .card (ruled box), .muted, .stage (ruled box for a canvas or svg). A button with aria-pressed="true" shows as selected. Font is the system font.
+- Provided CSS variables (use these and never hard-coded colours): --ink (text), --ink2, --ink3 (quieter text), --ground (background), --surface (a slightly raised background), --signal (the one accent), --on-signal (text on the accent), --rule (hairlines), plus --ice (a second accent) and the status colours --good, --bad, --warn. Use --good and --bad for right and wrong or safe and danger, never your own reds and greens. In canvas code read them with getComputedStyle(document.body).getPropertyValue('--signal').
+- Provided faces, already loaded in the frame (never load fonts): var(--f-body) for reading, var(--f-cond) for small labels, var(--f-dot) for big figures. Put words in HTML or SVG <text>, which pick them up on their own; avoid text drawn on a canvas.
+- Provided styles: button, input[type=range], select, input[type=text], input[type=number], label and svg text are already styled in the house style and the controls are 44px high. Classes: .row (flex, wrapping, gap), .col (flex column), .grow, .hud (small uppercase label), .big (one large readout), .fig (tabular figures), .muted, .ok and .bad (status text), .card (ruled box), .stage (ruled box for a canvas or svg, with corner ticks), .meter with an <i> inside whose width you set (a flat bar), .key (a small colour swatch for legends), .sep (a hairline), .seg (a group of buttons that touch, for choosing one of a few), label.check (a checkbox with its words). A button with class "primary" is the one action; a button with aria-pressed="true" shows as selected.
+
+THE HOUSE STYLE
+The app is a broadcast station: flat, ruled, square corners, one yellow accent, condensed capital labels, tabular figures. No gradients, glows, blur, drop shadows or rounded cards, and no emoji. The frame's own stylesheet already does all of this through the classes above, and it restyles them for whichever theme the learner picked, which you cannot see. So use the classes, take every colour from the variables, and keep your own CSS to layout, sizes and the drawing itself. For orientation, this is how the sheet treats the classes in each theme (shown for understanding, not to be copied):
+/* Station, the default */
+.hud{font:600 13px var(--f-cond);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+.big{font:600 34px var(--f-dot);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.card,.stage{border:1px solid var(--rule);padding:8px 10px}
+button{min-height:44px;border:1px solid var(--line);background:transparent;border-radius:0}
+button.primary{background:var(--signal);color:var(--on-signal)}
+button[aria-pressed=true]{background:var(--ink);color:var(--ground)}
+/* Paper, light: ink keylines and hard offset shadows */
+.card,.stage{box-shadow:0 0 0 2px var(--ink),4px 4px 0 var(--ink)}  button{border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+/* Phosphor, a green terminal: double frame, mono type, capitals.  Blueprint: ink frame with a dashed line inside.  Sunset: pills and round cards. */
+Drawing: gridlines and axes in var(--rule), tick labels in var(--ink3), the thing being studied in var(--signal), a second series or comparison in var(--ice), 1.5 to 2px lines, flat caps, solid fills only. Axis and legend text is short and in capitals. A scaled SVG or canvas shrinks its text with it, so put words in HTML (a .hud label above or beside the stage), never inside a scaled drawing, and keep every word at 12px or more on the smallest frame. Space things like a ruler: even ticks, one decimal at most, units written out.
 
 MAKE IT ACTUALLY WORK (the most common ways these demos fail)
 - Start unfinished. The first view must show the thing the learner is about to change, never the finished answer. If the task is to decrypt, solve, balance, match or find something, begin in the problem state and let the controls reach the solved state.
@@ -57,16 +72,26 @@ MAKE IT ACTUALLY WORK (the most common ways these demos fail)
 - Keep arithmetic plain: use ordinary Numbers (never mix BigInt with Number), avoid recursion, and guard every division and every loop bound.
 
 RULES THAT MATTER
-- Vanilla JavaScript only. No libraries, imports, fetch, XMLHttpRequest, WebSocket, eval, new Function, document.write, alert, confirm, prompt, window.open, localStorage, sessionStorage, cookies, parent or top. No external URLs, fonts or images.
+- Vanilla JavaScript only. No libraries, imports, fetch, XMLHttpRequest, WebSocket, eval, new Function, document.write, alert, confirm, prompt, window.open, localStorage, sessionStorage, cookies, parent or top. No external URLs, fonts or images (fonts and styles are provided).
 - No infinite or very long synchronous loops. Animate with requestAnimationFrame or setInterval and only after the learner presses something. If matchMedia('(prefers-reduced-motion: reduce)').matches, jump straight to the end state instead of animating.
 - Every control has a visible label or an aria-label. Controls work with keyboard and touch. Show results as text as well as graphics (an element with aria-live="polite"). Never rely on colour alone.
 - All text is at least 12px. Keep the whole HTML section under about 6000 characters and the script under about 100 lines. Simple, robust code beats clever code. Initialise to a sensible state so the first view is already meaningful.
 
-Skeleton of the HTML section (shape only, write your own content):
-<div class="row"><span class="hud">Label</span><span class="big" id="out">0</span></div>
-<div class="stage grow" id="stage"><canvas id="c"></canvas></div>
-<div class="row"><label>Name <input type="range" id="a" min="0" max="100" value="50"></label><button id="go">Run</button></div>
-<script>/* wire it up */</script>`
+EXAMPLE OF THE HOUSE STYLE (a different topic, so copy the structure and the classes, never its content). Pendulum period:
+<div class="row"><span class="hud">Period</span><span class="big" id="out" aria-live="polite">0 s</span><span class="muted" id="said"></span></div>
+<div class="stage grow"><svg viewBox="0 0 400 220" role="img" aria-label="A pendulum swinging from a bar"><line x1="130" y1="14" x2="270" y2="14" stroke="var(--rule)" stroke-width="2"/><line id="rod" x1="200" y1="14" x2="200" y2="100" stroke="var(--ink2)" stroke-width="2"/><circle id="bob" r="14" fill="var(--signal)" cx="200" cy="100"/></svg></div>
+<div class="row"><label style="flex:1">Length (m)<input id="len" type="range" min="0.2" max="4" step="0.1" value="1.5"></label><button id="swing" class="primary">Swing</button></div>
+<script>
+var len=document.getElementById('len'),out=document.getElementById('out'),said=document.getElementById('said'),rod=document.getElementById('rod'),bob=document.getElementById('bob');
+var t=0,run=false,last=0,calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function T(){return 2*Math.PI*Math.sqrt(Number(len.value)/9.81)}
+function draw(a){var L=30+Number(len.value)*42,x=200+L*Math.sin(a),y=14+L*Math.cos(a);rod.setAttribute('x2',x);rod.setAttribute('y2',y);bob.setAttribute('cx',x);bob.setAttribute('cy',y)}
+function show(){out.textContent=T().toFixed(2)+' s';said.textContent=T()>3?'A slow, heavy beat.':'A quick beat.'}
+function frame(n){if(!run)return;t+=(n-last)/1000;last=n;draw(0.5*Math.cos(2*Math.PI*t/T()));requestAnimationFrame(frame)}
+len.addEventListener('input',function(){show();draw(calm?0.5:0.5*Math.cos(2*Math.PI*t/T()))});
+document.getElementById('swing').addEventListener('click',function(){if(calm){draw(0.5);return}run=!run;last=performance.now();if(run)requestAnimationFrame(frame)});
+show();draw(0.5);
+</script>`
 
 const FORBID: [RegExp, string][] = [
   [/<\s*(iframe|object|embed|link|meta|base|form)\b/i, 'blocked element'],

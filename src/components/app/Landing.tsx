@@ -1,9 +1,8 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
-import { AsciiSolid } from '@/components/app/AsciiSolid'
+import { LandingSolids } from '@/components/app/LandingSolids'
 import { asciiStage } from '@/lib/theme'
-import type { Shape } from '@/lib/ascii3d'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 import { useStore } from '@/lib/store'
@@ -11,8 +10,7 @@ import { useStore } from '@/lib/store'
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
 
-const SOLIDS: Shape[] = ['torus', 'cube', 'knot', 'sphere']
-const LOG = ['STATION  FRICTION', 'FEED ........ OFF', 'SCROLLING ... NOT REQUIRED', 'STORAGE ..... THIS BROWSER', 'SERVER ...... BOARD + ROOMS', 'AI .......... LESSON DEMOS', 'STANDBY']
+const LOG = ['Friction, channel 00.', 'A timer, a radio and a TV.', 'It counts when you leave.', 'Hold the button to begin.']
 
 /** Retro: the station ident types itself out, one stepped character at a time. */
 function Ident({ still }: { still: boolean }) {
@@ -24,7 +22,7 @@ function Ident({ still }: { still: boolean }) {
     return () => clearInterval(id)
   }, [still, text.length])
   return (
-    <pre role="img" className="m-0 min-h-[8.6rem] whitespace-pre-wrap font-[family-name:var(--font-cond)] text-[17px] font-semibold leading-[1.35] tracking-[0.06em] text-signal" aria-label={LOG.join('. ')}>
+    <pre role="img" className="m-0 min-h-[5.6rem] whitespace-pre-wrap font-[family-name:var(--font-cond)] text-[19px] font-semibold leading-[1.35] tracking-[0.02em] text-signal" aria-label={LOG.join(' ')}>
       <span aria-hidden>{text.slice(0, n)}</span>
       <span aria-hidden className="caret" />
     </pre>
@@ -55,9 +53,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             <span ref={readout} className="hidden bg-ground px-2 py-1 sm:block" aria-hidden>X 0.500  Y 0.500</span>
           </span>
         </div>
-        <div className="land-solids pointer-events-none absolute bottom-6 right-5 items-end gap-2 text-signal sm:right-[6%]" aria-hidden>
-          {SOLIDS.slice(0, 1 + Math.ceil(stage / 2)).map((sh, i) => <span key={sh} className={reduced ? '' : 'ascii-sway'} style={{ animationDuration: `${8 + i * 2.8}s`, animationDelay: `${-i * 3.4}s` }}><AsciiSolid shape={sh} cols={i ? 30 : 44} rows={i ? 14 : 22} speed={0.9} still={reduced} phase={i * 2} className="text-[9px] opacity-90" /></span>)}
-        </div>
+        <LandingSolids count={1 + Math.ceil(stage / 2)} still={reduced} />
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}

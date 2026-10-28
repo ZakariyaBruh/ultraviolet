@@ -23,9 +23,13 @@ const init = () =>
   ]))
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
-const ID = /^[a-f0-9]{10}$/
+/** A member's id: 128 bits made from their secret key. It is never sent to anyone else, so it cannot be copied from a link or another member. */
+const ID = /^[a-f0-9]{32}$/
+const OLD_ID = /^[a-f0-9]{10}$/
 const CODE = /^[A-Z0-9]{6}$/
 const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+/** names are compared with case, spaces and punctuation ignored, so "Zak" and "z.a.k" are the same name */
+const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 const clean = (s: unknown, n: number) => String(s ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n)
 
 const hits = new Map<string, { n: number; at: number }>()
@@ -65,6 +69,14 @@ async function relay(hook: string | null, text: string) {
     await fetch(hook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(kind === 'discord' ? { content: text.slice(0, 1900), allowed_mentions: { parse: [] } } : { text: text.slice(0, 2900) }), signal: AbortSignal.timeout(2500) })
   } catch { /* the webhook is down: the room carries on */ }
 }
+
+/** Nobody in a room may take the name of someone else who is in it, so a seat cannot be passed off as another's. */
+async function nameTaken(room: string, id: string, name: string) {
+  const r = await client().execute({ sql: 'SELECT id, name FROM members WHERE room = ?', args: [room] })
+  const k = fold(name)
+  return r.rows.some((m) => m.id !== id && fold(String(m.name)) === k)
+}
+const SAME_NAME = 'Someone in this room already has that name. Change your name in Settings and try again.'
 
 async function say(room: string, who: string, text: string, sys = 0) {
   const c = client()
@@ -111,6 +123,7 @@ export default {
     const id = String(b.id ?? '')
     const name = clean(b.name, 20)
     const code = String(b.code ?? '').toUpperCase()
+    if (OLD_ID.test(id)) return json({ error: 'Reload the page to update Friction, then try again.' }, 426)
     if (!ID.test(id)) return json({ error: 'bad id' }, 400)
     try {
       await init()
@@ -167,6 +180,7 @@ export default {
           if (!name) return json({ error: 'name needed' }, 400)
           const k = Number((await c.execute({ sql: 'SELECT COUNT(*) AS k FROM members WHERE room = ?', args: [code] })).rows[0].k)
           if (k >= MAX_MEMBERS) return json({ error: 'room full' }, 403)
+          if (await nameTaken(code, id, name)) return json({ error: SAME_NAME }, 409)
           await c.execute({ sql: 'INSERT INTO members (room, id, name, status, left, seen) VALUES (?, ?, ?, ?, 0, ?)', args: [code, id, name, 'idle', now] })
           await say(code, name, `${name} joined.`, 1)
           await relay(hook, `${name} joined the room.`)

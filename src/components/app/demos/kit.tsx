@@ -42,7 +42,7 @@ export function Frame({ kicker, task, children, note }: { kicker: string; task: 
   return (
     <>
       <div className="shrink-0">
-        <p className="hud mb-1">Try it · {kicker}</p>
+        <p className="hud mb-1">Try it · {kicker} · Built in</p>
         <p className="max-w-[58ch] text-[15px] leading-[1.4]">{task}</p>
       </div>
       <div ref={body} className="flex min-h-0 flex-1 flex-col gap-3">{children}</div>

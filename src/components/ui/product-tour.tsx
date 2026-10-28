@@ -119,7 +119,8 @@ function place(r: Rect | null, cw: number, ch: number, vw: number, vh: number, p
   const M = 16;
   const G = 14;
   if (!r) return { x: (vw - cw) / 2, y: (vh - ch) / 2 };
-  if (dock !== undefined) return { x: (vw - cw) / 2, y: Math.max(12, vh - ch - dock) }; // small screens: bottom sheet
+  // small screens: a sheet at the bottom, or at the top when the thing it points at is in the lower half (the nav and the player are)
+  if (dock !== undefined) return { x: (vw - cw) / 2, y: r.y + r.h / 2 > vh / 2 ? 12 : Math.max(12, vh - ch - dock) };
 
   const room = {
     bottom: vh - (r.y + r.h) - M - ch - G,
@@ -144,9 +145,9 @@ function place(r: Rect | null, cw: number, ch: number, vw: number, vh: number, p
 /* -------------------------------- Component -------------------------------- */
 
 const slide = {
-  enter: (d: number) => ({ opacity: 0, x: d * 20, filter: "blur(3px)" }),
-  center: { opacity: 1, x: 0, filter: "blur(0px)" },
-  exit: (d: number) => ({ opacity: 0, x: d * -20, filter: "blur(3px)" }),
+  enter: (d: number) => ({ opacity: 0, x: d * 20 }),
+  center: { opacity: 1, x: 0 },
+  exit: (d: number) => ({ opacity: 0, x: d * -20 }),
 };
 
 export function ProductTour({
@@ -415,7 +416,7 @@ export function ProductTour({
 
   if (!mounted) return null;
   const isLast = index === steps.length - 1;
-  const btn = "rounded-lg px-3 py-1.5 max-sm:px-4 max-sm:py-2.5 max-sm:text-sm [-webkit-tap-highlight-color:transparent] text-[13px] font-medium outline-none transition-transform duration-150 ease-out active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-neutral-400";
+  const btn = "inline-flex min-h-11 items-center px-4 [-webkit-tap-highlight-color:transparent] text-[13px] font-semibold uppercase tracking-[0.08em] outline-none transition-transform duration-150 ease-out active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-signal sm:min-h-9";
 
   return createPortal(
     <AnimatePresence>
@@ -440,7 +441,7 @@ export function ProductTour({
                 <motion.rect x={sx} y={sy} width={safeW} height={safeH} rx={safeR} fill="black" />
               </mask>
             </defs>
-            <rect width="100%" height="100%" fill="black" fillOpacity={0.6} mask={`url(#${uid}-mask)`} />
+            <rect width="100%" height="100%" className="fill-ground" fillOpacity={0.78} mask={`url(#${uid}-mask)`} />
             <motion.rect
               x={sx}
               y={sy}
@@ -448,9 +449,8 @@ export function ProductTour({
               height={safeH}
               rx={safeR}
               fill="none"
-              stroke="white"
-              strokeOpacity={0.35}
-              strokeWidth={1.5}
+              className="stroke-signal"
+              strokeWidth={2}
             />
           </svg>
 
@@ -464,20 +464,20 @@ export function ProductTour({
             aria-modal="true"
             aria-label="Product tour"
             onKeyDown={trapTab}
-            className="absolute left-0 top-0 w-[calc(100vw-24px)] max-w-[440px] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl shadow-black/20 dark:border-neutral-800 dark:bg-neutral-950 sm:w-[340px] sm:max-w-none"
+            className="absolute left-0 top-0 w-[calc(100vw-24px)] max-w-[440px] overflow-hidden rounded-2xl border border-ink/40 bg-ground text-ink sm:w-[340px] sm:max-w-none"
             style={{ x: cx, y: cy }}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: ready ? 1 : 0, scale: ready ? 1 : 0.96 }}
             transition={{ duration: 0.2, ease: EASE_OUT }}
           >
-            <div className="flex items-center justify-between px-4 pt-3 text-[11px] tabular-nums text-neutral-500">
+            <div className="flex items-center justify-between pl-4 pr-1 pt-1 text-[11px] uppercase tracking-[0.12em] tabular-nums text-ink-3">
               <span>
                 {index + 1} of {steps.length}
               </span>
               <button
                 type="button"
                 onClick={() => onClose("skip")}
-                className="-my-1.5 -mr-2 rounded px-2 py-1.5 outline-none transition-colors duration-150 [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-neutral-400 [@media(hover:hover)]:hover:text-neutral-900 dark:[@media(hover:hover)]:hover:text-neutral-100"
+                className="min-h-11 px-3 text-[11px] uppercase tracking-[0.12em] outline-none transition-colors duration-150 [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-signal [@media(hover:hover)]:hover:text-ink sm:min-h-9"
               >
                 Skip
               </button>
@@ -498,33 +498,18 @@ export function ProductTour({
                   transition={{ duration: 0.2, ease: EASE_OUT }}
                   className="px-4 pb-1 pt-2"
                 >
-                  <h2 className="text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
+                  <h2 className="text-[15px] font-semibold tracking-tight text-ink">
                     {step.title}
                   </h2>
-                  <div className="mt-1 text-[13px] leading-relaxed text-neutral-500">{step.body}</div>
+                  <div className="mt-1 text-[13px] leading-relaxed text-ink-2">{step.body}</div>
                 </motion.div>
               </AnimatePresence>
             </motion.div>
 
-            <div className="flex items-center justify-between px-4 pb-3 pt-2">
-              <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2 px-4 pb-3 pt-2">
+              <div className="flex items-center gap-[5px]" aria-hidden>
                 {steps.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    aria-label={`Go to step ${i + 1}`}
-                    aria-current={i === index}
-                    onClick={() => go(i)}
-                    className="group px-[3px] py-2 outline-none [-webkit-tap-highlight-color:transparent] max-sm:px-1 max-sm:py-3"
-                  >
-                    <span
-                      className={`block h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out group-focus-visible:ring-2 group-focus-visible:ring-neutral-400 ${
-                        i === index
-                          ? "w-4 bg-neutral-900 dark:bg-neutral-100"
-                          : "w-1.5 bg-neutral-300 dark:bg-neutral-700"
-                      }`}
-                    />
-                  </button>
+                  <span key={i} className={`block h-1.5 transition-[width,background-color] duration-200 ease-out ${i === index ? "w-4 bg-signal" : "w-1.5 bg-ink/30"}`} />
                 ))}
               </div>
               <div className="flex gap-1.5">
@@ -532,7 +517,7 @@ export function ProductTour({
                   <button
                     type="button"
                     onClick={() => go(index - 1)}
-                    className={`${btn} text-neutral-600 dark:text-neutral-400 [@media(hover:hover)]:hover:bg-neutral-100 dark:[@media(hover:hover)]:hover:bg-neutral-900`}
+                    className={`${btn} border border-ink/30 text-ink [@media(hover:hover)]:hover:bg-ink/10`}
                   >
                     Back
                   </button>
@@ -541,7 +526,7 @@ export function ProductTour({
                   ref={nextRef}
                   type="button"
                   onClick={() => go(index + 1)}
-                  className={`${btn} bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900`}
+                  className={`${btn} bg-signal text-on-signal`}
                 >
                   {isLast ? "Done" : "Next"}
                 </button>

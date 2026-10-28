@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { hasIdentity, identity, loadStanding, saveName, sendName } from './leaders'
+import { hasIdentity, identity, loadStanding, retryErase, saveName, sendName } from './leaders'
 import { notify } from './notify'
 import { fx_say } from './actions'
 
@@ -9,6 +9,7 @@ const read = (): Seen | null => { try { return JSON.parse(localStorage.getItem(K
 
 /** Compares where you stand on the leaderboard with the last time you looked, and says what changed. */
 export async function checkBoard() {
+  void retryErase() // an erase that could not reach the server is repeated now
   if (!hasIdentity()) return
   const me = await identity()
   const s = await loadStanding(me)

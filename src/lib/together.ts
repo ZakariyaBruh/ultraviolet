@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { fx_say } from './actions'
-import { identity } from './leaders'
+import { identity, roomId } from './leaders'
 import { notify } from './notify'
 import { audioEl, play, usePlayer } from './player'
 import { useStore, type MediaItem } from './store'
@@ -40,7 +40,7 @@ const set = useRoom.setState
 
 async function call<T = RoomState>(body: Record<string, unknown>): Promise<T> {
   const me = await identity()
-  const r = await fetch('/api/room', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: me.code, ...body }) })
+  const r = await fetch('/api/room', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: await roomId(me), ...body }) })
   const j = (await r.json().catch(() => ({}))) as { error?: string }
   if (!r.ok) throw new Error(j.error || 'The room did not answer.')
   return j as T

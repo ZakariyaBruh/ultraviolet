@@ -34,6 +34,8 @@ import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
+import { Tour } from '@/components/app/Tour'
+import { useMusicSync } from '@/lib/music'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { TogetherView } from '@/views/TogetherView'
 import { LeadersView } from '@/views/LeadersView'
@@ -58,6 +60,7 @@ export default function App() {
   useSessionEngine()
   useMilestones()
   useBoardWatch()
+  useMusicSync()
   useTogether()
   // a drift: the whole screen gives a small, soft zoom, like it took the hit
   useEffect(() => {
@@ -207,6 +210,7 @@ export default function App() {
       </Sheet>
 
       <Onboarding />
+      {route !== 'home' && <Tour view={view} go={change} />}
       <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast

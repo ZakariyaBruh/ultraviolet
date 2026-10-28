@@ -332,6 +332,8 @@ button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
 /* a solid beside a title wanders a little inside its own space */
 @keyframes sway { 0% { translate: -6px 4px; } 50% { translate: 8px -5px; } 100% { translate: -3px -6px; } }
 .ascii-sway { display: inline-block; animation: sway 9s ease-in-out infinite alternate; }
+@keyframes bars { 0%, 100% { height: 6px; } 50% { height: 28px; } }
+.bar-dance { animation: bars 1.1s ease-in-out infinite; }
 @keyframes winin { from { opacity: 0; } }
 .win-in { animation: winin 160ms var(--ease-out, ease-out); }
 /* text that does not fit its box scrolls inside it, with a thin bar, instead of being cut off */
@@ -341,7 +343,7 @@ button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
 .land-ident { display: none; }
 .land-solids { display: none; }
 @container (min-height: 18rem) { .land-ident { display: block; } }
-@container (min-height: 17.5rem) and (min-width: 40rem) { .land-solids { display: flex; } }
+@container (min-height: 17.5rem) and (min-width: 40rem) { .land-solids { display: block; } }
 /* a window too small for its screen: the page area becomes its own scroll box, sitting exactly between the header and the nav, so nothing runs underneath them */
 #canvas[data-scroll] { top: var(--pt); bottom: var(--pb); padding-top: 0; padding-bottom: 6px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
 #canvas[data-scroll] [data-movable] { touch-action: pan-y; }

@@ -7,6 +7,8 @@ import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LengthBand } from '@/components/app/LengthBand'
 import { fx_say } from '@/lib/actions'
+import { eraseTheRest } from '@/lib/erase'
+import { MusicControls } from '@/components/app/MusicControls'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -199,6 +201,10 @@ function Sound() {
       <div className="border-t border-rule pt-1">
         <Row title="Volume"><input type="range" min={0} max={1} step={0.05} value={s.volume} onChange={(e) => { const v = Number(e.target.value); set({ volume: v }); setVolume(v) }} aria-label="Volume" className="h-11 w-40 accent-[var(--signal)]" /></Row>
       </div>
+      <div className="grid gap-2 border-t border-rule pt-3">
+        <h3 className="text-sm font-medium">Music</h3>
+        <MusicControls compact />
+      </div>
     </Panel>
   )
 }
@@ -222,8 +228,8 @@ function Data() {
         <button className="h-11 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={download}>Download backup</button>
       </Panel>
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
-        <DrawCheckbox label="Everything stays in this browser" description="Nothing is sent anywhere. Clearing site data erases it." checked readOnly />
-        <DragToConfirm label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={() => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); fx_say({ title: 'All data erased', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
+        <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. Your backup never holds the key to your place, so a file cannot be used to take someone else's." checked readOnly />
+        <DragToConfirm label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
       </Panel>
     </div>
   )
@@ -234,8 +240,10 @@ function Help() {
   const items = [
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
         { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
-        { id: '3', question: 'Does the site scroll?', answer: 'No. Every screen fits the display. You move with the tab deck at the bottom, by dragging, or with the keyboard.' },
+        { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
+        { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. The one thing an AI writes is a lesson’s demo, and only when there is no built-in demo for that topic. The topic title is the only thing sent. An AI-made demo is labelled AI-made, runs sealed in a frame with no network, and can be wrong. Everything else in the app, including the Debrief, is plain code.' },
+        { id: '6', question: 'What happens when I erase everything?', answer: 'Your sessions, shelf, notes, layout and cached lessons are removed from this browser. Your place on the leaderboard goes too, with your alias, so the name is free again, and you leave any Together room. A backup file never holds the key to your place, so it cannot be used to take someone else’s.' },
       ]
   const per = 2
   const pages = Math.ceil(items.length / per)
@@ -244,6 +252,7 @@ function Help() {
       <FAQ key={page} variant="separated" items={items.slice((page - 1) * per, page * per)} />
       <div className="mt-3 flex justify-center"><SlidePagination pageCount={pages} page={page} onChange={setPage} /></div>
       <div className="mt-3 flex flex-wrap gap-2">
+        <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ tourOpen: true })}>Take the tour</button>
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ onboardOpen: true })}>Run the welcome again</button>
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>

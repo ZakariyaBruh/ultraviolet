@@ -45,6 +45,12 @@ async function sha(key: string) {
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 10)
 }
 
+/** The id this person has in Together rooms. Made from the same secret key, but it is a different, longer value that is never shown or shared, so the public code in a share link cannot be used to act as them. */
+async function roomId(key: string) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`room:${key}`))
+  return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32)
+}
+
 // a gentle limit per caller and per code, kept in this instance's memory (it resets with the instance, which is fine for a friendly board)
 const hits = new Map<string, { n: number; at: number }>()
 function limited(id: string, max: number) {
@@ -113,16 +119,41 @@ export default {
           const t = await c.execute({ sql: 'SELECT 1 FROM board WHERE nkey = ?', args: [k] })
           return json({ taken: !!t.rows.length, reserved: false })
         }
-        if (a === 'me') {
-          const key = url.searchParams.get('key') ?? ''
-          if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
-          return json({ min: await needed(), ...(await mine(await sha(key))) })
-        }
         return json({ error: 'unknown' }, 404)
       }
 
       if (request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as { a?: string; code?: string; key?: string; name?: string }
+
+        // your own standing: the secret key travels in the body, never in an address that a log could keep
+        if (body.a === 'me') {
+          const key = String(body.key ?? '')
+          if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
+          if (limited(`ip:${ip}`, 120)) return json({ error: 'slow down' }, 429)
+          return json({ min: await needed(), ...(await mine(await sha(key))) })
+        }
+
+        // Erase: removes this person from the board (and with them the alias, so the name is free again), forgets their pending
+        // count, and takes their seat out of every Together room. Only the holder of the secret key can ask.
+        if (body.a === 'erase') {
+          const key = String(body.key ?? '')
+          if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
+          if (limited(`erase:${ip}`, 20)) return json({ error: 'slow down' }, 429)
+          const code = await sha(key)
+          await c.batch([
+            { sql: 'DELETE FROM board WHERE code = ?', args: [code] },
+            { sql: 'DELETE FROM pending WHERE code = ?', args: [code] },
+          ])
+          try {
+            // the rooms tables belong to api/room.ts and may not exist yet
+            await c.batch([
+              { sql: 'DELETE FROM members WHERE id = ?', args: [await roomId(key)] },
+              { sql: 'DELETE FROM msgs WHERE room NOT IN (SELECT DISTINCT room FROM members)' },
+              { sql: 'DELETE FROM rooms WHERE code NOT IN (SELECT DISTINCT room FROM members)' },
+            ])
+          } catch { /* no rooms yet */ }
+          return json({ ok: true })
+        }
 
         if (body.a === 'recommend') {
           const code = String(body.code ?? '')
@@ -183,7 +214,7 @@ export default {
         }
       }
       return json({ error: 'unknown' }, 404)
-    } catch (e) {
+    } catch {
       return json({ error: 'server' }, 500)
     }
   },

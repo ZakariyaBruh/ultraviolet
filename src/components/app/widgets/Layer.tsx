@@ -25,7 +25,7 @@ export function WidgetLayer() {
 export function WidgetsButton({ className = '' }: { className?: string }) {
   const n = useStore((s) => s.widgets.open.length)
   return (
-    <Glass radius={999} clear as="button" onClick={() => useUI.getState().set({ widgetsOpen: true })} aria-label={n ? `Widgets, ${n} open` : 'Widgets'} className={`inline-flex h-11 items-center gap-2 px-4 text-[14px] font-medium text-ink ${className}`}>
+    <Glass radius={999} clear as="button" data-tour="widgets" onClick={() => useUI.getState().set({ widgetsOpen: true })} aria-label={n ? `Widgets, ${n} open` : 'Widgets'} className={`inline-flex h-11 items-center gap-2 px-4 text-[14px] font-medium text-ink ${className}`}>
       <LayoutPanelTop className="size-4" />Widgets{n > 0 && <span className="fig text-signal">{n}</span>}
     </Glass>
   )

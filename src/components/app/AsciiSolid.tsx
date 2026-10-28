@@ -1,12 +1,16 @@
 import { useEffect, useRef, type PointerEvent } from 'react'
 import { clearGrid, gridText, makeGrid, plot, type Shape } from '@/lib/ascii3d'
 
+/** Every solid is drawn on a grid this many times finer than the box it sits in asks for, in characters a little smaller, so the form is smoother and the box stays the same size. */
+export const FINE = 1.6
+
 /**
  * A solid drawn in text and slowly turning. Spin follows `speed`; `still` (calm motion or reduced motion) draws one frame.
  * With `interactive`, dragging across it turns it by hand (and it still drifts on its own afterwards).
  */
-export function AsciiSolid({ shape = 'torus', cols = 44, rows = 22, speed = 1, still = false, phase = 0, interactive = false, className = '' }: { shape?: Shape; cols?: number; rows?: number; speed?: number; still?: boolean; phase?: number; interactive?: boolean; className?: string }) {
-  const ref = useRef<HTMLPreElement>(null)
+export function AsciiSolid({ shape = 'torus', cols: c0 = 44, rows: r0 = 22, speed = 1, still = false, phase = 0, interactive = false, className = '' }: { shape?: Shape; cols?: number; rows?: number; speed?: number; still?: boolean; phase?: number; interactive?: boolean; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const cols = Math.round(c0 * FINE), rows = Math.round(r0 * FINE)
   const spd = useRef(speed)
   spd.current = speed
   const turn = useRef({ A: 1.1 + phase, B: 0.4 + phase * 0.6, C: 0, x: 0, y: 0, down: false })
@@ -53,5 +57,5 @@ export function AsciiSolid({ shape = 'torus', cols = 44, rows = 22, speed = 1, s
         onPointerCancel: () => { turn.current.down = false },
       }
     : {}
-  return <pre ref={ref} aria-hidden={!interactive} {...(interactive ? { 'data-no-drag': true, role: 'img', 'aria-label': 'A solid drawn in text. Drag to turn it.' } : {})} {...grab} className={`m-0 select-none font-mono leading-[1] ${interactive ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${className}`} />
+  return <pre aria-hidden={!interactive} {...(interactive ? { 'data-no-drag': true, role: 'img', 'aria-label': 'A solid drawn in text. Drag to turn it.' } : {})} {...grab} className={`m-0 select-none font-mono leading-[1] ${interactive ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${className}`}><span ref={ref} className="block" style={{ fontSize: `${100 / FINE}%`, lineHeight: 1 }} /></pre>
 }

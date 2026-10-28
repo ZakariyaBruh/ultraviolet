@@ -1,5 +1,6 @@
-import { Calculator as CalcIcon, ListChecks, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
+import { Calculator as CalcIcon, ListChecks, Music, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
+import { MusicControls } from '@/components/app/MusicControls'
 import { Calculator } from './Calculator'
 import { Converter } from './Converter'
 import { Notepad } from './Notepad'
@@ -16,6 +17,7 @@ export const WIDGETS: WidgetDef[] = [
   { id: 'todo', name: 'To-do list', blurb: 'A short list of what to finish before you stop.', icon: ListChecks, Body: Todo },
   { id: 'timer', name: 'Timer', blurb: 'A countdown that rings when it ends, and a stopwatch. It keeps running if you close the window.', icon: TimerIcon, Body: Timer },
   { id: 'convert', name: 'Converter', blurb: 'Length, mass, volume, speed, time and temperature.', icon: Scale, Body: Converter },
+  { id: 'music', name: 'Music', blurb: 'Calm, Focus, Night or Retro, made as it goes. It stays quiet while a station is playing.', icon: Music, Body: () => <MusicControls compact /> },
   { id: 'sketch', name: 'Scratch board', blurb: 'Draw a diagram or work a problem by hand. Save it as a picture.', icon: PencilRuler, Body: Sketch },
 ]
 export const WIDGET_IDS = WIDGETS.map((w) => w.id)

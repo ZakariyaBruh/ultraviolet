@@ -112,6 +112,12 @@ export interface Settings {
   bg: string
   /** ask an AI to write a small interactive demo for each new lesson (only the topic title leaves the browser) */
   aiDemos: boolean
+  /** the built-in music: on or off, which mood, and how loud (it also follows the main volume) */
+  music: boolean
+  musicMood: string
+  musicLevel: number
+  /** the first-run walkthrough has been shown */
+  toured: boolean
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -237,6 +243,10 @@ export const DEFAULT_SETTINGS: Settings = {
   accent: '',
   bg: '',
   aiDemos: true,
+  music: false,
+  musicMood: 'calm',
+  musicLevel: 0.6,
+  toured: false,
 }
 
 const emptyData = (): Data => ({
@@ -292,6 +302,10 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         st.era = Math.min(100, Math.max(0, Math.round(era / 20) * 20))
         // before the two dials were split, the era stop also set how many solids there were: keep what people were seeing
         st.ascii = typeof v.ascii === 'number' && Number.isFinite(v.ascii) ? Math.min(100, Math.max(0, Math.round(v.ascii / 20) * 20)) : Math.round((100 - (st.era as number)) / 20) * 20
+        // a save from before the tour existed that already has a name is someone who knows their way around: no tour pops up for them (it is still in Settings > Help)
+        if (typeof v.toured !== 'boolean' && isObj(raw.profile)) st.toured = true
+        st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
+        if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
       }

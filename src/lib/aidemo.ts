@@ -5,8 +5,8 @@ import { cached } from './cache'
 /** One demo written for a lesson topic: plain text for the frame around it, and the demo's own markup and script. */
 export interface AiDemo { title: string; task: string; note: string; html: string }
 
-/** v2: demos written before the prompt learned to start unfinished and cover the full range are written again */
-const KEY = (title: string) => `learn:demo:v2:${title.toLowerCase()}`
+/** v3: demos written before the prompt knew the house style (its classes, faces and themes) are written again */
+const KEY = (title: string) => `learn:demo:v3:${title.toLowerCase()}`
 const MONTH = 30 * 24 * 3600e3
 
 const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && v.length <= max ? v : null)
@@ -14,7 +14,7 @@ const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && 
 /** Asks the server for a demo. Anything that is not a well-formed demo is an error, never a partial one. */
 async function fetchDemo(title: string, signal: AbortSignal, fresh = false): Promise<AiDemo> {
   // v is the edge-cache generation; n makes one request that skips whatever is cached for the topic
-  const r = await fetch(`/api/demo?t=${encodeURIComponent(title)}&v=2${fresh ? `&n=${Date.now()}` : ''}`, { signal, headers: { accept: 'application/json' } })
+  const r = await fetch(`/api/demo?t=${encodeURIComponent(title)}&v=3${fresh ? `&n=${Date.now()}` : ''}`, { signal, headers: { accept: 'application/json' } })
   if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) throw new Error('demo')
   const d = (await r.json()) as Record<string, unknown>
   const demo = { title: text(d.title, 80), task: text(d.task, 400), note: text(d.note, 500), html: text(d.html, 20000) }
