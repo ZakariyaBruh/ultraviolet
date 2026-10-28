@@ -89,14 +89,16 @@ const searchAudius = (q: string) => cached(`songs:audius:v4:${q.toLowerCase()}`,
   const d = (await getJson(`${AUDIUS}/tracks/search?query=${encodeURIComponent(q)}&limit=24&app_name=${APP}`)) as { data?: AudiusTrack[] }
   return (d.data ?? []).map(fromAudius).filter((s): s is Song => !!s)
 })
-/** Openverse answers some searches at once and leaves others hanging, so the same search is asked twice, a couple of seconds apart, and the first answer wins. */
-const searchOpenverse = (q: string) => cached(`songs:ov:v4:${q.toLowerCase()}`, HOUR, async () => {
-  const ask = async (delay: number, size: number) => {
-    await new Promise((r) => setTimeout(r, delay))
-    const d = (await getJson(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q || 'music')}&page_size=${size}`, 14000)) as { results?: OvTrack[] }
-    return (d.results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
-  }
-  return Promise.any([ask(0, 12), ask(2500, 10), ask(6000, 8)])
+/**
+ * Openverse is slow or unreachable from some countries, so our own relay (`api/openverse.ts`, which reads it from a server and
+ * caches it) is asked first, and Openverse itself directly in case the relay is down. The first answer wins.
+ */
+const searchOpenverse = (q: string) => cached(`songs:ov:v5:${q.toLowerCase()}`, HOUR, async () => {
+  const term = encodeURIComponent(q || 'music')
+  const parse = (d: unknown) => ((d as { results?: OvTrack[] }).results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
+  const relay = async () => { const l = parse(await getJson(`/api/openverse?q=${term}`, 20000)); if (!l.length) throw new Error('empty'); return l }
+  const direct = async (delay: number, size: number) => { await new Promise((r) => setTimeout(r, delay)); return parse(await getJson(`https://api.openverse.org/v1/audio/?q=${term}&page_size=${size}`, 14000)) }
+  return Promise.any([relay(), direct(2000, 12), direct(6000, 8)])
 })
 
 interface ArchiveDoc { identifier?: string; title?: string; creator?: string | string[] }
