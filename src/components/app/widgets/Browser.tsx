@@ -280,6 +280,7 @@ export function Browser() {
             <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Start pages">
               <li><Tile icon={<BookOpen className="size-6" />} name="Wikipedia" sub="The encyclopedia" onClick={() => void open('https://en.wikipedia.org/wiki/Main_Page')} /></li>
               <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => (scripts === 'off' ? show({ kind: 'youtube', q: '', list: [] }) : void open('https://www.youtube.com/'))} /></li>
+              <li><Tile icon={<Search className="size-6" />} name="FrictionX" sub="Our own search" onClick={() => show({ kind: 'search' })} /></li>
               <li><Tile icon={<Search className="size-6" />} name={engineName} sub="Search the web" onClick={() => (scripts === 'off' ? show({ kind: 'search' }) : void open(engine === 'bing' ? 'https://www.bing.com/' : engine === 'duckduckgo' ? 'https://duckduckgo.com/' : 'https://www.google.com/'))} label={`${engineName}, your search engine`} /></li>
               {saved.map((p) => (
                 <li key={p.url}>
@@ -300,7 +301,7 @@ export function Browser() {
             <p className="text-[12px] leading-[1.4] text-ink-3">Games and short-form social media are blocked. Full YouTube videos play; Shorts do not. Pages are shown without scripts, so articles and documents work best.</p>
           </div>
         )}
-        {view.kind === 'search' && <Start title={engineName} sub={`Search the web. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
+        {view.kind === 'search' && <Start title="FrictionX" sub={`Search the web, made here. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
         {view.kind === 'add' && <AddPage onBack={back} onSave={(n, u) => { addPage(n, u); back() }} />}
         {view.kind === 'results' && (
           <div className="scroll-y h-full p-2">
