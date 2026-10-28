@@ -24,11 +24,22 @@ export const AGES = [
 const APP = 'friction'
 const AUDIUS = 'https://api.audius.co/v1'
 const HOUR = 3600e3
-const STRONG = /\b(fuck\w*|shit\w*|bitch\w*|cunt|nigg\w*|whore|slut|porn\w*|sex\w*|rape|nsfw|explicit|dick|pussy|cock|motherf\w*)\b/i
-const MILD = /\b(damn|hell|ass|bastard|crap|piss)\b/i
+const STRONG = /\b(goon\w*|xxx+|hoes?|thot|molly|percs?|xanax|fuck\w*|shit\w*|bitch\w*|cunt|nigg\w*|whore|slut|porn\w*|sex\w*|rape|nsfw|explicit|dick|pussy|cock|motherf\w*)\b/i
+/** genres whose songs so often carry strong language that only the adult setting offers them */
+const ADULT_GENRE = /hip.?hop|rap|trap|drill|dancehall|punk|metal|hardcore|comedy|spoken|podcast|audiobook|hyperpop|reggaeton|grime|crunk/i
+/** genres made of voices, where the words are not known: fine for teens, not for the youngest */
+const VOCAL_GENRE = /pop|rock|alternative|r&b|soul|latin|reggae|country|indie|blues|world|devotional|singer|emo|hyper/i
+/** instrumental or near it: what the Everyone setting is built from */
+const CALM_GENRE = /ambient|lo.?fi|classical|jazz|acoustic|soundtrack|score|piano|folk|kids|children|downtempo|chill|electronic|house|techno|trance|disco|funk|vaporwave|instrumental|orchestral|cinematic|new age|meditation|nature|sleep|study/i
+const MILD = /\b(kill\w*|murder\w*|blunt|weed|slapper\w*|damn|hell|ass|bastard|crap|piss)\b/i
 
 /** 2 for anything flagged or with strong words, 1 for mild words, 0 for the rest */
-const rate = (flag: boolean, hay: string): 0 | 1 | 2 => (flag || STRONG.test(hay) ? 2 : MILD.test(hay) ? 1 : 0)
+const rate = (flag: boolean, hay: string, genre = ''): 0 | 1 | 2 => {
+  if (flag || STRONG.test(hay) || /xxx/i.test(hay) || ADULT_GENRE.test(genre)) return 2
+  if (MILD.test(hay) || VOCAL_GENRE.test(genre)) return 1
+  // an unknown genre is not trusted for the youngest setting; the open archives (no genre at all) are old recordings and kept
+  return genre && !CALM_GENRE.test(genre) ? 1 : 0
+}
 const https = (u: unknown): string | undefined => (typeof u === 'string' && /^https:\/\//.test(u) ? u : undefined)
 const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 
@@ -42,25 +53,25 @@ async function getJson(url: string, ms = 9000): Promise<unknown> {
   } finally { clearTimeout(t) }
 }
 
-interface AudiusTrack { id?: string; title?: string; duration?: number; permalink?: string; is_streamable?: boolean; access?: { stream?: boolean }; user?: { name?: string }; artwork?: Record<string, string>; parental_warning_type?: string | null; tags?: string | null }
+interface AudiusTrack { id?: string; title?: string; duration?: number; permalink?: string; is_streamable?: boolean; access?: { stream?: boolean }; user?: { name?: string }; artwork?: Record<string, string>; parental_warning_type?: string | null; tags?: string | null; genre?: string | null; mood?: string | null }
 function fromAudius(t: AudiusTrack): Song | null {
   if (!t.id || !t.title || t.is_streamable === false || t.access?.stream === false) return null
   const art = https(t.artwork?.['150x150']) ?? https(t.artwork?.['480x480'])
   return {
-    source: 'audius', rating: rate(!!t.parental_warning_type, `${t.title} ${t.tags ?? ''}`),
+    source: 'audius', rating: rate(!!t.parental_warning_type, `${t.title} ${t.tags ?? ''}`, txt(t.genre, 40) || 'unknown'),
     seconds: Math.max(0, Math.round(Number(t.duration) || 0)),
     link: `https://audius.co${/^\/[\w\-./]+$/.test(t.permalink ?? '') ? t.permalink : ''}`,
     item: { id: `song:audius:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.user?.name, 60) || 'Audius', url: `${AUDIUS}/tracks/${encodeURIComponent(t.id)}/stream?app_name=${APP}`, logo: art },
   }
 }
 
-interface OvTrack { id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
+interface OvTrack { genres?: string[]; id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
 function fromOpenverse(t: OvTrack): Song | null {
   const url = https(t.url)
   if (!t.id || !t.title || !url) return null
   const hay = `${t.title} ${(t.tags ?? []).map((x) => x.name).join(' ')}`
   return {
-    source: 'openverse', rating: rate(!!t.mature, hay),
+    source: 'openverse', rating: rate(!!t.mature, hay, (t.genres ?? []).join(' ')),
     seconds: Math.round((Number(t.duration) || 0) / 1000),
     link: https(t.foreign_landing_url) ?? 'https://openverse.org',
     item: { id: `song:openverse:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.creator, 60) || 'Openverse', url, logo: https(t.thumbnail) },
