@@ -2,10 +2,8 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
 import { LandingSolids } from '@/components/app/LandingSolids'
-import { asciiStage } from '@/lib/theme'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
-import { useStore } from '@/lib/store'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', music: 'Music', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
@@ -59,7 +57,6 @@ function Ident({ still }: { still: boolean }) {
 /** The front page, and the only page that is always black. A broadcast ident over a field of lines. */
 export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View) => void }) {
   const reduced = !!useReducedMotion()
-  const stage = useStore((s) => asciiStage(s.settings.ascii))
   const readout = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -73,7 +70,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
       <div className="flex h-2.5 shrink-0" aria-hidden>{BARS.map((c) => <i key={c} className="flex-1" style={{ background: c }} />)}</div>
       <div className="land-mid relative min-h-[3.25rem] flex-[1.3]">
         <DotGrid still={reduced} className="absolute inset-0 size-full" />
-        <LandingSolids count={1 + Math.ceil(stage / 2)} still={reduced} />
+        <LandingSolids count={1} still={reduced} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-5 pt-4 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] sm:px-8">
           <span className="bg-ground px-2 py-1">Ch 00 / Friction</span>
           <span className="flex gap-3">

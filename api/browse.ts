@@ -6,6 +6,8 @@ import { verdict } from './_blocklist.js'
  *    is read through its official Programmable Search API (env `GOOGLE_API_KEY` and `GOOGLE_CX`; its ordinary result page needs a
  *    full browser with scripts and is not served to a server). Bing and DuckDuckGo are read from their plain result pages. If the
  *    chosen engine fails, or Google is not set up, the next one answers and the reply says which did;
+ *  - `?v=words`: YouTube videos for a search (full videos only), for the window's own YouTube page, read from the data in YouTube's
+ *    public results page because its site shows nothing without scripts;
  *  - `?u=address`: the page at that address as cleaned HTML (no scripts, frames or forms that post), for the window to show in
  *    a sealed frame. Every address, and every redirect on the way, is checked against the blocklist (games, short-form social
  *    media) and against private networks, so the window cannot be used to reach either. A site that refuses our server (403) is
@@ -65,7 +67,20 @@ async function fetchPage(start: string): Promise<{ url: string; html: string } |
 export function clean(html: string, base: string): string {
   let h = html
     .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<(script|iframe|object|embed|applet|noscript|template|portal)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<(script|iframe|object|embed|applet|template|portal)\b[\s\S]*?<\/\1\s*>/gi, '')
+    // a page's own scripts do not run here, so what it keeps for browsers without scripts is what we show: a lone image is the
+    // usual lazy-loading fallback (the image is given its address below instead) and a short "enable JavaScript" notice is of no use
+    .replace(/<noscript\b[^>]*>([\s\S]*?)<\/noscript\s*>/gi, (_m, inner: string) => {
+      const words = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      return /^\s*<img\b[^>]*>\s*$/i.test(inner) || (words.length < 300 && /javascript/i.test(words)) ? '' : inner
+    })
+    .replace(/<\/?noscript\b[^>]*>/gi, '')
+    // images that wait for a script to be given their address get it now
+    .replace(/<img\b[^>]*>/gi, (tag) => {
+      const m = /\sdata-(?:src|lazy-src|original)\s*=\s*(?:"([^"]+)"|'([^']+)')/i.exec(tag)
+      const url = m?.[1] ?? m?.[2]
+      return url ? tag.replace(/\ssrc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, '').replace(/^<img/i, `<img src="${url.replace(/"/g, '&quot;')}"`) : tag
+    })
     .replace(/<(script|iframe|object|embed|applet|portal|link\s+[^>]*rel=["']?(?:preload|prefetch|modulepreload|dns-prefetch|preconnect)[^>]*)\b[^>]*>/gi, '')
     .replace(/<meta\b[^>]*http-equiv=["']?(?:refresh|content-security-policy)[^>]*>/gi, '')
     .replace(/<base\b[^>]*>/gi, '')
@@ -139,6 +154,79 @@ async function google(q: string): Promise<Hit[]> {
   return out
 }
 
+/**
+ * YouTube videos for a search, for the window's own YouTube page (YouTube's site is a script app and shows nothing without scripts).
+ * The public results page carries its first results as data inside the page, so no script has to run to read them. Only full videos
+ * are kept (Shorts and live streams are left out); a video plays in YouTube's own embedded player.
+ */
+interface Video { id: string; title: string; channel: string; length: string; views: string; when: string }
+
+/** with a key (YOUTUBE_API_KEY, or the same GOOGLE_API_KEY if the YouTube Data API is switched on for it) the official API answers; 100 free searches a day */
+const ytKey = () => process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY
+const short = (n: number) => (n >= 1e9 ? `${+(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n))
+const ago = (iso: string) => {
+  const d = (Date.now() - Date.parse(iso)) / 864e5
+  if (!(d >= 0)) return ''
+  const [n, u] = d >= 365 ? [Math.floor(d / 365), 'y'] : d >= 30 ? [Math.floor(d / 30), 'mo'] : d >= 1 ? [Math.floor(d), 'd'] : [Math.max(1, Math.floor(d * 24)), 'h']
+  return `${n}${u} ago`
+}
+interface YtItem { id?: string | { videoId?: string }; snippet?: { title?: string; channelTitle?: string; publishedAt?: string }; contentDetails?: { duration?: string }; statistics?: { viewCount?: string } }
+async function youtubeApi(q: string, key: string): Promise<Video[]> {
+  const ask = async (path: string, args: Record<string, string>) => {
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...args, key })}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) })
+    if (!r.ok) throw new Error(String(r.status))
+    return ((await r.json()) as { items?: YtItem[] }).items ?? []
+  }
+  const found = await ask('search', { part: 'snippet', type: 'video', maxResults: '15', q, safeSearch: 'moderate' })
+  const idOf = (x: YtItem) => (typeof x.id === 'object' ? x.id.videoId : x.id)
+  const ids = found.map(idOf).filter((x): x is string => typeof x === 'string' && /^[\w-]{11}$/.test(x))
+  if (!ids.length) throw new Error('none')
+  const out: Video[] = []
+  for (const v of await ask('videos', { part: 'contentDetails,statistics', id: ids.join(',') })) {
+    const id = idOf(v)
+    const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(v.contentDetails?.duration ?? '')
+    const secs = m ? (Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + (Number(m[3]) || 0) : 0
+    if (!id || secs <= 60) continue // a live stream, or short enough to be a Short
+    const sn = found.find((x) => idOf(x) === id)?.snippet ?? {}
+    const h = Math.floor(secs / 3600), mm = Math.floor((secs % 3600) / 60), ss = String(secs % 60).padStart(2, '0')
+    out.push({ id, title: decode(sn.title ?? '').slice(0, 140), channel: decode(sn.channelTitle ?? '').slice(0, 60), length: h ? `${h}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`, views: v.statistics?.viewCount ? short(Number(v.statistics.viewCount)) : '', when: sn.publishedAt ? ago(sn.publishedAt) : '' })
+  }
+  if (!out.length) throw new Error('none')
+  return out
+}
+
+async function youtube(q: string): Promise<Video[]> {
+  const key = ytKey()
+  if (key) { try { return await youtubeApi(q, key) } catch { /* over its daily share, or not switched on: read the public page instead */ } }
+  const r = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&hl=en`, { headers: { 'user-agent': UA, 'accept-language': 'en' }, signal: AbortSignal.timeout(9000) })
+  if (!r.ok) throw new Error(String(r.status))
+  const m = /ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/.exec(await r.text())
+  if (!m) throw new Error('shape')
+  const out: Video[] = []
+  const text = (o: unknown): string => {
+    const t = o as { simpleText?: string; runs?: { text?: string }[] } | undefined
+    return (t?.simpleText ?? t?.runs?.map((x) => x.text ?? '').join('') ?? '').replace(/\s+/g, ' ').trim()
+  }
+  const stack: unknown[] = [JSON.parse(m[1])]
+  while (stack.length && out.length < 14) {
+    const n = stack.pop()
+    if (!n || typeof n !== 'object') continue
+    if (Array.isArray(n)) { for (let i = n.length - 1; i >= 0; i--) stack.push(n[i]); continue }
+    const o = n as Record<string, unknown>
+    const v = o.videoRenderer as Record<string, unknown> | undefined
+    if (v) {
+      const url = ((v.navigationEndpoint as { commandMetadata?: { webCommandMetadata?: { url?: string } } } | undefined)?.commandMetadata?.webCommandMetadata?.url) ?? ''
+      const id = typeof v.videoId === 'string' && /^[\w-]{11}$/.test(v.videoId) ? v.videoId : ''
+      const length = text(v.lengthText)
+      if (id && length && !url.startsWith('/shorts')) out.push({ id, title: text(v.title).slice(0, 140), channel: text(v.ownerText ?? v.longBylineText).slice(0, 60), length, views: text(v.shortViewCountText ?? v.viewCountText).slice(0, 30), when: text(v.publishedTimeText).slice(0, 30) })
+      continue
+    }
+    for (const k of Object.keys(o).reverse()) stack.push(o[k])
+  }
+  if (!out.length) throw new Error('none')
+  return out
+}
+
 type Engine = 'google' | 'bing' | 'duckduckgo'
 const ENGINES: Record<Engine, (q: string) => Promise<Hit[]>> = { google, bing, duckduckgo: ddg }
 const ORDER: Record<Engine, Engine[]> = { google: ['google', 'bing', 'duckduckgo'], bing: ['bing', 'duckduckgo'], duckduckgo: ['duckduckgo', 'bing'] }
@@ -178,6 +266,10 @@ export default {
         // a result that points at a blocked site is dropped, so the list never offers one
         return json({ results: openable(results.filter((x) => verdict(x.url).ok)), engine, asked: want, googleOff: want === 'google' && !googleOn() }, 200, 'public, s-maxage=600')
       } catch { return json({ error: 'search busy' }, 502) }
+    }
+    const yt = (p.get('v') ?? '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 120)
+    if (yt) {
+      try { return json({ videos: await youtube(yt) }, 200, 'public, s-maxage=3600, stale-while-revalidate=86400') } catch { return json({ error: 'video search busy' }, 502) }
     }
     const u = p.get('u') ?? ''
     if (!u) return json({ error: 'bad' }, 400)
