@@ -26,12 +26,14 @@ const PROVIDERS: Provider[] = [
   { name: 'pollinations', url: 'https://text.pollinations.ai/openai', model: 'openai', delay: 8000 },
 ]
 
-async function ask(p: Provider, messages: Msg[], signal: AbortSignal): Promise<{ text: string; via: string }> {
+const SCREEN = 'You screen web pages for a study app that blocks games and short-form content. Reply with exactly one word: BLOCK if the page is mainly a game or a place to play games (browser games, game portals, game stores or streaming, gaming news), or is mainly short-form content (feeds of short videos or clips, endless social feeds like TikTok, Reels or Shorts); otherwise ALLOW. When unsure, ALLOW.'
+
+async function ask(p: Provider, messages: Msg[], signal: AbortSignal, screen = false): Promise<{ text: string; via: string }> {
   await new Promise<void>((res, rej) => { const t = setTimeout(res, p.delay); signal.addEventListener('abort', () => { clearTimeout(t); rej(new Error('stopped')) }, { once: true }) })
   const r = await fetch(p.url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer unused' },
-    body: JSON.stringify({ model: p.model, messages: [{ role: 'system', content: SYSTEM }, ...messages], temperature: 0.5, max_tokens: 700 }),
+    body: JSON.stringify({ model: p.model, messages: [{ role: 'system', content: screen ? SCREEN : SYSTEM }, ...messages], temperature: screen ? 0 : 0.5, max_tokens: screen ? 6 : 700 }),
     signal: AbortSignal.any([signal, AbortSignal.timeout(25000)]),
   })
   if (!r.ok) throw new Error(`${p.name} ${r.status}`)
@@ -48,8 +50,8 @@ export default {
     if (site && site !== 'same-origin' && site !== 'none') return reply({ error: 'not here' }, 403)
     const ip = (request.headers.get('x-forwarded-for') ?? 'x').split(',')[0].trim()
     if (limited(`ip:${ip}`, 40, 3600e3)) return reply({ error: 'slow down' }, 429)
-    let body: { messages?: unknown }
-    try { body = (await request.json()) as { messages?: unknown } } catch { return reply({ error: 'bad' }, 400) }
+    let body: { messages?: unknown; mode?: unknown }
+    try { body = (await request.json()) as { messages?: unknown; mode?: unknown } } catch { return reply({ error: 'bad' }, 400) }
     const raw = Array.isArray(body.messages) ? body.messages : []
     const messages: Msg[] = raw
       .filter((m): m is Msg => !!m && typeof m === 'object' && ((m as Msg).role === 'user' || (m as Msg).role === 'assistant') && typeof (m as Msg).content === 'string')
@@ -58,7 +60,7 @@ export default {
     if (!messages.length || messages[messages.length - 1].role !== 'user') return reply({ error: 'bad' }, 400)
     const stop = new AbortController()
     try {
-      const won = await Promise.any(PROVIDERS.map((p) => ask(p, messages, stop.signal)))
+      const won = await Promise.any(PROVIDERS.map((p) => ask(p, messages, stop.signal, body.mode === 'screen')))
       stop.abort()
       return reply(won)
     } catch { stop.abort(); return reply({ error: 'busy' }, 502) }

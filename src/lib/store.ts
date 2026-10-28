@@ -263,7 +263,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicLevel: 0.6,
   songAge: 0,
   searchEngine: 'google',
-  browserScripts: 'always',
+  browserScripts: 'on',
   toured: false,
 }
 
@@ -325,7 +325,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
         if (![0, 1, 2].includes(st.songAge as number)) st.songAge = 0
         if (!['google', 'bing', 'duckduckgo'].includes(String(st.searchEngine))) st.searchEngine = 'google'
-        if (!['always', 'empty', 'off'].includes(String(st.browserScripts))) st.browserScripts = 'always'
+        if (!['on', 'off'].includes(String(st.browserScripts))) st.browserScripts = 'on'
         if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st

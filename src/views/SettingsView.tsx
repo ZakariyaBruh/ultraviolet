@@ -52,8 +52,8 @@ function Focus() {
       <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>
-      <Row wrap title="Page scripts" hint="The Browser runs a page's scripts on our server and sends back the finished page; scripts never run in your browser. Always does it for every page, Empty pages only when a page shows nothing without them (faster), Off never.">
-        <Seg id="set-scripts" value={s.browserScripts} onChange={(v) => set({ browserScripts: v })} tabs={[{ id: 'always', label: 'Always' }, { id: 'empty', label: 'Empty pages' }, { id: 'off', label: 'Off' }]} />
+      <Row wrap title="Page scripts" hint="Pages run their own scripts, sealed in the Browser's frame in your browser, so most sites work. The address is checked against the block list first, and a page the list does not know is looked at by a free AI that only blocks games and short-form content.">
+        <Seg id="set-scripts" value={s.browserScripts} onChange={(v) => set({ browserScripts: v })} tabs={[{ id: 'on', label: 'On' }, { id: 'off', label: 'Off' }]} />
       </Row>
       <Row wrap title="Browser search" hint="Which engine the Browser window searches with. If it cannot answer, another one does and the results say so.">
         <Seg id="set-engine" value={s.searchEngine} onChange={(v) => set({ searchEngine: v })} tabs={[{ id: 'google', label: 'Google' }, { id: 'bing', label: 'Bing' }, { id: 'duckduckgo', label: 'DuckDuckGo' }]} />

@@ -19,14 +19,14 @@ export function internal(host: string) {
 }
 
 /** takes out everything that can run or phone home, and makes addresses absolute so images and styles still load */
-export function clean(html: string, base: string, rendered = false): string {
+export function clean(html: string, base: string, live = false): string {
   let h = html
     .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<(script|iframe|object|embed|applet|template|portal)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(live ? /<(iframe|object|embed|applet|template|portal)\b[\s\S]*?<\/\1\s*>/gi : /<(script|iframe|object|embed|applet|template|portal)\b[\s\S]*?<\/\1\s*>/gi, '')
     // a page's own scripts do not run here, so what it keeps for browsers without scripts is what we show: a lone image is the
     // usual lazy-loading fallback (the image is given its address below instead) and a short "enable JavaScript" notice is of no use
     .replace(/<noscript\b[^>]*>([\s\S]*?)<\/noscript\s*>/gi, (_m, inner: string) => {
-      if (rendered) return '' // the scripts ran, so what a page keeps for when they cannot is not wanted
+      if (live) return '' // the scripts run in the person's browser, so what a page keeps for when they cannot is not wanted
       const words = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
       return /^\s*<img\b[^>]*>\s*$/i.test(inner) || (words.length < 300 && /javascript/i.test(words)) ? '' : inner
     })
@@ -37,10 +37,10 @@ export function clean(html: string, base: string, rendered = false): string {
       const url = m?.[1] ?? m?.[2]
       return url ? tag.replace(/\ssrc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, '').replace(/^<img/i, `<img src="${url.replace(/"/g, '&quot;')}"`) : tag
     })
-    .replace(/<(script|iframe|object|embed|applet|portal|link\s+[^>]*rel=["']?(?:preload|prefetch|modulepreload|dns-prefetch|preconnect)[^>]*)\b[^>]*>/gi, '')
+    .replace(live ? /<(iframe|object|embed|applet|portal|link\s+[^>]*rel=["']?(?:preload|prefetch|modulepreload|dns-prefetch|preconnect)[^>]*)\b[^>]*>/gi : /<(script|iframe|object|embed|applet|portal|link\s+[^>]*rel=["']?(?:preload|prefetch|modulepreload|dns-prefetch|preconnect)[^>]*)\b[^>]*>/gi, '')
     .replace(/<meta\b[^>]*http-equiv=["']?(?:refresh|content-security-policy)[^>]*>/gi, '')
     .replace(/<base\b[^>]*>/gi, '')
-    .replace(/\s(on[a-z]+|srcdoc|formaction|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(live ? /\s(srcdoc|formaction|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi : /\s(on[a-z]+|srcdoc|formaction|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
     .replace(/(href|src|action|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1=$2#$2')
   const head = `<base href="${base.replace(/"/g, '&quot;')}">`
   h = /<head[^>]*>/i.test(h) ? h.replace(/<head[^>]*>/i, (m) => `${m}${head}`) : `${head}${h}`

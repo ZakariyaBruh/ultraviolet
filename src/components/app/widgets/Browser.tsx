@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, ExternalLink, Pencil, Play, Plus, Search, X, Zap }
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
+import { screenPage } from '@/lib/screen'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
 import { field } from './Window'
 
@@ -60,8 +61,10 @@ const BRIDGE = `(function(){var P=parent;function go(u){P.postMessage({friction:
 document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a){var c=e.target&&e.target.closest&&e.target.closest('button,[role=button],[role=tab],[role=menuitem],[aria-expanded],[aria-haspopup]');if(c&&!/^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(c.tagName)&&!(c.form&&(c.type||'submit')==='submit')&&!c.closest('summary'))P.postMessage({friction:1,note:'control'},'*');return}e.preventDefault();var h=a.getAttribute('href')||'';if(h.charAt(0)==='#'){var t=document.getElementById(h.slice(1))||document.getElementsByName(h.slice(1))[0];if(t&&t.scrollIntoView)t.scrollIntoView();return}go(a.href)},true);
 document.addEventListener('submit',function(e){var f=e.target;e.preventDefault();if((f.method||'get').toLowerCase()!=='get'||f.querySelector('input[type=password]')){P.postMessage({friction:1,note:'form'},'*');return}try{var u=new URL(f.action||document.baseURI);new FormData(f).forEach(function(v,k){if(typeof v==='string')u.searchParams.set(k,v)});go(u.href)}catch(x){}},true)})();`
 
-const doc = (html: string, ground: string, ink: string) =>
-  `<!doctype html><meta http-equiv="Content-Security-Policy" content="${CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{background:${ground};color:${ink}}body{max-width:100%;overflow-x:auto}img,video{max-width:100%;height:auto}</style>${html.replace(/<!doctype[^>]*>/i, '')}<script>${BRIDGE}</script>`
+const LIVE_CSP = "default-src 'none'; script-src https: 'unsafe-inline' 'unsafe-eval' blob:; style-src https: 'unsafe-inline'; img-src https: data: blob:; font-src https: data:; media-src https: blob:; connect-src https:; worker-src blob:; frame-src 'none'; form-action 'none'"
+
+const doc = (html: string, ground: string, ink: string, live: boolean) =>
+  `<!doctype html><meta http-equiv="Content-Security-Policy" content="${live ? LIVE_CSP : CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{background:${ground};color:${ink}}body{max-width:100%;overflow-x:auto}img,video{max-width:100%;height:auto}</style>${html.replace(/<!doctype[^>]*>/i, '')}<script>${BRIDGE}</script>`
 
 function Tile({ icon, name, sub, onClick, label }: { icon: ReactNode; name: string; sub: string; onClick: () => void; label?: string }) {
   return (
@@ -144,9 +147,10 @@ export function Browser() {
   const box = useRef<HTMLDivElement>(null)
   const recent = history.filter((u) => !/[?&](search|q|query)=|Special:Search/i.test(u)).slice(0, 4)
   const token = useRef(0)
+  const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); loads.current = 0; setView(v) }
 
   /**
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
@@ -163,55 +167,29 @@ export function Browser() {
     if (ytHome(v.url)) return show({ kind: 'youtube', q: '', list: [] }, push)
     if (engineHome(v.url)) return show({ kind: 'search' }, push)
     const target = v.url.toString()
-    // the page as read by our server, or as drawn after its scripts ran there; the second can take a while
+    // scripts run in the person's own browser (in the sealed frame), never on a server, once the address has passed the list and a
+    // page the list does not know has been looked at
+    const live = how === 'render' || (how === 'auto' && scripts !== 'off')
     type Got = { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
-    const ask = async (run: boolean) => {
-      const q = run ? `/api/render?u=${encodeURIComponent(target)}&w=${box.current?.clientWidth ?? 1024}` : `/api/browse?u=${encodeURIComponent(target)}`
-      const r = await fetch(q, { signal: AbortSignal.timeout(run ? 55000 : 25000) })
-      return { r, d: (await r.json().catch(() => null)) as Got | null }
-    }
-    // scripts run by default; `fromSetting` is that default, `how === 'render'` is someone asking for it on this page
-    const fromSetting = how === 'auto' && scripts === 'always'
-    const asked = how === 'render' || fromSetting
-    setDoing(asked ? "Running the page's scripts" : 'Loading the page')
+    setDoing('Loading the page')
     setBusy(true)
     try {
-      type Res = { r: Response | null; d: Got | null }
-      const failed = (x: Res) => !x.r || !x.r.ok || !x.d?.html || !!x.d.thin
-      let got: Res = await ask(asked).catch((e: Error): Res => { if (asked) return { r: null, d: null }; throw e })
-      let rendered = asked
-      let tried: 'no' | 'empty' | 'failed' = 'no' // what running the scripts of a page that showed nothing came to
-      // a page that cannot be run (our runner is busy or down, the site turns it away, or it draws nothing) is still read the plain way
-      if (fromSetting && failed(got) && got.r?.status !== 403) {
-        const ranEmpty = !!(got.r?.ok && got.d?.html && got.d.thin)
-        const wall = !!got.d?.walled
-        setDoing('Loading the page')
-        const plain = await ask(false).catch((): Res | null => null)
-        if (my !== token.current) return
-        if (plain && !failed(plain)) { got = plain; rendered = false }
-        else if (plain && !ranEmpty && !wall) { got = plain; rendered = false; if (plain.d?.thin) tried = 'failed' }
-        else if (ranEmpty) tried = 'empty'
-      }
-      // only empty pages: read the page as it is and, when that shows nothing, have its scripts run
-      if (!asked && how === 'auto' && scripts === 'empty' && got.r?.ok && got.d?.thin) {
-        if (my !== token.current) return
-        setDoing("Running the page's scripts")
-        const run = await ask(true).catch((): Res | null => null)
-        if (run?.d?.html && run.r?.ok) { if (run.d.thin) tried = 'empty'; else { got = run; rendered = true } } else if (run?.d?.walled) got = run
-        else tried = 'failed'
-      }
+      const r = await fetch(`/api/browse?u=${encodeURIComponent(target)}${live ? '&s=1' : ''}`, { signal: AbortSignal.timeout(25000) })
+      const d = (await r.json().catch(() => null)) as Got | null
       if (my !== token.current) return
-      const { r, d } = got
-      if (!r || !d) return show({ kind: 'error', msg: rendered ? 'Running page scripts is not available right now' : 'The page service is not answering right now', url: raw, retry: true }, push)
+      if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw, retry: true }, push)
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' }, push)
-      if (!r.ok || !d.html) return show({ kind: 'error', msg: r.status === 429 && rendered ? 'Running page scripts is busy right now. Try again in a moment' : d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
+      if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
       const here = d.url ?? raw
-      if (d.thin) {
-        const msg = scripts === 'off' && !asked ? 'This site builds its page with scripts, and page scripts are turned off in Settings, so there is nothing to show here' : rendered || tried === 'empty' ? 'This site builds its page with scripts, and even with them run there is nothing to show here' : tried === 'failed' ? 'This site builds its page with scripts, and running them did not work just now' : 'This site builds its page with scripts, so there is nothing to show here'
-        return show({ kind: 'error', msg, url: here, retry: false, run: scripts !== 'off' && !rendered ? () => void open(here, 'render', false) : undefined }, push)
-      }
+      const hv = verdict(here) // where redirects ended up
+      if (!hv.ok) return show({ kind: 'blocked', url: here, why: hv.why }, push)
+      if (!live && d.thin) return show({ kind: 'error', msg: scripts === 'off' ? 'This site builds its page with scripts, and page scripts are turned off in Settings, so there is nothing to show here' : 'This site builds its page with scripts, so there is nothing to show here', url: here, retry: false, run: scripts !== 'off' ? () => void open(here, 'render', false) : undefined }, push)
+      setDoing('Checking the page')
+      const sc = await screenPage(hv.url, d.html)
+      if (my !== token.current) return
+      if (sc.block) return show({ kind: 'blocked', url: here, why: 'a game or short-form site (checked by AI)' }, push)
       history = [here, ...history.filter((x) => x !== here)].slice(0, 8)
-      show({ kind: 'page', url: here, html: d.html, rendered }, push)
+      show({ kind: 'page', url: here, html: d.html, rendered: live }, push)
     } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
@@ -260,7 +238,7 @@ export function Browser() {
       if (d?.friction !== 1) return
       if (typeof d.go === 'string' && d.go.length < 2000) void open(d.go)
       else if (d.note === 'form') setNote('That button sends a form. The Browser only reads pages, so it cannot send one.')
-      else if (d.note === 'control') setNote(view.kind === 'page' && view.rendered ? "That control needs the page's scripts to answer. This is the page as its scripts drew it, so buttons and menus do not respond; links and searches do." : scripts === 'off' ? "That control needs the page's scripts, which are turned off in Settings." : "That control needs the page's scripts, which are not running on this page. Tap the lightning button to run them.")
+      else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote(scripts === 'off' ? "That control needs the page's scripts, which are turned off in Settings." : "That control needs the page's scripts, which are not running on this page. Tap the lightning button to run them.") }
     }
     addEventListener('message', hear)
     return () => removeEventListener('message', hear)
@@ -268,7 +246,7 @@ export function Browser() {
 
   const srcDoc = useMemo(() => {
     if (view.kind !== 'page') return ''
-    return doc(view.html, '#fff', '#111')
+    return doc(view.html, '#fff', '#111', !!view.rendered)
   }, [view])
 
   /** run this page's scripts on our server, or load it again without them */
@@ -287,7 +265,7 @@ export function Browser() {
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
         {view.kind === 'page' && scripts !== 'off' && (
-          <button type="button" onClick={toggleScripts} aria-pressed={!!view.rendered} aria-label="Run this page's scripts" title={view.rendered ? "This page's scripts ran on our server. Tap to load it without them." : "Run this page's scripts on our server"} className={`grid size-11 shrink-0 place-items-center border transition-colors duration-150 ${view.rendered ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><Zap className="size-4" /></button>
+          <button type="button" onClick={toggleScripts} aria-pressed={!!view.rendered} aria-label="Run this page's scripts" title={view.rendered ? "This page's scripts are running. Tap to load it without them." : "Run this page's scripts"} className={`grid size-11 shrink-0 place-items-center border transition-colors duration-150 ${view.rendered ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><Zap className="size-4" /></button>
         )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
       </form>}
@@ -363,7 +341,7 @@ export function Browser() {
         )}
         {view.kind === 'page' && (
           <>
-            <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} className="size-full border-0 bg-white" />
+            <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) show({ kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
           </>
         )}

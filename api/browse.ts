@@ -222,7 +222,8 @@ export default {
     try {
       const got = await fetchPage(u)
       if ('error' in got) return json(got, got.error === 'blocked' ? 403 : 502)
-      const html = clean(got.html, got.url)
+      // s=1: the page keeps its scripts, to run in the person's own browser (never here); the window has already checked the address
+      const html = clean(got.html, got.url, p.get('s') === '1')
       return json({ url: got.url, html, thin: readable(html) < THIN }, 200, 'public, s-maxage=300')
     } catch { return json({ error: 'The site did not answer' }, 502) }
   },
