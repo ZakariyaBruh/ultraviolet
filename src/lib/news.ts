@@ -62,9 +62,10 @@ export function loadFeed(f: Feed): Promise<Story[]> {
     if (f.cors) {
       try { return parseNews(await grab(f.url, 7000), f.name) } catch { /* fall through to the relay */ }
     }
-    // four tries, started 1.5 s apart without waiting for the last to fail; the first good answer wins
+    // our own relay first (it reads the feed on the server and caches it), then the public relays as a last resort
+    try { return parseNews(await grab(`/api/feed?u=${encodeURIComponent(f.url)}`, 10000), f.name) } catch { /* try the public relays */ }
     try {
-      return await Promise.any([0, 1, 2, 3].map(async (i) => { await new Promise((r) => setTimeout(r, i * 1500)); return parseNews(await wrapped(RELAYS[i % 2](f.url)), f.name) }))
+      return await Promise.any([0, 1].map(async (i) => { await new Promise((r) => setTimeout(r, i * 1500)); return parseNews(await wrapped(RELAYS[i % 2](f.url)), f.name) }))
     } catch { /* every try failed */ }
     throw new Error('feed')
   })
