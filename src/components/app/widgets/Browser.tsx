@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, ExternalLink, Pencil, Play, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, ExternalLink, Pencil, Play, Plus, Search, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -22,11 +22,12 @@ type View =
   | { kind: 'results'; q: string; list: Hit[]; engine: string; note: string }
   /** `q` is empty on YouTube's own start page */
   | { kind: 'youtube'; q: string; list: Video[] }
-  | { kind: 'page'; url: string; html: string }
+  /** `rendered`: the page's scripts were run on our server and this is what they drew */
+  | { kind: 'page'; url: string; html: string; rendered?: boolean }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
   /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
-  | { kind: 'error'; msg: string; url?: string; retry?: boolean; redo?: () => void }
+  | { kind: 'error'; msg: string; url?: string; retry?: boolean; redo?: () => void; run?: () => void }
 
 /** pages opened this visit, newest first */
 let history: string[] = []
@@ -133,39 +134,70 @@ export function Browser() {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
   const [editing, setEditing] = useState(false)
+  const [doing, setDoing] = useState('Loading the page')
   const engine = useStore((s) => s.settings.searchEngine)
+  const scripts = useStore((s) => s.settings.browserScripts)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
   const frame = useRef<HTMLIFrameElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   const recent = history.filter((u) => !/[?&](search|q|query)=|Special:Search/i.test(u)).slice(0, 4)
   const token = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
   const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setView(v) }
 
-  const open = async (raw: string) => {
+  /**
+   * `how`: auto reads the page as it is and, when that shows nothing, has its scripts run on our server (unless Settings says never);
+   * static never runs them; render always does. `push` is false when the same page is being shown again another way.
+   */
+  const open = async (raw: string, how: 'auto' | 'static' | 'render' = 'auto', push = true) => {
     const my = ++token.current
     const v = verdict(raw)
-    if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why })
+    if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
     const id = youtubeId(v.url)
-    if (id) return show({ kind: 'video', id, url: v.url.toString() })
+    if (id) return show({ kind: 'video', id, url: v.url.toString() }, push)
     const s = searched(v.url)
     if (s) return void (s.yt ? ytSearch(s.q) : search(s.q))
-    if (ytHome(v.url)) return show({ kind: 'youtube', q: '', list: [] })
-    if (engineHome(v.url)) return show({ kind: 'search' })
+    if (ytHome(v.url)) return show({ kind: 'youtube', q: '', list: [] }, push)
+    if (engineHome(v.url)) return show({ kind: 'search' }, push)
+    const target = v.url.toString()
+    // the page as read by our server, or as drawn after its scripts ran there; the second can take a while
+    type Got = { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
+    const ask = async (run: boolean) => {
+      const q = run ? `/api/render?u=${encodeURIComponent(target)}&w=${box.current?.clientWidth ?? 1024}` : `/api/browse?u=${encodeURIComponent(target)}`
+      const r = await fetch(q, { signal: AbortSignal.timeout(run ? 55000 : 25000) })
+      return { r, d: (await r.json().catch(() => null)) as Got | null }
+    }
+    const asked = how === 'render' || (how === 'auto' && scripts === 'always')
+    setDoing(asked ? "Running the page's scripts" : 'Loading the page')
     setBusy(true)
     try {
-      const r = await fetch(`/api/browse?u=${encodeURIComponent(v.url.toString())}`, { signal: AbortSignal.timeout(25000) })
-      const d = (await r.json().catch(() => null)) as { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean } | null
+      let got = await ask(asked).catch((e: Error) => { if (asked) return { r: null, d: null, e }; throw e })
+      let rendered = asked
+      let tried: 'no' | 'empty' | 'failed' = 'no'
+      // nothing to read without scripts: have them run
+      if (!asked && how === 'auto' && scripts === 'auto' && got.r?.ok && got.d?.thin) {
+        if (my !== token.current) return
+        setDoing("Running the page's scripts")
+        const run = await ask(true).catch(() => null)
+        if (run?.d?.html && run.r.ok) { if (run.d.thin) tried = 'empty'; else { got = run; rendered = true } } else if (run?.d?.walled) got = run
+        else tried = 'failed'
+      }
       if (my !== token.current) return
-      if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw })
-      if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' })
-      if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled })
-      if (d.thin) return show({ kind: 'error', msg: 'This site builds its page with scripts, which the Browser does not run, so there is nothing to show here', url: d.url ?? raw, retry: false })
-      history = [d.url ?? raw, ...history.filter((x) => x !== (d.url ?? raw))].slice(0, 8)
-      show({ kind: 'page', url: d.url ?? raw, html: d.html })
-    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }) } finally { if (my === token.current) setBusy(false) }
+      const { r, d } = got as { r: Response | null; d: Got | null }
+      if (!r || !d) return show({ kind: 'error', msg: rendered ? 'Running page scripts is not available right now' : 'The page service is not answering right now', url: raw, retry: true }, push)
+      if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' }, push)
+      if (!r.ok || !d.html) return show({ kind: 'error', msg: r.status === 429 && rendered ? 'Running page scripts is busy right now. Try again in a moment' : d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
+      const here = d.url ?? raw
+      if (d.thin) {
+        const msg = scripts === 'off' && !asked ? 'This site builds its page with scripts, and page scripts are turned off in Settings, so there is nothing to show here' : rendered || tried === 'empty' ? 'This site builds its page with scripts, and even with them run there is nothing to show here' : tried === 'failed' ? 'This site builds its page with scripts, and running them did not work just now' : 'This site builds its page with scripts, so there is nothing to show here'
+        return show({ kind: 'error', msg, url: here, retry: false, run: scripts !== 'off' && !rendered ? () => void open(here, 'render', false) : undefined }, push)
+      }
+      history = [here, ...history.filter((x) => x !== here)].slice(0, 8)
+      show({ kind: 'page', url: here, html: d.html, rendered }, push)
+    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
   const search = async (q: string) => {
@@ -223,6 +255,9 @@ export function Browser() {
     return doc(view.html, '#fff', '#111')
   }, [view])
 
+  /** run this page's scripts on our server, or load it again without them */
+  const toggleScripts = () => { if (view.kind === 'page') void open(view.url, view.rendered ? 'static' : 'render', false) }
+
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
   const bar = view.kind !== 'search' && view.kind !== 'add' && !(view.kind === 'youtube' && !view.q)
 
@@ -235,10 +270,13 @@ export function Browser() {
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
+        {view.kind === 'page' && scripts !== 'off' && (
+          <button type="button" onClick={toggleScripts} aria-pressed={!!view.rendered} aria-label="Run this page's scripts" title={view.rendered ? "This page's scripts ran on our server. Tap to load it without them." : "Run this page's scripts on our server"} className={`grid size-11 shrink-0 place-items-center border transition-colors duration-150 ${view.rendered ? 'border-signal bg-signal text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><Zap className="size-4" /></button>
+        )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal">Go</button>
       </form>}
-      <div className="relative h-[min(62vh,34rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
-        {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label="Loading the page" size={56} /></div>}
+      <div ref={box} className="relative h-[min(62vh,34rem)] min-h-[14rem] overflow-hidden border border-ink/15" data-no-drag>
+        {busy && <div className="absolute inset-0 z-10 grid place-items-center bg-ground/80"><LoadingBlock label={doing} size={56} /></div>}
         {view.kind === 'home' && (
           <div className="scroll-y grid h-full content-start gap-3 p-3">
             <p className="hud">Start</p>
@@ -331,6 +369,7 @@ export function Browser() {
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
+              {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}
               {view.url && <>
                 {view.retry !== false && <button onClick={() => void open(view.url!)} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}

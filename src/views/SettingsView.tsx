@@ -52,6 +52,9 @@ function Focus() {
       <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>
+      <Row wrap title="Page scripts" hint="The Browser can run a page's scripts on our server and send back the finished page; scripts never run in your browser. Auto does it when a page shows nothing without them, Always for every page (slower), Off never.">
+        <Seg id="set-scripts" value={s.browserScripts} onChange={(v) => set({ browserScripts: v })} tabs={[{ id: 'auto', label: 'Auto' }, { id: 'always', label: 'Always' }, { id: 'off', label: 'Off' }]} />
+      </Row>
       <Row wrap title="Browser search" hint="Which engine the Browser window searches with. If it cannot answer, another one does and the results say so.">
         <Seg id="set-engine" value={s.searchEngine} onChange={(v) => set({ searchEngine: v })} tabs={[{ id: 'google', label: 'Google' }, { id: 'bing', label: 'Bing' }, { id: 'duckduckgo', label: 'DuckDuckGo' }]} />
       </Row>
