@@ -329,6 +329,9 @@ html[data-theme='sunset'] .dot { font-weight: 800; letter-spacing: -0.02em; }
 button[class~="h-11"], input[class~="h-11"], a[class~="h-11"] { min-height: 2.75rem; }
 button[class~="h-12"], input[class~="h-12"], a[class~="h-12"] { min-height: 3rem; }
 button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
+/* a solid beside a title wanders a little inside its own space */
+@keyframes sway { 0% { translate: -6px 4px; } 50% { translate: 8px -5px; } 100% { translate: -3px -6px; } }
+.ascii-sway { display: inline-block; animation: sway 9s ease-in-out infinite alternate; }
 @keyframes winin { from { opacity: 0; } }
 .win-in { animation: winin 160ms var(--ease-out, ease-out); }
 /* text that does not fit its box scrolls inside it, with a thin bar, instead of being cut off */
@@ -391,7 +394,7 @@ html[data-locked][data-theme='paper'] .glass, html[data-locked][data-theme='pape
 .retro-warm { background: #ffa83c; mix-blend-mode: soft-light; opacity: calc(var(--fx, 0) * 0.24); }
 html[data-retro='0'] .crt::after { display: none; }
 /* from Arcade back the whole screen is already text, so the dial's solid steps back and the small lines over it stay easy to read */
-html[data-retro='3'] .crt, html[data-retro='4'] .crt, html[data-retro='5'] .crt { opacity: 0.42; }
+html[data-ascii='3'] .crt, html[data-ascii='4'] .crt, html[data-ascii='5'] .crt { opacity: 0.42; }
 html[data-retro='0'] .caret { animation: none; }
 /* a glow on headings that grows to Broadcast and no further */
 .dot, .hud { text-shadow: 0 0 calc(var(--fx, 0) * 10px) color-mix(in srgb, var(--signal) calc(var(--fx, 0) * 45%), transparent); }

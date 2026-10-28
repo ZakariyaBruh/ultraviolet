@@ -103,8 +103,10 @@ export interface Settings {
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
   theme: ThemeId
-  /** how far into the future the look goes: 0 is the past (most retro), 100 is the future */
+  /** how retro the screen and type look: 0 is the past (most retro), 100 is the future. Six stops of 20. */
   era: number
+  /** how much of the page is 3D solids drawn in text: 0 off, 100 a whole text world. Six stops of 20, set apart from era. */
+  ascii: number
   /** custom accent and background colours (#rrggbb), '' keeps the theme's own */
   accent: string
   bg: string
@@ -231,6 +233,7 @@ export const DEFAULT_SETTINGS: Settings = {
   guard: true,
   theme: 'station',
   era: 80,
+  ascii: 20,
   accent: '',
   bg: '',
   aiDemos: true,
@@ -285,7 +288,10 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
         st.theme = normalizeTheme(v.theme)
-        st.era = Math.min(100, Math.max(0, Math.round((Number(st.era) || 80) / 20) * 20))
+        const era = Number.isFinite(Number(st.era)) ? Number(st.era) : 80
+        st.era = Math.min(100, Math.max(0, Math.round(era / 20) * 20))
+        // before the two dials were split, the era stop also set how many solids there were: keep what people were seeing
+        st.ascii = typeof v.ascii === 'number' && Number.isFinite(v.ascii) ? Math.min(100, Math.max(0, Math.round(v.ascii / 20) * 20)) : Math.round((100 - (st.era as number)) / 20) * 20
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
         ok = st
       }

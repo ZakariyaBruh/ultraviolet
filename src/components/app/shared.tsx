@@ -7,7 +7,7 @@ import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { play, step, toggle, usePlayer } from '@/lib/player'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import type { Shape } from '@/lib/ascii3d'
-import { eraStage } from '@/lib/theme'
+import { asciiStage } from '@/lib/theme'
 import { useStore, type MediaItem } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -56,10 +56,10 @@ const HEAD: Record<string, Shape[]> = {
 
 /** A few little 3D text solids in the free space between the page title and its controls: one at the clean end of the dial, more as it turns back, never more than the room holds. */
 function HeadSolids({ name }: { name: string }) {
-  const stage = useStore((s) => eraStage(s.settings.era))
+  const stage = useStore((s) => asciiStage(s.settings.ascii))
   const calm = useStore((s) => s.settings.motion === 0)
   const list = HEAD[name] ?? ['torus', 'cube', 'knot']
-  const want = stage >= 4 ? 3 : stage >= 2 ? 2 : 1
+  const want = stage >= 4 ? 3 : stage >= 2 ? 2 : stage >= 1 ? 1 : 0
   const still = calm || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)
   const box = useRef<HTMLDivElement>(null)
   const [room, setRoom] = useState(0)
@@ -73,7 +73,7 @@ function HeadSolids({ name }: { name: string }) {
   const fit = Math.min(want, Math.floor(room / 92))
   return (
     <div ref={box} aria-hidden className="pointer-events-none hidden min-w-0 flex-1 items-start justify-center gap-1 self-start overflow-hidden text-signal opacity-55 lg:flex">
-      {list.slice(0, fit).map((sh, i) => <AsciiSolid key={sh} shape={sh} cols={22} rows={10} speed={0.7 + i * 0.2} still={still} phase={i * 1.7} className="text-[6.5px]" />)}
+      {list.slice(0, fit).map((sh, i) => <span key={sh} className={still ? '' : 'ascii-sway'} style={{ animationDuration: `${7 + i * 2.6}s`, animationDelay: `${-i * 3.1}s` }}><AsciiSolid shape={sh} cols={22} rows={10} speed={0.9 + i * 0.25} still={still} phase={i * 1.7} className="text-[6.5px]" /></span>)}
     </div>
   )
 }

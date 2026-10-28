@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
-import { eraStage } from '@/lib/theme'
+import { asciiStage } from '@/lib/theme'
 import type { Shape } from '@/lib/ascii3d'
 import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
@@ -34,7 +34,7 @@ function Ident({ still }: { still: boolean }) {
 /** The front page, and the only page that is always black. A broadcast ident over a field of lines. */
 export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View) => void }) {
   const reduced = !!useReducedMotion()
-  const stage = useStore((s) => eraStage(s.settings.era))
+  const stage = useStore((s) => asciiStage(s.settings.ascii))
   const readout = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -56,7 +56,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           </span>
         </div>
         <div className="land-solids pointer-events-none absolute bottom-6 right-5 items-end gap-2 text-signal sm:right-[6%]" aria-hidden>
-          {SOLIDS.slice(0, 1 + Math.ceil(stage / 2)).map((sh, i) => <AsciiSolid key={sh} shape={sh} cols={i ? 30 : 44} rows={i ? 14 : 22} speed={0.8} still={reduced} phase={i * 2} className="text-[9px] opacity-80" />)}
+          {SOLIDS.slice(0, 1 + Math.ceil(stage / 2)).map((sh, i) => <span key={sh} className={reduced ? '' : 'ascii-sway'} style={{ animationDuration: `${8 + i * 2.8}s`, animationDelay: `${-i * 3.4}s` }}><AsciiSolid shape={sh} cols={i ? 30 : 44} rows={i ? 14 : 22} speed={0.9} still={reduced} phase={i * 2} className="text-[9px] opacity-90" /></span>)}
         </div>
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 14 }}

@@ -160,7 +160,8 @@ export function plot(g: Grid, shape: Shape, cx: number, cy: number, size: number
   }
 }
 
-export const glyph = (lum: number) => (lum < 0 ? ' ' : RAMP[Math.min(RAMP.length - 1, Math.floor(lum * RAMP.length))])
+/** a curve on the light so the lit side, the shaded side and the edge come out as different characters: the form reads as a solid, not a block */
+export const glyph = (lum: number) => (lum < 0 ? ' ' : RAMP[Math.min(RAMP.length - 1, Math.floor(Math.pow(lum, 1.6) * RAMP.length))])
 
 export function gridText(g: Grid): string {
   let s = ''

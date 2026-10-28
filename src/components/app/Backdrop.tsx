@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { FieldLines } from '@/components/app/FieldLines'
 import { SpeedWarp } from '@/components/ui/speed-warp'
 import { useStore } from '@/lib/store'
-import { eraStage } from '@/lib/theme'
+import { asciiStage } from '@/lib/theme'
 import { isLightTheme } from '@/lib/themes'
 import { AsciiScene } from '@/components/app/AsciiScene'
 
@@ -13,7 +13,7 @@ export function Backdrop({ reduced }: { reduced: boolean }) {
   const running = useStore((s) => !!s.session && !s.session.paused)
   const theme = useStore((s) => s.settings.theme)
   const light = isLightTheme(theme)
-  const stage = useStore((s) => eraStage(s.settings.era))
+  const stage = useStore((s) => asciiStage(s.settings.ascii))
   // while locked in, panels turn part-transparent so the rush of stars shows through them
   useEffect(() => {
     document.documentElement.toggleAttribute('data-locked', level >= 1 && running)

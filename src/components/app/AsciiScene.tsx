@@ -1,30 +1,40 @@
 import { useEffect, useRef } from 'react'
 import { clearGrid, makeGrid, plot, RAMP, type Shape } from '@/lib/ascii3d'
+import { useUI } from '@/lib/ui'
 
 /**
- * The era dial's main instrument. The further back you turn it, the more of the screen is solids drawn in text:
- * one turning in a corner at Afterglow, a handful and a perspective floor by Arcade, and a whole text world by Full ASCII.
- * It sits behind everything, never takes the pointer, and costs one small canvas.
+ * The ASCII dial's main instrument. Solids drawn in text roam the whole screen, turning as they go: one drifting at Drift,
+ * nine of them, stars and a perspective floor at World. It sits behind everything, never takes the pointer, and costs one
+ * small canvas. When something is finished (the celebration card) they all speed up and swell for a few seconds.
  */
-interface Spec { shape: Shape; x: number; y: number; r: number; sa: number; sb: number; ph: number }
-const T = (shape: Shape, x: number, y: number, r: number, sa = 0.5, sb = 0.3, ph = 0): Spec => ({ shape, x, y, r, sa, sb, ph })
+interface Spec { shape: Shape; x: number; y: number; r: number; ph: number; ax: number; ay: number; w: number; sa: number; sb: number }
+/** a solid: where it lives (x, y as fractions of the screen), how big, how far it wanders and how fast it turns */
+const T = (shape: Shape, x: number, y: number, r: number, ph: number, ax = 0.2, ay = 0.16, w = 0.17, sa = 0.7, sb = 0.4): Spec => ({ shape, x, y, r, ph, ax, ay, w, sa, sb })
 
-const SCENES: Spec[][] = [
-  [],
-  [T('torus', 0.82, 0.78, 0.13)],
-  [T('torus', 0.84, 0.78, 0.14), T('cube', 0.1, 0.8, 0.09, 0.4, 0.5, 1)],
-  [T('torus', 0.84, 0.76, 0.15), T('cube', 0.09, 0.78, 0.1, 0.4, 0.5, 1), T('knot', 0.5, 0.88, 0.09, 0.3, 0.45, 2)],
-  [T('torus', 0.84, 0.74, 0.16), T('cube', 0.09, 0.76, 0.11, 0.4, 0.5, 1), T('knot', 0.5, 0.88, 0.1, 0.3, 0.45, 2), T('sphere', 0.92, 0.22, 0.07, 0.2, 0.3, 3), T('helix', 0.06, 0.26, 0.09, 0, 0.6, 4)],
-  [T('torus', 0.84, 0.72, 0.17), T('cube', 0.09, 0.74, 0.12, 0.4, 0.5, 1), T('knot', 0.5, 0.88, 0.11, 0.3, 0.45, 2), T('sphere', 0.92, 0.2, 0.08, 0.2, 0.3, 3), T('helix', 0.06, 0.24, 0.1, 0, 0.6, 4), T('pyramid', 0.7, 0.14, 0.08, 0.25, 0.5, 5), T('torus', 0.28, 0.12, 0.06, 0.6, 0.2, 6)],
+/** every solid, in the order they join as the dial turns up */
+const ALL: Spec[] = [
+  T('torus', 0.78, 0.66, 0.15, 0, 0.2, 0.18, 0.15),
+  T('cube', 0.16, 0.62, 0.1, 1, 0.14, 0.2, 0.2, 0.6, 0.75),
+  T('knot', 0.5, 0.24, 0.1, 2, 0.28, 0.12, 0.13, 0.5, 0.55),
+  T('sphere', 0.9, 0.22, 0.08, 3, 0.1, 0.22, 0.24, 0.3, 0.4),
+  T('helix', 0.3, 0.84, 0.1, 4, 0.24, 0.1, 0.18, 0.2, 0.8),
+  T('pyramid', 0.66, 0.14, 0.09, 5, 0.2, 0.16, 0.21, 0.55, 0.9),
+  T('torus', 0.1, 0.2, 0.07, 6, 0.1, 0.24, 0.26, 0.9, 0.3),
+  T('cube', 0.55, 0.88, 0.08, 7, 0.3, 0.08, 0.16, 0.8, 0.5),
+  T('knot', 0.92, 0.56, 0.07, 8, 0.08, 0.26, 0.22, 0.4, 0.7),
 ]
-/** how strong the whole scene is at each stop */
-const GAIN = [0, 0.1, 0.13, 0.17, 0.21, 0.27]
+/** how many solids at each stop, how big they are, and how strong the whole scene is */
+const COUNT = [0, 1, 3, 5, 7, 9]
+const GROW = [0, 0.9, 0.9, 0.92, 0.95, 0.98]
+const GAIN = [0, 0.2, 0.24, 0.28, 0.33, 0.38]
+/** how long the burst after a finish lasts */
+const BURST_MS = 4800
 
 const FONT = 13
 const LINE = 15
 /** how much of the scene is left behind panels and behind lines of text, so reading never fights it */
-const BEHIND_PANEL = 0.55
-const BEHIND_TEXT = 0.22
+const BEHIND_PANEL = 0.6
+const BEHIND_TEXT = 0.28
 const PANELS = '[data-movable], .material, .glass'
 
 export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }) {
@@ -37,15 +47,21 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     const still = reduced || level === 0
     let cols = 0, rows = 0, cw = 8
     let g = makeGrid(1, 1)
-    let raf = 0, last = 0, t = 0
+    let raf = 0, last = 0, t = 0, spin = 0
     let signal = '#ffd23f', ink = '#ffffff', colorAt = 0
     let mask = new Float32Array(0)
     let seen = ''
     let maskAt = 0
     // on a phone the page text fills the screen, so only the lower solids stay and they sit a little quieter
     const narrow = innerWidth < 640
-    const specs = narrow ? SCENES[Math.min(5, stage)].slice(0, 3) : SCENES[Math.min(5, stage)]
-    const gain = GAIN[Math.min(5, stage)] * (narrow ? 0.75 : 1)
+    const st = Math.min(5, stage)
+    const specs = ALL.slice(0, narrow ? Math.min(3, COUNT[st]) : COUNT[st])
+    const gain = GAIN[st] * (narrow ? 0.8 : 1)
+    const grow = GROW[st]
+    // a finish (the celebration card) sets the shapes off: they speed up, swing wider and swell, then settle over a few seconds
+    let burstAt = -1e9
+    const unsub = useUI.subscribe((u, prev) => { if (u.celebrate && !prev.celebrate) burstAt = performance.now() })
+    const energy = () => Math.max(0, 1 - (performance.now() - burstAt) / BURST_MS)
     const stars = Array.from({ length: 70 }, (_, i) => ({ x: ((i * 97) % 100) / 100, y: ((i * 53) % 100) / 100, s: 0.2 + ((i * 31) % 10) / 12, c: '.+*'[i % 3] }))
 
     const size = () => {
@@ -54,7 +70,7 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr)
       cv.style.width = `${w}px`; cv.style.height = `${h}px`
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.font = `${FONT}px "Geist Mono Variable", ui-monospace, Menlo, Consolas, monospace`
+      ctx.font = `600 ${FONT}px "Geist Mono Variable", ui-monospace, Menlo, Consolas, monospace`
       ctx.textBaseline = 'top'
       cw = ctx.measureText('M').width || 8
       cols = Math.ceil(w / cw); rows = Math.ceil(h / LINE)
@@ -107,11 +123,21 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
 
     const draw = () => {
       if (!cols) return
-      if (performance.now() - colorAt > 1500) { colours(); colorAt = performance.now() }
+      if (performance.now() - colorAt > 400) { colours(); colorAt = performance.now() }
       if (performance.now() - maskAt > 600) { maskAt = performance.now(); panels() }
       clearGrid(g)
       const base = Math.min(cols, rows * 2.2)
-      for (const s of specs) plot(g, s.shape, s.x * cols, s.y * rows, s.r * base * 0.95, t * s.sa + s.ph, t * s.sb + s.ph * 0.7, t * 0.1, base > 100 ? 1.5 : 1)
+      const e = still ? 0 : energy()
+      const swing = 1 + 0.8 * e
+      for (const s of specs) {
+        // each solid wanders on its own slow loop (two waves, so it never retraces itself), and breathes a little as it goes
+        const wx = Math.sin(s.w * t + s.ph * 2.1) + 0.35 * Math.sin(s.w * 2.3 * t + s.ph)
+        const wy = Math.sin(s.w * 0.8 * t + s.ph * 1.3 + 1) + 0.35 * Math.cos(s.w * 1.9 * t + s.ph * 0.6)
+        const px = Math.min(0.94, Math.max(0.06, s.x + s.ax * swing * wx))
+        const py = Math.min(0.9, Math.max(0.1, s.y + s.ay * swing * wy))
+        const breathe = 1 + 0.1 * Math.sin(s.w * 1.7 * t + s.ph) + 0.22 * e * Math.sin(spin * 3 + s.ph)
+        plot(g, s.shape, px * cols, py * rows, s.r * grow * breathe * base * 0.95, spin * s.sa + s.ph, spin * s.sb + s.ph * 0.7, spin * 0.15, base > 100 ? 1.5 : 1)
+      }
       ctx.clearRect(0, 0, cv.width, cv.height)
       // a perspective floor from Arcade on: lines that run to the horizon, scrolling toward you
       const floor = stage >= 3
@@ -125,7 +151,12 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
           const lum = g.lum[o]
           let ch = ''
           let a = 0
-          if (lum >= 0) { ch = RAMP[Math.min(RAMP.length - 1, Math.floor(lum * RAMP.length))]; a = gain * (0.15 + lum * lum * 3.4) }
+          if (lum >= 0) {
+            // a curve on the light so the lit side, the shaded side and the edge read as different characters: the shape shows up, not a block
+            const l = Math.pow(lum, 1.8)
+            ch = RAMP[Math.min(RAMP.length - 1, Math.floor(l * RAMP.length))]
+            a = gain * (0.2 + l * 3.2)
+          }
           else if (floor && y > horizon) {
             const d = y - horizon
             const depth = 6 / d
@@ -150,8 +181,11 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     }
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
-      if (document.hidden || now - last < 1000 / 18) return
-      t += last ? Math.min(0.2, (now - last) / 1000) : 0
+      if (document.hidden || now - last < 1000 / 24) return
+      const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
+      const e = energy()
+      t += dt * (1 + 3 * e)
+      spin += dt * (1 + 5 * e)
       last = now
       draw()
     }
@@ -161,8 +195,8 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     const watch = still ? setInterval(() => { if (!document.hidden && panels()) draw() }, 700) : 0
     const onResize = () => { size(); panels(); draw() }
     addEventListener('resize', onResize)
-    return () => { cancelAnimationFrame(raf); clearInterval(watch); removeEventListener('resize', onResize) }
+    return () => { cancelAnimationFrame(raf); clearInterval(watch); unsub(); removeEventListener('resize', onResize) }
   }, [stage, level])
   if (stage < 1) return null
-  return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0" />
+  return <canvas ref={ref} data-scene aria-hidden className="pointer-events-none absolute inset-0" />
 }

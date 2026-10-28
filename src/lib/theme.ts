@@ -14,8 +14,10 @@ const KEYS = ['--signal', '--on-signal', '--signal-soft', '--ground', '--surface
 /** Text colour that reads on a given fill. */
 export const onColour = (h: string) => (contrast(h, '#0a0c12') >= contrast(h, '#ffffff') ? '#0a0c12' : '#ffffff')
 
-/** which of the six era stops a dial value is on (0 future to 5 full ASCII) */
+/** which of the six retro stops a dial value is on (0 future to 5 full retro) */
 export const eraStage = (era: number) => Math.round((100 - Math.min(100, Math.max(0, era))) / 20)
+/** which of the six ASCII stops a dial value is on (0 off to 5 a whole text world) */
+export const asciiStage = (ascii: number) => Math.round(Math.min(100, Math.max(0, ascii)) / 20)
 
 /** One attribute on <html> picks the look; optional accent and background colours sit on top of it. */
 export function useTheme() {
@@ -23,15 +25,17 @@ export function useTheme() {
   const accent = useStore((s) => s.settings.accent)
   const bg = useStore((s) => s.settings.bg)
   const era = useStore((s) => s.settings.era)
+  const ascii = useStore((s) => s.settings.ascii)
   useEffect(() => {
-    // the era dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction; --fx is the same
-    // but never past Broadcast, because the screen effects (scanline, grain, warmth, glow) stop there. Past it the dial
-    // adds more solids drawn in text, not more filters.
+    // the retro dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction; --fx is the same
+    // but never past Broadcast, because the screen effects (scanline, grain, warmth, glow) stop there. The text solids
+    // are a dial of their own (ascii, below), so how retro the screen is and how many solids there are are chosen apart.
     const stage = eraStage(era)
     document.documentElement.style.setProperty('--retro', (stage / 5).toFixed(2))
     document.documentElement.style.setProperty('--fx', (Math.min(stage, 2) / 5).toFixed(2))
     document.documentElement.dataset.retro = String(stage)
   }, [era])
+  useEffect(() => { document.documentElement.dataset.ascii = String(asciiStage(ascii)) }, [ascii])
   useEffect(() => {
     const t = themeDef(id)
     const el = document.documentElement
