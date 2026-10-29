@@ -16,6 +16,19 @@ export const HANDOFF_MIN = 10
 const bytes = (b: ArrayBuffer | Uint8Array) => (b instanceof Uint8Array ? b : new Uint8Array(b))
 const b64 = (b: ArrayBuffer | Uint8Array) => { let s = ''; for (const x of bytes(b)) s += String.fromCharCode(x); return btoa(s) }
 const unb64 = (t: string) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0))
+/** gzip before sealing, so a long history is a few kilobytes on the server (the first byte says whether it was packed) */
+async function pack(text: string): Promise<Uint8Array> {
+  const raw = new TextEncoder().encode(text)
+  if (typeof CompressionStream === 'undefined') return new Uint8Array([0, ...raw])
+  const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer())
+  const out = new Uint8Array(z.length + 1); out[0] = 1; out.set(z, 1)
+  return out
+}
+async function unpack(b: Uint8Array): Promise<string> {
+  if (b[0] === 0) return new TextDecoder().decode(b.slice(1))
+  if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot open compressed data.')
+  return new TextDecoder().decode(await new Response(new Blob([b.slice(1)]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())
+}
 const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('')
 
 /** what a person types: spaces, dashes and case do not matter */
@@ -47,9 +60,9 @@ export async function sendData(): Promise<string> {
   const me = await identity()
   let layout: unknown = null
   try { layout = JSON.parse(localStorage.getItem('friction:layout') ?? 'null') } catch { /* none */ }
-  const plain = new TextEncoder().encode(JSON.stringify({ v: 1, data: snapshotData(), me: { key: me.key, name: me.name }, layout }))
+  const plain = await pack(JSON.stringify({ v: 1, data: snapshotData(), me: { key: me.key, name: me.name }, layout }))
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain))
+  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain as unknown as ArrayBuffer))
   const blob = b64(new Uint8Array([...iv, ...sealed]))
   const r = await post({ a: 'xput', id, blob, owner: await roomId(me) })
   if (!r.ok) throw new Error(r.status === 429 ? 'Too many tries. Wait a little and try again.' : r.status === 400 ? 'Your data is too large to move this way.' : 'The server could not be reached.')
@@ -70,7 +83,7 @@ export async function receiveData(typed: string): Promise<void> {
   try {
     const raw = unb64(blob)
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12))
-    payload = JSON.parse(new TextDecoder().decode(plain))
+    payload = JSON.parse(await unpack(new Uint8Array(plain)))
   } catch { throw new Error('That code did not open the data.') }
   if (payload.v !== 1) throw new Error('That data comes from a different version of Friction.')
   const { data, matched } = sanitizeData(payload.data)

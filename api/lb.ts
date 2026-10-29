@@ -17,6 +17,9 @@ const BOARD_SIZE = 25
 const PENDING_CAP = 5000
 /** how long a hand-off waits to be picked up */
 const XFER_MS = 10 * 60_000
+/** a sealed hand-off is at most this many characters (about 500 KB): a person's data is compressed first and is a fraction of this */
+const XFER_MAX = 700_000
+let swept = 0
 
 let db: Client | undefined
 let ready: Promise<unknown> | undefined
@@ -128,6 +131,8 @@ export default {
       }
 
       if (request.method === 'POST') {
+        // sealed hand-offs that nobody picked up are removed here, at most once a minute for each instance, on any request, so they never sit in the database
+        if (Date.now() - swept > 60_000) { swept = Date.now(); await c.execute({ sql: 'DELETE FROM xfer WHERE t < ?', args: [Date.now() - XFER_MS] }) }
         const body = (await request.json().catch(() => ({}))) as { a?: string; code?: string; key?: string; name?: string }
 
         // your own standing: the secret key travels in the body, never in an address that a log could keep
@@ -165,7 +170,7 @@ export default {
         // person (`owner` is their private room id), kept ten minutes. Hand-off, get: whoever holds the code's id takes it once.
         if (body.a === 'xput') {
           const b = body as { id?: string; blob?: string; owner?: string }
-          if (!/^[a-f0-9]{32}$/.test(String(b.id)) || !/^[a-f0-9]{32}$/.test(String(b.owner)) || typeof b.blob !== 'string' || b.blob.length < 40 || b.blob.length > 1_400_000) return json({ error: 'bad hand-off' }, 400)
+          if (!/^[a-f0-9]{32}$/.test(String(b.id)) || !/^[a-f0-9]{32}$/.test(String(b.owner)) || typeof b.blob !== 'string' || b.blob.length < 40 || b.blob.length > XFER_MAX) return json({ error: 'bad hand-off' }, 400)
           if (limited(`xput:${ip}`, 20)) return json({ error: 'slow down' }, 429)
           await c.execute({ sql: 'DELETE FROM xfer WHERE t < ?', args: [Date.now() - XFER_MS] })
           await c.execute({ sql: 'INSERT INTO xfer (owner, id, blob, t) VALUES (?, ?, ?, ?) ON CONFLICT (owner) DO UPDATE SET id = excluded.id, blob = excluded.blob, t = excluded.t', args: [b.owner!, b.id!, b.blob, Date.now()] })
