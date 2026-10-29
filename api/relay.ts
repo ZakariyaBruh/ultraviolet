@@ -18,7 +18,7 @@ let db: Client | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
 const today = () => new Date().toISOString().slice(0, 10)
 async function who(ip: string) {
-  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`relay:${ip}`))
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`relay2:${ip}`))
   return `r${Array.from(new Uint8Array(h)).slice(0, 9).map((b) => b.toString(16).padStart(2, '0')).join('')}`
 }
 
@@ -34,12 +34,12 @@ export default {
       const id = await who(ip)
       const c = client()
       await c.execute('CREATE TABLE IF NOT EXISTS cloud_day (id TEXT PRIMARY KEY, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0)')
-      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY'] })
+      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY2'] })
       const get = (k: string) => Number(r.rows.find((x) => x.id === k)?.secs ?? 0)
       if (get(id) + LIFE > PER_IP) return json({ error: 'limit' }, 429)
-      if (get('RELAY') + LIFE > ALL) return json({ error: 'full' }, 429)
+      if (get('RELAY2') + LIFE > ALL) return json({ error: 'full' }, 429)
       const sql = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
-      await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY', today(), LIFE] }])
+      await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY2', today(), LIFE] }])
       const t = mint(LIFE)
       return json({ base: ORIGIN, token: t.token, exp: t.exp, left: Math.max(0, PER_IP - get(id) - LIFE) })
     } catch { return json({ error: 'The relay could not check its limit' }, 503) }
