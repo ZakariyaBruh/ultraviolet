@@ -75,6 +75,9 @@ export function Shell({ view, onChange, onHome, children }: { view: View; onChan
     if (!m || !p) return
     let on = false
     const measure = () => {
+      // reading scrollHeight forces a reflow; next to the cloud browser's live iframe that reflow freezes an iPad, so
+      // hold the current scroll state while it is open (the cloud frame manages its own size). Resumes when it closes.
+      if (useUI.getState().cloudOpen) return
       const over = p.scrollHeight - p.clientHeight
       const want = on ? over > 3 : over > 24 // a panel picked up or zoomed a little is not a reason to scroll
       if (want === on) return

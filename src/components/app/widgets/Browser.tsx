@@ -1,5 +1,6 @@
 import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useUI } from '@/lib/ui'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
@@ -144,6 +145,13 @@ function AddPage({ onSave, onBack }: { onSave: (name: string, url: string) => vo
 export function Browser() {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [stack, setStack] = useState<View[]>([])
+  // tell the rest of the app the cloud browser's live frame is up, so Friction pauses its forced-layout timers (the
+  // ASCII panel scan, the Shell scroll measure) that otherwise reflow against the heavy iframe and freeze an iPad
+  const cloud = view.kind === 'relay'
+  useEffect(() => {
+    useUI.getState().set({ cloudOpen: cloud })
+    return () => useUI.getState().set({ cloudOpen: false })
+  }, [cloud])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')

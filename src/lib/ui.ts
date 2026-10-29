@@ -19,6 +19,12 @@ interface UI {
   receipt: SessionRec | null
   /** a small win worth marking: shows the celebration card */
   celebrate: { title: string; detail: string } | null
+  /**
+   * The cloud browser frame is mounted. A proxied page shares one thread with Friction on an iPad, so while it is open
+   * we stop Friction's own forced-layout timers (the ASCII panel scan, the Shell scroll measure) — each reflow is
+   * pathologically slow next to a heavy live iframe and was freezing the whole tab. Animation is untouched.
+   */
+  cloudOpen: boolean
   set: (patch: Partial<Omit<UI, 'set'>>) => void
 }
 
@@ -36,5 +42,6 @@ export const useUI = create<UI>((set) => ({
   onboardOpen: false,
   receipt: null,
   celebrate: null,
+  cloudOpen: false,
   set: (patch) => set(patch),
 }))

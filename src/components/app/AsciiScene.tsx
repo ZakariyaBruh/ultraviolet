@@ -89,6 +89,10 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     }
     /** find panels and lines of text on screen and quieten the scene behind them; returns false when nothing moved */
     const panels = () => {
+      // the cloud browser mounts a heavy live iframe; measuring ~500 range rects next to it forces a reflow that
+      // freezes an iPad (one thread for the page and its frames). Keep the last mask while it is open — the scene is
+      // behind the frame anyway and the solids keep turning. The measure resumes the moment it closes.
+      if (useUI.getState().cloudOpen) return false
       const boxes: { r: DOMRect; v: number }[] = []
       document.querySelectorAll<HTMLElement>(PANELS).forEach((el) => {
         const r = el.getBoundingClientRect()
