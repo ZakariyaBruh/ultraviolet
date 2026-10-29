@@ -41,7 +41,9 @@ type View =
 let pass: { base: string; token: string; exp: number; left: number } | null = null
 
 /** sites that cannot run in the sealed frame at all (chat apps that need live connections, script-only apps, sites that turn our server away): they open straight in the cloud browser */
-const CLOUD_FIRST = /^(discord\.com|chatgpt\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com|perplexity\.ai|poe\.com|character\.ai|copilot\.microsoft\.com|archive\.org|khanacademy\.org|openstax\.org)$/
+const CLOUD_FIRST = /^(google\.com|discord\.com|chatgpt\.com|chat\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com|perplexity\.ai|poe\.com|character\.ai|copilot\.microsoft\.com|archive\.org|khanacademy\.org|openstax\.org)$/
+/** names people type instead of an address */
+const BRANDS: Record<string, string> = { chatgpt: 'chatgpt.com', chat: 'chatgpt.com', gpt: 'chatgpt.com', openai: 'chatgpt.com', discord: 'discord.com', google: 'google.com', claude: 'claude.ai', gemini: 'gemini.google.com', perplexity: 'perplexity.ai', poe: 'poe.com', characterai: 'character.ai', copilot: 'copilot.microsoft.com', archive: 'archive.org', internetarchive: 'archive.org', khanacademy: 'khanacademy.org', khan: 'khanacademy.org' }
 const cloudFirst = (u: URL) => CLOUD_FIRST.test(u.hostname.replace(/^(www|m|app|web)\./, ''))
 
 /** pages opened this visit, newest first */
@@ -275,7 +277,9 @@ export function Browser() {
   const go = (input: string, yt = view.kind === 'youtube') => {
     const t = input.trim()
     if (!t) return
-    if (/^https?:\/\//i.test(t)) void open(t)
+    const brand = BRANDS[t.toLowerCase().replace(/[\s.]+/g, '')]
+    if (brand && !yt) void open(`https://${brand}`)
+    else if (/^https?:\/\//i.test(t)) void open(t)
     else if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(t)) void open(`https://${t}`)
     else if (yt) void ytSearch(t)
     else void search(t)
