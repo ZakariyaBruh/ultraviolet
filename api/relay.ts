@@ -4,21 +4,23 @@ import { mint } from './_relaytoken.js'
 
 /**
  * Hands out passes for the relay (the separate friction-relay project that fetches pages for sites the Browser cannot open on its own).
- * A pass lasts 30 minutes, is signed with RELAY_SECRET, which only this project and the relay hold, so the
- * relay will not serve anyone who did not get one here. Each address may be given `PER_IP` seconds of passes a day (4 passes, 2 hours), and
- * everyone together `ALL` (env `RELAY_DAILY_CAP_H`, default 8 hours, about 240 a month: roughly $8 of Vercel usage at about $0.035 for an open-socket hour), counted in Turso (`cloud_day`, one row for each hashed address,
+ * A pass lasts 15 minutes, is signed with RELAY_SECRET, which only this project and the relay hold, so the
+ * relay will not serve anyone who did not get one here. Each address may be given `PER_IP` seconds of passes a day (2 passes of 15 minutes, so 30 minutes), and
+ * everyone together `ALL` (env `RELAY_DAILY_CAP_H`, default 16 hours, about 480 a month: 32 people at 30 minutes, roughly $16 of Vercel usage at an estimated $0.035 for an open-socket hour), counted in Turso (`cloud_day`, one row for each hashed address,
  * starting over each UTC day). Only the Friction page may ask, and with no Turso it refuses, so it is never unmetered.
  */
-const LIFE = 30 * 60
-const PER_IP = 4 * LIFE
-const ALL = (Number(process.env.RELAY_DAILY_CAP_H) || 8) * 3600
+const LIFE = 15 * 60
+const PER_IP = 2 * LIFE
+const ALL = (Number(process.env.RELAY_DAILY_CAP_H) || 16) * 3600
 const ORIGIN = process.env.RELAY_ORIGIN || 'https://friction-relay.vercel.app'
 
 let db: Client | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
 const today = () => new Date().toISOString().slice(0, 10)
+/** an IPv6 address is a whole /64 to its owner, who can change the last half at will, so the allowance goes by the first half */
+const net = (ip: string) => (ip.includes(':') ? ip.split(':').slice(0, 4).join(':') : ip)
 async function who(ip: string) {
-  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`relay2:${ip}`))
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`relay3:${net(ip)}`))
   return `r${Array.from(new Uint8Array(h)).slice(0, 9).map((b) => b.toString(16).padStart(2, '0')).join('')}`
 }
 
@@ -34,12 +36,12 @@ export default {
       const id = await who(ip)
       const c = client()
       await c.execute('CREATE TABLE IF NOT EXISTS cloud_day (id TEXT PRIMARY KEY, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0)')
-      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY2'] })
+      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY3'] })
       const get = (k: string) => Number(r.rows.find((x) => x.id === k)?.secs ?? 0)
       if (get(id) + LIFE > PER_IP) return json({ error: 'limit' }, 429)
-      if (get('RELAY2') + LIFE > ALL) return json({ error: 'full' }, 429)
+      if (get('RELAY3') + LIFE > ALL) return json({ error: 'full' }, 429)
       const sql = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
-      await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY2', today(), LIFE] }])
+      await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY3', today(), LIFE] }])
       const t = mint(LIFE)
       return json({ base: ORIGIN, token: t.token, exp: t.exp, left: Math.max(0, PER_IP - get(id) - LIFE) })
     } catch { return json({ error: 'The relay could not check its limit' }, 503) }

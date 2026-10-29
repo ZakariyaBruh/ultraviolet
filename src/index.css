@@ -440,3 +440,9 @@ html[data-retro='5'] button { border-radius: 0 !important; }
 .tour-ping { transform-box: fill-box; transform-origin: center; pointer-events: none; opacity: 0; }
 @media (prefers-reduced-motion: no-preference) { .tour-ping { animation: tourping 1.7s cubic-bezier(0.2, 0, 0, 1) infinite; } }
 @keyframes tourping { 0% { transform: scale(1); opacity: 0.8; } 70%, 100% { transform: scale(1.16, 1.3); opacity: 0; } }
+
+/* the Widgets deck: the cards are dealt from the stack with a short stagger and rest in a fan; the top card of the closed deck turns */
+.wcard { rotate: var(--tilt, 0deg); animation: deal 240ms ease-out backwards; }
+@keyframes deal { from { opacity: 0; translate: 0 -16px; rotate: 0deg; scale: 0.88; } }
+@keyframes deck-flip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wcard { animation: none; } }

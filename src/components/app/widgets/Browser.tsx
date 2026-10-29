@@ -40,12 +40,6 @@ type View =
 /** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
 let pass: { base: string; token: string; exp: number; left: number } | null = null
 
-/** sites that cannot run in the sealed frame at all (chat apps that need live connections, script-only apps, sites that turn our server away): they open straight in the cloud browser */
-const CLOUD_FIRST = /^(google\.com|discord\.com|chatgpt\.com|chat\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com|perplexity\.ai|poe\.com|character\.ai|copilot\.microsoft\.com|archive\.org|khanacademy\.org|openstax\.org)$/
-/** names people type instead of an address */
-const BRANDS: Record<string, string> = { chatgpt: 'chatgpt.com', chat: 'chatgpt.com', gpt: 'chatgpt.com', openai: 'chatgpt.com', discord: 'discord.com', google: 'google.com', claude: 'claude.ai', gemini: 'gemini.google.com', perplexity: 'perplexity.ai', poe: 'poe.com', characterai: 'character.ai', copilot: 'copilot.microsoft.com', archive: 'archive.org', internetarchive: 'archive.org', khanacademy: 'khanacademy.org', khan: 'khanacademy.org' }
-const cloudFirst = (u: URL) => CLOUD_FIRST.test(u.hostname.replace(/^(www|m|app|web)\./, ''))
-
 /** pages opened this visit, newest first */
 let history: string[] = []
 const NONE: SavedPage[] = []
@@ -176,6 +170,17 @@ export function Browser() {
 
   const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); setRelayReady(false); loads.current = 0; setView(v) }
 
+  /** hosts that were sent to the cloud browser on our own this visit, so a page that fails there as well is not sent back and forth */
+  const tried = useRef(new Set<string>())
+  /** the normal browser could not run this page: the cloud browser takes it, once for each site; if that was tried, `fail` is shown */
+  const fallback = (raw: string, fail: View | null, push: boolean) => {
+    let host = ''
+    try { host = new URL(raw).hostname } catch { /* not an address */ }
+    if (!host || tried.current.has(host)) return fail ? show(fail, push) : undefined
+    tried.current.add(host)
+    return openRelay(raw, push, true)
+  }
+
   /**
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
    * static never runs them; render always does. `push` is false when the same page is being shown again another way.
@@ -186,7 +191,6 @@ export function Browser() {
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
     const id = youtubeId(v.url)
     if (id) return show({ kind: 'video', id, url: v.url.toString() }, push)
-    if (how === 'auto' && cloudFirst(v.url)) return openRelay(raw, push)
     // with page scripts on, Google, YouTube and the rest are opened as themselves; the window's own search pages stand in only when scripts are off
     if (scripts === 'off' || how === 'static') {
       const s = searched(v.url)
@@ -207,11 +211,11 @@ export function Browser() {
       if (my !== token.current) return
       if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw, retry: true }, push)
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' }, push)
-      if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
+      if (!r.ok || !d.html) { const fail: View = { kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled }; return d.walled || [401, 403, 451].includes(r.status) ? fallback(raw, fail, push) : show(fail, push) }
       const here = d.url ?? raw
       const hv = verdict(here) // where redirects ended up
       if (!hv.ok) return show({ kind: 'blocked', url: here, why: hv.why }, push)
-      if (!live && d.thin) return show({ kind: 'error', msg: scripts === 'off' ? 'This site builds its page with scripts, and page scripts are turned off in Settings, so there is nothing to show here' : 'This site builds its page with scripts, so there is nothing to show here', url: here, retry: false, run: scripts !== 'off' ? () => void open(here, 'render', false) : undefined }, push)
+      if (!live && d.thin) return fallback(here, { kind: 'error', msg: scripts === 'off' ? 'This site builds its page with scripts, and page scripts are turned off in Settings, so there is nothing to show here' : 'This site builds its page with scripts, so there is nothing to show here', url: here, retry: false, run: scripts !== 'off' ? () => void open(here, 'render', false) : undefined }, push)
       setDoing('Checking the page')
       const sc = await screenPage(hv.url, d.html)
       if (my !== token.current) return
@@ -222,11 +226,11 @@ export function Browser() {
   }
 
   /** opens a page through the relay: the page runs here, in this browser, and the relay only fetches its files (api/relay.ts, relay/) */
-  const openRelay = async (raw: string, push = true) => {
+  const openRelay = async (raw: string, push = true, auto = false) => {
     const my = ++token.current
     const v = verdict(raw)
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
-    setDoing('Opening in the cloud browser')
+    setDoing(auto ? 'This page does not run here, so the cloud browser is opening it' : 'Opening in the cloud browser')
     setBusy(true)
     try {
       if (!pass || pass.exp < Date.now() / 1000 + 120) {
@@ -277,9 +281,7 @@ export function Browser() {
   const go = (input: string, yt = view.kind === 'youtube') => {
     const t = input.trim()
     if (!t) return
-    const brand = BRANDS[t.toLowerCase().replace(/[\s.]+/g, '')]
-    if (brand && !yt) void open(`https://${brand}`)
-    else if (/^https?:\/\//i.test(t)) void open(t)
+    if (/^https?:\/\//i.test(t)) void open(t)
     else if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(t)) void open(`https://${t}`)
     else if (yt) void ytSearch(t)
     else void search(t)
@@ -291,7 +293,7 @@ export function Browser() {
       if (e.source !== frame.current?.contentWindow) return
       const d = e.data as { friction?: number; go?: string; note?: string; fx?: number; url?: unknown; method?: unknown; headers?: unknown; body?: unknown } | null
       if (d?.friction !== 1) return
-      if (typeof (d as { health?: unknown }).health === 'number') { if (((d as { health: number }).health) < 80) setEmpty(true); return }
+      if (typeof (d as { health?: unknown }).health === 'number') { const n = (d as { health: number }).health; if (n < 80) setEmpty(true); if (n < 30 && view.kind === 'page') void fallback(view.url, null, false); return }
       if (typeof d.fx === 'number') {
         const id = d.fx
         void frameRequest(d).then((r) => {
@@ -444,7 +446,7 @@ export function Browser() {
         {view.kind === 'page' && (
           <div className="flex size-full flex-col">
             <div className="relative min-h-0 flex-1">
-            <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) show({ kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
+            <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) fallback(view.url, { kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
             {empty && !note && !issues && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-ground px-3 py-1 text-[13px] text-ink"><span>This page looks empty.</span><button onClick={() => setIssues(true)} className="h-11 shrink-0 px-3 font-semibold text-signal underline">Facing issues?</button></div>}
             </div>
@@ -454,7 +456,7 @@ export function Browser() {
           <div className="flex size-full flex-col">
             <div className="relative min-h-0 flex-1">
               {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
-              <iframe key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="clipboard-write; fullscreen" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
+              <iframe key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
             </div>
           </div>
         )}

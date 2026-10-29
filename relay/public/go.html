@@ -21,7 +21,9 @@
     }
     // the controller sets up Scramjet's storage, which the worker reads, so it comes first
     const { ScramjetController } = $scramjetLoadController()
-    const scramjet = new ScramjetController({ files: { wasm: '/scram/scramjet.wasm.wasm', all: '/scram/scramjet.all.js', sync: '/scram/scramjet.sync.js' } })
+    // lighter rewriting (no source maps, no try/catch around every script) so heavy sites use less memory and time on a slow device
+    const flags = q.get('heavy') === '1' ? {} : { sourcemaps: false, captureErrors: false }
+    const scramjet = new ScramjetController({ files: { wasm: '/scram/scramjet.wasm.wasm', all: '/scram/scramjet.all.js', sync: '/scram/scramjet.sync.js' }, flags })
     await scramjet.init()
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
     const sw = reg.installing || reg.waiting || reg.active
