@@ -1,5 +1,5 @@
 /**
- * Friction alts: small, native stand-ins for popular sites that cannot work in the Browser without the metered cloud browser
+ * Friction alts: small, native stand-ins for popular sites that cannot work in the Browser without the cloud browser
  * (script apps like Google Maps and Translate, or sites that turn our server away like Stack Overflow). Each one asks a free public
  * API that needs no key and sends CORS headers, straight from the person's browser, and shows plain rows. No scroll feed, nothing
  * stored, only the words typed are sent. Sites that already read fine in the Browser (Wikipedia, GitHub, Hacker News, Project

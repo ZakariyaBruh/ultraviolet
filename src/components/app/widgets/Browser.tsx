@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Cloud, CircleHelp, Waypoints, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -29,7 +29,7 @@ type View =
   /** `q` is empty on YouTube's own start page */
   | { kind: 'youtube'; q: string; list: Video[] }
   /** `rendered`: the page's scripts were run on our server and this is what they drew */
-  | { kind: 'page'; url: string; html: string; rendered?: boolean; cloud?: boolean }
+  | { kind: 'page'; url: string; html: string; rendered?: boolean }
   /** the page runs in this browser through the relay (a separate project on its own address); `n` makes Reload start it afresh */
   | { kind: 'relay'; url: string; src: string; n: number }
   | { kind: 'video'; id: string; url: string }
@@ -38,7 +38,7 @@ type View =
   | { kind: 'error'; msg: string; url?: string; retry?: boolean; redo?: () => void; run?: () => void }
 
 /** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
-let pass: { base: string; token: string; exp: number } | null = null
+let pass: { base: string; token: string; exp: number; left: number } | null = null
 
 /** pages opened this visit, newest first */
 let history: string[] = []
@@ -154,9 +154,6 @@ export function Browser() {
   const scripts: string = 'on'
   const [issues, setIssues] = useState(false)
   const [leave, setLeave] = useState<string | null>(null)
-  const [cloudLeft, setCloudLeft] = useState<number | null>(null)
-  /** when the cloud browser began running a page, so the time left counts down while it works */
-  const [cloudFrom, setCloudFrom] = useState<number | null>(null)
   const [, tick] = useState(0)
   const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
@@ -177,7 +174,7 @@ export function Browser() {
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
    * static never runs them; render always does. `push` is false when the same page is being shown again another way.
    */
-  const open = async (raw: string, how: 'auto' | 'static' | 'render' | 'cloud' = 'auto', push = true) => {
+  const open = async (raw: string, how: 'auto' | 'static' | 'render' = 'auto', push = true) => {
     const my = ++token.current
     const v = verdict(raw)
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
@@ -193,20 +190,16 @@ export function Browser() {
     const target = v.url.toString()
     // scripts run in the person's own browser (in the sealed frame), never on a server, once the address has passed the list and a
     // page the list does not know has been looked at
-    const cloud = how === 'cloud' // the page run in a browser in the cloud (api/render.ts), metered per day, only on request
-    const live = !cloud && (how === 'render' || (how === 'auto' && scripts !== 'off'))
-    type Got = { left?: number; url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
+    const live = how === 'render' || (how === 'auto' && scripts !== 'off')
+    type Got = { url?: string; html?: string; error?: string; why?: string; walled?: boolean; thin?: boolean }
     setDoing('Loading the page')
     setBusy(true)
     try {
-      if (cloud) { setDoing('Running the page in the cloud'); setCloudFrom(Date.now()) }
-      const r = await fetch(cloud ? `/api/render?u=${encodeURIComponent(target)}&w=${box.current?.clientWidth ?? 1024}` : `/api/browse?u=${encodeURIComponent(target)}${live ? '&s=1' : ''}`, { signal: AbortSignal.timeout(cloud ? 55000 : 25000) })
+      const r = await fetch(`/api/browse?u=${encodeURIComponent(target)}${live ? '&s=1' : ''}`, { signal: AbortSignal.timeout(25000) })
       const d = (await r.json().catch(() => null)) as Got | null
       if (my !== token.current) return
       if (!d) return show({ kind: 'error', msg: 'The page service is not answering right now', url: raw, retry: true }, push)
       if (r.status === 403) return show({ kind: 'blocked', url: raw, why: d.why ?? 'a blocked site' }, push)
-      if (cloud && r.status === 429) return show({ kind: 'error', msg: d.error === 'full' ? 'The cloud browser is full for today. It resets at midnight UTC' : 'You have used your 30 minutes of cloud browsing for today. It resets at midnight UTC', url: raw, retry: false }, push)
-      if (cloud && r.status === 503) return show({ kind: 'error', msg: 'The cloud browser is not available right now', url: raw, retry: false }, push)
       if (!r.ok || !d.html) return show({ kind: 'error', msg: d.error ?? 'The page did not load', url: raw, retry: !d.walled }, push)
       const here = d.url ?? raw
       const hv = verdict(here) // where redirects ended up
@@ -216,10 +209,9 @@ export function Browser() {
       const sc = await screenPage(hv.url, d.html)
       if (my !== token.current) return
       if (sc.block) return show({ kind: 'blocked', url: here, why: 'a game or short-form site (checked by AI)' }, push)
-      if (cloud && typeof d.left === 'number') setCloudLeft(d.left)
       history = [here, ...history.filter((x) => x !== here)].slice(0, 8)
-      show({ kind: 'page', url: here, html: d.html, rendered: live, cloud }, push)
-    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) { setBusy(false); setCloudFrom(null) } }
+      show({ kind: 'page', url: here, html: d.html, rendered: live }, push)
+    } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
   /** opens a page through the relay: the page runs here, in this browser, and the relay only fetches its files (api/relay.ts, relay/) */
@@ -227,16 +219,16 @@ export function Browser() {
     const my = ++token.current
     const v = verdict(raw)
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
-    setDoing('Opening through the relay')
+    setDoing('Opening in the cloud browser')
     setBusy(true)
     try {
       if (!pass || pass.exp < Date.now() / 1000 + 120) {
         const r = await fetch('/api/relay', { signal: AbortSignal.timeout(15000) })
-        const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; error?: string } | null
+        const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; left?: number; error?: string } | null
         if (my !== token.current) return
-        if (r.status === 429) return show({ kind: 'error', msg: d?.error === 'full' ? 'The relay is full for today. It resets at midnight UTC' : 'You have used all of the relay for today. It resets at midnight UTC', url: raw, retry: false }, push)
-        if (!r.ok || !d?.token || !d.base || !d.exp) return show({ kind: 'error', msg: 'The relay is not available right now', url: raw, retry: true }, push)
-        pass = { base: d.base, token: d.token, exp: d.exp }
+        if (r.status === 429) return show({ kind: 'error', msg: d?.error === 'full' ? 'The cloud browser is full for today. It resets at midnight UTC' : 'You have used all of your cloud browser time for today. It resets at midnight UTC', url: raw, retry: false }, push)
+        if (!r.ok || !d?.token || !d.base || !d.exp) return show({ kind: 'error', msg: 'The cloud browser is not available right now', url: raw, retry: true }, push)
+        pass = { base: d.base, token: d.token, exp: d.exp, left: typeof d.left === 'number' ? d.left : 0 }
       }
       const sc = await screenPage(v.url, '')
       if (my !== token.current) return
@@ -244,7 +236,7 @@ export function Browser() {
       try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
       history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
       show({ kind: 'relay', url: v.url.toString(), src: `${pass.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass.token}`, n: Date.now() }, push)
-    } catch { if (my === token.current) show({ kind: 'error', msg: 'The relay could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
+    } catch { if (my === token.current) show({ kind: 'error', msg: 'The cloud browser could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
   const search = async (q: string) => {
@@ -303,7 +295,7 @@ export function Browser() {
       }
       if (typeof d.go === 'string' && d.go.length < 2000) void open(d.go)
       else if (d.note === 'form') setNote('That button sends a form. The Browser only reads pages, so it cannot send one.')
-      else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote(view.kind === 'page' && view.cloud ? 'This is a snapshot from the cloud browser, so buttons and menus cannot be pressed. Links and search boxes still work.' : 'That button needs the page to be running, and it is not. Try Reload.') }
+      else if (d.note === 'control') { if (!(view.kind === 'page' && view.rendered)) setNote('That button needs the page to be running, and it is not. Try Reload.') }
     }
     addEventListener('message', hear)
     return () => removeEventListener('message', hear)
@@ -327,32 +319,21 @@ export function Browser() {
     return null
   }
   const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' ? view.url : undefined
-  const cloudOk = !!pageUrl && !/^(www\.|m\.)?(youtube\.com|youtu\.be|google\.[a-z.]{2,6})$/.test((() => { try { return new URL(pageUrl).hostname } catch { return '' } })())
-  useEffect(() => {
-    if (!issues || !cloudOk) return
-    setCloudLeft(null)
-    fetch('/api/render?usage=1').then((r) => r.json()).then((d: { left?: number }) => setCloudLeft(typeof d.left === 'number' ? d.left : null)).catch(() => setCloudLeft(null))
-  }, [issues, cloudOk])
   const wrap = pageUrl ? wrapFor(pageUrl) : null
-  // the time left counts down on screen while the cloud browser is working, and is re-read when it finishes
+  // the time left today counts down on screen while a cloud browser page is open
   useEffect(() => {
-    if (cloudFrom === null) return
+    if (view.kind !== 'relay') return
     const t = setInterval(() => tick((n) => n + 1), 1000)
     return () => clearInterval(t)
-  }, [cloudFrom])
+  }, [view])
   useEffect(() => {
     if (view.kind !== 'relay') return
     const t = setTimeout(() => setRelayReady(true), 9000)
     return () => clearTimeout(t)
   }, [view])
-  const onCloud = cloudFrom !== null || (view.kind === 'page' && !!view.cloud)
-  const leftNow = cloudLeft === null ? null : Math.max(0, cloudLeft - (cloudFrom ? Math.floor((Date.now() - cloudFrom) / 1000) : 0))
-  const mmss = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, view.kind === 'page' && view.cloud ? 'cloud' : 'auto', false) } }
-  useEffect(() => {
-    if (!onCloud || cloudLeft !== null) return
-    fetch('/api/render?usage=1').then((r) => r.json()).then((d: { left?: number }) => setCloudLeft(typeof d.left === 'number' ? d.left : null)).catch(() => {})
-  }, [onCloud, cloudLeft])
+  const leftNow = pass ? Math.max(0, pass.left + Math.max(0, pass.exp - Math.floor(Date.now() / 1000))) : null
+  const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
+  const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
   const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alts' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
@@ -450,7 +431,6 @@ export function Browser() {
         )}
         {view.kind === 'page' && (
           <div className="flex size-full flex-col">
-            {view.cloud && <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Cloud className="size-3.5 text-signal" aria-hidden />Cloud browser</span>{leftNow !== null && <span>Time left today <span className="fig text-ink" role="timer" aria-label={`${mmss(leftNow)} of cloud time left today`}>{mmss(leftNow)}</span></span>}<span className="text-ink-3">A snapshot: links work, buttons do not.</span></p>}
             <div className="relative min-h-0 flex-1">
             <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) show({ kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
@@ -460,10 +440,10 @@ export function Browser() {
         )}
         {view.kind === 'relay' && (
           <div className="flex size-full flex-col">
-            <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Waypoints className="size-3.5 text-signal" aria-hidden />Relay</span><span className="text-ink-3">This page runs on your device. Friction only fetches its files, and blocked sites stay blocked.</span></p>
+            <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Cloud className="size-3.5 text-signal" aria-hidden />Cloud browser</span>{leftNow !== null && <span>Time left today <span className="fig text-ink" role="timer" aria-label={`${mmss(leftNow)} of cloud browser time left today`}>{mmss(leftNow)}</span></span>}<span className="text-ink-3">The page runs on your device; blocked sites stay blocked.</span></p>
             <div className="relative min-h-0 flex-1">
               {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
-              <iframe key={view.n} title={`Relayed page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="clipboard-write; fullscreen" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
+              <iframe key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="clipboard-write; fullscreen" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
             </div>
           </div>
         )}
@@ -495,12 +475,10 @@ export function Browser() {
           <div className="scroll-y absolute inset-0 z-20 grid content-start justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Page not working?</p>
             <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
-            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Relay:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly. Free to use. Sites that check you are a person, and logins, may still fail.</p>}
-            {cloudOk && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> a computer far away opens the page for you and sends back a picture of it. You get 30 minutes a day{leftNow !== null ? <>, and you have <span className="fig text-ink">{mmss(leftNow)}</span> left</> : ''}. Links and search boxes work; buttons and menus do not.</p>}
+            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly, including chat and live ones. You get about four hours a day. Logins, and sites that check you are a person, may still fail.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {pageUrl && view.kind !== 'relay' && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Waypoints className="size-4" aria-hidden />Open with the relay</button>}
-              {cloudOk && pageUrl && <button onClick={() => { setIssues(false); void open(pageUrl, 'cloud', false) }} disabled={cloudLeft === 0} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm disabled:opacity-40 border border-ink/30 hover:bg-ink/10`}><Zap className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {pageUrl && view.kind !== 'relay' && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
             </div>
