@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Friction relay</title>
+<style>html{background:#0b0e13;color:#e8eaf0;font:15px/1.45 system-ui,sans-serif}body{margin:0;display:grid;min-height:100vh;place-items:center;text-align:center;padding:16px}p{max-width:30em}.e{color:#ffb4a8}</style></head>
+<body><p id="m">Opening the page…</p>
+<script src="/uv/uv.bundle.js"></script>
+<script src="/uv/uv.config.js"></script>
+<script>
+(async () => {
+  const m = document.getElementById('m')
+  const fail = (t) => { m.className = 'e'; m.textContent = t }
+  try {
+    const q = new URLSearchParams(location.search)
+    const u = q.get('u') || ''
+    const t = q.get('t') || ''
+    if (!/^https?:\/\//i.test(u) || !/^\d{10}\.[\w-]{32}$/.test(t)) return fail('This page is only opened from inside Friction.')
+    if (!('serviceWorker' in navigator)) return fail('This browser cannot run the relay (it needs service workers).')
+    const reg = await navigator.serviceWorker.register('/sw.js?t=' + t, { scope: '/service/' })
+    // this page is outside the worker's scope, so serviceWorker.ready would never settle: wait for the worker itself
+    const sw = reg.installing || reg.waiting || reg.active
+    if (sw && sw.state !== 'activated') await new Promise((done) => sw.addEventListener('statechange', () => { if (sw.state === 'activated') done() }))
+    location.replace(__uv$config.prefix + __uv$config.encodeUrl(u))
+  } catch (e) { fail('The relay could not start: ' + (e && e.message ? e.message : e)) }
+})()
+</script></body></html>

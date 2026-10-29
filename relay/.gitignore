@@ -1,0 +1,9 @@
+.vercel
+node_modules
+public/uv/uv.bundle.js
+public/uv/uv.client.js
+public/uv/uv.handler.js
+public/uv/uv.sw.js
+public/baremux
+public/baremod
+.env*

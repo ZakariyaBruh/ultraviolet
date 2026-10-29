@@ -1,0 +1,13 @@
+{
+  "buildCommand": "node scripts/prepare.mjs",
+  "outputDirectory": "public",
+  "rewrites": [{ "source": "/bare/(.*)", "destination": "/api/bare?path=$1" }],
+  "functions": { "api/bare.ts": { "maxDuration": 120 } },
+  "headers": [
+    { "source": "/(go|wipe).html", "headers": [
+      { "key": "Content-Security-Policy", "value": "frame-ancestors https://frictionx.vercel.app" },
+      { "key": "Cache-Control", "value": "no-store" } ] },
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/service/" }] },
+    { "source": "/(uv|baremux|baremod)/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] }
+  ]
+}

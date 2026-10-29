@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cloud, CircleHelp, Waypoints, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -30,10 +30,15 @@ type View =
   | { kind: 'youtube'; q: string; list: Video[] }
   /** `rendered`: the page's scripts were run on our server and this is what they drew */
   | { kind: 'page'; url: string; html: string; rendered?: boolean; cloud?: boolean }
+  /** the page runs in this browser through the relay (a separate project on its own address); `n` makes Reload start it afresh */
+  | { kind: 'relay'; url: string; src: string; n: number }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
   /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
   | { kind: 'error'; msg: string; url?: string; retry?: boolean; redo?: () => void; run?: () => void }
+
+/** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
+let pass: { base: string; token: string; exp: number } | null = null
 
 /** pages opened this visit, newest first */
 let history: string[] = []
@@ -155,6 +160,7 @@ export function Browser() {
   const [, tick] = useState(0)
   const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
+  const [relayReady, setRelayReady] = useState(false)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
@@ -165,7 +171,7 @@ export function Browser() {
   const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); setRelayReady(false); loads.current = 0; setView(v) }
 
   /**
    * `how`: auto follows Settings (run the page's scripts on our server by default; only when a page shows nothing; or never);
@@ -214,6 +220,31 @@ export function Browser() {
       history = [here, ...history.filter((x) => x !== here)].slice(0, 8)
       show({ kind: 'page', url: here, html: d.html, rendered: live, cloud }, push)
     } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) { setBusy(false); setCloudFrom(null) } }
+  }
+
+  /** opens a page through the relay: the page runs here, in this browser, and the relay only fetches its files (api/relay.ts, relay/) */
+  const openRelay = async (raw: string, push = true) => {
+    const my = ++token.current
+    const v = verdict(raw)
+    if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
+    setDoing('Opening through the relay')
+    setBusy(true)
+    try {
+      if (!pass || pass.exp < Date.now() / 1000 + 120) {
+        const r = await fetch('/api/relay', { signal: AbortSignal.timeout(15000) })
+        const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; error?: string } | null
+        if (my !== token.current) return
+        if (r.status === 429) return show({ kind: 'error', msg: d?.error === 'full' ? 'The relay is full for today. It resets at midnight UTC' : 'You have used all of the relay for today. It resets at midnight UTC', url: raw, retry: false }, push)
+        if (!r.ok || !d?.token || !d.base || !d.exp) return show({ kind: 'error', msg: 'The relay is not available right now', url: raw, retry: true }, push)
+        pass = { base: d.base, token: d.token, exp: d.exp }
+      }
+      const sc = await screenPage(v.url, '')
+      if (my !== token.current) return
+      if (sc.block) return show({ kind: 'blocked', url: raw, why: 'a game or short-form site (checked by AI)' }, push)
+      try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
+      history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
+      show({ kind: 'relay', url: v.url.toString(), src: `${pass.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass.token}`, n: Date.now() }, push)
+    } catch { if (my === token.current) show({ kind: 'error', msg: 'The relay could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
   const search = async (q: string) => {
@@ -295,7 +326,7 @@ export function Browser() {
     if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
     return null
   }
-  const pageUrl = view.kind === 'page' || view.kind === 'error' ? view.url : undefined
+  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' ? view.url : undefined
   const cloudOk = !!pageUrl && !/^(www\.|m\.)?(youtube\.com|youtu\.be|google\.[a-z.]{2,6})$/.test((() => { try { return new URL(pageUrl).hostname } catch { return '' } })())
   useEffect(() => {
     if (!issues || !cloudOk) return
@@ -309,10 +340,15 @@ export function Browser() {
     const t = setInterval(() => tick((n) => n + 1), 1000)
     return () => clearInterval(t)
   }, [cloudFrom])
+  useEffect(() => {
+    if (view.kind !== 'relay') return
+    const t = setTimeout(() => setRelayReady(true), 9000)
+    return () => clearTimeout(t)
+  }, [view])
   const onCloud = cloudFrom !== null || (view.kind === 'page' && !!view.cloud)
   const leftNow = cloudLeft === null ? null : Math.max(0, cloudLeft - (cloudFrom ? Math.floor((Date.now() - cloudFrom) / 1000) : 0))
   const mmss = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  const reload = () => { if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, view.kind === 'page' && view.cloud ? 'cloud' : 'auto', false) } }
+  const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, view.kind === 'page' && view.cloud ? 'cloud' : 'auto', false) } }
   useEffect(() => {
     if (!onCloud || cloudLeft !== null) return
     fetch('/api/render?usage=1').then((r) => r.json()).then((d: { left?: number }) => setCloudLeft(typeof d.left === 'number' ? d.left : null)).catch(() => {})
@@ -328,12 +364,12 @@ export function Browser() {
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">{view.kind === 'youtube' ? 'Search YouTube' : 'Search the web or type an address'}</span>
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'relay' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
-        {view.kind === 'page' && (
+        {(view.kind === 'page' || view.kind === 'relay') && (
           <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
         )}
-        {view.kind === 'page' && (
+        {(view.kind === 'page' || view.kind === 'relay') && (
           <button type="button" onClick={() => setIssues(true)} aria-label="Page not working? Open the Issues panel" className={`inline-flex h-11 shrink-0 items-center gap-1.5 border px-3 text-sm transition-colors duration-150 ${empty ? 'border-signal bg-signal font-semibold text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><CircleHelp className="size-4" aria-hidden />Issues</button>
         )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal max-[480px]:sr-only">Go</button>
@@ -422,6 +458,15 @@ export function Browser() {
             </div>
           </div>
         )}
+        {view.kind === 'relay' && (
+          <div className="flex size-full flex-col">
+            <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Waypoints className="size-3.5 text-signal" aria-hidden />Relay</span><span className="text-ink-3">This page runs on your device. Friction only fetches its files, and blocked sites stay blocked.</span></p>
+            <div className="relative min-h-0 flex-1">
+              {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
+              <iframe key={view.n} title={`Relayed page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="clipboard-write; fullscreen" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
+            </div>
+          </div>
+        )}
         {view.kind === 'video' && (
           <div className="grid h-full content-start gap-2 p-2">
             <iframe title="YouTube video" src={`https://www.youtube-nocookie.com/embed/${view.id}?rel=0`} sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="aspect-video max-h-[22rem] w-full border-0 bg-black" />
@@ -447,14 +492,16 @@ export function Browser() {
           </div>
         )}
         {issues && (
-          <div className="absolute inset-0 z-20 grid content-center justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
+          <div className="scroll-y absolute inset-0 z-20 grid content-start justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Page not working?</p>
             <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
+            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Relay:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly. Free to use. Sites that check you are a person, and logins, may still fail.</p>}
             {cloudOk && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> a computer far away opens the page for you and sends back a picture of it. You get 30 minutes a day{leftNow !== null ? <>, and you have <span className="fig text-ink">{mmss(leftNow)}</span> left</> : ''}. Links and search boxes work; buttons and menus do not.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {cloudOk && pageUrl && <button onClick={() => { setIssues(false); void open(pageUrl, 'cloud', false) }} disabled={cloudLeft === 0} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm disabled:opacity-40 ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Zap className="size-4" aria-hidden />Open in the cloud browser</button>}
-              {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}>Open in your browser <ExternalLink className="size-3.5" /></button>}
+              {pageUrl && view.kind !== 'relay' && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Waypoints className="size-4" aria-hidden />Open with the relay</button>}
+              {cloudOk && pageUrl && <button onClick={() => { setIssues(false); void open(pageUrl, 'cloud', false) }} disabled={cloudLeft === 0} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm disabled:opacity-40 border border-ink/30 hover:bg-ink/10`}><Zap className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
             </div>
           </div>
