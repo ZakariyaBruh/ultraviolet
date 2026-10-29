@@ -23,6 +23,15 @@ export function DebriefView() {
   const run = streak(s.focusLog)
   const per = blockedPerHour(focus, blocked)
   const left = Math.max(0, Math.ceil(s.settings.dailyGoalMin - focus - 1e-9))
+  // today's sessions and credits, from the same saved numbers
+  const midnight = new Date().setHours(0, 0, 0, 0)
+  const mine = s.sessions.filter((x) => x.end >= midnight)
+  const done = mine.filter((x) => x.completed).length
+  const longest = mine.reduce((a, x) => Math.max(a, x.focusSec), 0) / 60
+  const pull = mine.filter((x) => x.lapses > 0).reduce<Record<string, number>>((a, x) => ({ ...a, [x.source]: (a[x.source] ?? 0) + x.lapses }), {})
+  const pulled = Object.entries(pull).sort((a, b) => b[1] - a[1])[0]
+  const earned = s.credits.log.filter((x) => x.t >= midnight && x.n > 0).reduce((a, x) => a + x.n, 0)
+  const SOURCE: Record<string, string> = { radio: 'radio', tv: 'TV', podcast: 'podcasts', silent: 'silence' }
 
   const wide = useMedia('(min-width: 1100px)')
   const rows: { k: string; v: string }[] =
@@ -31,9 +40,12 @@ export function DebriefView() {
       : [
           { k: 'Score', v: `${attentionScore(s)} of 100 today.` },
           { k: 'Today', v: `${Math.round(focus)} min held, ${Math.round(blocked)} drift${Math.round(blocked) === 1 ? '' : 's'}${per !== null ? `, ${per} per focused hour` : ''}.` },
+          ...(mine.length ? [{ k: 'Sessions', v: `${mine.length} today, ${done} finished${longest >= 1 ? `, the longest ${Math.round(longest)} min` : ''}${earned > 0 ? `. ${Math.round(earned)} credit${Math.round(earned) === 1 ? '' : 's'} earned` : ''}.` }] : []),
+          ...(pulled ? [{ k: 'Pulled by', v: `Most of today's drifts (${pulled[1]}) came while the ${SOURCE[pulled[0]] ?? pulled[0]} was on. Try a session with something else, or silence.` }] : []),
           { k: 'Worst hour', v: hours[worst] > 0 ? `You drift most around ${hr(worst)}: ${hours[worst]} time${hours[worst] === 1 ? '' : 's'} in total. Put a session there.` : 'No drifts logged yet.' },
           { k: 'Best hour', v: best[bestH] > 0 ? `Your longest holds land around ${hr(bestH)}. Do the hard thing then.` : 'Not enough focus yet.' },
           { k: 'Streak', v: run > 0 ? `${run} day${run === 1 ? '' : 's'} of 10+ minutes. ${focus >= 10 ? 'Today keeps it alive.' : 'Today needs 10 minutes to keep it.'}` : 'No streak yet. One day of 10+ minutes starts it.' },
+          { k: 'Tomorrow', v: best[bestH] > 0 ? `Start at ${hr(bestH)}, when your holds are longest${longest >= 1 ? `, and aim a little past ${Math.round(longest)} minutes` : ''}.` : 'Pick a time and keep it. The same hour each day is what makes it easy.' },
           { k: 'Next', v: left === 0 ? `Goal of ${s.settings.dailyGoalMin} min met. Stop when it stops being easy.` : `${left} min to your goal of ${s.settings.dailyGoalMin}. One ${Math.min(45, Math.max(15, left))}-minute block does it.` },
         ]
 
