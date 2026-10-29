@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { useEffect } from 'react'
 import { useLayout, type Offset } from '@/lib/layout'
 import { useStore } from '@/lib/store'
+import { raiseWidget } from '@/components/app/widgets/Window'
 
 const SEL = '[data-movable]'
 const SKIP = 'input, textarea, select, [role="slider"], [data-no-drag], canvas, iframe, video'
@@ -21,6 +22,33 @@ function scan(): { el: HTMLElement; id: string }[] {
     const h = el.querySelector('h1,h2,h3')?.textContent?.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 18) ?? ''
     return { el, id: `p${n++}${h ? `-${h}` : ''}` }
   })
+}
+
+/**
+ * Whatever you touch comes to the top. Screen panels share one stack (11 to 28, under the header and the nav at 40); the study windows are a
+ * layer of their own at 35, ordered inside it. So touching a window lifts the layer over the panels, and touching a panel that overlaps a
+ * window drops the layer under the panels, which is the only way a panel can be both over one window and under another.
+ */
+const LAYER = '[data-widget-layer]'
+const setLayer = (above: boolean) => document.querySelectorAll<HTMLElement>(LAYER).forEach((l) => { l.style.zIndex = above ? '35' : '5' })
+const isPanel = (el: HTMLElement) => { const id = el.dataset.movable ?? ''; return !id.startsWith('widget-') && !id.startsWith('shell-') }
+function raise(el: HTMLElement) {
+  const z = (p: HTMLElement) => Number(p.style.zIndex) || 0
+  const others = Array.from(document.querySelectorAll<HTMLElement>(SEL)).filter((p) => p !== el && isPanel(p) && z(p) > 0)
+  const top = Math.max(10, ...others.map(z))
+  if (top < 28) { el.style.zIndex = String(top + 1); return }
+  // the top of the stack is reached: keep everyone's order and number them again from the bottom
+  others.sort((a, b) => z(a) - z(b)).forEach((p, i) => { p.style.zIndex = String(11 + Math.min(i, 16)) })
+  el.style.zIndex = '28'
+}
+const hits = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+function lift(el: HTMLElement) {
+  const id = el.dataset.movable ?? ''
+  if (id.startsWith('shell-')) return
+  if (id.startsWith('widget-')) { setLayer(true); raiseWidget(el); return }
+  raise(el)
+  const r = el.getBoundingClientRect()
+  if (Array.from(document.querySelectorAll<HTMLElement>('[data-movable^="widget-"]')).some((w) => hits(r, w.getBoundingClientRect()))) setLayer(false)
 }
 
 const live = (el: HTMLElement): Offset => ({ x: Number(el.dataset.ox) || 0, y: Number(el.dataset.oy) || 0 })
@@ -66,6 +94,14 @@ const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo,
  * Keyboard: Alt + arrow keys inside a panel move it (Shift for bigger steps).
  */
 export function ArrangeLayer({ scope }: { scope: string }) {
+  // a tap anywhere on a panel or a window brings it to the top, drag or no drag; so does a tap inside a page frame (it takes the focus, and its own taps never reach us)
+  useEffect(() => {
+    const down = (e: PointerEvent) => { const el = (e.target as Element | null)?.closest?.<HTMLElement>(SEL); if (el) lift(el) }
+    const blur = () => setTimeout(() => { const a = document.activeElement; if (a instanceof HTMLIFrameElement) { const el = a.closest<HTMLElement>(SEL); if (el) lift(el) } }, 0)
+    document.addEventListener('pointerdown', down, true)
+    addEventListener('blur', blur)
+    return () => { document.removeEventListener('pointerdown', down, true); removeEventListener('blur', blur) }
+  }, [])
   const offsets = useLayout((s) => s.offsets[scope])
   const shell = useLayout((s) => s.offsets.shell)
 
@@ -135,7 +171,6 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     type Drag = { el: HTMLElement; id: string; pid: number; x0: number; y0: number; o0: Offset; k: number; r: ReturnType<typeof range>; began: boolean; lx: number; ly: number; lt: number; vx: number; vy: number; rot: number }
     let d: Drag | null = null
     let swallow = false
-    let z = 10
     const flair = () => !REDUCED() && useStore.getState().settings.motion > 0
 
     const hits = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
@@ -188,7 +223,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
         d.began = true
         d.el.setPointerCapture?.(d.pid)
         d.el.dataset.dragging = 'true'
-        d.el.style.zIndex = String(10 + (z = (z % 18) + 1)) // the one you hold comes to the front
+        lift(d.el) // the one you hold comes to the front
         document.documentElement.dataset.dragging = 'true'
       }
       // a little resistance past the edges, so it feels like cloth, not a wall

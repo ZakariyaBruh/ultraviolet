@@ -17,7 +17,7 @@ export function WidgetLayer() {
   const live = open.map((id) => have.find((w) => w.id === id)).filter((w): w is (typeof have)[number] => !!w)
   if (!live.length) return null
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 [container-type:size]">
+    <div data-widget-layer className="pointer-events-none absolute inset-0 z-[35] [container-type:size]">
       {live.map((w, i) => (
         <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide} large={w.large}><w.Body /></WidgetWindow>
       ))}

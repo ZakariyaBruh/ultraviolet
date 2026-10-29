@@ -9,6 +9,8 @@ import { useStore } from '@/lib/store'
  */
 let front = 30
 const STEP = 28
+/** put a window above the others in the widget layer */
+export const raiseWidget = (el: HTMLElement) => { el.style.zIndex = String(++front) }
 
 export function WidgetWindow({ id, title, index, wide, large, children }: { id: string; title: string; index: number; wide: boolean; large?: boolean; children: ReactNode }) {
   const setWidget = useStore((s) => s.setWidget)
@@ -18,7 +20,7 @@ export function WidgetWindow({ id, title, index, wide, large, children }: { id: 
       data-movable={`widget-${id}`}
       role="group"
       aria-label={title}
-      onPointerDownCapture={(e) => { e.currentTarget.style.zIndex = String(++front) }} // whichever you touch comes to the front
+      onPointerDownCapture={(e) => raiseWidget(e.currentTarget)} // whichever you touch comes to the front (Arrange also lifts the whole layer over the panels)
       className="win-in pointer-events-auto !absolute flex flex-col"
       style={wide ? { top: 8 + n * STEP, right: 8 + n * STEP, width: large ? 'min(50rem, calc(100% - 1rem))' : 'min(21rem, calc(100% - 1rem))' } : { top: 6 + n * 14, left: 8, right: 8 }}
     >
