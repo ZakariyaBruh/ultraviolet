@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { coveredMs, listenCloudTab } from './cloudtab'
 import { useFx } from './fx'
 import { notify } from './notify'
 import { useStore } from './store'
@@ -37,7 +36,6 @@ export function useSessionEngine() {
   }, [breakUntil])
 
   useEffect(() => {
-    listenCloudTab()
     const onVis = () => {
       const s = useStore.getState().session
       if (document.visibilityState === 'hidden') {
@@ -47,21 +45,15 @@ export function useSessionEngine() {
       const at = hiddenAt.current
       hiddenAt.current = null
       if (!at || !useStore.getState().session) return
-      const back = Date.now()
-      const away = Math.round((back - at) / 1000)
-      if (away < 6) return
-      // the cloud browser's own tab reports when it is being looked at (a moment after we are back, since its last message has to
-      // arrive); an absence it covers, give or take the time to switch, was not wandering off
-      setTimeout(() => {
-        if (!useStore.getState().session) return
-        if (coveredMs(at, back) >= (back - at) - 8000) return
+      const away = Math.round((Date.now() - at) / 1000)
+      if (away >= 6) {
         useStore.getState().addLapse()
         useFx.getState().say({
           title: 'You wandered off',
           description: `${away}s away from your session. The timer waited for you.`,
           variant: 'warning',
         })
-      }, 700)
+      }
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)

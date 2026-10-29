@@ -4,7 +4,6 @@ import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
 import { FRAME_SHIM, frameRequest } from '@/lib/frameproxy'
-import { openCloudTab, sharesThread } from '@/lib/cloudtab'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
 import { ALTS, altFor } from '@/lib/alts'
 import { field } from './Window'
@@ -33,8 +32,6 @@ type View =
   | { kind: 'page'; url: string; html: string; rendered?: boolean }
   /** the page runs in this browser through the relay (a separate project on its own address); `n` makes Reload start it afresh */
   | { kind: 'relay'; url: string; src: string; n: number }
-  /** on an iPhone or iPad the cloud browser is offered in a tab of its own (one thread would be shared with Friction) */
-  | { kind: 'cloudtab'; url: string; src: string; n: number; opened: boolean }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
   /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
@@ -249,8 +246,7 @@ export function Browser() {
       if (sc.block) return show({ kind: 'blocked', url: raw, why: 'a game or short-form site (checked by AI)' }, push)
       try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
       history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
-      const href = `${pass.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass.token}&left=${pass.left}`
-      show(sharesThread() ? { kind: 'cloudtab', url: v.url.toString(), src: href, n: Date.now(), opened: false } : { kind: 'relay', url: v.url.toString(), src: href, n: Date.now() }, push)
+      show({ kind: 'relay', url: v.url.toString(), src: `${pass.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass.token}`, n: Date.now() }, push)
     } catch { if (my === token.current) show({ kind: 'error', msg: 'The cloud browser could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
@@ -333,7 +329,7 @@ export function Browser() {
     if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
     return null
   }
-  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' || view.kind === 'cloudtab' ? view.url : undefined
+  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
   // the time left today counts down on screen while a cloud browser page is open
   useEffect(() => {
@@ -348,12 +344,6 @@ export function Browser() {
   }, [view])
   const leftNow = pass ? Math.max(0, pass.left + Math.max(0, pass.exp - Math.floor(Date.now() / 1000))) : null
   const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  /** the cloud browser in a tab of its own: a page that freezes can then only freeze that tab */
-  const ownTab = (src: string) => {
-    if (!openCloudTab(src)) { setNote('Your browser blocked the new tab. Allow pop-ups for Friction and press the button again.'); return false }
-    setNote('')
-    return true
-  }
   const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
@@ -370,9 +360,6 @@ export function Browser() {
         </label>
         {view.kind === 'relay' && leftNow !== null && (
           <span role="timer" title="Cloud browser time left today. The page runs on your device and blocked sites stay blocked." aria-label={`${mmss(leftNow)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(leftNow)}</span></span>
-        )}
-        {view.kind === 'relay' && (
-          <button type="button" onClick={() => ownTab(view.src)} aria-label="Open in its own tab: it cannot freeze Friction there and captchas behave better" title="Open in its own tab: it cannot freeze Friction there and captchas behave better" className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] hover:bg-ink/10"><ExternalLink className="size-4" aria-hidden /><span className="max-[640px]:sr-only">Own tab</span></button>
         )}
         {(view.kind === 'page' || view.kind === 'relay') && (
           <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
@@ -462,18 +449,6 @@ export function Browser() {
             <iframe ref={frame} key={view.url} title={`Web page: ${view.url}`} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={srcDoc} onLoad={() => { if (++loads.current > 1) fallback(view.url, { kind: 'error', msg: 'The page tried to take the window to another address by itself, which the Browser does not allow', url: view.url, retry: false }, false) }} className="size-full border-0 bg-white" />
             {note && <p role="status" className="absolute inset-x-0 bottom-0 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
             {empty && !note && !issues && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-ground px-3 py-1 text-[13px] text-ink"><span>This page looks empty.</span><button onClick={() => setIssues(true)} className="h-11 shrink-0 px-3 font-semibold text-signal underline">Facing issues?</button></div>}
-            </div>
-          </div>
-        )}
-        {view.kind === 'cloudtab' && (
-          <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4">
-            <p className="hud flex items-center gap-1.5"><Cloud className="size-3.5 text-signal" aria-hidden />Cloud browser</p>
-            <p className="text-[15px] leading-[1.4]">{view.opened ? 'The page is open in another tab. Come back to this tab when you are done.' : 'On this device the cloud browser opens in a tab of its own.'}</p>
-            <p className="text-[13px] leading-[1.4] text-ink-2">A heavy page can freeze everything on the same screen, Friction too. In its own tab it cannot, and captchas and logins work better there. Staying in that tab is not a drift; the session timer waits until you are back. {leftNow !== null && <>Time left today: <span className="fig text-ink">{mmss(leftNow)}</span>.</>}</p>
-            {note && <p role="alert" className="text-[13px] text-bad">{note}</p>}
-            <div className="flex flex-wrap gap-2">
-              <button autoFocus onClick={() => { if (ownTab(view.src)) setView({ ...view, opened: true }) }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><ExternalLink className="size-4" aria-hidden />{view.opened ? 'Open it again' : 'Open the cloud browser'}</button>
-              <button onClick={() => show({ kind: 'relay', url: view.url, src: view.src, n: Date.now() }, false)} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Use it here anyway</button>
             </div>
           </div>
         )}
