@@ -45,6 +45,20 @@ import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
 import { MusicView } from '@/views/MusicView'
 
+/** The same plain text the built page carries (scripts/prerender.mjs), for screen readers and for anything that reads the page after it has started: the screen itself is controls and pictures. */
+function AboutScreen({ route }: { route: Route }) {
+  const m = (seo as Record<string, { h1: string; lead: string; points: string[]; more: string }>)[hrefFor(route)]
+  if (!m) return null
+  return (
+    <section className="sr-only" aria-label="About this screen">
+      <h2>{m.h1}</h2>
+      <p>{m.lead}</p>
+      <ul>{m.points.map((p) => <li key={p}>{p}</li>)}</ul>
+      <p>{m.more}</p>
+    </section>
+  )
+}
+
 function Placeholder({ name }: { name: string }) {
   return <div className="grid h-full place-items-center text-ink-2">{name} is being rebuilt.</div>
 }
@@ -225,6 +239,7 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
+      <AboutScreen route={route} />
       <FirstLaunch />
       <Onboarding />
       <InstallPrompt route={route} />
