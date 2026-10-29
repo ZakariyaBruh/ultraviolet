@@ -6,6 +6,7 @@ import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
+import seo from '@/lib/seo.json'
 import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
 import { WidgetsPicker } from '@/components/app/widgets/Layer'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -96,7 +97,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    document.title = route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`
+    // the built page already carries this (scripts/prerender.mjs); this keeps it right when you move around inside the app
+    const meta = (seo as Record<string, { title: string; description: string }>)[hrefFor(route)]
+    document.title = meta?.title ?? (route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`)
+    if (meta) document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
+    // screens that only ever show your own numbers are kept out of search results
+    let r = document.querySelector<HTMLMetaElement>('meta[name="robots"]')
+    if (!r) { r = document.createElement('meta'); r.name = 'robots'; document.head.appendChild(r) }
+    r.content = ['settings', 'insights', 'debrief'].includes(route) ? 'noindex, nofollow' : 'index, follow'
     // each screen says which address it is, so search results point at the right one
     let c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
     if (!c) { c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c) }

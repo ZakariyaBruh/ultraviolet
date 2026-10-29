@@ -1,0 +1,50 @@
+{
+  "/": {
+    "title": "Focus Timer App That Counts Every Scroll You Skip | Friction",
+    "description": "Friction is a free focus timer with internet radio, live TV and lessons. One screen, no feed, no account. Lock in, and every time you leave is counted."
+  },
+  "/focus": {
+    "title": "Focus Timer: Lock In and Count Every Drift | Friction",
+    "description": "Pick a length, tune in to radio or silence and lock in. Friction counts each time you leave the tab, pays credits for clean minutes and keeps it all private."
+  },
+  "/radio": {
+    "title": "Internet Radio for Studying and Focus Sessions | Friction",
+    "description": "Search thousands of internet radio stations by genre or name and keep one playing while you work. Lo-fi, ambient, classical and more. Free, with no account."
+  },
+  "/tv": {
+    "title": "Free Live TV Channels to Keep On While You Work | Friction",
+    "description": "Browse free live TV by category and keep a channel on while you focus. Documentaries, science and news without a feed to scroll. Press play, no account needed."
+  },
+  "/podcasts": {
+    "title": "Podcast Search and Player for Focus Sessions | Friction",
+    "description": "Search millions of podcasts, play episodes with your place remembered and share one with a friend in a room. Free and private, with no account to make."
+  },
+  "/music": {
+    "title": "Free Music Player for Studying: Songs and Radio | Friction",
+    "description": "Play whole free songs from Audius, Openverse and the Internet Archive, filtered to the age you choose. No account, and your searches stay in this browser."
+  },
+  "/news": {
+    "title": "Calm News Reader With Topics You Can Mute | Friction",
+    "description": "Read headlines from many sources on one quiet screen, open the full summary, and hide any topic for a day or a week. No feed to scroll and no account needed."
+  },
+  "/learn": {
+    "title": "Learn Anything With Lessons Built by Rules | Friction",
+    "description": "Lessons built from Wikipedia text by fixed rules, with idea cards, questions, a timeline and an interactive demo. No AI writes the lessons. Misses get reviewed."
+  },
+  "/books": {
+    "title": "Free Ebooks to Read Online, Without Distractions | Friction",
+    "description": "Search free public-domain ebooks and read them in a quiet page-by-page reader, with your place kept in this browser. No account, no ads and nothing to scroll."
+  },
+  "/arcade": {
+    "title": "Earn Credits by Focusing, Spend Them on Games | Friction",
+    "description": "Focused minutes earn credits, and credits buy arcade rounds and shop extras like breaks and a sound machine. Credits are never won in a game. Free and private."
+  },
+  "/together": {
+    "title": "Study Together: Shared Focus Rooms and Chat | Friction",
+    "description": "Make a room with a six-character code, lock in with up to twelve friends, chat and share a radio station or show. Rooms need no account, only a name."
+  },
+  "/leaders": {
+    "title": "Friction Leaderboard: Top Recommenders This Month | Friction",
+    "description": "See who has brought the most people to Friction. Pick a public alias, share your link and join the board when someone tunes in. Your name stays private."
+  }
+}
