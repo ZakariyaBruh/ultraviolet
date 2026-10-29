@@ -1,5 +1,6 @@
 import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useUI } from '@/lib/ui'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
@@ -144,6 +145,12 @@ function AddPage({ onSave, onBack }: { onSave: (name: string, url: string) => vo
 export function Browser() {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [stack, setStack] = useState<View[]>([])
+  const inCloud = view.kind === 'relay'
+  // a cloud page and Friction share one thread on an iPad: hold the backdrop still while it is open
+  useEffect(() => {
+    useUI.getState().set({ cloudOpen: inCloud })
+    return () => useUI.getState().set({ cloudOpen: false })
+  }, [inCloud])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')

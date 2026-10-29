@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { FieldLines } from '@/components/app/FieldLines'
 import { SpeedWarp } from '@/components/ui/speed-warp'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
 import { asciiStage } from '@/lib/theme'
 import { isLightTheme } from '@/lib/themes'
 import { AsciiScene } from '@/components/app/AsciiScene'
@@ -9,7 +10,9 @@ import { AsciiScene } from '@/components/app/AsciiScene'
 /** Back to front: black ground, a morphing dot matrix (or the live TV picture), speed warp while locked in. */
 export function Backdrop({ reduced }: { reduced: boolean }) {
   const motion = useStore((s) => s.settings.motion)
-  const level = (reduced ? 0 : motion) as 0 | 1 | 2
+  // the cloud browser runs a whole site on this thread: stop the stars and the turning solids while it is open
+  const cloud = useUI((s) => s.cloudOpen)
+  const level = (reduced || cloud ? 0 : motion) as 0 | 1 | 2
   const running = useStore((s) => !!s.session && !s.session.paused)
   const theme = useStore((s) => s.settings.theme)
   const light = isLightTheme(theme)

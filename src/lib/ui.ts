@@ -7,6 +7,8 @@ interface UI {
   tuneOpen: boolean
   soundOpen: boolean
   widgetsOpen: boolean
+  /** the cloud browser is showing: the backdrop goes still so the page gets the thread (an iPad shares one) */
+  cloudOpen: boolean
   searchOpen: boolean
   profileOpen: boolean
   moreOpen: boolean
@@ -27,6 +29,7 @@ export const useUI = create<UI>((set) => ({
   tuneOpen: false,
   soundOpen: false,
   widgetsOpen: false,
+  cloudOpen: false,
   searchOpen: false,
   profileOpen: false,
   moreOpen: false,
