@@ -1,0 +1,18 @@
+{
+  "heading": "Why Friction exists",
+  "intro": "Friction is a distraction-free alternative to bloated productivity apps. I built it because most focus tools want an account, a subscription and a stream of notifications, which is the opposite of focus. This one is a single screen that counts every time you leave it, and it is free.",
+  "items": [
+    {
+      "title": "Free minimalist focus timer",
+      "text": "If you are tired of bloated apps, this is a focus timer with nothing to set up and nothing to pay for. Pick a length, lock in, and see how many times you drifted away. There are no ads, no feed and no streak guilt trip."
+    },
+    {
+      "title": "No signup aesthetic study clock",
+      "text": "Open the page and study. There is no account to make and no email to give, so it works the moment you arrive. The station look, the music and the study windows are there to make a long session pleasant, and you can turn the motion down."
+    },
+    {
+      "title": "Clean web-based productivity tool",
+      "text": "It runs in your browser on a laptop, tablet or phone, so remote workers can use it on any machine with nothing to install. A notepad, calculator, to-do list, timer and converter sit on the focus screen, and your data stays in your own browser."
+    }
+  ]
+}

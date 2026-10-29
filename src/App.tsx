@@ -44,6 +44,7 @@ import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
 import { MusicView } from '@/views/MusicView'
+import about from '@/lib/about.json'
 
 /** The same plain text the built page carries (scripts/prerender.mjs), for screen readers and for anything that reads the page after it has started: the screen itself is controls and pictures. */
 function AboutScreen({ route }: { route: Route }) {
@@ -55,6 +56,9 @@ function AboutScreen({ route }: { route: Route }) {
       <p>{m.lead}</p>
       <ul>{m.points.map((p) => <li key={p}>{p}</li>)}</ul>
       <p>{m.more}</p>
+      <h2>{about.heading}</h2>
+      <p>{about.intro}</p>
+      {about.items.map((i) => <div key={i.title}><h3>{i.title}</h3><p>{i.text}</p></div>)}
     </section>
   )
 }

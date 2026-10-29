@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import about from '@/lib/about.json'
 import { useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
@@ -236,6 +237,8 @@ function Data() {
 function Help() {
   const [page, setPage] = useState(1)
   const items = [
+        { id: 'a0', question: about.heading, answer: about.intro },
+        ...about.items.map((i, n) => ({ id: `a${n + 1}`, question: i.title, answer: i.text })),
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
         { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },

@@ -27,11 +27,13 @@ const ld = (route, m) => {
 
 /** the readable text of a screen, as plain HTML a crawler can read without running the app (the app replaces it as soon as it starts) */
 const ABOUT = 'Friction is a free focus timer. There is no account, and everything you make stays in your own browser. It uses AI in only three labelled places: demos for lessons without a built-in one, an optional Ask AI window, and a check that helps the Browser block games and short-form social media.'
+const about = JSON.parse(readFileSync(new URL('../src/lib/about.json', import.meta.url), 'utf8'))
+const whyHtml = `<h2>${esc(about.heading)}</h2><p>${esc(about.intro)}</p>${about.items.map((i) => `<h3>${esc(i.title)}</h3><p>${esc(i.text)}</p>`).join('')}`
 const body = (route, m) => {
   const links = Object.entries(seo).filter(([r]) => r !== route).map(([r, x]) => `<li><a href="${r}">${esc(x.name)}</a>: ${esc(x.description.split('. ')[0].replace(/\.$/, ''))}.</li>`).join('')
-  return `<main class="seo"><p class="k">Friction</p><h1>${esc(m.h1)}</h1><p>${esc(m.lead)}</p><h2>What you can do here</h2><ul>${m.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul><p>${esc(m.more)}</p><h2>About Friction</h2><p>${esc(ABOUT)}</p><h2>Explore Friction</h2><ul>${links}</ul></main>`
+  return `<main class="seo"><p class="k">Friction</p><h1>${esc(m.h1)}</h1><p>${esc(m.lead)}</p><h2>What you can do here</h2><ul>${m.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul><p>${esc(m.more)}</p><h2>About Friction</h2><p>${esc(ABOUT)}</p>${whyHtml}<h2>Explore Friction</h2><ul>${links}</ul></main>`
 }
-const SEO_STYLE = '<style>.seo{box-sizing:border-box;max-width:42rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#f3f1ea;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}.seo .k{margin:0 0 .5rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#ffd23f;font-size:.8rem}.seo h1{margin:0 0 1rem;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1}.seo h2{margin:2rem 0 .5rem;font-size:1.15rem}.seo a{color:#ffd23f}.seo li{margin:.35rem 0}body{background:#05070c}</style>'
+const SEO_STYLE = '<style>.seo{box-sizing:border-box;max-width:42rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#f3f1ea;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}.seo .k{margin:0 0 .5rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#ffd23f;font-size:.8rem}.seo h1{margin:0 0 1rem;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1}.seo h3{margin:1.25rem 0 .25rem;font-size:1rem}.seo h2{margin:2rem 0 .5rem;font-size:1.15rem}.seo a{color:#ffd23f}.seo li{margin:.35rem 0}body{background:#05070c}</style>'
 
 let n = 0
 for (const [route, m] of Object.entries(seo)) {
