@@ -2,7 +2,7 @@
   "buildCommand": "node scripts/prepare.mjs",
   "outputDirectory": "public",
   "rewrites": [{ "source": "/bare/(.*)", "destination": "/api/bare?path=$1" }],
-  "functions": { "api/bare.ts": { "maxDuration": 120 } },
+  "functions": { "api/bare.ts": { "maxDuration": 300 } },
   "headers": [
     { "source": "/(go|wipe).html", "headers": [
       { "key": "Content-Security-Policy", "value": "frame-ancestors https://frictionx.vercel.app" },

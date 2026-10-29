@@ -14,6 +14,7 @@
     const t = q.get('t') || ''
     if (!/^https?:\/\//i.test(u) || !/^\d{10}\.[\w-]{32}$/.test(t)) return fail('This page is only opened from inside Friction.')
     if (!('serviceWorker' in navigator)) return fail('This browser cannot run the relay (it needs service workers).')
+    try { localStorage.setItem('friction:pass', t) } catch (e) { /* storage blocked */ }
     const reg = await navigator.serviceWorker.register('/sw.js?t=' + t, { scope: '/service/' })
     // this page is outside the worker's scope, so serviceWorker.ready would never settle: wait for the worker itself
     const sw = reg.installing || reg.waiting || reg.active
