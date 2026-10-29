@@ -40,6 +40,25 @@ type View =
 
 /** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
 let pass: { base: string; token: string; exp: number; left: number } | null = null
+/** a pass with at least this long left is reused when a page opens or comes back */
+const FRESH = 60
+/** the next lease is fetched when this few seconds are left of the one in use */
+const RENEW = 2
+/** the cloud browser is switched off when the tab has been out of sight (or out of focus) this long */
+const AWAY_MS = 20_000
+
+/** asks Friction for a lease of cloud browser time (api/relay.ts); on success it becomes `pass` */
+async function lease(): Promise<'ok' | 'limit' | 'full' | 'down'> {
+  try {
+    const r = await fetch('/api/relay', { signal: AbortSignal.timeout(15000) })
+    const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; left?: number; error?: string } | null
+    if (r.status === 429) return d?.error === 'full' ? 'full' : 'limit'
+    if (!r.ok || !d?.token || !d.base || !d.exp) return 'down'
+    pass = { base: d.base, token: d.token, exp: d.exp, left: typeof d.left === 'number' ? d.left : 0 }
+    return 'ok'
+  } catch { return 'down' }
+}
+const spent = (got: 'limit' | 'full') => (got === 'full' ? 'The cloud browser is full for today. It resets at midnight UTC' : 'You have used all of your cloud browser time for today. It resets at midnight UTC')
 
 /** pages opened this visit, newest first */
 let history: string[] = []
@@ -166,6 +185,12 @@ export function Browser() {
   const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
   const [relayReady, setRelayReady] = useState(false)
+  // the cloud browser is only on while the tab is in front: away, its page is taken down (its connections close) and nothing is spent
+  const [away, setAway] = useState(false)
+  const awayRef = useRef(false)
+  const busyLease = useRef(false)
+  const frozen = useRef(0)
+  const relayFrame = useRef<HTMLIFrameElement>(null)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
@@ -241,20 +266,18 @@ export function Browser() {
     setDoing(auto ? 'This page does not run here, so the cloud browser is opening it' : 'Opening in the cloud browser')
     setBusy(true)
     try {
-      if (!pass || pass.exp < Date.now() / 1000 + 120) {
-        const r = await fetch('/api/relay', { signal: AbortSignal.timeout(15000) })
-        const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; left?: number; error?: string } | null
+      if (!pass || pass.exp < Date.now() / 1000 + FRESH) {
+        const got = await lease()
         if (my !== token.current) return
-        if (r.status === 429) return show({ kind: 'error', msg: d?.error === 'full' ? 'The cloud browser is full for today. It resets at midnight UTC' : 'You have used all of your cloud browser time for today. It resets at midnight UTC', url: raw, retry: false }, push)
-        if (!r.ok || !d?.token || !d.base || !d.exp) return show({ kind: 'error', msg: 'The cloud browser is not available right now', url: raw, retry: true }, push)
-        pass = { base: d.base, token: d.token, exp: d.exp, left: typeof d.left === 'number' ? d.left : 0 }
+        if (got === 'limit' || got === 'full') return show({ kind: 'error', msg: spent(got), url: raw, retry: false }, push)
+        if (got === 'down') return show({ kind: 'error', msg: 'The cloud browser is not available right now', url: raw, retry: true }, push)
       }
       const sc = await screenPage(v.url, '')
       if (my !== token.current) return
       if (sc.block) return show({ kind: 'blocked', url: raw, why: 'a game or short-form site (checked by AI)' }, push)
       try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
       history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
-      show({ kind: 'relay', url: v.url.toString(), src: `${pass.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass.token}`, n: Date.now() }, push)
+      show({ kind: 'relay', url: v.url.toString(), src: `${pass!.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass!.token}`, n: Date.now() }, push)
     } catch { if (my === token.current) show({ kind: 'error', msg: 'The cloud browser could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
@@ -339,10 +362,42 @@ export function Browser() {
   }
   const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
-  // the time left today counts down on screen while a cloud browser page is open
+  const nowLeft = () => (pass ? Math.max(0, pass.left + Math.max(0, pass.exp - Math.floor(Date.now() / 1000))) : 0)
+  /** while a cloud browser page is open: the clock, the next lease before this one ends, and the switch-off when the tab is away */
   useEffect(() => {
-    if (view.kind !== 'relay') return
-    const t = setInterval(() => tick((n) => n + 1), 1000)
+    if (view.kind !== 'relay') { awayRef.current = false; setAway(false); return }
+    let since = 0
+    const run = async () => {
+      tick((n) => n + 1)
+      if (document.hidden || !document.hasFocus()) {
+        since ||= Date.now()
+        if (!awayRef.current && Date.now() - since > AWAY_MS) { frozen.current = nowLeft(); awayRef.current = true; setAway(true) }
+        return
+      }
+      since = 0
+      if (busyLease.current) return
+      if (awayRef.current) {
+        // back: the page starts again on a lease still in date, or a new one
+        busyLease.current = true
+        let got: 'ok' | 'limit' | 'full' | 'down' = 'ok'
+        if (!pass || pass.exp < Date.now() / 1000 + FRESH) got = await lease()
+        busyLease.current = false
+        if (got === 'limit' || got === 'full') { awayRef.current = false; setAway(false); show({ kind: 'error', msg: spent(got), url: view.url, retry: false }, false); return }
+        if (got === 'down' || !pass) return
+        awayRef.current = false; setAway(false)
+        setRelayReady(false); loads.current = 0
+        setView({ ...view, src: `${pass.base}/go.html?u=${encodeURIComponent(view.url)}&t=${pass.token}`, n: Date.now() })
+        return
+      }
+      if (pass && pass.exp - Date.now() / 1000 <= RENEW) {
+        busyLease.current = true
+        const got = await lease()
+        busyLease.current = false
+        if (got === 'ok' && pass) relayFrame.current?.contentWindow?.postMessage({ frictionPass: pass.token }, pass.base)
+        else if (got === 'limit' || got === 'full') show({ kind: 'error', msg: spent(got), url: view.url, retry: false }, false)
+      }
+    }
+    const t = setInterval(() => void run(), 1000)
     return () => clearInterval(t)
   }, [view])
   useEffect(() => {
@@ -350,7 +405,7 @@ export function Browser() {
     const t = setTimeout(() => setRelayReady(true), 9000)
     return () => clearTimeout(t)
   }, [view])
-  const leftNow = pass ? Math.max(0, pass.left + Math.max(0, pass.exp - Math.floor(Date.now() / 1000))) : null
+  const leftNow = pass ? (away ? frozen.current : nowLeft()) : null
   const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
   const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
@@ -464,7 +519,9 @@ export function Browser() {
           <div className="flex size-full flex-col">
             <div className="relative min-h-0 flex-1">
               {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
-              <iframe key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
+              {away
+                ? <div className="grid size-full place-items-center bg-ground p-4 text-center"><p className="max-w-[28ch] text-sm text-ink-2" role="status">The cloud browser is off while you are away, so it is not using your time. It starts again when you come back.</p></div>
+                : <iframe ref={relayFrame} key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />}
             </div>
           </div>
         )}

@@ -6,6 +6,7 @@
 <script src="/scram/scramjet.all.js"></script>
 <script>
 (async () => {
+  let connection = null
   const m = document.getElementById('m')
   const fail = (t) => { m.className = 'e'; m.textContent = t }
   try {
@@ -29,8 +30,15 @@
     const sw = reg.installing || reg.waiting || reg.active
     if (sw && sw.state !== 'activated') await new Promise((done) => sw.addEventListener('statechange', () => { if (sw.state === 'activated') done() }))
     // the socket to the relay carries this pass; a new pass on every start replaces the old transport
-    const connection = new BareMux.BareMuxConnection('/baremux/worker.js')
-    await connection.setTransport('/libcurl/index.mjs', [{ websocket: (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/' + t + '/' }])
+    connection = new BareMux.BareMuxConnection('/baremux/worker.js')
+    const wisp = (pass) => [{ websocket: (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/' + pass + '/' }]
+    await connection.setTransport('/libcurl/index.mjs', wisp(t))
+    // Friction hands over a new pass before the old one runs out (a lease is a few minutes); new connections use it, and the old socket is closed by the relay shortly after its lease ends
+    addEventListener('message', (e) => {
+      const p = e.data && e.data.frictionPass
+      if (e.source !== window.parent || typeof p !== 'string' || !/^\d{10}\.[\w-]{32}$/.test(p)) return
+      connection.setTransport('/libcurl/index.mjs', wisp(p)).catch(() => {})
+    })
     const frame = scramjet.createFrame()
     m.remove()
     document.body.appendChild(frame.frame)

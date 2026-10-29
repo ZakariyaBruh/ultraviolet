@@ -2,7 +2,7 @@ import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server'
 import { createServer, type IncomingMessage } from 'node:http'
 import type { Duplex } from 'node:stream'
 import { verdict } from './_blocklist.js'
-import { valid } from './_relaytoken.js'
+import { expiry, valid } from './_relaytoken.js'
 
 /**
  * The relay's only door: a Wisp server (a WebSocket that carries raw TCP streams, which the page's own TLS runs over, so this server
@@ -13,6 +13,8 @@ import { valid } from './_relaytoken.js'
  * blocklist works on names here, not paths, because the path is inside the encrypted stream. Wisp's own stream limits are left off: in this version they crash the server.
  */
 logging.set_level(logging.WARN)
+/** how long a socket may outlive its pass: the page swaps to a new pass when one runs out, and what was in flight gets this long to finish */
+const GRACE_MS = 30_000
 Object.assign(wisp.options, {
   allow_udp_streams: false,
   allow_direct_ip: false,
@@ -36,6 +38,9 @@ server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
     return
   }
+  // the lease is the meter: when it has run out (and the page did not renew it) the socket is closed
+  const stop = setTimeout(() => socket.destroy(), Math.max(0, expiry(path.split('/')[0]) * 1000 + GRACE_MS - Date.now()))
+  socket.once('close', () => clearTimeout(stop))
   req.url = '/wisp/'
   wisp.routeRequest(req, socket, head)
 })

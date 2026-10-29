@@ -31,6 +31,13 @@ export function WidgetLayer() {
  * is open) and press it again to put it away. Hovering or focusing a card says what it is. Flat and ruled like the rest of the app,
  * no glass; the deal is skipped under calm motion and `prefers-reduced-motion`.
  */
+/** how the deck sorts its cards: the study tools, the web and AI, and what has been bought in the Shop */
+const GROUPS = [
+  { name: 'Study', ids: ['notes', 'calc', 'todo', 'timer', 'convert', 'sketch'] },
+  { name: 'Web and AI', ids: ['browser', 'ask'] },
+  { name: 'Yours', ids: ['music', 'sound', 'spinner', 'confetti'] },
+]
+
 export function WidgetsButton({ className = '' }: { className?: string }) {
   const have = useAvailableWidgets()
   const open = useStore((s) => s.widgets.open)
@@ -74,7 +81,6 @@ export function WidgetsButton({ className = '' }: { className?: string }) {
 
   const top = have[seen % Math.max(1, have.length)]
   const TopIcon = top?.icon ?? LayoutPanelTop
-  const mid = (have.length - 1) / 2
 
   return (
     <div className={`relative ${className}`} data-tour="widgets" onPointerEnter={(e) => { if (e.pointerType === 'mouse') deal(true) }}>
@@ -96,26 +102,36 @@ export function WidgetsButton({ className = '' }: { className?: string }) {
         </span>
       </button>
       {dealt && spot && createPortal(
-        <div ref={tray} role="group" aria-label="Widgets" onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHint(null) }} style={{ position: 'fixed', top: spot.top, right: spot.right, maxWidth: 'min(94vw, 30rem)' }} className="z-[70] border border-ink/50 bg-ground p-3 pb-2 shadow-[4px_4px_0_0_color-mix(in_srgb,var(--ink)_18%,transparent)]">
-          <div className="flex flex-wrap justify-end gap-x-1 gap-y-2.5 pt-2">
-            {have.map((w, i) => {
-              const on = open.includes(w.id)
-              const tilt = (i - mid) * (have.length > 8 ? 1.2 : 2.2)
-              const Icon = w.icon
-              return (
-                <button key={w.id} type="button" aria-pressed={on} onClick={() => { setWidget(w.id, !on); if (!on && window.innerWidth < 640) deal(false) }} onPointerEnter={() => setHint(w.id)} onFocus={() => setHint(w.id)} onBlur={() => setHint(null)} aria-label={`${w.name}${on ? ', open' : ''}`}
-                  style={{ ['--tilt' as string]: `${tilt}deg`, animationDelay: still ? undefined : `${Math.min(i, 9) * 22}ms` }}
-                  className={`wcard ${still ? '[animation:none]' : ''} group relative grid h-[4.75rem] w-[3.6rem] shrink-0 place-items-center border bg-ground px-1 text-center transition-[translate,rotate,scale,border-color] duration-150 ease-out hover:-translate-y-2 hover:rotate-0 focus-visible:-translate-y-2 focus-visible:rotate-0 active:scale-95 motion-reduce:transition-none ${on ? 'border-signal' : 'border-ink/45 hover:border-ink'}`}>
-                  <span className="grid place-items-center gap-1.5"><Icon className={`size-6 ${on ? 'text-signal' : 'text-ink'}`} aria-hidden /><span className="line-clamp-2 font-[family-name:var(--font-cond)] text-[10px] font-semibold uppercase leading-[1.05] tracking-[0.06em]">{w.name}</span></span>
-                  {on && <span aria-hidden className="absolute left-0 top-0 size-0 border-l-[12px] border-t-[12px] border-l-signal border-t-transparent" />}
-                </button>
-              )
-            })}
+        <div ref={tray} role="group" aria-label="Widgets" onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHint(null) }} style={{ position: 'fixed', top: spot.top, right: spot.right, width: 'min(calc(100vw - 16px), 22rem)', maxHeight: `calc(100dvh - ${spot.top + 12}px)` }} className="scroll-y z-[70] border border-ink/50 bg-ground p-3 shadow-[4px_4px_0_0_color-mix(in_srgb,var(--ink)_18%,transparent)]">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="hud !text-[11px]">{n ? `${n} of ${have.length} open` : `${have.length} windows`}</p>
+            {n > 0 && <button type="button" onClick={closeAll} className="h-11 -my-2 shrink-0 px-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-2 underline hover:text-ink">Put all away</button>}
           </div>
-          <div className="mt-2 flex min-h-11 items-center justify-between gap-3 border-t border-ink/15 pt-1.5">
-            <p aria-live="polite" className="min-w-0 flex-1 text-[12px] leading-[1.35] text-ink-2">{hint ? have.find((w) => w.id === hint)?.blurb : n ? 'Press an open card to put it away.' : 'Press a card to open it as a window.'}</p>
-            {n > 0 && <button type="button" onClick={closeAll} className="h-11 shrink-0 px-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-2 underline hover:text-ink">Put all away</button>}
-          </div>
+          {GROUPS.map((g) => {
+            const list = have.filter((w) => g.ids.includes(w.id))
+            if (!list.length) return null
+            return (
+              <div key={g.name} className="mb-3 last:mb-1">
+                <p className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3"><span>{g.name}</span><span aria-hidden className="h-px flex-1 bg-ink/15" /></p>
+                <div className="grid grid-cols-3 gap-2">
+                  {list.map((w, i) => {
+                    const on = open.includes(w.id)
+                    const Icon = w.icon
+                    return (
+                      <button key={w.id} type="button" aria-pressed={on} onClick={() => { setWidget(w.id, !on); if (!on && window.innerWidth < 640) deal(false) }} onPointerEnter={() => setHint(w.id)} onFocus={() => setHint(w.id)} onBlur={() => setHint(null)} aria-label={`${w.name}${on ? ', open' : ''}`}
+                        style={{ animationDelay: still ? undefined : `${Math.min(i, 9) * 22}ms` }}
+                        className={`wcard ${still ? '[animation:none]' : ''} relative grid min-h-[5.25rem] content-center justify-items-center gap-1.5 border px-1 pb-2 pt-2.5 text-center transition-[translate,border-color,background-color] duration-150 ease-out hover:-translate-y-0.5 focus-visible:-translate-y-0.5 active:scale-95 motion-reduce:transition-none ${on ? 'border-signal bg-signal/10' : 'border-ink/35 hover:border-ink'}`}>
+                        <Icon className={`size-6 ${on ? 'text-signal' : 'text-ink'}`} aria-hidden />
+                        <span className="font-[family-name:var(--font-cond)] text-[13px] font-semibold uppercase leading-[1.05] tracking-[0.06em]">{w.name}</span>
+                        {on && <><span aria-hidden className="absolute left-0 top-0 size-0 border-l-[12px] border-t-[12px] border-l-signal border-t-transparent" /><span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] bg-signal" /></>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          <p aria-live="polite" className="mt-1 min-h-[2.6rem] border-t border-ink/15 pt-2 text-[12px] leading-[1.35] text-ink-2">{hint ? have.find((w) => w.id === hint)?.blurb : n ? 'Press an open window to put it away.' : 'Press a card to open it as a window.'}</p>
         </div>, document.body)}
     </div>
   )

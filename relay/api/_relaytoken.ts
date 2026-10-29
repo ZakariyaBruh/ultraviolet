@@ -8,10 +8,16 @@ const secret = () => process.env.RELAY_SECRET ?? ''
 const mac = (text: string) => createHmac('sha256', secret()).update(text).digest('base64url')
 
 /** `exp.sig`. It is not tied to an address: a phone can reach the app over IPv6 and the relay over IPv4, which would lock real people out.
- *  What limits who gets one is api/relay.ts (a daily allowance for each address), and a pass only lasts 30 minutes. */
+ *  What limits who gets one is api/relay.ts (a daily allowance for each address), and a pass only lasts a few minutes (api/relay.ts). */
 export function mint(seconds: number): { token: string; exp: number } {
   const exp = Math.floor(Date.now() / 1000) + seconds
   return { token: `${exp}.${mac(`pass:${exp}`).slice(0, 32)}`, exp }
+}
+
+/** the second a pass runs out, or 0 for something that is not one */
+export function expiry(token: string): number {
+  const m = /^(\d{10})\./.exec(token)
+  return m ? Number(m[1]) : 0
 }
 
 export function valid(token: string): boolean {
