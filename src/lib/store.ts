@@ -122,6 +122,8 @@ export interface Settings {
   toured: boolean
   /** the Browser's own walkthrough has been shown */
   browserToured: boolean
+  /** the cloud browser is switched off: nothing opens in it on its own and no time is used */
+  cloudOff: boolean
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -257,6 +259,7 @@ export const DEFAULT_SETTINGS: Settings = {
   songAge: 0,
   toured: false,
   browserToured: false,
+  cloudOff: false,
 }
 
 const emptyData = (): Data => ({

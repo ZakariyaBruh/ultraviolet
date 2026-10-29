@@ -52,6 +52,9 @@ function Focus() {
       <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>
+      <Row title="Cloud browser" hint="Experimental and may break. When a site will not open in the Browser, Friction can open it in the cloud browser, which gives each person 30 minutes a day. Off means it never opens by itself and no time is used.">
+        <Seg id="set-cloud" value={s.cloudOff ? 'off' : 'on'} onChange={(v) => set({ cloudOff: v === 'off' })} tabs={[{ id: 'on', label: 'On' }, { id: 'off', label: 'Off' }]} />
+      </Row>
     </Panel>
   )
 }

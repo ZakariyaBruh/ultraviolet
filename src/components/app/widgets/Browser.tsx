@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Cloud, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
@@ -33,6 +33,10 @@ type View =
   | { kind: 'page'; url: string; html: string; rendered?: boolean }
   /** the page runs in this browser through the relay (a separate project on its own address); `n` makes Reload start it afresh */
   | { kind: 'relay'; url: string; src: string; n: number }
+  /** before the first cloud page of a visit: it is experimental, and this is the way out */
+  | { kind: 'cloudintro'; url: string; auto: boolean }
+  /** the cloud browser cannot be used right now, and why */
+  | { kind: 'cloudnote'; why: 'limit' | 'full' | 'down' | 'off'; url: string }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
   /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
@@ -58,7 +62,14 @@ async function lease(): Promise<'ok' | 'limit' | 'full' | 'down'> {
     return 'ok'
   } catch { return 'down' }
 }
-const spent = (got: 'limit' | 'full') => (got === 'full' ? 'The cloud browser is full for today. It resets at midnight UTC' : 'You have used all of your cloud browser time for today. It resets at midnight UTC')
+/** the experimental warning is shown once for each visit, before the first cloud page */
+let warned = false
+/** how long until the day's cloud time starts over (midnight UTC), in words */
+const untilReset = () => {
+  const n = new Date()
+  const m = Math.max(1, Math.ceil((Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime()) / 60000))
+  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
+}
 
 /** pages opened this visit, newest first */
 let history: string[] = []
@@ -186,6 +197,8 @@ export function Browser() {
   // Bing is the engine and page scripts are always on: neither is a setting any more
   const engine = 'bing'
   const scripts: string = 'on'
+  const cloudOff = useStore((s) => s.settings.cloudOff)
+  const setSetting = useStore((s) => s.setSettings)
   const [issues, setIssues] = useState(false)
   const [leave, setLeave] = useState<string | null>(null)
   const [, tick] = useState(0)
@@ -216,7 +229,7 @@ export function Browser() {
   const fallback = (raw: string, fail: View | null, push: boolean) => {
     let host = ''
     try { host = new URL(raw).hostname } catch { /* not an address */ }
-    if (!host || tried.current.has(host)) return fail ? show(fail, push) : undefined
+    if (!host || tried.current.has(host) || cloudOff) return fail ? show(fail, push) : undefined
     tried.current.add(host)
     return openRelay(raw, push, true)
   }
@@ -270,14 +283,15 @@ export function Browser() {
     const my = ++token.current
     const v = verdict(raw)
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
+    if (cloudOff) return show({ kind: 'cloudnote', why: 'off', url: raw }, push)
+    if (!warned) return show({ kind: 'cloudintro', url: raw, auto }, push)
     setDoing(auto ? 'This page does not run here, so the cloud browser is opening it' : 'Opening in the cloud browser')
     setBusy(true)
     try {
       if (!pass || pass.exp < Date.now() / 1000 + FRESH) {
         const got = await lease()
         if (my !== token.current) return
-        if (got === 'limit' || got === 'full') return show({ kind: 'error', msg: spent(got), url: raw, retry: false }, push)
-        if (got === 'down') return show({ kind: 'error', msg: 'The cloud browser is not available right now', url: raw, retry: true }, push)
+        if (got === 'limit' || got === 'full' || got === 'down') return show({ kind: 'cloudnote', why: got, url: raw }, push)
       }
       const sc = await screenPage(v.url, '')
       if (my !== token.current) return
@@ -285,7 +299,7 @@ export function Browser() {
       try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
       history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
       show({ kind: 'relay', url: v.url.toString(), src: `${pass!.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass!.token}`, n: Date.now() }, push)
-    } catch { if (my === token.current) show({ kind: 'error', msg: 'The cloud browser could not be reached', url: raw, retry: true }, push) } finally { if (my === token.current) setBusy(false) }
+    } catch { if (my === token.current) show({ kind: 'cloudnote', why: 'down', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
   const search = async (q: string) => {
@@ -389,7 +403,7 @@ export function Browser() {
         let got: 'ok' | 'limit' | 'full' | 'down' = 'ok'
         if (!pass || pass.exp < Date.now() / 1000 + FRESH) got = await lease()
         busyLease.current = false
-        if (got === 'limit' || got === 'full') { awayRef.current = false; setAway(false); show({ kind: 'error', msg: spent(got), url: view.url, retry: false }, false); return }
+        if (got === 'limit' || got === 'full') { awayRef.current = false; setAway(false); show({ kind: 'cloudnote', why: got, url: view.url }, false); return }
         if (got === 'down' || !pass) return
         awayRef.current = false; setAway(false)
         setRelayReady(false); loads.current = 0
@@ -401,7 +415,7 @@ export function Browser() {
         const got = await lease()
         busyLease.current = false
         if (got === 'ok' && pass) relayFrame.current?.contentWindow?.postMessage({ frictionPass: pass.token }, pass.base)
-        else if (got === 'limit' || got === 'full') show({ kind: 'error', msg: spent(got), url: view.url, retry: false }, false)
+        else if (got === 'limit' || got === 'full') show({ kind: 'cloudnote', why: got, url: view.url }, false)
       }
     }
     const t = setInterval(() => void run(), 1000)
@@ -429,7 +443,10 @@ export function Browser() {
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'relay' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
         {view.kind === 'relay' && leftNow !== null && (
-          <span role="timer" title="Cloud browser time left today. The page runs on your device and blocked sites stay blocked." aria-label={`${mmss(leftNow)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(leftNow)}</span></span>
+          <span role="timer" title="Cloud browser time left today (experimental). The page runs on your device and blocked sites stay blocked." aria-label={`${mmss(leftNow)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(leftNow)}</span></span>
+        )}
+        {view.kind === 'relay' && (
+          <button type="button" onClick={() => show({ kind: 'home' })} aria-label="Turn the cloud browser off and go back to the start page" title="Turn off the cloud browser" className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-3 text-sm hover:border-signal hover:bg-ink/10"><Power className="size-4" aria-hidden /><span className="max-[640px]:sr-only">Turn off</span></button>
         )}
         {(view.kind === 'page' || view.kind === 'relay') && (
           <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
@@ -560,12 +577,47 @@ export function Browser() {
           <div className="scroll-y absolute inset-0 z-20 grid content-start justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Page not working?</p>
             <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
-            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly, including chat and live ones. You get about four hours a day. Logins, and sites that check you are a person, may still fail.</p>}
+            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly, including chat and live ones. It is experimental and may break. You get 30 minutes a day. Logins, and sites that check you are a person, may still fail.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {pageUrl && view.kind !== 'relay' && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {pageUrl && view.kind !== 'relay' && !cloudOff && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
+            </div>
+          </div>
+        )}
+        {view.kind === 'cloudintro' && (
+          <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="dialog" aria-labelledby="ci-t" data-no-drag>
+            <p id="ci-t" className="hud inline-flex items-center gap-1.5"><Cloud className="size-4 text-signal" aria-hidden />Cloud browser · experimental</p>
+            <p className="text-[15px] leading-[1.4]"><strong>Highly experimental, and prone to breaking.</strong> {view.auto ? 'This page does not run in the normal Browser, so it can be opened in the cloud browser.' : 'It opens sites the normal Browser cannot run.'} Some will load slowly, show blank, or ask you to prove you are a person and fail.</p>
+            <ul className="m-0 grid list-none gap-1 p-0 text-[13px] leading-[1.4] text-ink-2">
+              <li>Everyone gets 30 minutes a day, and the time only runs while this page is open and in front.</li>
+              <li>Sites on the blocked list stay blocked. Leaving the tab turns it off.</li>
+              <li>The Turn off button next to the address bar ends it at any time.</li>
+            </ul>
+            <div className="flex flex-wrap gap-2">
+              <button autoFocus onClick={() => { warned = true; void openRelay(view.url, false, view.auto) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try it anyway</button>
+              <button onClick={() => (stack.length ? back() : show({ kind: 'home' }))} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Not now</button>
+              <button onClick={() => { setSetting({ cloudOff: true }); if (stack.length) back(); else show({ kind: 'home' }) }} className="h-11 px-3 text-sm text-ink-2 underline hover:text-ink">Never use it</button>
+            </div>
+          </div>
+        )}
+        {view.kind === 'cloudnote' && (
+          <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="alert" data-no-drag>
+            <p className="hud inline-flex items-center gap-1.5"><CloudOff className="size-4 text-signal" aria-hidden />{{ limit: 'Your 30 minutes are used', full: 'Full for today', down: 'Not answering', off: 'Cloud browser is off' }[view.why]}</p>
+            <p className="text-[15px] leading-[1.4]">
+              {view.why === 'limit' && <>You have used your 30 minutes of cloud browser time for today. It starts over in <strong>{untilReset()}</strong> (midnight UTC).</>}
+              {view.why === 'full' && <>The cloud browser costs money to run, and today&rsquo;s shared budget has been spent. This is not about you or your time. It refills in <strong>{untilReset()}</strong> (midnight UTC), and earlier in the day is usually easier.</>}
+              {view.why === 'down' && <>The cloud browser is not answering. It is experimental, and it can also be switched off when its budget runs out. Everything else in Friction still works.</>}
+              {view.why === 'off' && <>You turned the cloud browser off, so nothing opens in it and no time is used.</>}
+            </p>
+            <p className="text-[13px] leading-[1.4] text-ink-2">{view.why === 'off' ? 'Turn it back on to open this page.' : 'Meanwhile this page can be opened in your own browser, or you can try a Friction alt, a built-in stand-in for popular sites.'}</p>
+            <div className="flex flex-wrap gap-2">
+              {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openRelay(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
+              {view.why === 'down' && <button onClick={() => void openRelay(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}
+              {view.why !== 'off' && <button type="button" onClick={() => setLeave(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" aria-hidden /></button>}
+              <button onClick={() => show({ kind: 'alts' })} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><LayoutGrid className="size-4" aria-hidden />Friction alts</button>
+              <button onClick={() => show({ kind: 'home' })} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Back to start</button>
             </div>
           </div>
         )}
@@ -574,7 +626,7 @@ export function Browser() {
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
-              {view.url && <button onClick={() => void openRelay(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {view.url && !cloudOff && <button onClick={() => void openRelay(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {view.url && <button onClick={() => setIssues(true)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><CircleHelp className="size-4" />Facing issues?</button>}
               {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}

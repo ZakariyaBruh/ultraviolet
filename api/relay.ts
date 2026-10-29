@@ -8,12 +8,17 @@ import { mint } from './_relaytoken.js'
  * relay will not serve anyone who did not get one here. The page asks for the next lease only while the cloud browser is on screen
  * and the tab is in front, and the relay cuts a socket a short while after its lease ends, so time is spent only while it is in use.
  * Each address may be given `PER_IP` seconds of leases a day (30 minutes), and
- * everyone together `ALL` (env `RELAY_DAILY_CAP_H`, default 16 hours, about 480 a month: 32 people at 30 minutes, roughly $16 of Vercel usage at an estimated $0.035 for an open-socket hour), counted in Turso (`cloud_day`, one row for each hashed address,
+ * everyone together (`poolSecs`): the monthly budget (`RELAY_MONTHLY_USD`, default $20, the team's credit) divided by the cost of an open-socket hour
+ * (`RELAY_HOUR_USD`, default $0.041: $0.035 plus the overlap of old and new sockets at each renewal) and by the days in this month, so a month of full days
+ * adds up to the budget. People are not counted: whoever asks first gets time, each address up to 30 minutes, until the day's pool is spent (env
+ * `RELAY_DAILY_CAP_H` overrides the sum). Counted in Turso (`cloud_day`, one row for each hashed address,
  * starting over each UTC day). Only the Friction page may ask, and with no Turso it refuses, so it is never unmetered.
  */
 const LIFE = 3 * 60
 const PER_IP = 30 * 60
-const ALL = (Number(process.env.RELAY_DAILY_CAP_H) || 16) * 3600
+const daysThisMonth = () => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate() }
+const budgetSecs = () => Math.floor(((Number(process.env.RELAY_MONTHLY_USD) || 20) / (Number(process.env.RELAY_HOUR_USD) || 0.041) / daysThisMonth()) * 3600)
+const poolSecs = () => (Number(process.env.RELAY_DAILY_CAP_H) ? Number(process.env.RELAY_DAILY_CAP_H) * 3600 : budgetSecs())
 const ORIGIN = process.env.RELAY_ORIGIN || 'https://friction-relay.vercel.app'
 
 let db: Client | undefined
@@ -41,7 +46,7 @@ export default {
       const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY4'] })
       const get = (k: string) => Number(r.rows.find((x) => x.id === k)?.secs ?? 0)
       if (get(id) + LIFE > PER_IP) return json({ error: 'limit' }, 429)
-      if (get('RELAY4') + LIFE > ALL) return json({ error: 'full' }, 429)
+      if (get('RELAY4') + LIFE > poolSecs()) return json({ error: 'full' }, 429)
       const sql = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
       await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY4', today(), LIFE] }])
       const t = mint(LIFE)
