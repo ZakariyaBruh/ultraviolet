@@ -120,6 +120,8 @@ export interface Settings {
   songAge: number
   /** the first-run walkthrough has been shown */
   toured: boolean
+  /** the Browser's own walkthrough has been shown */
+  browserToured: boolean
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -254,6 +256,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicLevel: 0.6,
   songAge: 0,
   toured: false,
+  browserToured: false,
 }
 
 const emptyData = (): Data => ({

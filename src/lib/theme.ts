@@ -26,6 +26,9 @@ export function useTheme() {
   const bg = useStore((s) => s.settings.bg)
   const era = useStore((s) => s.settings.era)
   const ascii = useStore((s) => s.settings.ascii)
+  const motion = useStore((s) => s.settings.motion)
+  // calm motion switches off the page-level moves in index.css (panels coming up, the pressed button)
+  useEffect(() => { document.documentElement.toggleAttribute('data-calm', motion === 0) }, [motion])
   useEffect(() => {
     // the retro dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction; --fx is the same
     // but never past Broadcast, because the screen effects (scanline, grain, warmth, glow) stop there. The text solids

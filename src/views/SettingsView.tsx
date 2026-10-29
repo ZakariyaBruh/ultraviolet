@@ -5,6 +5,7 @@ import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
 import { LengthBand } from '@/components/app/LengthBand'
+import { EnterCode, MakeCode } from '@/components/app/Handoff'
 import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
@@ -212,8 +213,20 @@ function Data() {
   const [confirmed, setConfirmed] = useState(false)
   return (
     <div className="grid min-h-0 gap-4">
+      <Panel className="grid gap-3 p-4 md:grid-cols-2 md:gap-6">
+        <div className="grid content-start gap-2">
+          <p className="hud">Move my data</p>
+          <p className="text-[13px] leading-[1.4] text-ink-2">Use Friction somewhere else, like the Home Screen app on an iPhone or iPad, which keeps its data apart from Safari. Make a code here and type it there. It works once, for ten minutes, and the data is sealed on the way: the server cannot read it.</p>
+          <MakeCode />
+        </div>
+        <div className="grid content-start gap-2">
+          <p className="hud">Bring data here</p>
+          <p className="text-[13px] leading-[1.4] text-ink-2">Type a code made in another browser. This replaces what is saved in this one, so use it on a fresh install.</p>
+          <EnterCode />
+        </div>
+      </Panel>
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
-        <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. Nothing here can be exported or imported, so no file can be used to take someone else's place." checked readOnly />
+        <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. No file can be imported, so nothing uploaded can take someone else's place. Moving your data to your own other browser takes a one-time code you make yourself." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
       </Panel>
     </div>

@@ -34,7 +34,8 @@ import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
-import { ItemTour, Tour } from '@/components/app/Tour'
+import { FirstLaunch, InstallPrompt } from '@/components/app/Install'
+import { BrowserTour, ItemTour, Tour } from '@/components/app/Tour'
 import { useMusicSync } from '@/lib/music'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { TogetherView } from '@/views/TogetherView'
@@ -125,6 +126,7 @@ export default function App() {
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
       {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
       <Backdrop reduced={reduced} />
+      {level >= 1 && <motion.div key={`cut-${view}`} aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-signal" initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ scaleX: { duration: 0.34, ease: [0.2, 0, 0, 1] }, opacity: { duration: 0.2, delay: 0.3 } }} />}
       <Shell view={view} onChange={change} onHome={() => go('home')}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
           <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 36 * d, y: 6, scale: 0.975 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }} exit={{ opacity: 0, x: -18 * d, scale: 0.99, transition: { duration: 0.11, ease: [0.4, 0, 1, 1] } }} transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.8, opacity: { duration: 0.16, ease: 'easeOut' } }}>
@@ -211,9 +213,12 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
+      <FirstLaunch />
       <Onboarding />
+      <InstallPrompt route={route} />
       {route !== 'home' && <Tour view={view} go={change} />}
       {route !== 'home' && <ItemTour view={view} go={change} />}
+      {route !== 'home' && <BrowserTour view={view} go={change} />}
       <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast

@@ -12,7 +12,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|api/|favicon.svg).*)",
+      "source": "/((?!assets/|api/|icons/|favicon.svg|manifest.webmanifest|apple-touch-icon.png).*)",
       "destination": "/index.html"
     }
   ]

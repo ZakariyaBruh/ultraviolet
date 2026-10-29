@@ -164,6 +164,13 @@ function AddPage({ onSave, onBack }: { onSave: (name: string, url: string) => vo
 export function Browser() {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [stack, setStack] = useState<View[]>([])
+  // the first time the Browser is opened, a short tour of it (once the main tour is done or skipped)
+  const browserToured = useStore((s) => s.settings.browserToured)
+  useEffect(() => {
+    if (browserToured) return
+    const t = setTimeout(() => { const u = useUI.getState(); if (!u.tourOpen && !u.onboardOpen && !u.celebrate) u.set({ browserTour: true }) }, 900)
+    return () => clearTimeout(t)
+  }, [browserToured])
   // tell the rest of the app the cloud browser's live frame is up, so Friction pauses its forced-layout timers (the
   // ASCII panel scan, the Shell scroll measure) that otherwise reflow against the heavy iframe and freeze an iPad
   const cloud = view.kind === 'relay'

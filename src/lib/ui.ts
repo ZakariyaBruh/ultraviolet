@@ -12,6 +12,8 @@ interface UI {
   moreOpen: boolean
   landing: boolean
   tourOpen: boolean
+  /** the Browser's first-open walkthrough */
+  browserTour: boolean
   /** the item whose how-to walk-through is showing (a bought window: sound machine, spinner, cannon, auto music) */
   itemTour: string | null
   /** run the welcome again (Settings, Help) */
@@ -38,6 +40,7 @@ export const useUI = create<UI>((set) => ({
   moreOpen: false,
   landing: false,
   tourOpen: false,
+  browserTour: false,
   itemTour: null,
   onboardOpen: false,
   receipt: null,
@@ -45,3 +48,5 @@ export const useUI = create<UI>((set) => ({
   cloudOpen: false,
   set: (patch) => set(patch),
 }))
+
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __ui: typeof useUI }).__ui = useUI

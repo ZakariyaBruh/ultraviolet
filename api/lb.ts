@@ -15,6 +15,8 @@ import { createClient, type Client } from '@libsql/client/web'
 const CAP_BYTES = Number(process.env.LB_CAP_BYTES) || 4.5e9
 const BOARD_SIZE = 25
 const PENDING_CAP = 5000
+/** how long a hand-off waits to be picked up */
+const XFER_MS = 10 * 60_000
 
 let db: Client | undefined
 let ready: Promise<unknown> | undefined
@@ -26,6 +28,9 @@ const init = () =>
       'CREATE TABLE IF NOT EXISTS pending (code TEXT PRIMARY KEY, n INTEGER NOT NULL, t INTEGER NOT NULL)',
       'CREATE TABLE IF NOT EXISTS board (code TEXT PRIMARY KEY, name TEXT, n INTEGER NOT NULL, t INTEGER NOT NULL)',
       'CREATE INDEX IF NOT EXISTS board_n ON board (n DESC, t ASC)',
+      // a hand-off of someone's own data to another browser: the page encrypts it with a code only they see, the server holds one
+      // sealed row per person for ten minutes and gives it up once
+      'CREATE TABLE IF NOT EXISTS xfer (owner TEXT PRIMARY KEY, id TEXT NOT NULL UNIQUE, blob TEXT NOT NULL, t INTEGER NOT NULL)',
     ])
     // names are unique: `nkey` is the name folded to lowercase letters and digits, so "Zak", "zak" and "Z.a.k" are one name
     const cols = await c.execute('PRAGMA table_info(board)')
@@ -143,6 +148,7 @@ export default {
           await c.batch([
             { sql: 'DELETE FROM board WHERE code = ?', args: [code] },
             { sql: 'DELETE FROM pending WHERE code = ?', args: [code] },
+            { sql: 'DELETE FROM xfer WHERE owner = ?', args: [await roomId(key)] },
           ])
           try {
             // the rooms tables belong to api/room.ts and may not exist yet
@@ -153,6 +159,27 @@ export default {
             ])
           } catch { /* no rooms yet */ }
           return json({ ok: true })
+        }
+
+        // Hand-off, put: a sealed blob the page made (AES-GCM under a key derived from a code the server never sees), one row for each
+        // person (`owner` is their private room id), kept ten minutes. Hand-off, get: whoever holds the code's id takes it once.
+        if (body.a === 'xput') {
+          const b = body as { id?: string; blob?: string; owner?: string }
+          if (!/^[a-f0-9]{32}$/.test(String(b.id)) || !/^[a-f0-9]{32}$/.test(String(b.owner)) || typeof b.blob !== 'string' || b.blob.length < 40 || b.blob.length > 1_400_000) return json({ error: 'bad hand-off' }, 400)
+          if (limited(`xput:${ip}`, 20)) return json({ error: 'slow down' }, 429)
+          await c.execute({ sql: 'DELETE FROM xfer WHERE t < ?', args: [Date.now() - XFER_MS] })
+          await c.execute({ sql: 'INSERT INTO xfer (owner, id, blob, t) VALUES (?, ?, ?, ?) ON CONFLICT (owner) DO UPDATE SET id = excluded.id, blob = excluded.blob, t = excluded.t', args: [b.owner!, b.id!, b.blob, Date.now()] })
+          return json({ ok: true, minutes: XFER_MS / 60000 })
+        }
+        if (body.a === 'xget') {
+          const id = String((body as { id?: string }).id)
+          if (!/^[a-f0-9]{32}$/.test(id)) return json({ error: 'bad hand-off' }, 400)
+          if (limited(`xget:${ip}`, 30)) return json({ error: 'slow down' }, 429)
+          const r = await c.execute({ sql: 'SELECT blob, t FROM xfer WHERE id = ?', args: [id] })
+          if (!r.rows.length) return json({ error: 'none' }, 404)
+          await c.execute({ sql: 'DELETE FROM xfer WHERE id = ?', args: [id] })
+          if (Date.now() - Number(r.rows[0].t) > XFER_MS) return json({ error: 'none' }, 404)
+          return json({ blob: String(r.rows[0].blob) })
         }
 
         if (body.a === 'recommend') {
