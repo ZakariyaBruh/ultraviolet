@@ -40,6 +40,10 @@ type View =
 /** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
 let pass: { base: string; token: string; exp: number; left: number } | null = null
 
+/** sites that cannot run in the sealed frame at all (chat apps that need live connections, script-only apps, sites that turn our server away): they open straight in the cloud browser */
+const CLOUD_FIRST = /^(discord\.com|chatgpt\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com|perplexity\.ai|poe\.com|character\.ai|copilot\.microsoft\.com|archive\.org|khanacademy\.org|openstax\.org)$/
+const cloudFirst = (u: URL) => CLOUD_FIRST.test(u.hostname.replace(/^(www|m|app|web)\./, ''))
+
 /** pages opened this visit, newest first */
 let history: string[] = []
 const NONE: SavedPage[] = []
@@ -180,6 +184,7 @@ export function Browser() {
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
     const id = youtubeId(v.url)
     if (id) return show({ kind: 'video', id, url: v.url.toString() }, push)
+    if (how === 'auto' && cloudFirst(v.url)) return openRelay(raw, push)
     // with page scripts on, Google, YouTube and the rest are opened as themselves; the window's own search pages stand in only when scripts are off
     if (scripts === 'off' || how === 'static') {
       const s = searched(v.url)
@@ -382,7 +387,7 @@ export function Browser() {
                 <ul className="m-0 list-none p-0">{recent.map((r) => <li key={r}><button onClick={() => void open(r)} className="block min-h-11 w-full truncate py-2 text-left text-[13px] text-ink-2 hover:text-ink">{r.replace(/^https?:\/\//, '')}</button></li>)}</ul>
               </div>
             )}
-            <p className="text-[12px] leading-[1.4] text-ink-3">Games and short-form social media are blocked. Full YouTube videos play; Shorts do not. Pages are shown without scripts, so articles and documents work best.</p>
+            <p className="text-[12px] leading-[1.4] text-ink-3">Games and short-form social media are blocked. Full YouTube videos play; Shorts do not. Sites that do not work here open in the cloud browser.</p>
           </div>
         )}
         {view.kind === 'search' && <Start title="FrictionX" sub={`Search the web, made here. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
@@ -489,6 +494,7 @@ export function Browser() {
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
+              {view.url && <button onClick={() => void openRelay(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {view.url && <button onClick={() => setIssues(true)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><CircleHelp className="size-4" />Facing issues?</button>}
               {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}

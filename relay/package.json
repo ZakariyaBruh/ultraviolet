@@ -1,1 +1,1 @@
-{"name":"friction-relay","private":true,"version":"1.0.0","type":"module","engines":{"node":"22.x"},"dependencies":{"@titaniumnetwork-dev/ultraviolet":"^2.0.0","@tomphttp/bare-server-node":"^2.0.6"},"devDependencies":{"@types/node":"^26.6.6"}}
+{"name":"friction-relay","private":true,"version":"1.0.0","type":"module","engines":{"node":"22.x"},"devDependencies":{"@types/node":"^26.6.6"},"dependencies":{"@mercuryworkshop/bare-mux":"^2.1.9","@mercuryworkshop/libcurl-transport":"^1.5.2","@mercuryworkshop/scramjet":"^1.1.0","@mercuryworkshop/wisp-js":"^0.5.1"}}

@@ -1,11 +1,12 @@
-/* Ultraviolet's service worker, with absolute paths. It rewrites every request a proxied page makes into a call to /bare/<pass>/ ,
-   where the pass comes from this script's own address (?t=...), so the worker needs no storage and a new pass is a new worker. */
-importScripts('/uv/uv.bundle.js')
-importScripts('/uv/uv.config.js')
-const pass = new URL(self.location.href).searchParams.get('t')
-if (pass) self.__uv$config.bare = '/bare/' + pass + '/'
-importScripts(__uv$config.sw)
-const uv = new UVServiceWorker()
+/* Scramjet's service worker: it turns a page's requests into streams that bare-mux sends to the relay's Wisp socket. */
+importScripts('/scram/scramjet.all.js')
+const { ScramjetServiceWorker } = $scramjetLoadWorker()
+const scramjet = new ScramjetServiceWorker()
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
-self.addEventListener('fetch', (event) => event.respondWith(event.request.url.startsWith(location.origin + __uv$config.prefix) ? uv.fetch(event) : fetch(event.request)))
+self.addEventListener('fetch', (event) => {
+  event.respondWith((async () => {
+    await scramjet.loadConfig()
+    return scramjet.route(event) ? scramjet.fetch(event) : fetch(event.request)
+  })())
+})
