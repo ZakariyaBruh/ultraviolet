@@ -40,7 +40,7 @@
       ]
     },
     {
-      "source": "/(scram|baremux|libcurl)/(.*)",
+      "source": "/(scram|controller|libcurl)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

@@ -1,12 +1,6 @@
-/* Scramjet's service worker: it turns a page's requests into streams that bare-mux sends to the relay's Wisp socket. */
-importScripts('/scram/scramjet.all.js')
-const { ScramjetServiceWorker } = $scramjetLoadWorker()
-const scramjet = new ScramjetServiceWorker()
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
-self.addEventListener('fetch', (event) => {
-  event.respondWith((async () => {
-    await scramjet.loadConfig()
-    return scramjet.route(event) ? scramjet.fetch(event) : fetch(event.request)
-  })())
+/* Scramjet 2's service worker. It only forwards: a page's requests under the proxy prefix go to the controller in go.html, which rewrites them and sends them over the transport. */
+importScripts('/controller/controller.sw.js')
+addEventListener('fetch', (event) => {
+  const c = self.$scramjetController
+  if (c && c.shouldRoute(event)) event.respondWith(c.route(event))
 })
