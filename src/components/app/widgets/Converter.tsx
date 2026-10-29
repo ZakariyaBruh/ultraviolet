@@ -42,7 +42,10 @@ export function Converter() {
   const result = useMemo(() => (Number.isFinite(value) ? convert(cat, value, from, to) : NaN), [cat, value, from, to])
   const pick = (c: Cat) => {
     const n = Object.keys(SETS[c].units)
-    setCat(c); setFrom(n[Math.min(2, n.length - 1)]); setTo(n[Math.min(3, n.length - 1)])
+    const f = n[Math.min(2, n.length - 1)]
+    // a sensible mid-range unit for "to", but never the same unit as "from" (Temperature has only three, so 2 and 3 collapse)
+    const t = n[Math.min(3, n.length - 1)]
+    setCat(c); setFrom(f); setTo(t === f ? (n.find((u) => u !== f) ?? t) : t)
   }
   const sel = 'h-11 min-w-0 flex-1 border border-ink/30 bg-transparent px-2 text-[15px] text-ink focus:border-signal'
   return (
