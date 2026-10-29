@@ -5,13 +5,13 @@ import { mint } from './_relaytoken.js'
 /**
  * Hands out passes for the relay (the separate friction-relay project that fetches pages for sites the Browser cannot open on its own).
  * A pass lasts 30 minutes, is signed with RELAY_SECRET, which only this project and the relay hold, so the
- * relay will not serve anyone who did not get one here. Each address may be given `PER_IP` seconds of passes a day (8 passes), and
- * everyone together `ALL` (env `RELAY_DAILY_CAP_H`, default 300 hours), counted in Turso (`cloud_day`, one row for each hashed address,
+ * relay will not serve anyone who did not get one here. Each address may be given `PER_IP` seconds of passes a day (4 passes, 2 hours), and
+ * everyone together `ALL` (env `RELAY_DAILY_CAP_H`, default 8 hours, about 240 a month: roughly $8 of Vercel usage at about $0.035 for an open-socket hour), counted in Turso (`cloud_day`, one row for each hashed address,
  * starting over each UTC day). Only the Friction page may ask, and with no Turso it refuses, so it is never unmetered.
  */
 const LIFE = 30 * 60
-const PER_IP = 8 * LIFE
-const ALL = (Number(process.env.RELAY_DAILY_CAP_H) || 300) * 3600
+const PER_IP = 4 * LIFE
+const ALL = (Number(process.env.RELAY_DAILY_CAP_H) || 8) * 3600
 const ORIGIN = process.env.RELAY_ORIGIN || 'https://friction-relay.vercel.app'
 
 let db: Client | undefined

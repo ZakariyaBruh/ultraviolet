@@ -352,6 +352,9 @@ export function Browser() {
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'relay' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
+        {view.kind === 'relay' && leftNow !== null && (
+          <span role="timer" title="Cloud browser time left today. The page runs on your device and blocked sites stay blocked." aria-label={`${mmss(leftNow)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(leftNow)}</span></span>
+        )}
         {(view.kind === 'page' || view.kind === 'relay') && (
           <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
         )}
@@ -445,7 +448,6 @@ export function Browser() {
         )}
         {view.kind === 'relay' && (
           <div className="flex size-full flex-col">
-            <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink/15 bg-ink/[0.06] px-3 py-1.5 text-[12px] leading-[1.3] text-ink-2"><span className="inline-flex items-center gap-1.5 font-semibold text-ink"><Cloud className="size-3.5 text-signal" aria-hidden />Cloud browser</span>{leftNow !== null && <span>Time left today <span className="fig text-ink" role="timer" aria-label={`${mmss(leftNow)} of cloud browser time left today`}>{mmss(leftNow)}</span></span>}<span className="text-ink-3">The page runs on your device; blocked sites stay blocked.</span></p>
             <div className="relative min-h-0 flex-1">
               {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
               <iframe key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="clipboard-write; fullscreen" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />
