@@ -105,7 +105,7 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
   useEffect(() => {
     if (cover !== 'hold') return
     const lines = step.card?.lines?.length ?? 0
-    const t = setTimeout(() => setCover('out'), calm ? 1400 : 1500 + lines * 450)
+    const t = setTimeout(() => setCover('out'), calm ? 900 : lines ? 1400 + lines * 450 : 850)
     return () => clearTimeout(t)
   }, [cover, step.card, calm])
   useEffect(() => {
@@ -174,10 +174,31 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
   }
   cx = Math.min(Math.max(12, cx), vp.w - cw - 12)
   cy = Math.min(Math.max(12, cy), vp.h - size.h - 12)
+  // the card must never sit on the part it is talking about: if it does, try the other sides and the corners
+  const hits = (x0: number, y0: number) => !!hole && x0 < hole.x + hole.w + 8 && x0 + cw > hole.x - 8 && y0 < hole.y + hole.h + 8 && y0 + size.h > hole.y - 8
+  if (hole && hits(cx, cy)) {
+    const m = 12
+    const tries: [number, number][] = [
+      [cx, hole.y + hole.h + 16], [cx, hole.y - size.h - 16], [hole.x + hole.w + 16, cy], [hole.x - cw - 16, cy],
+      [vp.w - cw - m, vp.h - size.h - m], [m, vp.h - size.h - m], [vp.w - cw - m, m], [m, m],
+    ]
+    for (const [tx, ty] of tries) {
+      const x1 = Math.min(Math.max(m, tx), vp.w - cw - m), y1 = Math.min(Math.max(m, ty), vp.h - size.h - m)
+      if (!hits(x1, y1)) { cx = x1; cy = y1; break }
+    }
+  }
+  // the arrow stands on the edge of the part that faces the card, and nudges toward it
+  let arrow: { x: number; y: number; r: number } | null = null
+  if (hole && !hits(cx, cy)) {
+    const dx = cx + cw / 2 - (hole.x + hole.w / 2), dy = cy + size.h / 2 - (hole.y + hole.h / 2)
+    if (Math.abs(dy) / (size.h / 2 + hole.h / 2) >= Math.abs(dx) / (cw / 2 + hole.w / 2)) arrow = dy > 0 ? { x: hole.x + hole.w / 2, y: hole.y + hole.h + 4, r: 0 } : { x: hole.x + hole.w / 2, y: hole.y - 30, r: 180 }
+    else arrow = dx > 0 ? { x: hole.x + hole.w + 4, y: hole.y + hole.h / 2 - 13, r: -90 } : { x: hole.x - 30, y: hole.y + hole.h / 2 - 13, r: 90 }
+  }
 
   const interactive = !!step.done
   const lastInChapter = !steps[i + 1] || !!steps[i + 1].card
-  const inChapter = (() => { let a = i; while (a > 0 && !steps[a].card) a--; let b = i; while (b < steps.length - 1 && !steps[b + 1].card) b++; return { n: i - a, of: b - a } })()
+  const spots = steps.filter((x) => !x.card)
+  const spotNo = spots.indexOf(step) + 1
   const chapterName = (() => { let a = i; while (a > 0 && !steps[a].card) a--; return steps[a].card?.kicker ?? label })()
 
   return (
@@ -185,16 +206,22 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
       {/* the dim, with a hole where the part is; clicks fall through the hole and stop everywhere else */}
       {!step.card && (
         <svg className="pointer-events-none absolute inset-0 size-full" width={vp.w} height={vp.h} aria-hidden>
-          <motion.path d={d} fillRule="evenodd" className="fill-ground" fillOpacity={0.72} initial={false} animate={{ fillOpacity: hole ? 0.72 : 0.62 }} transition={{ duration: 0.25 }} style={{ pointerEvents: 'auto' }} />
+          <motion.path d={d} fillRule="evenodd" className="fill-ground" fillOpacity={0.55} initial={false} animate={{ fillOpacity: hole ? 0.55 : 0.5 }} transition={{ duration: 0.25 }} style={{ pointerEvents: 'auto' }} />
         </svg>
       )}
       {!step.card && scope && <motion.div aria-hidden initial={false} animate={{ left: scope.x, top: scope.y, width: scope.w, height: scope.h }} transition={calm ? { duration: 0 } : { type: 'spring', ...sp }} className="pointer-events-none absolute border border-dashed border-ink/50" />}
       {!step.card && hole && (
         <motion.div aria-hidden style={{ x, y, width: w, height: h }} className="pointer-events-none absolute left-0 top-0">
-          <div className={cn('absolute inset-0 border-2 transition-colors duration-200', won ? 'border-ok' : 'border-signal')} />
+          <div className={cn('absolute inset-0 border-[3px] transition-colors duration-200', won ? 'border-ok' : 'border-signal')} />
           {!calm && !won && <div className="tour-ping absolute inset-0 border-2 border-signal" />}
           <span className="absolute -left-px -top-px size-2.5 border-l-2 border-t-2 border-signal" /><span className="absolute -right-px -top-px size-2.5 border-r-2 border-t-2 border-signal" />
           <span className="absolute -bottom-px -left-px size-2.5 border-b-2 border-l-2 border-signal" /><span className="absolute -bottom-px -right-px size-2.5 border-b-2 border-r-2 border-signal" />
+        </motion.div>
+      )}
+
+      {!step.card && arrow && (
+        <motion.div aria-hidden className="pointer-events-none absolute left-0 top-0 text-signal" initial={false} animate={{ x: arrow.x - 13, y: arrow.y, rotate: arrow.r }} transition={calm ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 30 }}>
+          <motion.svg width="26" height="26" viewBox="0 0 26 26" fill="currentColor" animate={calm ? undefined : { y: [0, -7, 0] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}><path d="M13 2 L24 22 L13 17 L2 22 Z" stroke="var(--ground)" strokeWidth="2" strokeLinejoin="round" /></motion.svg>
         </motion.div>
       )}
 
@@ -202,24 +229,24 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
       {!step.card && (
         <motion.div ref={card} role="dialog" aria-label={`${label}: ${step.title}`} aria-live="polite" initial={calm ? false : { opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, x: cx, y: cy, scale: 1 }} transition={calm ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30, opacity: { duration: 0.18 } }} style={{ width: cw }} className="glass pointer-events-auto absolute left-0 top-0 grid min-w-0 gap-2 overflow-hidden p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="hud text-signal">{chapterName}{inChapter.of > 1 ? ` · ${inChapter.n} of ${inChapter.of}` : ''}</p>
+            <p className="hud text-signal">{chapterName} · {spotNo} of {spots.length}</p>
             <button onClick={() => close('skip')} className="h-11 -my-2 px-2 text-[13px] text-ink-2 hover:text-ink">Skip tour</button>
           </div>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={step.id} initial={calm ? false : { opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.1, ease: [0.4, 0, 1, 1] } }} transition={{ duration: 0.2, ease }} className="grid gap-1.5">
-              <h2 className="dot text-[1.25rem] font-bold leading-[1.15]">{step.title}</h2>
-              <p className="text-[14px] leading-[1.45] text-ink-2">{step.body}</p>
+              <h2 className="dot text-[1.3rem] font-bold leading-[1.15]">{step.title}</h2>
+              <p className="text-[15px] leading-[1.45] text-ink">{step.body}</p>
               {step.task && (
-                <p className={cn('mt-0.5 flex items-center gap-2 border px-2.5 py-2 text-[13px] font-semibold', won ? 'border-ok text-ok' : 'border-signal text-signal')} role="status">
+                <p className={cn('mt-1 flex items-center gap-2 border-l-4 bg-ink/[0.06] px-3 py-2.5 text-[15px] font-bold', won ? 'border-ok text-ok' : 'border-signal text-signal')} role="status">
                   {won ? <Check className="size-4 shrink-0" aria-hidden /> : <span aria-hidden className="size-2 shrink-0 bg-signal [animation:tour-blink_1s_steps(2)_infinite] motion-reduce:[animation:none]" />}
-                  {won ? 'Got it' : step.task}
+                  {won ? 'Nice' : step.task}
                 </p>
               )}
             </motion.div>
           </AnimatePresence>
           <div className="mt-1 flex items-center justify-between gap-3">
             <button onClick={back} disabled={i === 0} className="h-11 shrink-0 whitespace-nowrap px-2 text-sm text-ink-2 hover:text-ink disabled:opacity-30">Back</button>
-            <div className="flex min-w-0 flex-1 gap-[3px]" aria-hidden>{Array.from({ length: Math.max(0, inChapter.of) + 1 }, (_, k) => <span key={k} className={cn('h-1 min-w-0 flex-1 transition-colors', k <= inChapter.n ? 'bg-signal' : 'bg-ink/25')} />)}</div>
+            <div className="h-1 min-w-0 flex-1 bg-ink/25" aria-hidden><motion.div className="h-full bg-signal" initial={false} animate={{ width: `${(spotNo / spots.length) * 100}%` }} transition={{ duration: calm ? 0 : 0.3, ease }} /></div>
             {interactive && !won ? (
               <button onClick={next} className={cn('h-11 shrink-0 whitespace-nowrap px-3 text-sm', late ? 'bg-ink font-semibold text-ground' : 'text-ink-3 hover:text-ink')}>Skip step</button>
             ) : (
