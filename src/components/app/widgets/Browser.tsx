@@ -470,8 +470,8 @@ export function Browser() {
             {view.backup
               ? <RelayScreen key={view.n} url={view.url} onClock={setCloudLeft} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
               : <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => {
-                // the main cloud browser is not answering or has no free session: the backup takes the page (older, shares the device's thread, more likely to break)
-                if (why === 'down' || why === 'busy') { show({ kind: 'cloud', url: view.url, n: Date.now(), backup: true }, false); setNote('The main cloud browser is not available, so this is the backup. It is older and more likely to break.'); return }
+                // no good server is free (or none answers): the backup takes the page, and the window says so
+                if (why === 'down' || why === 'busy') { show({ kind: 'cloud', url: view.url, n: Date.now(), backup: true }, false); setNote(why === 'busy' ? 'The high-quality servers are busy right now, so this older backup browser is being used. There may be some issues: it can be slow, show blank pages or drop out.' : 'The high-quality servers are not answering, so this older backup browser is being used. There may be some issues: it can be slow, show blank pages or drop out.'); return }
                 show({ kind: 'cloudnote', why, url: view.url }, false)
               }} />}
             {note && <p role="status" className="absolute inset-x-0 bottom-0 z-20 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}

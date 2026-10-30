@@ -85,7 +85,11 @@ export function CloudScreen({ url, onClock, onProblem, onNote }: { url: string; 
     alive.current = true
     nowUrl.current = url
     void begin()
-    return () => { alive.current = false; stop(true) }
+    // closing the window, leaving the screen or closing the whole page ends the session now (the cron is only the backstop)
+    const bye = () => stop(true)
+    addEventListener('pagehide', bye)
+    addEventListener('beforeunload', bye)
+    return () => { removeEventListener('pagehide', bye); removeEventListener('beforeunload', bye); alive.current = false; stop(true) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // the clock, the next chunk of time, and the switch-off when the tab is away
