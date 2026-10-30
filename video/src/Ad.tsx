@@ -49,7 +49,7 @@ const S1 = () => {
       {f < 9 && <Fill style={{ background: '#fff', top: 540, height: 3, bottom: 'auto', left: `${50 - line * 50}%`, right: `${50 - line * 50}%`, boxShadow: '0 0 40px 8px #fff' }} />}
       {f >= 9 && (
         <Fill style={{ scale: `1 ${open}`, background: C.ground, overflow: 'hidden' }}>
-          {boot && <Clip src="v3/landing.mp4" from={0.3} cam={[[0, 1.3, 960, 480], [2, 1.45, 960, 480]]} />}
+          {boot && <Clip src="v3/landing.mp4" from={0.12} cam={[[0, 1.0, 960, 480], [2.2, 1.06, 960, 480]]} />}
           {card && <TestCard />}
         </Fill>
       )}
@@ -199,7 +199,7 @@ const S6 = () => {
     <AbsoluteFill style={{ background: C.ground }}>
       {f < 60 && <Clip src="v3/widgets.mp4" from={3.9} cam={[[0, 1.2, 600, 400], [1.0, 1.7, 480, 520], [2.0, 1.7, 480, 520]]} />}
       {f >= 60 && <Clip src="v3/report.mp4" from={11.9} cam={[[0, 1.25, 960, 470], [2, 1.12, 960, 480]]} />}
-      <Plate at={4} kicker="Study windows" style={{ left: 1000, top: 760 }} sub="Notepad, timer, calculator, converter, to-do list, scratch board and a small browser.">Cards, dealt.</Plate>
+      <Plate at={4} out={50} kicker="Study windows" style={{ left: 1000, top: 760 }} sub="Notepad, timer, calculator, converter, to-do list, scratch board and a small browser.">Cards, dealt.</Plate>
       <Plate at={64} kicker="Lessons" style={{ left: 90, top: 770 }} sub="Built from Wikipedia by fixed rules. No AI writes them.">Learn anything.</Plate>
     </AbsoluteFill>
   )
@@ -256,13 +256,13 @@ const S9 = () => {
           <circle cx={960} cy={330} r={118} fill="none" stroke={C.ink} strokeWidth={22} strokeDasharray={`${ring * 741} 741`} transform="rotate(-100 960 330)" />
           <rect x={1028} y={196} width={74} height={74} fill={C.signal} style={{ transformOrigin: '1065px 233px', scale: `${sq}` }} />
         </svg>
-        <Fill style={{ top: 470, textAlign: 'center' }}>
+        <Fill style={{ top: 470, left: 0, right: 0, textAlign: 'center' }}>
           <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 200, letterSpacing: '-0.04em', textTransform: 'uppercase', lineHeight: 1, color: C.ink, opacity: useT(22, 8), scale: `${1 + (1 - useSlam(22, 14, 170)) * 0.25}` }}>Friction</div>
           <div style={{ fontFamily: 'Hanken', fontSize: 50, color: C.ink, marginTop: 22, opacity: useT(48, 16) }}>Free. No account. Your data stays in your browser.</div>
           <div style={{ marginTop: 38, display: 'inline-block', background: C.signal, color: '#05070c', fontFamily: 'Unbounded', fontWeight: 700, fontSize: 52, padding: '20px 44px', opacity: url, scale: `${0.92 + 0.08 * url}` }}>frictionx.vercel.app</div>
           <div style={{ marginTop: 30 }}><Kicker size={32} color={C.ice} style={{ opacity: useT(118, 14) }}>Launching on Product Hunt</Kicker></div>
         </Fill>
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 66 }}><div style={{ display: 'flex', width: '100%', height: 24 }}>{BARS.map((c, i) => <div key={c} style={{ flex: 1, background: c, scale: `${interpolate(bars, [i / 9, i / 9 + 0.4], [0, 1], clamp)} 1`, transformOrigin: 'left' }} />)}</div></div>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 66 }}><div style={{ display: 'flex', width: '100%', height: 24 }}>{[...BARS.slice(0, 6), '#ff3b3b'].map((c, i) => <div key={c} style={{ flex: 1, background: c, scale: `${interpolate(bars, [i / 9, i / 9 + 0.4], [0, 1], clamp)} 1`, transformOrigin: 'left' }} />)}</div></div>
       </Fill>
       {f >= 150 && f < 176 && <Fill style={{ top: 538, height: 4, bottom: 'auto', background: '#fff', boxShadow: '0 0 30px 6px #fff', opacity: interpolate(f, [150, 160, 176], [0, 1, 0], clamp), left: `${(1 - (f > 166 ? offx : 1)) * 50}%`, right: `${(1 - (f > 166 ? offx : 1)) * 50}%` }} />}
     </AbsoluteFill>

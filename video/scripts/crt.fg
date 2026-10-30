@@ -1,12 +1,12 @@
-[0:v]format=rgb24,split=3[a][b][c];
-[a]lenscorrection=k1=-0.026:k2=0:fc=black,colorchannelmixer=rr=1:gg=0:bb=0[ra];
-[b]lenscorrection=k1=-0.023:k2=0:fc=black,colorchannelmixer=gg=1:rr=0:bb=0[gb];
-[c]lenscorrection=k1=-0.020:k2=0:fc=black,colorchannelmixer=bb=1:rr=0:gg=0[bc];
+[0:v]format=rgb24,scale=1856:1044:flags=bicubic,pad=1920:1080:32:18:black,split=3[a][b][c];
+[a]lenscorrection=k1=-0.030:k2=0:fc=black,colorchannelmixer=rr=1:gg=0:bb=0[ra];
+[b]lenscorrection=k1=-0.027:k2=0:fc=black,colorchannelmixer=gg=1:rr=0:bb=0[gb];
+[c]lenscorrection=k1=-0.024:k2=0:fc=black,colorchannelmixer=bb=1:rr=0:gg=0[bc];
 [ra][gb]blend=all_mode=addition[x];
 [x][bc]blend=all_mode=addition[ca];
 [ca]split[o][g1];
 [g1]curves=all='0/0 0.6/0 0.9/0.5 1/1',gblur=sigma=14[bl];
 [o][bl]blend=all_mode=screen:all_opacity=0.42[bloomed];
 [bloomed][1:v]blend=all_mode=multiply[sl];
-[sl]vignette=angle=PI/4.6,noise=alls=4:allf=t,colorbalance=rs=0.025:bs=-0.025[v];
-[v][2:v]blend=all_mode=multiply
+[sl]vignette=angle=PI/4.8,noise=alls=4:allf=t,colorbalance=rs=0.025:bs=-0.025[v];
+[v][2:v]blend=all_mode=multiply[out]
