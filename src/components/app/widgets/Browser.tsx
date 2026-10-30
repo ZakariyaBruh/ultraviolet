@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
 import { CloudScreen } from './CloudScreen'
+import { RelayScreen } from './RelayScreen'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
@@ -33,7 +34,7 @@ type View =
   /** `rendered`: the page's scripts were run on our server and this is what they drew */
   | { kind: 'page'; url: string; html: string; rendered?: boolean }
   /** the page runs in a cloud browser (Hyperbeam), streamed into the window; `n` makes Reload start it afresh */
-  | { kind: 'cloud'; url: string; n: number }
+  | { kind: 'cloud'; url: string; n: number; backup?: boolean }
   /** before the first cloud page of a visit: it is experimental, and this is the way out */
   | { kind: 'cloudintro'; url: string; auto: boolean }
   /** the cloud browser cannot be used right now, and why */
@@ -466,7 +467,13 @@ export function Browser() {
         )}
         {view.kind === 'cloud' && (
           <div className="relative size-full">
-            <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
+            {view.backup
+              ? <RelayScreen key={view.n} url={view.url} onClock={setCloudLeft} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
+              : <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => {
+                // the main cloud browser is not answering or has no free session: the backup takes the page (older, shares the device's thread, more likely to break)
+                if (why === 'down' || why === 'busy') { show({ kind: 'cloud', url: view.url, n: Date.now(), backup: true }, false); setNote('The main cloud browser is not available, so this is the backup. It is older and more likely to break.'); return }
+                show({ kind: 'cloudnote', why, url: view.url }, false)
+              }} />}
             {note && <p role="status" className="absolute inset-x-0 bottom-0 z-20 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
           </div>
         )}
@@ -513,7 +520,7 @@ export function Browser() {
             <p className="text-[15px] leading-[1.4]"><strong>Highly experimental, and prone to breaking.</strong> {view.auto ? 'This page does not run in the normal Browser, so it can be opened in the cloud browser.' : 'It opens sites the normal Browser cannot run.'} It is a real browser on a server (run by Hyperbeam), streamed to you, so it can lag, drop out or fail to start.</p>
             <ul className="m-0 grid list-none gap-1 p-0 text-[13px] leading-[1.4] text-ink-2">
               <li>Everyone gets 30 minutes a day, and the time only runs while this page is open and in front.</li>
-              <li>Hyperbeam, the company that runs it, can see what you do in it. Do not sign in to anything you would not hand to a stranger.</li>
+              <li>Hyperbeam, the company that runs it, can see what you do in it. Do not sign in to anything you would not hand to a stranger. If it is down, an older backup opens instead.</li>
               <li>Games and short-form social media are closed if you reach them. Leaving the tab turns it off.</li>
               <li>The Turn off button next to the address bar ends it at any time.</li>
             </ul>
