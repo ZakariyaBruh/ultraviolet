@@ -1,335 +1,311 @@
 import type React from 'react'
-import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, interpolate, random, staticFile, useCurrentFrame } from 'remotion'
-import { BARS, Bars, C, clamp, Dots, Fill, Grain, IN, Kicker, OUT, Screen, Slam, useShake, useSlam, useT, Vignette } from './ui'
+import { AbsoluteFill, Audio, Easing, Sequence, interpolate, random, staticFile, useCurrentFrame } from 'remotion'
+import { Ascii, COLS, ROWS } from './Ascii'
+import { Clip, Hud, Line, Plate, White } from './kit'
+import { BARS, C, Dots, Fill, Grain, IN, Kicker, OUT, clamp, useShake, useSlam, useT } from './ui'
 
 export const FPS = 30
 export const TOTAL = 1350
 const s = (n: number) => Math.round(n * FPS)
 
-/* ---------- 1. the feed: it never stops ---------- */
-const Feed = () => {
+/** noise, as a channel with nothing on it: a small turbulence scaled up */
+const Static = ({ opacity = 1 }: { opacity?: number }) => {
   const f = useCurrentFrame()
-  const speed = interpolate(f, [0, 120], [6, 140], { ...clamp, easing: IN })
-  const y = (f * (f + 30) * 0.05 * speed) / 12
-  const rows = Array.from({ length: 40 }, (_, i) => i)
-  const stretch = interpolate(speed, [6, 140], [1, 2.6], clamp)
   return (
-    <Fill style={{ overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', left: 560, width: 800, top: 0, translate: `0 ${-(y % 360)}px`, scale: `1 ${stretch}` }}>
-        {rows.map((i) => {
-          const w = 0.4 + random(`w${i}`) * 0.5
-          return (
-            <div key={i} style={{ height: 320, marginBottom: 40, border: '2px solid #2f3a52', background: '#141b2a', padding: 28, display: 'flex', gap: 24 }}>
-              <div style={{ width: 84, height: 84, borderRadius: 84, background: '#3a4560' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ height: 22, width: `${w * 100}%`, background: '#3a4560', marginBottom: 18 }} />
-                <div style={{ height: 22, width: '90%', background: '#222c42', marginBottom: 14 }} />
-                <div style={{ height: 22, width: '70%', background: '#222c42', marginBottom: 14 }} />
-                <div style={{ height: 120, width: '100%', background: '#1b2437' }} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
+    <Fill style={{ opacity, mixBlendMode: 'screen' }}>
+      <svg width="1920" height="1080" viewBox="0 0 480 270" preserveAspectRatio="none" style={{ imageRendering: 'pixelated' }}>
+        <filter id={`n${f}`}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed={f * 7 + 3} /><feColorMatrix type="saturate" values="0" /><feComponentTransfer><feFuncR type="linear" slope="2.2" intercept="-0.55" /><feFuncG type="linear" slope="2.2" intercept="-0.55" /><feFuncB type="linear" slope="2.2" intercept="-0.55" /></feComponentTransfer></filter>
+        <rect width="480" height="270" filter={`url(#n${f})`} />
+      </svg>
     </Fill>
   )
 }
 
+/* ---------- 1. power on: the line, the real boot terminal, the test card ---------- */
+const TestCard = () => (
+  <Fill style={{ background: C.ground }}>
+    <div style={{ position: 'absolute', left: 0, right: 0, top: 60, height: 560, display: 'flex' }}>{[...BARS.slice(0, 6), '#161b27'].map((c) => <div key={c} style={{ flex: 1, background: c }} />)}</div>
+    <div style={{ position: 'absolute', left: 0, right: 0, top: 620, height: 80, display: 'flex' }}>{Array.from({ length: 14 }, (_, i) => <div key={i} style={{ flex: 1, background: `hsl(0 0% ${i * 7.5}%)` }} />)}</div>
+    <div style={{ position: 'absolute', left: 0, right: 0, top: 700, bottom: 60, background: '#05070c', display: 'grid', placeItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
+        <svg width="190" height="190" viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="none" stroke={C.ink} strokeWidth="5" /><rect x="40" y="10" width="16" height="16" fill={C.signal} /></svg>
+        <div>
+          <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 120, letterSpacing: '-0.03em', textTransform: 'uppercase', color: C.ink, lineHeight: 1 }}>Friction</div>
+          <div style={{ fontFamily: 'GeistMono', fontSize: 26, letterSpacing: '0.3em', color: C.signal, marginTop: 10 }}>STATION TEST · 1000 HZ</div>
+        </div>
+      </div>
+    </div>
+  </Fill>
+)
 const S1 = () => {
   const f = useCurrentFrame()
-  const a = useT(6, 14)
-  const b = useT(30, 14)
-  const cut = f > 112
+  // the line, then the screen opens
+  const line = interpolate(f, [2, 9], [0, 1], { ...clamp, easing: OUT })
+  const open = interpolate(f, [9, 20], [0.004, 1], { ...clamp, easing: Easing.bezier(0.7, 0, 0.2, 1) })
+  const boot = f >= 14 && f < 76
+  const card = f >= 76
   return (
-    <AbsoluteFill style={{ background: C.ground }}>
-      <Dots />
-      {f > 44 && <Feed />}
-      <Fill style={{ background: f > 44 ? 'rgba(5,7,12,0.4)' : 'transparent' }} />
-      <Fill style={{ left: 120, top: 330 }}>
-        <div style={{ fontFamily: 'Hanken', fontWeight: 300, fontSize: 84, color: C.ink, opacity: a * (f > 44 ? 0.9 : 1), translate: `0 ${(1 - a) * 30}px` }}>You opened it for one thing.</div>
-        <div style={{ fontFamily: 'Hanken', fontWeight: 300, fontSize: 84, color: C.ink, opacity: b, translate: `0 ${(1 - b) * 30}px`, marginTop: 14 }}>
-          Forty minutes later, you&rsquo;re still <span style={{ color: C.signal, fontWeight: 800 }}>scrolling.</span>
-        </div>
-      </Fill>
-      {cut && <Fill style={{ background: C.ground }} />}
-    </AbsoluteFill>
-  )
-}
-
-/* ---------- 2. the slam ---------- */
-const S2 = () => {
-  const f = useCurrentFrame()
-  const sh = useShake(3, 26)
-  const sh2 = useShake(26, 22)
-  const sh3 = useShake(50, 34)
-  const bars = useT(52, 26)
-  const u = useT(56, 14)
-  return (
-    <AbsoluteFill style={{ background: C.ground }}>
-      <Dots opacity={0.25} />
-      <Fill style={{ translate: `${sh.x + sh2.x + sh3.x}px ${sh.y + sh2.y + sh3.y}px`, rotate: `${sh.r + sh2.r + sh3.r}rad` }}>
-        <Fill style={{ left: 130, top: 190 }}>
-          <Slam words={['Scrolling']} at={3} size={250} />
-          <Slam words={['has', 'no']} at={26} size={250} gap={4} style={{ marginTop: 10 }} />
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 30 }}>
-            <Slam words={['friction.']} at={50} size={250} accent={[0]} style={{ marginTop: 10 }} />
-          </div>
-          <div style={{ height: 14, marginTop: 30, width: 1100 * u, background: C.signal }} />
+    <AbsoluteFill style={{ background: '#000' }}>
+      {f < 9 && <Fill style={{ background: '#fff', top: 540, height: 3, bottom: 'auto', left: `${50 - line * 50}%`, right: `${50 - line * 50}%`, boxShadow: '0 0 40px 8px #fff' }} />}
+      {f >= 9 && (
+        <Fill style={{ scale: `1 ${open}`, background: C.ground, overflow: 'hidden' }}>
+          {boot && <Clip src="v3/landing.mp4" from={0.3} cam={[[0, 1.3, 960, 480], [2, 1.45, 960, 480]]} />}
+          {card && <TestCard />}
         </Fill>
-      </Fill>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}><Bars progress={bars} height={22} /></div>
-      {f > 78 && <Fill style={{ background: C.ground, opacity: interpolate(f, [78, 88], [0, 1], clamp) }} />}
+      )}
+      {f >= 70 && f < 84 && <Static opacity={interpolate(f, [70, 76, 84], [0, 0.85, 0], clamp)} />}
+      {f >= 9 && f < 14 && <White at={9} len={5} peak={0.5} />}
     </AbsoluteFill>
   )
 }
 
-/* ---------- 3. the landing ---------- */
-const S3 = () => {
-  const f = useCurrentFrame()
-  const z = interpolate(f, [0, 150], [1.18, 1], { ...clamp, easing: OUT })
-  const t = useT(14, 16)
-  const k = useT(40, 24)
+/* ---------- 2. the feed ---------- */
+const HEIGHTS = Array.from({ length: 12 }, (_, i) => (random(`t${i}`) > 0.6 ? 360 : 240))
+const PERIOD = HEIGHTS.reduce((a, h) => a + h + 40, 0)
+const CARD = (ci: number, i: number, key: number) => {
+  const w = 0.45 + random(`w${ci}-${i}`) * 0.5
+  const tall = HEIGHTS[i] === 360
   return (
-    <AbsoluteFill style={{ background: C.ground }}>
-      <Fill style={{ scale: `${z}`, transformOrigin: '70% 45%' }}>
-        <OffthreadVideo src={staticFile('clips/landing.mp4')} startFrom={0} muted style={{ width: 1920, height: 1080 }} />
-      </Fill>
-      <Fill style={{ left: 120, top: 118, opacity: t, translate: `0 ${(1 - t) * -20}px` }}>
-        <Kicker size={30}>Meet Friction</Kicker>
-        <div style={{ fontFamily: 'Hanken', fontWeight: 800, fontSize: 62, lineHeight: 1.05, color: C.ink, marginTop: 14, width: 760, textShadow: '0 4px 30px #000' }}>
-          A focus timer that counts every time you leave.
-        </div>
-      </Fill>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}><Bars progress={k} height={10} /></div>
-      <Vignette />
-    </AbsoluteFill>
-  )
-}
-
-/* ---------- 4. one screen, locked in ---------- */
-const Callout = ({ at, side, children, sub }: { at: number; side: 'l' | 'r'; children: string; sub?: string }) => {
-  const t = useT(at, 18)
-  return (
-    <div style={{ position: 'absolute', [side === 'l' ? 'left' : 'right']: 90, width: 540, opacity: t, translate: `${(1 - t) * (side === 'l' ? -80 : 80)}px 0` }}>
-      <div style={{ height: 6, width: 90, background: C.signal, marginBottom: 18 }} />
-      <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 64, lineHeight: 1, textTransform: 'uppercase', color: C.ink, letterSpacing: '-0.02em' }}>{children}</div>
-      {sub && <div style={{ fontFamily: 'Hanken', fontWeight: 400, fontSize: 30, color: C.dim, marginTop: 14, lineHeight: 1.25 }}>{sub}</div>}
+    <div key={key} style={{ height: HEIGHTS[i], marginBottom: 40, border: '2px solid #46567a', background: '#1c2640', padding: 26, display: 'flex', gap: 22 }}>
+      <div style={{ width: 70, height: 70, borderRadius: 70, background: '#5a6a92', flex: 'none' }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ height: 20, width: `${w * 100}%`, background: '#5a6a92', marginBottom: 16 }} />
+        <div style={{ height: 18, width: '92%', background: '#33405f', marginBottom: 12 }} />
+        <div style={{ height: 18, width: '64%', background: '#33405f', marginBottom: 12 }} />
+        {tall && <div style={{ height: 150, width: '100%', background: '#2a3654' }} />}
+      </div>
     </div>
   )
 }
-const S4 = () => {
+const Feed = () => {
   const f = useCurrentFrame()
-  const rise = useT(0, 28)
-  const rot = interpolate(f, [0, 180], [-22, -8], { ...clamp, easing: OUT })
-  const sc = interpolate(f, [0, 180], [0.58, 0.68], clamp)
-  const shake = useShake(112, 20)
-  const drift = useSlam(112, 9, 220)
+  // exponential speed: slow, then too fast to read
+  const k = 0.026
+  const pos = (160 / k) * (Math.exp(k * f) - 1) * 0.35
+  const v = 160 * 0.35 * Math.exp(k * f)
+  const stretch = 1 + Math.min(5, v / 50)
+  const cols = [{ x: 330, w: 380, o: 0 }, { x: 770, w: 380, o: 170 }, { x: 1210, w: 380, o: 60 }]
+  return (
+    <Fill style={{ overflow: 'hidden' }}>
+      {cols.map((c, ci) => (
+        <div key={ci} style={{ position: 'absolute', left: c.x, width: c.w, top: 0, bottom: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 0, transformOrigin: '50% 50%', scale: `1 ${stretch}`, translate: `0 ${-(((pos * (1 + ci * 0.25) + c.o) % PERIOD))}px` }}>
+            {Array.from({ length: 24 }, (_, j) => { const i = j % 12
+              return CARD(ci, i, j) })}
+          </div>
+        </div>
+      ))}
+    </Fill>
+  )
+}
+const S2 = () => {
+  const f = useCurrentFrame()
+  const lost = Math.floor(interpolate(f, [30, 168], [0, 40 * 60], { ...clamp, easing: Easing.bezier(0.5, 0, 0.9, 0.6) }))
+  const mm = String(Math.floor(lost / 60)).padStart(2, '0'), ss = String(lost % 60).padStart(2, '0')
+  const fade = interpolate(f, [100, 160], [0.18, 0.62], clamp)
   return (
     <AbsoluteFill style={{ background: C.ground }}>
-      <Dots opacity={0.3} />
-      <Fill style={{ perspective: 2400 }}>
-        <Screen style={{ left: 0, top: 0, scale: `${sc}`, rotate: `${shake.r}rad`, transform: `rotateY(${rot}deg)`, translate: `${330 + shake.x}px ${(1 - rise) * 600 + shake.y + 40}px`, transformOrigin: '50% 50%', opacity: rise, boxShadow: '0 60px 160px rgba(0,0,0,0.7)' }}>
-          <OffthreadVideo src={staticFile('clips/lock.mp4')} startFrom={s(0.1)} muted style={{ width: 1920, height: 1080 }} />
-        </Screen>
+      <Dots opacity={0.25} />
+      <Feed />
+      <Fill style={{ background: `rgba(5,7,12,${fade})` }} />
+      <Fill style={{ left: 120, top: 250 }}>
+        <Line at={8} size={130} weight={400} font="Hanken" track="-0.03em" style={{ textTransform: 'none' }}>You opened it</Line>
+        <Line at={22} size={130} weight={400} font="Hanken" track="-0.03em" style={{ textTransform: 'none' }}>for one thing.</Line>
+        <Line at={74} size={130} weight={800} font="Hanken" track="-0.03em" style={{ textTransform: 'none', marginTop: 40 }}>Forty minutes later,</Line>
+        <Line at={104} size={130} weight={800} font="Hanken" track="-0.03em" color={C.signal} style={{ textTransform: 'none' }}>still scrolling.</Line>
       </Fill>
-      <div style={{ position: 'absolute', top: 110 }}><Callout at={26} side="l" sub="Pick a length. Lock in.">One screen.</Callout></div>
-      <div style={{ position: 'absolute', top: 380 }}><Callout at={52} side="l" sub="No feed. No infinite page.">Nothing scrolls.</Callout></div>
-      <div style={{ position: 'absolute', top: 660, left: 90, width: 560, opacity: useT(104, 8), scale: `${interpolate(drift, [0, 1], [1.4, 1])}`, transformOrigin: 'left top' }}>
-        <div style={{ background: C.signal, color: '#05070c', padding: '18px 26px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 40, letterSpacing: '0.2em', textTransform: 'uppercase', display: 'inline-block' }}>Drift +1</div>
-        <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 52, textTransform: 'uppercase', lineHeight: 1, marginTop: 20, color: C.ink, letterSpacing: '-0.02em' }}>Every time you leave is counted.</div>
-        <div style={{ fontFamily: 'Hanken', fontSize: 30, color: C.dim, marginTop: 14 }}>Six seconds away, and the numbers never lie.</div>
+      <Fill style={{ right: 120, bottom: 120, textAlign: 'right' }}>
+        <div style={{ fontFamily: 'GeistMono', fontSize: 24, letterSpacing: '0.22em', color: C.dim }}>TIME LOST</div>
+        <div style={{ fontFamily: 'Unbounded', fontWeight: 700, fontSize: 96, color: C.ink, letterSpacing: '-0.02em' }}>00:{mm}:{ss}</div>
+      </Fill>
+      {f >= 172 && <Fill style={{ background: '#000' }} />}
+      {f >= 164 && f < 172 && <Static opacity={0.6} />}
+    </AbsoluteFill>
+  )
+}
+
+/* ---------- 3. the solid: scrolling has no friction ---------- */
+const S3 = () => {
+  const f = useCurrentFrame()
+  const grow = interpolate(f, [0, 130], [26, 42], { ...clamp, easing: OUT })
+  const thru = interpolate(f, [134, 178], [0, 1], { ...clamp, easing: Easing.bezier(0.6, 0, 0.9, 0.5) })
+  const size = grow * (1 + thru * 7)
+  const cx = interpolate(thru, [0, 1], [COLS * 0.78, COLS * 0.5])
+  const sh = useShake(0, 30)
+  const sh2 = useShake(30, 22)
+  const sh3 = useShake(60, 38)
+  const sub = useT(92, 16)
+  const textOut = interpolate(f, [128, 142], [1, 0], clamp)
+  return (
+    <AbsoluteFill style={{ background: C.ground }}>
+      <Dots opacity={0.28} />
+      <Fill style={{ translate: `${sh.x + sh2.x + sh3.x}px ${sh.y + sh2.y + sh3.y}px` }}>
+        <Ascii shape="torus" cx={cx} cy={ROWS / 2} size={size} a={0.9 + f * 0.032} b={f * 0.047} c={f * 0.01} color={C.signal} opacity={interpolate(f, [0, 6], [0, 1], clamp)} />
+        <Fill style={{ left: 110, top: 210, opacity: textOut }}>
+          <Line at={0} size={236} font="Hanken" weight={900} track="-0.04em">Scrolling</Line>
+          <Line at={30} size={236} font="Hanken" weight={900} track="-0.04em" style={{ marginTop: 6 }}>has no</Line>
+          <Line at={60} size={236} font="Hanken" weight={900} track="-0.04em" color={C.signal} style={{ marginTop: 6 }}>friction.</Line>
+          <div style={{ fontFamily: 'Hanken', fontSize: 44, color: C.ink, marginTop: 40, width: 880, lineHeight: 1.2, opacity: sub, translate: `0 ${(1 - sub) * 24}px` }}>A focus timer that counts every time you leave.</div>
+        </Fill>
+      </Fill>
+      <White at={0} len={10} peak={0.9} />
+      <White at={30} len={7} color={C.signal} peak={0.35} />
+      <White at={60} len={9} color={C.signal} peak={0.5} />
+    </AbsoluteFill>
+  )
+}
+
+/* ---------- 4. focus ---------- */
+const S4a = () => (
+  <AbsoluteFill style={{ background: C.ground }}>
+    <Clip src="v3/focus.mp4" from={4.0} cam={[[0, 1.0, 960, 480], [0.6, 2.0, 960, 620], [3.0, 2.0, 960, 620], [3.9, 1.15, 960, 500]]} />
+    <Plate at={10} out={104} kicker="One screen" style={{ left: 90, top: 100 }}>Pick a length.</Plate>
+  </AbsoluteFill>
+)
+const S4b = () => {
+  const sh = useShake(54, 16)
+  return (
+    <AbsoluteFill style={{ background: C.ground }}>
+      <div style={{ position: 'absolute', inset: 0, translate: `${sh.x}px ${sh.y}px` }}>
+        <Clip src="v3/focus.mp4" from={11.2} cam={[[0, 1.0, 960, 480], [0.5, 1.7, 960, 590], [1.5, 1.7, 960, 590], [2.3, 1.15, 960, 440], [3.9, 1.3, 960, 420]]} />
       </div>
-      <Vignette />
+      <Plate at={6} out={52} kicker="Then" style={{ left: 90, top: 100 }}>Lock in.</Plate>
+      <Plate at={66} kicker="Leave the tab" style={{ left: 90, top: 100 }} sub="Six seconds away and it counts as a drift. The numbers never lie.">It&rsquo;s a drift.</Plate>
     </AbsoluteFill>
   )
 }
 
 /* ---------- 5. tune in ---------- */
-const TUNE = [
-  { img: 'radio', label: 'Radio', note: 'Every station in the directory' },
-  { img: 'tv', label: 'Live TV', note: 'Public channels from iptv-org' },
-  { img: 'podcasts', label: 'Podcasts', note: 'Any show in Apple Podcasts' },
-  { img: 'music', label: 'Songs', note: 'Whole tracks, no account' },
-]
 const S5 = () => {
   const f = useCurrentFrame()
-  const per = 45
-  const idx = Math.min(TUNE.length - 1, Math.floor(f / per))
-  const local = f - idx * per
+  const label = f < 75 ? 'Radio' : f < 120 ? 'Radio' : f < 150 ? 'TV' : f < 165 ? 'Podcasts' : 'Songs'
   return (
     <AbsoluteFill style={{ background: C.ground }}>
-      <Dots opacity={0.25} />
-      {TUNE.map((t, i) => {
-        const at = i * per
-        const x = interpolate(f, [at - 4, at + 14, at + per - 8, at + per + 6], [1900, 0, 0, -1900], { ...clamp, easing: OUT })
-        const z = interpolate(f, [at, at + per], [1.0, 1.12], clamp)
-        const tilt = interpolate(f, [at - 4, at + 14, at + per - 8, at + per + 6], [-12, 0, 0, 12], clamp)
-        if (f < at - 6 || f > at + per + 8) return null
-        return (
-          <Fill key={t.img} style={{ perspective: 2200 }}>
-            <Screen style={{ left: 0, top: 0, scale: `${0.68 * z}`, translate: `${x + 300}px 110px`, transform: `rotateY(${tilt}deg)`, transformOrigin: '50% 50%', boxShadow: '0 60px 140px rgba(0,0,0,0.8)' }}>
-              <Img src={staticFile(`shots/${t.img}.png`)} style={{ width: 1920, height: 1080 }} />
-            </Screen>
-          </Fill>
-        )
-      })}
-      <Fill style={{ left: 130, top: 92 }}>
-        <Kicker size={30}>Tune in, stay put</Kicker>
-        <div key={idx} style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 130, textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 0.95, color: C.ink, opacity: interpolate(local, [0, 8], [0, 1], clamp), translate: `0 ${interpolate(local, [0, 12], [30, 0], { ...clamp, easing: OUT })}px` }}>{TUNE[idx].label}</div>
-      </Fill>
-      <Fill style={{ left: 130, top: 232, opacity: interpolate(local, [10, 22], [0, 1], clamp) }}>
-        <div style={{ fontFamily: 'Hanken', fontSize: 32, color: C.dim, width: 480, lineHeight: 1.25 }}>{TUNE[idx].note}. One player, on every screen.</div>
-      </Fill>
-      <Vignette />
+      {f < 75 && <Clip src="v3/tune.mp4" from={5.2} cam={[[0, 1.0, 960, 480], [0.8, 1.8, 600, 400], [2.5, 1.8, 600, 400]]} />}
+      {f >= 75 && f < 120 && <Clip src="v3/tune.mp4" from={8.0} cam={[[0, 1.45, 900, 520], [1.5, 1.2, 960, 520]]} />}
+      {f >= 120 && f < 150 && <Clip src="v3/tune.mp4" from={13.5} cam={[[0, 1.25, 1000, 420], [1, 1.1, 1000, 440]]} />}
+      {f >= 150 && f < 165 && <Clip src="v3/tune.mp4" from={18.6} cam={[[0, 1.2, 960, 400], [0.5, 1.1, 960, 440]]} />}
+      {f >= 165 && <Clip src="v3/tune.mp4" from={23.3} cam={[[0, 1.2, 960, 400], [0.5, 1.1, 960, 440]]} />}
+      <Plate at={6} kicker="Tune in, stay put" style={{ left: 90, top: 770 }} sub="One player on every screen. It never stops when you move around.">{label}.</Plate>
+      {[75, 120, 150, 165].map((c) => f >= c && f < c + 6 && <Static key={c} opacity={0.55} />)}
     </AbsoluteFill>
   )
 }
 
-/* ---------- 6. learn, and the study windows ---------- */
+/* ---------- 6. study windows ---------- */
 const S6 = () => {
   const f = useCurrentFrame()
-  const a = f < 75
-  const z = interpolate(f, [0, 75], [1.0, 1.2], clamp)
-  const z2 = interpolate(f, [75, 150], [1.12, 1.0], clamp)
-  const sub = useT(30, 16)
   return (
     <AbsoluteFill style={{ background: C.ground }}>
-      {a ? (
-        <>
-          <Fill style={{ scale: `${z}`, transformOrigin: '30% 40%' }}><Img src={staticFile('shots/learn.png')} style={{ width: 1920, height: 1080 }} /></Fill>
-          <Fill style={{ background: 'rgba(5,7,12,0.6)' }} />
-          <Fill style={{ left: 130, top: 360 }}>
-            <Kicker size={30}>Learn</Kicker>
-            <Slam words={['Lessons', 'from', 'Wikipedia.']} at={4} size={150} gap={5} accent={[2]} />
-            <div style={{ fontFamily: 'Hanken', fontSize: 40, color: C.ink, marginTop: 24, opacity: sub }}>Built by fixed rules. <b style={{ color: C.signal }}>No AI writes them.</b></div>
-          </Fill>
-        </>
-      ) : (
-        <>
-          <Fill style={{ scale: `${z2}`, transformOrigin: '20% 50%' }}>
-            <OffthreadVideo src={staticFile('clips/widgets.mp4')} startFrom={s(0.1)} muted style={{ width: 1920, height: 1080 }} />
-          </Fill>
-          <Fill style={{ left: 0, right: 0, bottom: 0, height: 360, background: 'linear-gradient(transparent, rgba(5,7,12,0.92))' }} />
-          <Fill style={{ left: 130, bottom: 90 }}>
-            <Kicker size={30}>Study windows</Kicker>
-            <Slam words={['Notepad.', 'Timer.', 'Calculator.']} at={78} size={110} gap={6} accent={[2]} />
-          </Fill>
-        </>
-      )}
-      <Vignette />
+      {f < 60 && <Clip src="v3/widgets.mp4" from={3.9} cam={[[0, 1.2, 600, 400], [1.0, 1.7, 480, 520], [2.0, 1.7, 480, 520]]} />}
+      {f >= 60 && <Clip src="v3/report.mp4" from={11.9} cam={[[0, 1.25, 960, 470], [2, 1.12, 960, 480]]} />}
+      <Plate at={4} kicker="Study windows" style={{ left: 1000, top: 760 }} sub="Notepad, timer, calculator, converter, to-do list, scratch board and a small browser.">Cards, dealt.</Plate>
+      <Plate at={64} kicker="Lessons" style={{ left: 90, top: 770 }} sub="Built from Wikipedia by fixed rules. No AI writes them.">Learn anything.</Plate>
     </AbsoluteFill>
   )
 }
 
-/* ---------- 7. credits ---------- */
+/* ---------- 7. the day, scored ---------- */
 const S7 = () => {
   const f = useCurrentFrame()
-  const a = f < 80
-  const score = Math.round(interpolate(f, [8, 62], [0, 76], { ...clamp, easing: OUT }))
-  const z = interpolate(f, [0, 80], [1.0, 1.35], clamp)
-  const z2 = interpolate(f, [80, 150], [1.05, 1.0], clamp)
-  const sub = useT(104, 14)
   return (
     <AbsoluteFill style={{ background: C.ground }}>
-      {a ? (
-        <>
-          <Fill style={{ scale: `${z}`, transformOrigin: '12% 34%' }}><Img src={staticFile('shots/debrief.png')} style={{ width: 1920, height: 1080 }} /></Fill>
-          <Fill style={{ background: 'rgba(5,7,12,0.62)' }} />
-          <Fill style={{ left: 1010, top: 150 }}>
-            <Kicker size={30}>Focus pays</Kicker>
-            <Slam words={['Earn', 'credits.']} at={2} size={118} gap={6} accent={[1]} />
-            <div style={{ fontFamily: 'Unbounded', fontWeight: 800, fontSize: 230, color: C.signal, lineHeight: 1, marginTop: 20 }}>{score}<span style={{ fontSize: 80, color: C.dim }}> /100</span></div>
-            <div style={{ fontFamily: 'Hanken', fontSize: 32, color: C.ink, marginTop: 6, width: 800 }}>Your day, scored from your own numbers. No AI.</div>
-          </Fill>
-        </>
-      ) : (
-        <>
-          <Fill style={{ scale: `${z2}`, transformOrigin: '50% 30%' }}><Img src={staticFile('shots/arcade.png')} style={{ width: 1920, height: 1080 }} /></Fill>
-          <Fill style={{ background: 'rgba(5,7,12,0.5)' }} />
-          <Fill style={{ left: 130, top: 640 }}>
-            <Kicker size={30}>Then spend them</Kicker>
-            <Slam words={['Games.', 'Breaks.']} at={84} size={170} gap={8} accent={[1]} />
-            <div style={{ fontFamily: 'Hanken', fontSize: 34, color: C.ink, opacity: sub, marginTop: 18 }}>A game can never win you any. Credits come from focus only.</div>
-          </Fill>
-        </>
-      )}
-      <Vignette />
+      {f < 60 && <Clip src="v3/report.mp4" from={0.9} cam={[[0, 1.0, 960, 480], [0.7, 1.7, 460, 640], [2, 1.7, 460, 640]]} />}
+      {f >= 60 && <Clip src="v3/report.mp4" from={7.0} cam={[[0, 1.35, 960, 400], [2, 1.15, 960, 440]]} />}
+      <Plate at={6} kicker="The debrief" style={{ left: 1060, top: 100 }} sub="Your day, scored from your own numbers. No AI.">Held. Drifted.</Plate>
+      <Plate at={64} kicker="Then spend them" style={{ left: 90, top: 770 }} sub="Focus earns credits. A game can never win you any.">Games. Breaks.</Plate>
     </AbsoluteFill>
   )
 }
 
 /* ---------- 8. five looks ---------- */
-const LOOKS = [
-  { img: 'focus', name: 'Station' }, { img: 'theme-paper', name: 'Paper' }, { img: 'theme-phosphor', name: 'Phosphor' }, { img: 'theme-blueprint', name: 'Blueprint' }, { img: 'theme-sunset', name: 'Sunset' },
-]
+const LOOKS = [['Paper', 6.6], ['Phosphor', 9.5], ['Blueprint', 12.5], ['Sunset', 15.4], ['Station', 18.3]] as const
 const S8 = () => {
   const f = useCurrentFrame()
-  const per = 24
-  const idx = Math.min(LOOKS.length - 1, Math.floor(f / per))
-  const local = f - idx * per
-  const z = interpolate(local, [0, per], [1.08, 1.0], clamp)
+  const per = 18
+  const i = Math.min(4, Math.floor(f / per))
+  const l = f - i * per
   return (
     <AbsoluteFill style={{ background: C.ground }}>
-      <Fill style={{ scale: `${z}` }}><Img src={staticFile(`shots/${LOOKS[idx].img}.png`)} style={{ width: 1920, height: 1080 }} /></Fill>
-      <Fill style={{ left: 90, top: 70 }}>
-        <div style={{ background: C.signal, color: '#05070c', padding: '10px 22px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 44, letterSpacing: '0.22em', textTransform: 'uppercase', display: 'inline-block' }}>{LOOKS[idx].name}</div>
-      </Fill>
-      <Fill style={{ right: 90, bottom: 150, textAlign: 'right', opacity: useT(2, 10) }}>
-        <div style={{ background: C.ground, padding: '26px 38px', fontFamily: 'Hanken', fontWeight: 900, fontSize: 90, textTransform: 'uppercase', color: C.ink, letterSpacing: '-0.03em', lineHeight: 1, display: 'inline-block' }}>Five looks.<br /><span style={{ color: C.signal }}>One screen.</span></div>
-      </Fill>
-      {local < 3 && <Fill style={{ background: BARS[idx + 1], opacity: 0.5 * (1 - local / 3) }} />}
+      <Sequence key={i} from={i * per} durationInFrames={per + 2}>
+        <Clip src="v3/themes.mp4" from={LOOKS[i][1]} cam={[[0, 1.28, 960, 470], [0.6, 1.4, 960, 470]]} />
+      </Sequence>
+      <div style={{ position: 'absolute', left: 90, top: 100, background: C.signal, color: '#05070c', padding: '10px 26px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 64, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: interpolate(l, [0, 4], [0, 1], clamp) }}>{LOOKS[i][0]}</div>
+      <div style={{ position: 'absolute', right: 90, bottom: 110, background: '#05070c', padding: '18px 34px', fontFamily: 'Hanken', fontWeight: 900, fontSize: 80, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '-0.03em', color: C.ink, textAlign: 'right' }}>Five looks.<br /><span style={{ color: C.signal }}>One screen.</span></div>
+      {l < 3 && <Fill style={{ background: BARS[i + 1], opacity: 0.4 * (1 - l / 3) }} />}
     </AbsoluteFill>
   )
 }
 
-/* ---------- 9. the end ---------- */
+/* ---------- 9. sign off ---------- */
 const S9 = () => {
   const f = useCurrentFrame()
-  const ring = useT(4, 40)
-  const sq = useSlam(30, 10, 200)
-  const bars = useT(60, 30)
-  const url = useT(86, 20)
-  const sh = useShake(30, 14)
+  const ring = useT(4, 36)
+  const sq = useSlam(26, 10, 200)
+  const bars = useT(70, 26)
+  const url = useT(96, 16)
+  const sh = useShake(26, 14)
+  // the picture folds to a line and a dot
+  const off = interpolate(f, [150, 163, 172, 180], [1, 0.006, 0.006, 0], { ...clamp, easing: Easing.bezier(0.7, 0, 0.3, 1) })
+  const offx = interpolate(f, [166, 180], [1, 0.0, ], clamp)
   return (
-    <AbsoluteFill style={{ background: C.ground }}>
-      <Dots opacity={0.3} />
-      <Fill style={{ translate: `${sh.x}px ${sh.y}px` }}>
+    <AbsoluteFill style={{ background: '#000' }}>
+      <Fill style={{ background: C.ground, scale: `${f > 166 ? offx : 1} ${off}`, translate: `${sh.x}px ${sh.y}px` }}>
+        <Dots opacity={0.3} />
         <svg width="1920" height="1080" style={{ position: 'absolute', left: 0, top: 0 }}>
-          <circle cx={960} cy={330} r={120} fill="none" stroke={C.ink} strokeWidth={22} strokeDasharray={`${ring * 754} 754`} transform="rotate(-100 960 330)" strokeLinecap="butt" />
-          <rect x={1030} y={190} width={76} height={76} fill={C.signal} transform={`scale(${sq})`} style={{ transformOrigin: '1068px 228px' }} />
+          <circle cx={960} cy={330} r={118} fill="none" stroke={C.ink} strokeWidth={22} strokeDasharray={`${ring * 741} 741`} transform="rotate(-100 960 330)" />
+          <rect x={1028} y={196} width={74} height={74} fill={C.signal} style={{ transformOrigin: '1065px 233px', scale: `${sq}` }} />
         </svg>
-        <Fill style={{ top: 480, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 210, color: C.ink, letterSpacing: '-0.04em', textTransform: 'uppercase', lineHeight: 1, opacity: useT(20, 10), scale: `${interpolate(useSlam(20, 14, 160), [0, 1], [1.25, 1])}` }}>Friction</div>
-          <div style={{ fontFamily: 'Hanken', fontWeight: 400, fontSize: 52, color: C.ink, marginTop: 24, opacity: useT(46, 16) }}>Free. No account. Your data stays in your browser.</div>
-          <div style={{ marginTop: 44, display: 'inline-block', background: C.signal, color: '#05070c', fontFamily: 'Unbounded', fontWeight: 700, fontSize: 54, padding: '22px 44px', opacity: url, scale: `${interpolate(url, [0, 1], [0.9, 1])}` }}>frictionx.vercel.app</div>
-          <div style={{ marginTop: 34 }}><Kicker size={34} color={C.ice} style={{ opacity: useT(110, 16) }}>Launching on Product Hunt</Kicker></div>
+        <Fill style={{ top: 470, textAlign: 'center' }}>
+          <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 200, letterSpacing: '-0.04em', textTransform: 'uppercase', lineHeight: 1, color: C.ink, opacity: useT(22, 8), scale: `${1 + (1 - useSlam(22, 14, 170)) * 0.25}` }}>Friction</div>
+          <div style={{ fontFamily: 'Hanken', fontSize: 50, color: C.ink, marginTop: 22, opacity: useT(48, 16) }}>Free. No account. Your data stays in your browser.</div>
+          <div style={{ marginTop: 38, display: 'inline-block', background: C.signal, color: '#05070c', fontFamily: 'Unbounded', fontWeight: 700, fontSize: 52, padding: '20px 44px', opacity: url, scale: `${0.92 + 0.08 * url}` }}>frictionx.vercel.app</div>
+          <div style={{ marginTop: 30 }}><Kicker size={32} color={C.ice} style={{ opacity: useT(118, 14) }}>Launching on Product Hunt</Kicker></div>
         </Fill>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 66 }}><div style={{ display: 'flex', width: '100%', height: 24 }}>{BARS.map((c, i) => <div key={c} style={{ flex: 1, background: c, scale: `${interpolate(bars, [i / 9, i / 9 + 0.4], [0, 1], clamp)} 1`, transformOrigin: 'left' }} />)}</div></div>
       </Fill>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}><Bars progress={bars} height={26} /></div>
-      {f > 168 && <Fill style={{ background: '#000', opacity: interpolate(f, [168, 180], [0, 1], clamp) }} />}
+      {f >= 150 && f < 176 && <Fill style={{ top: 538, height: 4, bottom: 'auto', background: '#fff', boxShadow: '0 0 30px 6px #fff', opacity: interpolate(f, [150, 160, 176], [0, 1, 0], clamp), left: `${(1 - (f > 166 ? offx : 1)) * 50}%`, right: `${(1 - (f > 166 ? offx : 1)) * 50}%` }} />}
     </AbsoluteFill>
   )
 }
 
-/* a flash on every cut, in the signal yellow */
-const Flash = ({ at }: { at: number }) => {
-  const f = useCurrentFrame()
-  const o = interpolate(f, [at, at + 1, at + 7], [0, 0.55, 0], clamp)
-  return o > 0 ? <Fill style={{ background: C.signal, opacity: o, mixBlendMode: 'screen' }} /> : null
-}
-
-const CUTS = [4, 7, 12, 18, 24, 29, 34, 39]
-const SCENES: [number, number, () => React.ReactElement][] = [
-  [0, 4, S1], [4, 7, S2], [7, 12, S3], [12, 18, S4], [18, 24, S5], [24, 29, S6], [29, 34, S7], [34, 39, S8], [39, 45, S9],
+/* ---------- the cut list ---------- */
+type Scene = { from: number; len: number; Comp: () => React.ReactElement; ch: string; name: string }
+const SCENES: Scene[] = [
+  { from: 0, len: 4, Comp: S1, ch: '00', name: 'Test' },
+  { from: 4, len: 6, Comp: S2, ch: '01', name: 'Feed' },
+  { from: 10, len: 6, Comp: S3, ch: '02', name: 'Friction' },
+  { from: 16, len: 4, Comp: S4a, ch: '03', name: 'Focus' },
+  { from: 20, len: 4, Comp: S4b, ch: '03', name: 'Lock in' },
+  { from: 24, len: 6, Comp: S5, ch: '04', name: 'Tune in' },
+  { from: 30, len: 4, Comp: S6, ch: '05', name: 'Study' },
+  { from: 34, len: 4, Comp: S7, ch: '06', name: 'Debrief' },
+  { from: 38, len: 3, Comp: S8, ch: '07', name: 'Looks' },
+  { from: 41, len: 4, Comp: S9, ch: '99', name: 'Sign off' },
 ]
 
+const Overlay = () => {
+  const f = useCurrentFrame()
+  const t = f / FPS
+  const sc = SCENES.find((x) => t >= x.from && t < x.from + x.len) ?? SCENES[0]
+  const hud = t >= 0.7
+  return <>{hud && <HudBars ch={sc.ch} name={sc.name} />}</>
+}
+const HudBars = ({ ch, name }: { ch: string; name: string }) => {
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <Hud ch={ch} name={name} />
+    </div>
+  )
+}
+
 export const Ad = () => (
-  <AbsoluteFill style={{ background: C.ground }}>
-    {SCENES.map(([a, b, Comp]) => (
-      <Sequence key={a} from={s(a)} durationInFrames={s(b - a)} premountFor={30}><Comp /></Sequence>
+  <AbsoluteFill style={{ background: '#000' }}>
+    {SCENES.map(({ from, len, Comp }) => (
+      <Sequence key={from} from={s(from)} durationInFrames={s(len)} premountFor={20}><Comp /></Sequence>
     ))}
-    {CUTS.map((c) => <Sequence key={c} from={s(c)} durationInFrames={10}><Flash at={0} /></Sequence>)}
+    <Overlay />
     <Grain />
-    <Audio src={staticFile('score.wav')} />
+    <Audio src={staticFile('score2.wav')} />
   </AbsoluteFill>
 )
