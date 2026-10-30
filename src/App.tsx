@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
 import { ArcadeView } from '@/views/ArcadeView'
 import { Landing } from '@/components/app/Landing'
+import { Boot } from '@/components/app/Boot'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
@@ -154,6 +155,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
+      <Boot />
       {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
       <Backdrop reduced={reduced} />
       {level >= 1 && <motion.div key={`cut-${view}`} aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-signal" initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ scaleX: { duration: 0.34, ease: [0.2, 0, 0, 1] }, opacity: { duration: 0.2, delay: 0.3 } }} />}

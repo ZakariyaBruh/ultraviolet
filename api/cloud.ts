@@ -1,6 +1,7 @@
 import { createClient, type Client } from '@libsql/client'
 import { json } from './_page.js'
 import { verdict } from './_blocklist.js'
+import { CREATE_DAY, PER_IP, POOL_ROW, SQL_ADD, SQL_BACK, poolSecs, today, who } from './_pool.js'
 
 /**
  * The cloud browser: a real Chromium on Hyperbeam (hyperbeam.com), streamed into the Browser window. It runs the page's scripts, passes sign-in and
@@ -16,12 +17,11 @@ import { verdict } from './_blocklist.js'
  * Hyperbeam has no hard time limit to set, so time is leased here in `LIFE` chunks, charged up front: `start` takes the first, `beat` (every 15 s
  * from the page) takes the next when one is nearly spent, `end` gives back what was not used, and a cron (`?sweep=1`, every minute, `CRON_SECRET`)
  * closes any session whose lease ran out or whose page stopped answering. `offline_timeout` (90 s; the smallest allowed is 60) is the last backstop.
- * Each address may use `PER_IP` seconds a day (30 minutes) across both keys and the backup. Counted in Turso (`cloud_day`: one row for each hashed
- * address, `HBM1` for the main key's month; `cloud_sess`: one row for each open session, deleted when it closes). Same-origin only, and with no Turso
+ * Each address may use 30 minutes a day across both keys and the backup, and everyone draws on one shared daily pool (api/_pool.ts), so time
+ * someone leaves unused is there for the next person. Counted in Turso (`cloud_day`: one row for each hashed address, `POOL1` for the pool, `HBM1` for the main key's month; `cloud_sess`: one row for each open session, deleted when it closes). Same-origin only, and with no Turso
  * or key it refuses, so it is never unmetered.
  */
 const LIFE = 3 * 60
-const PER_IP = 30 * 60
 const FREE_MIN = Number(process.env.HB_FREE_MIN) || 10_000
 const MARGIN = 0.93
 const API = 'https://engine.hyperbeam.com/v0'
@@ -34,30 +34,26 @@ const maxOf = (t: Tier) => (t === 1 ? Number(process.env.HB_MAX_ACTIVE) || 10 : 
 
 let db: Client | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
-const today = () => new Date().toISOString().slice(0, 10)
 const month = () => new Date().toISOString().slice(0, 7)
 const now = () => Math.floor(Date.now() / 1000)
-const net = (ip: string) => (ip.includes(':') ? ip.split(':').slice(0, 4).join(':') : ip)
-async function who(ip: string) {
-  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`hb1:${net(ip)}`))
-  return `h${Array.from(new Uint8Array(h)).slice(0, 9).map((b) => b.toString(16).padStart(2, '0')).join('')}`
-}
 const token = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
 const hb = (t: Tier, path: string, init?: RequestInit) => fetch(API + path, { ...init, headers: { authorization: `Bearer ${keyOf(t)}`, 'content-type': 'application/json', ...(init?.headers ?? {}) }, signal: AbortSignal.timeout(15000) })
 
-const SQL_ADD = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
-const SQL_BACK = 'UPDATE cloud_day SET secs = MAX(0, secs - ?) WHERE id = ? AND day = ?'
 /** the month row is kept for the main key only; the second key has no usage limit to count against */
-const addTime = (who: string, tier: Tier) => [{ sql: SQL_ADD, args: [who, today(), LIFE] }, ...(tier === 1 ? [{ sql: SQL_ADD, args: [MONTH_ROW, month(), LIFE] }] : [])]
+const addTime = (who: string, tier: Tier) => [{ sql: SQL_ADD, args: [who, today(), LIFE] }, { sql: SQL_ADD, args: [POOL_ROW, today(), LIFE] }, ...(tier === 1 ? [{ sql: SQL_ADD, args: [MONTH_ROW, month(), LIFE] }] : [])]
 
 async function setup(c: Client) {
-  await c.execute('CREATE TABLE IF NOT EXISTS cloud_day (id TEXT PRIMARY KEY, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0)')
+  await c.execute(CREATE_DAY)
   await c.execute('CREATE TABLE IF NOT EXISTS cloud_sess (sid TEXT PRIMARY KEY, who TEXT NOT NULL, ticket TEXT NOT NULL, deadline INTEGER NOT NULL, beat INTEGER NOT NULL, day TEXT NOT NULL, tier INTEGER NOT NULL DEFAULT 1)')
   await c.execute('ALTER TABLE cloud_sess ADD COLUMN tier INTEGER NOT NULL DEFAULT 1').catch(() => {})
 }
 async function usedBy(c: Client, id: string) {
   const r = await c.execute({ sql: 'SELECT secs FROM cloud_day WHERE id = ? AND day = ?', args: [id, today()] })
   return Number(r.rows[0]?.secs ?? 0)
+}
+async function poolLeft(c: Client) {
+  const r = await c.execute({ sql: 'SELECT secs FROM cloud_day WHERE id = ? AND day = ?', args: [POOL_ROW, today()] })
+  return Math.max(0, poolSecs() - Number(r.rows[0]?.secs ?? 0))
 }
 async function monthUsed(c: Client) {
   const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [month(), MONTH_ROW, FLAG_ROW] })
@@ -67,9 +63,9 @@ async function monthUsed(c: Client) {
 async function close(c: Client, sid: string, who: string, deadline: number, day: string, tier: Tier) {
   await hb(tier, `/vm/${encodeURIComponent(sid)}`, { method: 'DELETE' }).catch(() => {})
   const back = Math.max(0, deadline - now())
-  const batch = [{ sql: 'DELETE FROM cloud_sess WHERE sid = ?', args: [sid] }]
+  const batch: { sql: string; args: (string | number)[] }[] = [{ sql: 'DELETE FROM cloud_sess WHERE sid = ?', args: [sid] }]
   if (back > 0) {
-    batch.push({ sql: SQL_BACK, args: [back, who, day] })
+    batch.push({ sql: SQL_BACK, args: [back, who, day] }, { sql: SQL_BACK, args: [back, POOL_ROW, day] })
     if (tier === 1) batch.push({ sql: SQL_BACK, args: [back, MONTH_ROW, month()] })
   }
   await c.batch(batch)
@@ -122,6 +118,7 @@ export default {
         if (!v.ok) return json({ error: 'blocked', why: 'why' in v ? v.why : 'not a web page' }, 403)
         const mine = PER_IP - (await usedBy(c, id))
         if (mine < LIFE) return json({ error: 'limit' }, 429)
+        if ((await poolLeft(c)) < LIFE) return json({ error: 'full' }, 429)
         const counts = await c.execute({ sql: 'SELECT tier, COUNT(*) AS n FROM cloud_sess WHERE deadline >= ? GROUP BY tier', args: [now()] })
         const active = (t: Tier) => Number(counts.rows.find((x) => Number(x.tier) === t)?.n ?? 0)
         const m = await monthUsed(c)
@@ -134,7 +131,7 @@ export default {
           await c.batch(addTime(id, t))
           const { made, quota } = await make(t, v.url.toString())
           if (!made?.session_id || !made.embed_url) {
-            await c.batch([{ sql: SQL_BACK, args: [LIFE, id, today()] }, ...(t === 1 ? [{ sql: SQL_BACK, args: [LIFE, MONTH_ROW, month()] }] : [])])
+            await c.batch([{ sql: SQL_BACK, args: [LIFE, id, today()] }, { sql: SQL_BACK, args: [LIFE, POOL_ROW, today()] }, ...(t === 1 ? [{ sql: SQL_BACK, args: [LIFE, MONTH_ROW, month()] }] : [])])
             if (quota && t === 1) await c.execute({ sql: SQL_ADD, args: [FLAG_ROW, month(), 1] }).catch(() => {})
             continue
           }
@@ -162,7 +159,7 @@ export default {
         if (deadline - now() <= 25 && s.day === today()) {
           const mine = PER_IP - (await usedBy(c, String(s.who)))
           const m = tier === 1 ? await monthUsed(c) : null
-          if (mine >= LIFE && (!m || m.secs + LIFE <= FREE_MIN * 60 * MARGIN)) {
+          if (mine >= LIFE && (await poolLeft(c)) >= LIFE && (!m || m.secs + LIFE <= FREE_MIN * 60 * MARGIN)) {
             await c.batch(addTime(String(s.who), tier))
             next = deadline + LIFE
           }

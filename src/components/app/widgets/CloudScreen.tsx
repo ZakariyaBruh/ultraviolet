@@ -134,9 +134,9 @@ export function CloudScreen({ url, onClock, onProblem, onNote }: { url: string; 
             : (
               <div className="grid justify-items-center gap-5">
                 <StartMark />
-                <p className="hud">Cloud browser · experimental</p>
+                <p className="hud">Cloud browser · experimental · may fail</p>
                 <p className="text-[15px] text-ink">{STAGES[stage]}…</p>
-                <p className="max-w-[34ch] text-[12px] leading-[1.4] text-ink-3">A real browser, running on a server and streamed to you. It can take up to half a minute to start.</p>
+                <p className="max-w-[34ch] text-[12px] leading-[1.4] text-ink-3">Very new and prone to errors, with no uptime guarantee. A real browser on a server, streamed to you. It can take up to half a minute to start.</p>
               </div>
             )}
         </div>

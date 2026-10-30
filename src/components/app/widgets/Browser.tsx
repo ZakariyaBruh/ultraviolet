@@ -466,7 +466,9 @@ export function Browser() {
           </div>
         )}
         {view.kind === 'cloud' && (
-          <div className="relative size-full">
+          <div className="flex size-full flex-col">
+            <p className="shrink-0 border-b border-ink/15 bg-signal px-3 py-1 text-[12px] font-semibold leading-[1.3] text-on-signal">Experimental: very new, prone to errors, no uptime guarantee.</p>
+            <div className="relative min-h-0 flex-1">
             {view.backup
               ? <RelayScreen key={view.n} url={view.url} onClock={setCloudLeft} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
               : <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => {
@@ -475,6 +477,7 @@ export function Browser() {
                 show({ kind: 'cloudnote', why, url: view.url }, false)
               }} />}
             {note && <p role="status" className="absolute inset-x-0 bottom-0 z-20 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
+            </div>
           </div>
         )}
         {view.kind === 'video' && (
@@ -517,15 +520,16 @@ export function Browser() {
         {view.kind === 'cloudintro' && (
           <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="dialog" aria-labelledby="ci-t" data-no-drag>
             <p id="ci-t" className="hud inline-flex items-center gap-1.5"><Cloud className="size-4 text-signal" aria-hidden />Cloud browser · experimental</p>
-            <p className="text-[15px] leading-[1.4]"><strong>Highly experimental, and prone to breaking.</strong> {view.auto ? 'This page does not run in the normal Browser, so it can be opened in the cloud browser.' : 'It opens sites the normal Browser cannot run.'} It is a real browser on a server (run by Hyperbeam), streamed to you, so it can lag, drop out or fail to start.</p>
+            <p className="text-[17px] font-semibold leading-[1.25]">This browser is very new and very prone to errors.</p>
+            <p className="text-[15px] leading-[1.4]">There is no promise that it works, and no promise that it is up: it can fail to start, freeze, show a blank page or drop out at any time, and some days it will be full. {view.auto ? 'This page does not run in the normal Browser, so it can be opened here instead.' : 'It opens sites the normal Browser cannot run.'}</p>
             <ul className="m-0 grid list-none gap-1 p-0 text-[13px] leading-[1.4] text-ink-2">
-              <li>Everyone gets 30 minutes a day, and the time only runs while this page is open and in front.</li>
-              <li>Hyperbeam, the company that runs it, can see what you do in it. Do not sign in to anything you would not hand to a stranger. If it is down, an older backup opens instead.</li>
-              <li>Games and short-form social media are closed if you reach them. Leaving the tab turns it off.</li>
-              <li>The Turn off button next to the address bar ends it at any time.</li>
+              <li>Each person gets 30 minutes a day, from one shared pool for everyone that can run out. Time only runs while this page is open and in front.</li>
+              <li>It is a real browser on a server, streamed to you. The company that runs it (Hyperbeam) can see what you do in it, so do not sign in to anything you would not hand to a stranger.</li>
+              <li>If the good servers are busy, an older backup opens instead, and it breaks more often.</li>
+              <li>Games and short-form social media are closed if you reach them. Leaving the tab turns it off, and Turn off ends it at any time.</li>
             </ul>
             <div className="flex flex-wrap gap-2">
-              <button autoFocus onClick={() => { warned = true; void openCloud(view.url, false, view.auto) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try it anyway</button>
+              <button autoFocus onClick={() => { warned = true; void openCloud(view.url, false, view.auto) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">I understand, open it</button>
               <button onClick={() => (stack.length ? back() : show({ kind: 'home' }))} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Not now</button>
               <button onClick={() => { setSetting({ cloudOff: true }); if (stack.length) back(); else show({ kind: 'home' }) }} className="h-11 px-3 text-sm text-ink-2 underline hover:text-ink">Never use it</button>
             </div>

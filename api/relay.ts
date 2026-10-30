@@ -1,32 +1,21 @@
 import { createClient, type Client } from '@libsql/client'
 import { json } from './_page.js'
 import { mint } from './_relaytoken.js'
+import { CREATE_DAY, PER_IP, POOL_ROW, SQL_ADD, poolSecs, today, who } from './_pool.js'
 
 /**
- * Hands out passes for the relay (the separate friction-relay project that fetches pages for sites the Browser cannot open on its own).
- * A pass is a lease of 3 minutes, signed with RELAY_SECRET, which only this project and the relay hold, so the
- * relay will not serve anyone who did not get one here. The page asks for the next lease only while the cloud browser is on screen
- * and the tab is in front, and the relay cuts a socket a short while after its lease ends, so time is spent only while it is in use.
- * This is the BACKUP cloud browser (Scramjet, alpha), used only when the main one (api/cloud.ts, Hyperbeam) is down or full of sessions. Each address
- * has 30 minutes a day across both, counted in the same `cloud_day` row, and the backup has its own small pool for everyone (`RELAY_DAILY_CAP_MIN`,
- * default 30 minutes), because it is paid for by Vercel's open-socket time. Counted in Turso (`cloud_day`, one row for each hashed address,
- * starting over each UTC day). Only the Friction page may ask, and with no Turso it refuses, so it is never unmetered.
+ * Hands out passes for the BACKUP cloud browser (Scramjet, alpha, in the separate friction-relay project), used only when both Hyperbeam keys have no
+ * free session or do not answer. A pass is a short lease, signed with RELAY_SECRET, which only this project and the relay hold, so the relay serves
+ * nobody who did not get one here. The page asks for the next lease only while the cloud browser is on screen and the tab is in front, and the relay
+ * cuts a socket a short while after its lease ends, so time is spent only while it is in use. The lease is short (90 s) because it cannot be given back:
+ * a refund would let a script keep a pass it had been refunded for. The time is the same time as the main cloud browser's (api/_pool.ts): each address
+ * has 30 minutes a day across both and everyone draws on the one shared pool.
  */
-const LIFE = 3 * 60
-const PER_IP = 30 * 60
-/** the backup's own pool for everyone, in seconds a day: it is paid for by Vercel, not Hyperbeam, and only runs when Hyperbeam cannot */
-const poolSecs = () => (Number(process.env.RELAY_DAILY_CAP_MIN) || 30) * 60
+const LIFE = 90
 const ORIGIN = process.env.RELAY_ORIGIN || 'https://friction-relay.vercel.app'
 
 let db: Client | undefined
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))
-const today = () => new Date().toISOString().slice(0, 10)
-/** an IPv6 address is a whole /64 to its owner, who can change the last half at will, so the allowance goes by the first half */
-const net = (ip: string) => (ip.includes(':') ? ip.split(':').slice(0, 4).join(':') : ip)
-async function who(ip: string) {
-  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`hb1:${net(ip)}`))
-  return `h${Array.from(new Uint8Array(h)).slice(0, 9).map((b) => b.toString(16).padStart(2, '0')).join('')}`
-}
 
 export default {
   async fetch(request: Request) {
@@ -39,13 +28,12 @@ export default {
     try {
       const id = await who(ip)
       const c = client()
-      await c.execute('CREATE TABLE IF NOT EXISTS cloud_day (id TEXT PRIMARY KEY, day TEXT NOT NULL, secs REAL NOT NULL DEFAULT 0)')
-      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, 'RELAY4'] })
+      await c.execute(CREATE_DAY)
+      const r = await c.execute({ sql: 'SELECT id, secs FROM cloud_day WHERE day = ? AND id IN (?, ?)', args: [today(), id, POOL_ROW] })
       const get = (k: string) => Number(r.rows.find((x) => x.id === k)?.secs ?? 0)
       if (get(id) + LIFE > PER_IP) return json({ error: 'limit' }, 429)
-      if (get('RELAY4') + LIFE > poolSecs()) return json({ error: 'full' }, 429)
-      const sql = 'INSERT INTO cloud_day (id, day, secs) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET secs = CASE WHEN day = excluded.day THEN secs + excluded.secs ELSE excluded.secs END, day = excluded.day'
-      await c.batch([{ sql, args: [id, today(), LIFE] }, { sql, args: ['RELAY4', today(), LIFE] }])
+      if (get(POOL_ROW) + LIFE > poolSecs()) return json({ error: 'full' }, 429)
+      await c.batch([{ sql: SQL_ADD, args: [id, today(), LIFE] }, { sql: SQL_ADD, args: [POOL_ROW, today(), LIFE] }])
       const t = mint(LIFE)
       return json({ base: ORIGIN, token: t.token, exp: t.exp, left: Math.max(0, PER_IP - get(id) - LIFE) })
     } catch { return json({ error: 'The relay could not check its limit' }, 503) }
