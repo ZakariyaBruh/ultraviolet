@@ -12,15 +12,21 @@ import { verdict } from './_blocklist.js'
  * `end` gives back what was not used, and a cron (`?sweep=1`, every minute, with `CRON_SECRET`) closes any session whose lease ran out or whose page
  * stopped answering. `offline_timeout` (90 s, the smallest allowed is 60) is the backstop if even that fails: a session with nobody watching closes by itself.
  *
- * Each address may use `PER_IP` seconds a day (30 minutes), and everyone together the day's pool (`HB_DAILY_CAP_MIN`, default 60): whoever asks first
+ * Each address may use `PER_IP` seconds a day (30 minutes), and everyone together the day's pool (`HB_DAILY_CAP_MIN`, default the free allowance spread over the month): whoever asks first
  * gets time until it is spent, people are not counted. At most `HB_MAX_ACTIVE` sessions run at once. Counted in Turso (`cloud_day`, one row for each
  * hashed address and one for everyone, starting over each UTC day; `cloud_sess`, one row for each open session, deleted when it closes). Same-origin
  * only, and with no Turso or key it refuses, so it is never unmetered.
  */
 const LIFE = 3 * 60
 const PER_IP = 30 * 60
-const ALL = (Number(process.env.HB_DAILY_CAP_MIN) || 60) * 60
-const MAX_ACTIVE = Number(process.env.HB_MAX_ACTIVE) || 3
+/**
+ * Hyperbeam's own site offers 10,000 free minutes a month (then $0.007 a participant-minute, which one viewer is one of). The daily pool is 90% of that
+ * spread over this month's days, about 290 minutes a day, so a month of full days stays inside the free allowance. `HB_DAILY_CAP_MIN` overrides it, and
+ * `HB_FREE_MIN` says the allowance if the account's plan is different. Check the account's Billing page: the figure comes from the marketing page.
+ */
+const daysThisMonth = () => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate() }
+const ALL = (Number(process.env.HB_DAILY_CAP_MIN) || Math.floor(((Number(process.env.HB_FREE_MIN) || 10_000) * 0.9) / daysThisMonth())) * 60
+const MAX_ACTIVE = Number(process.env.HB_MAX_ACTIVE) || 5
 const API = 'https://engine.hyperbeam.com/v0'
 const POOL = 'HB1'
 
