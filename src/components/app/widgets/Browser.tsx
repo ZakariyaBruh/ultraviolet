@@ -1,6 +1,7 @@
 import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
+import { CloudScreen } from './CloudScreen'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
@@ -31,37 +32,17 @@ type View =
   | { kind: 'youtube'; q: string; list: Video[] }
   /** `rendered`: the page's scripts were run on our server and this is what they drew */
   | { kind: 'page'; url: string; html: string; rendered?: boolean }
-  /** the page runs in this browser through the relay (a separate project on its own address); `n` makes Reload start it afresh */
-  | { kind: 'relay'; url: string; src: string; n: number }
+  /** the page runs in a cloud browser (Hyperbeam), streamed into the window; `n` makes Reload start it afresh */
+  | { kind: 'cloud'; url: string; n: number }
   /** before the first cloud page of a visit: it is experimental, and this is the way out */
   | { kind: 'cloudintro'; url: string; auto: boolean }
   /** the cloud browser cannot be used right now, and why */
-  | { kind: 'cloudnote'; why: 'limit' | 'full' | 'down' | 'off'; url: string }
+  | { kind: 'cloudnote'; why: 'limit' | 'full' | 'down' | 'busy' | 'off'; url: string }
   | { kind: 'video'; id: string; url: string }
   | { kind: 'blocked'; url: string; why: string }
   /** `retry` is false when trying again cannot help (a site that turns programs away, or one that is only a shell for scripts) */
   | { kind: 'error'; msg: string; url?: string; retry?: boolean; redo?: () => void; run?: () => void }
 
-/** the relay pass in use: asked for when the first relay page opens and again when it is about to run out */
-let pass: { base: string; token: string; exp: number; left: number } | null = null
-/** a pass with at least this long left is reused when a page opens or comes back */
-const FRESH = 60
-/** the next lease is fetched when this few seconds are left of the one in use */
-const RENEW = 2
-/** the cloud browser is switched off when the tab has been out of sight (or out of focus) this long */
-const AWAY_MS = 20_000
-
-/** asks Friction for a lease of cloud browser time (api/relay.ts); on success it becomes `pass` */
-async function lease(): Promise<'ok' | 'limit' | 'full' | 'down'> {
-  try {
-    const r = await fetch('/api/relay', { signal: AbortSignal.timeout(15000) })
-    const d = (await r.json().catch(() => null)) as { base?: string; token?: string; exp?: number; left?: number; error?: string } | null
-    if (r.status === 429) return d?.error === 'full' ? 'full' : 'limit'
-    if (!r.ok || !d?.token || !d.base || !d.exp) return 'down'
-    pass = { base: d.base, token: d.token, exp: d.exp, left: typeof d.left === 'number' ? d.left : 0 }
-    return 'ok'
-  } catch { return 'down' }
-}
 /** the experimental warning is shown once for each visit, before the first cloud page */
 let warned = false
 /** how long until the day's cloud time starts over (midnight UTC), in words */
@@ -184,7 +165,7 @@ export function Browser() {
   }, [browserToured])
   // tell the rest of the app the cloud browser's live frame is up, so Friction pauses its forced-layout timers (the
   // ASCII panel scan, the Shell scroll measure) that otherwise reflow against the heavy iframe and freeze an iPad
-  const cloud = view.kind === 'relay'
+  const cloud = view.kind === 'cloud'
   useEffect(() => {
     useUI.getState().set({ cloudOpen: cloud })
     return () => useUI.getState().set({ cloudOpen: false })
@@ -201,16 +182,10 @@ export function Browser() {
   const setSetting = useStore((s) => s.setSettings)
   const [issues, setIssues] = useState(false)
   const [leave, setLeave] = useState<string | null>(null)
-  const [, tick] = useState(0)
   const locked = useStore((s) => !!s.session)
   const [empty, setEmpty] = useState(false)
-  const [relayReady, setRelayReady] = useState(false)
-  // the cloud browser is only on while the tab is in front: away, its page is taken down (its connections close) and nothing is spent
-  const [away, setAway] = useState(false)
-  const awayRef = useRef(false)
-  const busyLease = useRef(false)
-  const frozen = useRef(0)
-  const relayFrame = useRef<HTMLIFrameElement>(null)
+  /** seconds of cloud browser time left today, reported by the cloud screen while it is up */
+  const [cloudLeft, setCloudLeft] = useState<number | null>(null)
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
@@ -221,7 +196,7 @@ export function Browser() {
   const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); setRelayReady(false); loads.current = 0; setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setCloudLeft(null); setView(v) }
 
   /** hosts that were sent to the cloud browser on our own this visit, so a page that fails there as well is not sent back and forth */
   const tried = useRef(new Set<string>())
@@ -231,7 +206,7 @@ export function Browser() {
     try { host = new URL(raw).hostname } catch { /* not an address */ }
     if (!host || tried.current.has(host) || cloudOff) return fail ? show(fail, push) : undefined
     tried.current.add(host)
-    return openRelay(raw, push, true)
+    return openCloud(raw, push, true)
   }
 
   /**
@@ -278,8 +253,8 @@ export function Browser() {
     } catch (e) { if (my === token.current) show({ kind: 'error', msg: (e as Error)?.name === 'TimeoutError' ? 'The page took too long to load' : 'The page could not be reached', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
-  /** opens a page through the relay: the page runs here, in this browser, and the relay only fetches its files (api/relay.ts, relay/) */
-  const openRelay = async (raw: string, push = true, auto = false) => {
+  /** opens a page in the cloud browser: a real browser on a server (Hyperbeam), streamed into the window (api/cloud.ts) */
+  const openCloud = async (raw: string, push = true, auto = false) => {
     const my = ++token.current
     const v = verdict(raw)
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
@@ -288,17 +263,11 @@ export function Browser() {
     setDoing(auto ? 'This page does not run here, so the cloud browser is opening it' : 'Opening in the cloud browser')
     setBusy(true)
     try {
-      if (!pass || pass.exp < Date.now() / 1000 + FRESH) {
-        const got = await lease()
-        if (my !== token.current) return
-        if (got === 'limit' || got === 'full' || got === 'down') return show({ kind: 'cloudnote', why: got, url: raw }, push)
-      }
       const sc = await screenPage(v.url, '')
       if (my !== token.current) return
       if (sc.block) return show({ kind: 'blocked', url: raw, why: 'a game or short-form site (checked by AI)' }, push)
-      try { localStorage.setItem('friction:relay', '1') } catch { /* storage blocked */ }
       history = [v.url.toString(), ...history.filter((x) => x !== v.url.toString())].slice(0, 8)
-      show({ kind: 'relay', url: v.url.toString(), src: `${pass!.base}/go.html?u=${encodeURIComponent(v.url.toString())}&t=${pass!.token}`, n: Date.now() }, push)
+      show({ kind: 'cloud', url: v.url.toString(), n: Date.now() }, push)
     } catch { if (my === token.current) show({ kind: 'cloudnote', why: 'down', url: raw }, push) } finally { if (my === token.current) setBusy(false) }
   }
 
@@ -381,54 +350,10 @@ export function Browser() {
     if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
     return null
   }
-  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'relay' ? view.url : undefined
+  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'cloud' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
-  const nowLeft = () => (pass ? Math.max(0, pass.left + Math.max(0, pass.exp - Math.floor(Date.now() / 1000))) : 0)
-  /** while a cloud browser page is open: the clock, the next lease before this one ends, and the switch-off when the tab is away */
-  useEffect(() => {
-    if (view.kind !== 'relay') { awayRef.current = false; setAway(false); return }
-    let since = 0
-    const run = async () => {
-      tick((n) => n + 1)
-      if (document.hidden || !document.hasFocus()) {
-        since ||= Date.now()
-        if (!awayRef.current && Date.now() - since > AWAY_MS) { frozen.current = nowLeft(); awayRef.current = true; setAway(true) }
-        return
-      }
-      since = 0
-      if (busyLease.current) return
-      if (awayRef.current) {
-        // back: the page starts again on a lease still in date, or a new one
-        busyLease.current = true
-        let got: 'ok' | 'limit' | 'full' | 'down' = 'ok'
-        if (!pass || pass.exp < Date.now() / 1000 + FRESH) got = await lease()
-        busyLease.current = false
-        if (got === 'limit' || got === 'full') { awayRef.current = false; setAway(false); show({ kind: 'cloudnote', why: got, url: view.url }, false); return }
-        if (got === 'down' || !pass) return
-        awayRef.current = false; setAway(false)
-        setRelayReady(false); loads.current = 0
-        setView({ ...view, src: `${pass.base}/go.html?u=${encodeURIComponent(view.url)}&t=${pass.token}`, n: Date.now() })
-        return
-      }
-      if (pass && pass.exp - Date.now() / 1000 <= RENEW) {
-        busyLease.current = true
-        const got = await lease()
-        busyLease.current = false
-        if (got === 'ok' && pass) relayFrame.current?.contentWindow?.postMessage({ frictionPass: pass.token }, pass.base)
-        else if (got === 'limit' || got === 'full') show({ kind: 'cloudnote', why: got, url: view.url }, false)
-      }
-    }
-    const t = setInterval(() => void run(), 1000)
-    return () => clearInterval(t)
-  }, [view])
-  useEffect(() => {
-    if (view.kind !== 'relay') return
-    const t = setTimeout(() => setRelayReady(true), 9000)
-    return () => clearTimeout(t)
-  }, [view])
-  const leftNow = pass ? (away ? frozen.current : nowLeft()) : null
   const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  const reload = () => { if (view.kind === 'relay') void openRelay(view.url, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
+  const reload = () => { if (view.kind === 'cloud') show({ kind: 'cloud', url: view.url, n: Date.now() }, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
   const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alts' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
@@ -440,18 +365,18 @@ export function Browser() {
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">{view.kind === 'youtube' ? 'Search YouTube' : 'Search the web or type an address'}</span>
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'relay' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'cloud' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
-        {view.kind === 'relay' && leftNow !== null && (
-          <span role="timer" title="Cloud browser time left today (experimental). The page runs on your device and blocked sites stay blocked." aria-label={`${mmss(leftNow)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(leftNow)}</span></span>
+        {view.kind === 'cloud' && cloudLeft !== null && (
+          <span role="timer" title="Cloud browser time left today (experimental). It runs on a server; blocked sites are closed if you reach them." aria-label={`${mmss(cloudLeft)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(cloudLeft)}</span></span>
         )}
-        {view.kind === 'relay' && (
+        {view.kind === 'cloud' && (
           <button type="button" onClick={() => show({ kind: 'home' })} aria-label="Turn the cloud browser off and go back to the start page" title="Turn off the cloud browser" className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-3 text-sm hover:border-signal hover:bg-ink/10"><Power className="size-4" aria-hidden /><span className="max-[640px]:sr-only">Turn off</span></button>
         )}
-        {(view.kind === 'page' || view.kind === 'relay') && (
+        {(view.kind === 'page' || view.kind === 'cloud') && (
           <button type="button" onClick={reload} aria-label="Reload this page" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10"><RotateCw className="size-4" aria-hidden /></button>
         )}
-        {(view.kind === 'page' || view.kind === 'relay') && (
+        {(view.kind === 'page' || view.kind === 'cloud') && (
           <button type="button" onClick={() => setIssues(true)} aria-label="Page not working? Open the Issues panel" className={`inline-flex h-11 shrink-0 items-center gap-1.5 border px-3 text-sm transition-colors duration-150 ${empty ? 'border-signal bg-signal font-semibold text-on-signal' : 'border-ink/30 hover:bg-ink/10'}`}><CircleHelp className="size-4" aria-hidden />Issues</button>
         )}
         <button type="submit" className="h-11 shrink-0 bg-signal px-4 text-sm font-semibold text-on-signal max-[480px]:sr-only">Go</button>
@@ -539,14 +464,10 @@ export function Browser() {
             </div>
           </div>
         )}
-        {view.kind === 'relay' && (
-          <div className="flex size-full flex-col">
-            <div className="relative min-h-0 flex-1">
-              {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
-              {away
-                ? <div className="grid size-full place-items-center bg-ground p-4 text-center"><p className="max-w-[28ch] text-sm text-ink-2" role="status">The cloud browser is off while you are away, so it is not using your time. It starts again when you come back.</p></div>
-                : <iframe ref={relayFrame} key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />}
-            </div>
+        {view.kind === 'cloud' && (
+          <div className="relative size-full">
+            <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
+            {note && <p role="status" className="absolute inset-x-0 bottom-0 z-20 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
           </div>
         )}
         {view.kind === 'video' && (
@@ -577,10 +498,10 @@ export function Browser() {
           <div className="scroll-y absolute inset-0 z-20 grid content-start justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Page not working?</p>
             <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
-            {view.kind !== 'relay' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> the page runs on your own device and Friction only fetches its files, so most sites work properly, including chat and live ones. It is experimental and may break. You get 30 minutes a day. Logins, and sites that check you are a person, may still fail.</p>}
+            {view.kind !== 'cloud' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> a real browser on a server (Hyperbeam), streamed to you, so sites that need a full browser work, including chat and live ones. It is experimental and may break. You get 30 minutes a day, if the day&rsquo;s shared time is not used up.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}
-              {pageUrl && view.kind !== 'relay' && !cloudOff && <button onClick={() => { setIssues(false); void openRelay(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {pageUrl && view.kind !== 'cloud' && !cloudOff && <button onClick={() => { setIssues(false); void openCloud(pageUrl, false) }} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {pageUrl && <button type="button" onClick={() => setLeave(pageUrl!)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" /></button>}
               <button onClick={() => setIssues(false)} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Close</button>
             </div>
@@ -589,14 +510,15 @@ export function Browser() {
         {view.kind === 'cloudintro' && (
           <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="dialog" aria-labelledby="ci-t" data-no-drag>
             <p id="ci-t" className="hud inline-flex items-center gap-1.5"><Cloud className="size-4 text-signal" aria-hidden />Cloud browser · experimental</p>
-            <p className="text-[15px] leading-[1.4]"><strong>Highly experimental, and prone to breaking.</strong> {view.auto ? 'This page does not run in the normal Browser, so it can be opened in the cloud browser.' : 'It opens sites the normal Browser cannot run.'} Some will load slowly, show blank, or ask you to prove you are a person and fail.</p>
+            <p className="text-[15px] leading-[1.4]"><strong>Highly experimental, and prone to breaking.</strong> {view.auto ? 'This page does not run in the normal Browser, so it can be opened in the cloud browser.' : 'It opens sites the normal Browser cannot run.'} It is a real browser on a server (run by Hyperbeam), streamed to you, so it can lag, drop out or fail to start.</p>
             <ul className="m-0 grid list-none gap-1 p-0 text-[13px] leading-[1.4] text-ink-2">
               <li>Everyone gets 30 minutes a day, and the time only runs while this page is open and in front.</li>
-              <li>Sites on the blocked list stay blocked. Leaving the tab turns it off.</li>
+              <li>Hyperbeam, the company that runs it, can see what you do in it. Do not sign in to anything you would not hand to a stranger.</li>
+              <li>Games and short-form social media are closed if you reach them. Leaving the tab turns it off.</li>
               <li>The Turn off button next to the address bar ends it at any time.</li>
             </ul>
             <div className="flex flex-wrap gap-2">
-              <button autoFocus onClick={() => { warned = true; void openRelay(view.url, false, view.auto) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try it anyway</button>
+              <button autoFocus onClick={() => { warned = true; void openCloud(view.url, false, view.auto) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try it anyway</button>
               <button onClick={() => (stack.length ? back() : show({ kind: 'home' }))} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Not now</button>
               <button onClick={() => { setSetting({ cloudOff: true }); if (stack.length) back(); else show({ kind: 'home' }) }} className="h-11 px-3 text-sm text-ink-2 underline hover:text-ink">Never use it</button>
             </div>
@@ -604,17 +526,18 @@ export function Browser() {
         )}
         {view.kind === 'cloudnote' && (
           <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="alert" data-no-drag>
-            <p className="hud inline-flex items-center gap-1.5"><CloudOff className="size-4 text-signal" aria-hidden />{{ limit: 'Your 30 minutes are used', full: 'Full for today', down: 'Not answering', off: 'Cloud browser is off' }[view.why]}</p>
+            <p className="hud inline-flex items-center gap-1.5"><CloudOff className="size-4 text-signal" aria-hidden />{{ limit: 'Your 30 minutes are used', full: 'Full for today', busy: 'All in use', down: 'Not answering', off: 'Cloud browser is off' }[view.why]}</p>
             <p className="text-[15px] leading-[1.4]">
               {view.why === 'limit' && <>You have used your 30 minutes of cloud browser time for today. It starts over in <strong>{untilReset()}</strong> (midnight UTC).</>}
               {view.why === 'full' && <>The cloud browser costs money to run, and today&rsquo;s shared budget has been spent. This is not about you or your time. It refills in <strong>{untilReset()}</strong> (midnight UTC), and earlier in the day is usually easier.</>}
+              {view.why === 'busy' && <>Every cloud browser is in use right now. They are paid for by the minute, so only a few run at once. Try again in a few minutes.</>}
               {view.why === 'down' && <>The cloud browser is not answering. It is experimental, and it can also be switched off when its budget runs out. Everything else in Friction still works.</>}
               {view.why === 'off' && <>You turned the cloud browser off, so nothing opens in it and no time is used.</>}
             </p>
             <p className="text-[13px] leading-[1.4] text-ink-2">{view.why === 'off' ? 'Turn it back on to open this page.' : 'Meanwhile this page can be opened in your own browser, or you can try a Friction alt, a built-in stand-in for popular sites.'}</p>
             <div className="flex flex-wrap gap-2">
-              {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openRelay(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
-              {view.why === 'down' && <button onClick={() => void openRelay(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}
+              {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openCloud(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
+              {(view.why === 'down' || view.why === 'busy') && <button onClick={() => void openCloud(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}
               {view.why !== 'off' && <button type="button" onClick={() => setLeave(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" aria-hidden /></button>}
               <button onClick={() => show({ kind: 'alts' })} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><LayoutGrid className="size-4" aria-hidden />Friction alts</button>
               <button onClick={() => show({ kind: 'home' })} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Back to start</button>
@@ -626,7 +549,7 @@ export function Browser() {
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
-              {view.url && !cloudOff && <button onClick={() => void openRelay(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {view.url && !cloudOff && <button onClick={() => void openCloud(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {view.url && <button onClick={() => setIssues(true)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><CircleHelp className="size-4" />Facing issues?</button>}
               {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}

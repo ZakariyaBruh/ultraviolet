@@ -1,7 +1,0 @@
-.vercel
-node_modules
-public/scram
-public/baremux
-public/controller
-public/libcurl
-.env*

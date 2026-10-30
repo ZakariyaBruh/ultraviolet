@@ -1,1 +1,0 @@
-{"name":"friction-relay","private":true,"version":"2.0.0","type":"module","engines":{"node":"22.x"},"devDependencies":{"@types/node":"^26.6.6"},"dependencies":{"@mercuryworkshop/libcurl-transport":"2.0.6","@mercuryworkshop/scramjet":"2.0.67-alpha.2","@mercuryworkshop/scramjet-controller":"0.0.14","@mercuryworkshop/scramjet-utils":"0.0.3","@mercuryworkshop/wisp-js":"^0.5.1"}}

@@ -15,5 +15,11 @@
       "source": "/((?!assets/|api/|icons/|favicon.svg|manifest.webmanifest|sitemap.xml|robots.txt|apple-touch-icon.png).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cloud?sweep=1",
+      "schedule": "* * * * *"
+    }
   ]
 }

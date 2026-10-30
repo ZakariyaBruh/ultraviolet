@@ -7,8 +7,3 @@ const feeds = readFileSync('src/lib/feeds.ts', 'utf8')
 const urls = [...feeds.matchAll(/\['\w+', "[^"]+", '([^']+)', (?:true|false)\]/g)].map((m) => m[1])
 writeFileSync('api/_feeds.ts', `${note}export const FEED_URLS: string[] = ${JSON.stringify(urls, null, 1)}\n`)
 console.log(`api/_blocklist.ts and api/_feeds.ts written (${urls.length} feeds)`)
-// the relay project (relay/) holds copies of the blocklist and the token check, so it can be deployed on its own
-import { mkdirSync } from 'node:fs'
-mkdirSync('relay/api', { recursive: true })
-writeFileSync('relay/api/_blocklist.ts', note + readFileSync('src/lib/blocklist.ts', 'utf8'))
-writeFileSync('relay/api/_relaytoken.ts', note + readFileSync('api/_relaytoken.ts', 'utf8'))
