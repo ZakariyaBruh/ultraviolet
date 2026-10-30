@@ -8,50 +8,6 @@
  * TLS in WebAssembly, so the relay only moves encrypted bytes). The service worker only forwards the frame's requests here.
  * Order matters: the scripts, then the worker, then the transport, then the controller, then the frame.
  */
-/*
- * Can this device's single thread run the page? The cloud page and Friction share one thread on a phone or tablet, so the honest test is to
- * watch how long the page holds it up: long tasks (anything over 50 ms) and how late a 100 ms heartbeat arrives. A page is too heavy when,
- * over its first 14 seconds, it blocks for more than a few seconds in all or for one stretch long enough to freeze the screen. Weaker devices
- * (few cores or little memory) get a stricter line. The verdict goes to Friction once, which then runs the page on the server instead.
- */
-function watchThread(el) {
-  const cores = navigator.hardwareConcurrency || 4
-  const mem = navigator.deviceMemory || 4
-  const weak = cores <= 4 || mem <= 4
-  const stat = { tbt: 0, max: 0, tasks: 0 }
-  const lags = []
-  try {
-    new PerformanceObserver((l) => { for (const e of l.getEntries()) { stat.tasks++; stat.max = Math.max(stat.max, e.duration); stat.tbt += Math.max(0, e.duration - 50) } }).observe({ type: 'longtask', buffered: true })
-  } catch (_) { /* no long task support (Safari): the heartbeat below is the measure */ }
-  let last = performance.now()
-  let lagTotal = 0, lagMax = 0
-  const beat = setInterval(() => {
-    const n = performance.now(); const lag = n - last - 100; last = n
-    // a hidden tab is throttled by the browser, which is not the page's doing
-    if (document.hidden) return
-    lags.push(lag); if (lag > 50) { lagTotal += lag - 50; lagMax = Math.max(lagMax, lag) }
-  }, 100)
-  const t0 = performance.now()
-  let said = false
-  const check = () => {
-    if (said) return
-    const since = (performance.now() - t0) / 1000
-    const sorted = lags.slice().sort((a, b) => a - b)
-    const p95 = sorted.length ? sorted[Math.floor(sorted.length * 0.95)] : 0
-    const k = weak ? 0.7 : 1
-    const tbt = Math.max(stat.tbt, lagTotal), max = Math.max(stat.max, lagMax)
-    const heavy = tbt > 4500 * k || max > 3000 * k || (tbt > 2500 * k && p95 > 500)
-    if (heavy || since >= 14) {
-      said = true; clearInterval(beat); clearInterval(poll)
-      if (!heavy) return
-      let scripts = 0, bytes = 0
-      try { const d = el.contentDocument; scripts = d.scripts.length; for (const s of d.scripts) bytes += (s.textContent || '').length } catch (_) {}
-      const to = (location.ancestorOrigins && location.ancestorOrigins[0]) || '*'
-      parent.postMessage({ frictionHeavy: { tbt: Math.round(tbt), max: Math.round(max), p95: Math.round(p95), tasks: stat.tasks, scripts, inlineBytes: bytes, cores, mem } }, to)
-    }
-  }
-  const poll = setInterval(check, 1000)
-}
 (async () => {
   const m = document.getElementById('m')
   const fail = (t) => { m.className = 'e'; m.textContent = t }
@@ -90,7 +46,6 @@ function watchThread(el) {
     m.remove()
     document.body.appendChild(frame.element)
     frame.go(u)
-    watchThread(frame.element)
     // Friction hands over a new pass before the old one runs out (a lease is a few minutes); new connections use it, and the relay closes the old socket shortly after its lease ends
     addEventListener('message', (e) => {
       const p = e.data && e.data.frictionPass

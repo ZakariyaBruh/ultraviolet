@@ -15,12 +15,5 @@
       "source": "/((?!assets/|api/|icons/|favicon.svg|manifest.webmanifest|sitemap.xml|robots.txt|apple-touch-icon.png).*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/render.ts": {
-      "memory": 2048,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
-    }
-  }
+  ]
 }

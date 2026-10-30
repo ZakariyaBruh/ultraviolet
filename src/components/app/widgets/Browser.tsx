@@ -421,42 +421,6 @@ export function Browser() {
     const t = setInterval(() => void run(), 1000)
     return () => clearInterval(t)
   }, [view])
-  /**
-   * The cloud page measures how long it holds up this device's single thread (go.html, `watchThread`). When that is more than the device can
-   * carry, its scripts are run on our server instead (api/render.ts) and what they drew is shown here, read-only. The cloud browser is closed
-   * first, so its clock stops. If the server cannot take it (limit, full, busy), the cloud page stays and the window says why it may be slow.
-   */
-  const heavyDone = useRef(0)
-  useEffect(() => {
-    if (view.kind !== 'relay') return
-    const url = view.url
-    const n = view.n
-    const on = (e: MessageEvent) => {
-      if (!pass || e.origin !== pass.base || e.source !== relayFrame.current?.contentWindow) return
-      const h = (e.data as { frictionHeavy?: unknown } | null)?.frictionHeavy
-      if (!h || typeof h !== 'object' || heavyDone.current === n) return
-      heavyDone.current = n
-      void (async () => {
-        setDoing('This page is too heavy for your device, so it is running on our server')
-        setBusy(true)
-        try {
-          const r = await fetch(`/api/render?u=${encodeURIComponent(url)}&w=${window.innerWidth}`, { signal: AbortSignal.timeout(50000) })
-          const d = (await r.json().catch(() => null)) as { url?: string; html?: string; error?: string; why?: string } | null
-          if (!r.ok || !d?.html) {
-            const why = d?.error === 'limit' ? 'You have used your server time for today' : d?.error === 'full' ? 'The server is busy for today' : d?.error === 'busy' ? 'The server is busy right now' : d?.error === 'blocked' ? 'That page is blocked' : (d?.error ?? 'The server could not run it')
-            setNote(`This page is heavy for your device and may be slow or freeze. ${why}, so it stays in the cloud browser.`)
-            return
-          }
-          const hv = verdict(d.url ?? url)
-          if (!hv.ok) return show({ kind: 'blocked', url: d.url ?? url, why: hv.why }, false)
-          show({ kind: 'page', url: d.url ?? url, html: d.html, rendered: true }, false)
-          setNote('This page was too heavy for your device to run, so its scripts ran on our server. You see a read-only copy. Links and searches still work.')
-        } catch { setNote('This page is heavy for your device and may be slow or freeze. The server did not answer, so it stays in the cloud browser.') } finally { setBusy(false) }
-      })()
-    }
-    window.addEventListener('message', on)
-    return () => window.removeEventListener('message', on)
-  }, [view])
   useEffect(() => {
     if (view.kind !== 'relay') return
     const t = setTimeout(() => setRelayReady(true), 9000)
@@ -579,7 +543,6 @@ export function Browser() {
           <div className="flex size-full flex-col">
             <div className="relative min-h-0 flex-1">
               {!relayReady && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the page" size={56} /></div>}
-              {note && <p role="status" className="absolute inset-x-0 bottom-0 z-20 bg-ground px-3 py-2 text-[13px] leading-[1.35] text-ink">{note}</p>}
               {away
                 ? <div className="grid size-full place-items-center bg-ground p-4 text-center"><p className="max-w-[28ch] text-sm text-ink-2" role="status">The cloud browser is off while you are away, so it is not using your time. It starts again when you come back.</p></div>
                 : <iframe ref={relayFrame} key={view.n} title={`Cloud browser page: ${view.url}`} src={view.src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setRelayReady(true) }} className="size-full border-0 bg-white" />}

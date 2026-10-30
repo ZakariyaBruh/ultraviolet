@@ -8,7 +8,7 @@ import { mint } from './_relaytoken.js'
  * relay will not serve anyone who did not get one here. The page asks for the next lease only while the cloud browser is on screen
  * and the tab is in front, and the relay cuts a socket a short while after its lease ends, so time is spent only while it is in use.
  * Each address may be given `PER_IP` seconds of leases a day (30 minutes), and
- * everyone together (`poolSecs`): the monthly budget (`RELAY_MONTHLY_USD`, default $20, the team's credit) less the renderer's worst day (60 minutes at about $0.15 an hour, api/render.ts), divided by the cost of an open-socket hour
+ * everyone together (`poolSecs`): the monthly budget (`RELAY_MONTHLY_USD`, default $20, the team's credit) divided by the cost of an open-socket hour
  * (`RELAY_HOUR_USD`, default $0.041: $0.035 plus the overlap of old and new sockets at each renewal) and by the days in this month, so a month of full days
  * adds up to the budget. People are not counted: whoever asks first gets time, each address up to 30 minutes, until the day's pool is spent (env
  * `RELAY_DAILY_CAP_H` overrides the sum). Counted in Turso (`cloud_day`, one row for each hashed address,
@@ -17,15 +17,7 @@ import { mint } from './_relaytoken.js'
 const LIFE = 3 * 60
 const PER_IP = 30 * 60
 const daysThisMonth = () => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate() }
-/** what a minute of the server-side page renderer (api/render.ts, a headless Chromium on 2 GB) costs an hour, and its daily cap in minutes */
-const RENDER_HOUR_USD = Number(process.env.RENDER_HOUR_USD) || 0.15
-const RENDER_MIN = Number(process.env.RENDER_DAILY_CAP_MIN) || 60
-const budgetSecs = () => {
-  const days = daysThisMonth()
-  // the renderer's worst day is taken off the monthly budget first, so the two together never pass it
-  const left = Math.max(0, (Number(process.env.RELAY_MONTHLY_USD) || 20) - (RENDER_MIN / 60) * RENDER_HOUR_USD * days)
-  return Math.floor((left / (Number(process.env.RELAY_HOUR_USD) || 0.041) / days) * 3600)
-}
+const budgetSecs = () => Math.floor(((Number(process.env.RELAY_MONTHLY_USD) || 20) / (Number(process.env.RELAY_HOUR_USD) || 0.041) / daysThisMonth()) * 3600)
 const poolSecs = () => (Number(process.env.RELAY_DAILY_CAP_H) ? Number(process.env.RELAY_DAILY_CAP_H) * 3600 : budgetSecs())
 const ORIGIN = process.env.RELAY_ORIGIN || 'https://friction-relay.vercel.app'
 
