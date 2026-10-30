@@ -16,18 +16,23 @@ same black glass. The close says what Friction lacks.
    the glass floor, the ridges that rise ahead of it and the strip-lamp reflections.
    `blender/render_run.sh` renders 222 frames at 1280x720 into `public/v4/run/` and writes `ticks.json`
    (the moment the dial crosses each ridge, which the score reads). `knob.py -- top ...` renders the dial from above
-   (the O of the wordmark).
+   (the O of the wordmark). `knob.py -- macro ...` is the title's product shot: a shallow-focus macro of the knurled edge that
+   rises and pulls back (a dolly-zoom) to the top-down view while the dial clicks round the same detents as the sound, with a
+   strip light sweeping the knurling; the floor goes black to the camera at the end so it hands off to the wordmark.
+   `blender/render_macro.sh` renders it (46 frames) and then re-renders the hook's close-up (frames 150-222) at 1600x900.
    `blender -b -P blender/knob.py -- run <frame> 1280 720 14 out.png`
 2. **The app, recorded.** `scripts/record-v4.cjs` drives the real app with Playwright at 2560x1440 (DSF 2) against
    `npx vite --port 5174` (it fast-forwards the timer through the store, and fakes leaving the tab for the drift).
    Clips go to `public/v4/ui/`. Run `node scripts/record-v4.cjs prep` once, then a clip name.
    No live Wikipedia lesson is recorded: its API rate-limits shared addresses and we do not work around that.
-3. **Compose, Remotion.** `src/v4/`: `Hook` (Blender frames, the three lines, speed streaks), `Title` and `Mark`
+3. **Lens, Remotion.** `src/v4/Lens.tsx`: halation and one soft horizontal streak made from the picture itself, dust in the light,
+   and a sideways smear on the camera glides sized to a 180 degree shutter. Captions pull into focus as they arrive.
+4. **Compose, Remotion.** `src/v4/`: `Hook` (Blender frames, the three lines, speed streaks), `Title` and `Mark`
    (the wordmark, the dial travelling into the O), `World` (the screens as 3D slabs on the glass, crops that follow
    the action, the veil for the drift), `Cta`. Fonts: Hanken, Unbounded, Barlow.
-4. **Sound.** `scripts/score4.py` synthesises everything (no samples): drone, scroll ticks, the ratchet from
+5. **Sound.** `scripts/score4.py` synthesises everything (no samples): drone, scroll ticks, the ratchet from
    `ticks.json`, the title pad, the beat, the app's own clicks, payout bells. Event times are on the master clock.
-5. **Checks.** `scripts/qa.py movie.mp4` reports black frames, flashes, frozen stretches and loudness.
+6. **Checks.** `scripts/qa.py movie.mp4` reports black frames, flashes, frozen stretches and loudness.
 
 ## Render
 

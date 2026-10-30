@@ -101,6 +101,57 @@ if SHOT == 'top':
     area('rim', (3.5, 3.0, 4), (-35, 30, 0), 5, 500, (0.55, 0.8, 1.0), shape='SQUARE')
     bpy.ops.render.render(write_still=True); print('TOP done'); sys.exit(0)
 
+if SHOT == 'macro':
+    # the title: a macro product shot. The camera starts at the knurled edge with a shallow focus, rises and pulls back
+    # (a dolly-zoom) until it is directly above, where the 2D dial in the wordmark takes over. The dial clicks round the same detents as the sound.
+    T = (FRAME - 1) / FPS
+    DUR = 1.85
+    def sm(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
+    def bez(x, x1=0.16, y1=1.0, x2=0.3, y2=1.0):          # the same easing the film uses for the clicks (cubic-bezier .16,1,.3,1)
+        lo, hi = 0.0, 1.0
+        for _ in range(40):
+            m = (lo + hi) / 2; bx = 3 * (1 - m) ** 2 * m * x1 + 3 * (1 - m) * m ** 2 * x2 + m ** 3
+            if bx < x: lo = m
+            else: hi = m
+        m = (lo + hi) / 2; return 3 * (1 - m) ** 2 * m * y1 + 3 * (1 - m) * m ** 2 * y2 + m ** 3
+    def detents(t):
+        a = 0.0
+        for i in range(7):
+            k = i / 6; at = 0.35 + 1.15 * (1 - (1 - k) ** 1.7)
+            u = max(0.0, min(1.0, (t - at) / 0.11)); u = bez(u)
+            a += 11 * u + (math.sin(u * math.pi) * 1.6 if 0 < u < 1 else 0)
+        return a
+    ang = 36 + detents(T)                                    # degrees clockwise from twelve o'clock, as in the wordmark
+    pivot.rotation_euler = (0, 0, math.radians(90 - ang))
+    kn.location = (0, 0, 0.012)
+    u = sm(T / DUR)
+    lerp = lambda a, b, k: a + (b - a) * k
+    llerp = lambda a, b, k: a * (b / a) ** k
+    el = math.radians(lerp(7, 90, u)); az = math.radians(lerp(-38, 0, u))
+    d = llerp(3.4, 60.0, u); f = llerp(70.0, 337.5, u)
+    tz = lerp(0.46, 0.0, u)
+    cam.location = (d * math.cos(el) * math.sin(az), -d * math.cos(el) * math.cos(az), tz + d * math.sin(el))
+    tgt.location = (lerp(0.15, 0.0, u), 0, tz)
+    cam_d.lens = f; cam_d.sensor_width = 36; cam_d.sensor_fit = 'HORIZONTAL'; cam_d.clip_end = 400
+    cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = lerp(1.7, 24.0, sm(T / (DUR * 0.8)))
+    foc = bpy.data.objects.new('foc', None); sc.collection.objects.link(foc)
+    foc.location = (lerp(0.35, 0.0, u), lerp(-0.95, 0.0, u), lerp(0.5, 0.74, u)); cam_d.dof.focus_object = foc
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0)); fl = bpy.context.object; fl.scale = (400, 400, 1)
+    fm = mat('floor', (0.003, 0.005, 0.012, 1), rough=0.32, spec=0.18); fl.data.materials.append(fm)
+    # as the camera reaches the top the floor goes black to the camera (it still bounces light and carries the reflections), so the shot ends on black like the wordmark
+    nt = fm.node_tree; out = [n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL'][0]; bsdf = nt.nodes['Principled BSDF']
+    lp = nt.nodes.new('ShaderNodeLightPath'); mul = nt.nodes.new('ShaderNodeMath'); mul.operation = 'MULTIPLY'; mul.inputs[1].default_value = sm((u - 0.40) / 0.5)
+    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (0.0006, 0.0012, 0.0033, 1); em.inputs['Strength'].default_value = 1.0
+    mx = nt.nodes.new('ShaderNodeMixShader')
+    nt.links.new(lp.outputs['Is Camera Ray'], mul.inputs[0]); nt.links.new(mul.outputs[0], mx.inputs[0])
+    nt.links.new(bsdf.outputs[0], mx.inputs[1]); nt.links.new(em.outputs[0], mx.inputs[2]); nt.links.new(mx.outputs[0], out.inputs['Surface'])
+    area('sweep', (lerp(-5.5, 5.5, u), -3.2, 2.4), (62, 0, 0), 7, 1500, (0.55, 0.84, 1.0), sy=0.45)
+    area('key', (-2.5, -3.5, 6), (30, -20, 0), 5, 700, (1, 0.97, 0.9), shape='SQUARE')
+    area('rim', (3.5, 3.0, 4), (-35, 30, 0), 5, 500, (0.55, 0.8, 1.0), shape='SQUARE')
+    sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.45
+    sc.render.film_transparent = False
+    bpy.ops.render.render(write_still=True); print('MACRO', FRAME, 't=%.2f ang=%.1f' % (T, ang)); sys.exit(0)
+
 # ---- RUN shot ------------------------------------------------------------
 cam_d.lens = 38; cam_d.sensor_width = 36
 cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 2.6; cam_d.dof.focus_object = tgt

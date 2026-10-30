@@ -1,6 +1,7 @@
 import { Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
 import { Dial, E, Fill, Grain, P, clamp, sec } from './kit'
 import { detents } from './Title'
+import { Dust, MotionBlur } from './Lens'
 
 const GAP = 1250, FLOOR = 340
 
@@ -111,10 +112,10 @@ const Caption = ({ pane, t }: { pane: Pane; t: number }) => {
     <div style={{ position: 'absolute', left: 104, top: 392, width: 640, opacity: out, color: P.ink }}>
       {pane.head.map((h, i) => (
         <div key={i} style={{ overflow: 'hidden', height: 84, lineHeight: '84px', fontFamily: 'Hanken', fontWeight: 600, fontSize: 70, letterSpacing: '-0.04em' }}>
-          <div style={{ transform: `translateY(${(1 - inn(i)) * 110}%)` }}>{h}</div>
+          <div style={{ transform: `translateY(${(1 - inn(i)) * 110}%)`, filter: `blur(${(1 - inn(i)) * 9}px)` }}>{h}</div>
         </div>
       ))}
-      <div style={{ marginTop: 22, width: 470, fontFamily: 'Hanken', fontWeight: 400, fontSize: 28, lineHeight: 1.35, color: P.dim, opacity: sub, transform: `translateY(${(1 - sub) * 10}px)` }}>{pane.sub}</div>
+      <div style={{ marginTop: 22, width: 470, fontFamily: 'Hanken', fontWeight: 400, fontSize: 30, lineHeight: 1.35, color: '#a9b1c2', opacity: sub, filter: `blur(${(1 - sub) * 6}px)`, transform: `translateY(${(1 - sub) * 10}px)` }}>{pane.sub}</div>
     </div>
   )
 }
@@ -124,17 +125,20 @@ export const World = () => {
   const f = useCurrentFrame()
   const t = f / 24
   const { x: camX, o: camO } = camPath(t)
+  const prev = camPath(t - 1 / 24)
+  const speed = Math.abs(camX - camO - (prev.x - prev.o)) * 0.9
   const open = interpolate(t, [0, 0.9], [0, 1], { ...clamp, easing: E.out })
   const push = interpolate(t, [0, WORLD_LEN], [0, 70])       // a slow dolly in under everything, so no hold is ever still
   // the dial in the corner clicks one detent for each screen
   const turn = PANES.reduce((a, p, i) => a + (i === 0 ? 0 : detents(t, p.start - 0.1, 1, 0, 30)), 0)
   return (
     <Fill style={{ background: P.deep }}>
+      <MotionBlur px={speed}>
       <div style={{ position: 'absolute', inset: 0, perspective: 1700, perspectiveOrigin: '960px 470px', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', left: 960, top: 540, width: 0, height: 0, transformStyle: 'preserve-3d', transform: `translate3d(${camO - camX}px, ${40 * (1 - open)}px, ${push}px) rotateY(${Math.sin(t * 0.55) * 1.1}deg)`, opacity: open }}>
           {/* the floor: the dial's glass, scored with the ridges */}
           <div style={{ position: 'absolute', left: -9000, top: FLOOR, width: 18000 + 6000 * 0, height: 5200, transformOrigin: '50% 0', transform: 'translateZ(-4200px) rotateX(90deg)',
-            background: `repeating-linear-gradient(90deg, rgba(127,211,255,0.00) 0px, rgba(127,211,255,0.00) 118px, rgba(127,211,255,0.16) 118px, rgba(127,211,255,0.16) 121px), ${P.deep}`,
+            background: `repeating-linear-gradient(90deg, rgba(127,211,255,0.00) 0px, rgba(127,211,255,0.00) 118px, rgba(127,211,255,0.10) 118px, rgba(127,211,255,0.10) 121px), ${P.deep}`,
             maskImage: 'linear-gradient(to top, #000 0%, #000 8%, transparent 72%)' }} />
           {LAMPS.map((l, i) => (
             <div key={'lamp' + i} style={{ position: 'absolute', left: l.x, top: FLOOR, width: l.w, height: 5, transformOrigin: '50% 0', transform: `translateZ(${-l.z}px) rotateX(90deg)`, opacity: l.o, background: 'linear-gradient(90deg, transparent, rgba(160,220,255,0.9) 18%, rgba(200,236,255,1) 50%, rgba(160,220,255,0.9) 82%, transparent)' }} />
@@ -163,6 +167,8 @@ export const World = () => {
           })}
         </div>
       </div>
+      </MotionBlur>
+      <Dust count={30} seed={3} opacity={0.55} area={{ x: 560, y: 120, w: 1360, h: 760 }} />
       {PANES.map((p) => <Caption key={p.id} pane={p} t={t} />)}
       <div style={{ position: 'absolute', left: 104, top: 940, opacity: open }}>
         <Dial size={76} deg={36 + turn} />

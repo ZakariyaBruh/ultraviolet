@@ -1,7 +1,11 @@
 import { Img, interpolate, staticFile, useCurrentFrame } from 'remotion'
 import { E, FPS, Fill, Grain, P, clamp, sec } from './kit'
+import { Dust, Glow } from './Lens'
 
 export const BLENDER_FRAMES = 222
+/** from this frame the shot is the larger (1600 x 900) render */
+export const HQ_FROM = 150
+export const blenderFrame = (idx: number) => (idx >= HQ_FROM ? `v4/run_hq/f${String(idx).padStart(4, '0')}.png` : `v4/run/f${String(idx).padStart(4, '0')}.png`)
 const pad = (n: number) => String(n).padStart(4, '0')
 
 /** one line of the hook: it rises out of a mask, the way a title is cut into a film */
@@ -60,8 +64,11 @@ export const Hook = () => {
   return (
     <Fill style={{ background: P.deep }}>
       <Fill style={{ opacity: open * close }}>
-        <Img src={staticFile(`v4/run/f${pad(idx)}.png`)} style={{ width: 1920, height: 1080, filter: `contrast(1.05) saturate(1.04) brightness(${1 + hit * 0.3})`, transform: `translate(${Math.sin(f * 2.3) * 6 * hit}px, ${Math.cos(f * 1.7) * 5 * hit}px) scale(${1 + hit * 0.012})` }} />
+        <Glow bloom={0.2} streak={0.14}>
+        <Img src={staticFile(blenderFrame(idx))} style={{ width: 1920, height: 1080, filter: `contrast(1.05) saturate(1.04) brightness(${1 + hit * 0.3})`, transform: `translate(${Math.sin(f * 2.3) * 6 * hit}px, ${Math.cos(f * 1.7) * 5 * hit}px) scale(${1 + hit * 0.012})` }} />
         <Streaks t={f / 24} />
+        </Glow>
+        <Dust count={26} seed={1} opacity={0.4} area={{ x: 0, y: 160, w: 1920, h: 760 }} />
         <Fill style={{ background: 'radial-gradient(ellipse 85% 80% at 52% 55%, transparent 55%, rgba(2,4,10,0.7) 100%)' }} />
         <Fill style={{ background: 'linear-gradient(35deg, rgba(2,4,10,0.92) 0%, rgba(2,4,10,0.55) 14%, transparent 34%)' }} />
       </Fill>

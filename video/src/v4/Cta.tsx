@@ -29,7 +29,7 @@ export const Cta = () => {
   return (
     <Fill style={{ background: P.deep }}>
       {t < 3.7 && <Fill style={{ opacity: bg }}>
-        <Img src={staticFile('v4/run/f0222.png')} style={{ width: 1920, height: 1080, transform: `translateX(300px) scale(${1.08 + t * 0.012})` }} />
+        <Img src={staticFile('v4/run_hq/f0222.png')} style={{ width: 1920, height: 1080, transform: `translateX(300px) scale(${1.08 + t * 0.012})` }} />
         <Fill style={{ background: 'radial-gradient(ellipse 80% 80% at 60% 50%, transparent 40%, rgba(2,4,10,0.85) 100%)' }} />
       </Fill>}
       <Fill style={{ opacity: lines, left: 132, top: 250, right: 'auto', bottom: 'auto', color: P.ink, fontFamily: 'Hanken', fontWeight: 600, fontSize: 96, letterSpacing: '-0.035em' }}>

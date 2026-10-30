@@ -127,6 +127,8 @@ for i, f in enumerate(chord):
 for i in range(7):                                 # the dial clicks round and settles
     k = i / 6; at = T_TITLE + 0.35 + 1.15 * (1 - (1 - k) ** 1.7)
     st(click(0.55, 3600 - 500 * i, 0.014), at, 1.0); st(knock(260 - 18 * i, 0.4, 0.05), at, 1.0, wet=0.1)
+st(swell(1.75, 350, 6000, 0.30), T_TITLE + 0.1, 1.0, wet=0.45)                   # the macro camera rising and pulling back
+st(boom(1.4, 70, 34, 0.45), T_TITLE + 1.85, 1.0, wet=0.4)                        # and landing above the dial
 st(swell(1.0, 500, 7500, 0.32), T_TITLE + 1.9, 1.0, wet=0.4)                    # the letters opening
 st(boom(1.8, 60, 30, 0.5), T_TITLE + 2.9, 1.0, wet=0.4)
 st(bell(note(86), 2.0, 0.07), T_TITLE + 3.0, 1.0, pan=0.2, wet=0.7); st(bell(note(93), 2.0, 0.045), T_TITLE + 3.12, 1.0, pan=-0.2, wet=0.7)

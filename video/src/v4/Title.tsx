@@ -1,5 +1,7 @@
 import { interpolate, useCurrentFrame } from 'remotion'
+import { Img, staticFile } from 'remotion'
 import { Dial, E, Fill, Grain, P, clamp, sec } from './kit'
+import { Dust, Glow } from './Lens'
 import { useWordmark } from './Mark'
 
 /** the dial clicks round a few detents, slowing, then settles: the stops are real steps, not a smooth turn */
@@ -15,7 +17,7 @@ export const detents = (t: number, start: number, n: number, span: number, deg =
 }
 
 /** FRICTION, with the dial for its O. Used for the title and again for the close. */
-export const Wordmark = ({ size = 200, deg = 0, travel = 1, reveal = 1, big = 560, top: topOverride, style }: { size?: number; deg?: number; travel?: number; reveal?: number; big?: number; top?: number; style?: React.CSSProperties }) => {
+export const Wordmark = ({ size = 200, deg = 0, travel = 1, reveal = 1, big = 560, top: topOverride, dialOpacity = 1, style }: { size?: number; deg?: number; travel?: number; reveal?: number; big?: number; top?: number; dialOpacity?: number; style?: React.CSSProperties }) => {
   const m = useWordmark(size)
   if (!m) return null
   const dial = size * 0.98
@@ -36,7 +38,7 @@ export const Wordmark = ({ size = 200, deg = 0, travel = 1, reveal = 1, big = 56
         <div style={{ position: 'absolute', left: 0, top: 0, opacity: Math.min(1, reveal * 1.6), transform: `translateX(${l * 1.5}px)` }}>FRICTI</div>
         <div style={{ position: 'absolute', left: m.a + slot, top: 0, opacity: Math.min(1, reveal * 1.6), transform: `translateX(${-l * 1.5}px)` }}>N</div>
       </div>
-      <div style={{ position: 'absolute', left: cx - dSize / 2, top: cy - dSize / 2, width: dSize, height: dSize }}>
+      <div style={{ position: 'absolute', left: cx - dSize / 2, top: cy - dSize / 2, width: dSize, height: dSize, opacity: dialOpacity }}>
         <Dial size={dSize} deg={deg} />
       </div>
     </>
@@ -56,7 +58,15 @@ export const Title = () => {
   const tag = interpolate(t, [3.2, 3.8], [0, 1], { ...clamp, easing: E.out })
   return (
     <Fill style={{ background: P.deep, opacity: out, transform: `scale(${1 - (1 - out) * 0.06 + t * 0.006})` }}>
-      <Wordmark size={250} big={big} deg={deg} travel={p} reveal={r} />
+      {t < 2.05 && (
+        <Fill style={{ opacity: interpolate(t, [1.84, 1.98], [1, 0], clamp) * interpolate(t, [0, 0.5], [0, 1], { ...clamp, easing: E.inOut }) }}>
+          <Glow bloom={0.16} streak={0.12}>
+            <Img src={staticFile(`v4/macro/m${String(Math.min(46, Math.floor(t * 24) + 1)).padStart(4, '0')}.png`)} style={{ width: 1920, height: 1080 }} />
+          </Glow>
+        </Fill>
+      )}
+      <Wordmark size={250} big={big} deg={deg} travel={p} reveal={r} dialOpacity={interpolate(t, [1.78, 1.9], [0, 1], clamp)} />
+      <Dust count={22} seed={7} opacity={0.35 * interpolate(t, [2.4, 3.2], [0.4, 1], clamp)} />
       <Fill style={{ top: 540 + 250 * 0.58 + 40, left: 0, right: 0, bottom: 'auto', textAlign: 'center', opacity: tag, transform: `translateY(${(1 - tag) * 16}px)` }}>
         <div style={{ fontFamily: 'Hanken', fontWeight: 500, fontSize: 76, letterSpacing: '-0.035em', color: P.ink }}>Put the friction back.</div>
         <div style={{ fontFamily: 'Hanken', fontWeight: 400, fontSize: 32, color: P.dim, marginTop: 18 }}>A focus timer that counts every time you leave.</div>
