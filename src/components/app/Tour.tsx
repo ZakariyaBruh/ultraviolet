@@ -15,8 +15,6 @@ const path = () => location.pathname.replace(/\/+$/, '')
 
 /** Opens a bought window's how-to later; the main walk-through below is the long one. */
 const startMin = { v: 0 }
-const startEra = { v: 0 }
-const startAscii = { v: 0 }
 
 /**
  * The first-run walk-through, in chapters across the screens, about two minutes. Each step points at one part of a screen, some ask you to
@@ -60,10 +58,9 @@ export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
     { id: 'shop', target: withText('button', 'shop'), place: 'bottom', title: 'The Shop', body: 'Breaks, a streak shield, a sound machine and more.', task: 'Open the Shop', done: () => /Sound machine|Long break|Streak shield/i.test(document.getElementById('canvas')?.textContent ?? '') },
 
     { id: 'c-look', view: 'settings', card: { kicker: '5 · Settings', title: 'Make it yours' } },
-    { id: 'retro', target: '[role="slider"][aria-label^="Retro"]', scope: '[role="slider"][aria-label^="Retro"]', place: 'top', title: 'Retro', body: 'How old the screen looks, from clean to full terminal.', task: 'Slide it one stop', setup: (c) => { click('button', 'look'); startEra.v = useStore.getState().settings.era; c.onClose(() => useStore.getState().setSettings({ era: startEra.v })) }, done: () => useStore.getState().settings.era !== startEra.v },
-    { id: 'ascii', target: '[role="slider"][aria-label^="ASCII"]', place: 'top', title: 'ASCII', body: 'How many text-drawn 3D shapes roam the page.', task: 'Slide it one stop', setup: (c) => { startAscii.v = useStore.getState().settings.ascii; c.onClose(() => useStore.getState().setSettings({ ascii: startAscii.v })) }, done: () => useStore.getState().settings.ascii !== startAscii.v },
+    { id: 'dials', target: '[role="slider"][aria-label^="Retro"]', scope: '[role="slider"][aria-label^="Retro"]', place: 'top', title: 'Two dials', body: 'Retro changes how old the screen looks. ASCII changes how many text-drawn shapes roam the page. Both are here, under Look.', setup: () => click('button', 'look') },
 
-    { id: 'end', view: 'focus', card: { kicker: 'That is the tour', title: 'Lock in', lines: ['Your dials are back as you had them.', 'Run it again any time: Settings, Help.'] } },
+    { id: 'end', view: 'focus', card: { kicker: 'That is the tour', title: 'Lock in', lines: ['Run it again any time: Settings, Help.'] } },
   ], [])
 
   const close = (why: 'done' | 'skip') => {

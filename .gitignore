@@ -27,3 +27,7 @@ dist-ssr
 .taste-skill/inspect/
 .impeccable/review/
 .vercel
+
+# the launch video: sources are kept, installs and renders are not
+video/node_modules
+video/out
