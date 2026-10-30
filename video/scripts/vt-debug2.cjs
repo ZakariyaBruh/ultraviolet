@@ -1,0 +1,22 @@
+const { chromium } = require('playwright')
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+;(async () => {
+  const b = await chromium.launch({ args: ['--run-all-compositor-stages-before-draw', '--disable-new-content-rendering-timeout', '--disable-threaded-animation', '--disable-checker-imaging'] })
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, storageState: '/tmp/claude-0/state5174.json' })
+  const p = await ctx.newPage()
+  await p.addInitScript(() => { try { sessionStorage.setItem('friction:booted', '1') } catch (e) {} })
+  await p.goto('http://localhost:5174/focus'); await p.waitForTimeout(3000)
+  const cdp = await ctx.newCDPSession(p)
+  await cdp.send('Emulation.setVirtualTimePolicy', { policy: 'pause' })
+  const adv = async (ms) => { const d = new Promise((r) => cdp.once('Emulation.virtualTimeBudgetExpired', r)); await cdp.send('Emulation.setVirtualTimePolicy', { policy: 'pauseIfNetworkFetchesPending', budget: ms }); await Promise.race([d, sleep(5000)]) }
+  const hide = (on) => p.evaluate((on) => { Object.defineProperty(document, 'visibilityState', { get: () => (on ? 'hidden' : 'visible'), configurable: true }); Object.defineProperty(document, 'hidden', { get: () => on, configurable: true }); document.dispatchEvent(new Event('visibilitychange')) }, on)
+  const probe = (tag) => p.evaluate((tag) => ({ tag, wandered: document.body.innerText.includes('wandered'), toasts: document.querySelectorAll('[data-sonner-toast],[role="status"],[role="alert"],[data-toast]').length }), tag)
+  await adv(300)
+  const btn = await p.locator('button:has-text("Lock in")').first().boundingBox()
+  await p.mouse.click(btn.x + btn.width / 2, btn.y + btn.height / 2); await adv(600)
+  await hide(true); await adv(7600); await hide(false)
+  for (const ms of [50, 300, 900, 1500]) { await adv(ms); console.log(ms, JSON.stringify(await probe('after'))) }
+  console.log(await p.evaluate(() => document.body.innerText.slice(0, 200).replace(/\n/g, ' | ')))
+  const shot = await cdp.send('Page.captureScreenshot', { format: 'png' }); require('fs').writeFileSync('/tmp/claude-0/ref/vt_debug2.png', Buffer.from(shot.data, 'base64'))
+  await b.close()
+})().catch((e) => { console.log('ERR', e.message.slice(0, 300)); process.exit(1) })

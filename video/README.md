@@ -1,3 +1,49 @@
+# Friction trailer (v6)
+
+A 39.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
+Renders, recordings and Blender frames are not in git (they are regenerated); everything that makes them is.
+The v4/v5 notes further down are kept for the pieces v6 still uses.
+
+## The cut
+
+| time | what | how it is made |
+| --- | --- | --- |
+| 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. |
+| 6.2 - 7.0 | Black and silence. | The score gates everything except the room tone. |
+| 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the camera falls through the dial. | `src/v6/Title.tsx`, `Dial.tsx` (a vector dial, so the dive stays sharp). |
+| 13.0 - 35.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish, five looks, the Arcade, the front page. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
+| 35.0 - 39.6 | The address, "Launching on Product Hunt". | `src/v6/End.tsx`. |
+
+## What was learned (and applied)
+
+* **Apple, Designing Fluid Interfaces (WWDC18 803):** motion is a spring described by a response time and a damping ratio, it keeps its
+  velocity when its target changes (retargetable), and there is no cut between two fixed crops. `Spring` in `hook6.py`, `spr()` in `kit.tsx`,
+  the camera table in `App.tsx` (a damped spring on centre and log-zoom that carries its velocity from key to key) and the pointer in `capture6.cjs`.
+* **Blender 4.4+ layered actions (`FCurveKeyframePoints`):** `action.slots.new` -> `layers.new` -> `strips.new('KEYFRAME')` -> `channelbag.fcurves.new`
+  -> `keyframe_points.add` + `foreach_set('co', ...)`. A frame-by-frame procedural render has nothing to blur; a baked curve does.
+* **Deterministic app footage:** Chromium's virtual time is advanced exactly one frame between screenshots (`Emulation.setVirtualTimePolicy`
+  with a budget), the screenshot is at device pixels (3840x2160 for the 1280x720 page) so a 2x camera zoom is still one to one,
+  and the app's animation library is told it has no compositor animations (`delete Element.prototype.animate`) so its opacity springs
+  follow the stepped clock too. The pointer is a spring overlay; clicks are real input events.
+* **Sound:** real instruments from a General MIDI soundfont (strings, cello, piano, timpani, choir) rendered by `tsfr.c` (TinySoundFont),
+  everything else synthesised (sub, pulse, kick, clap, hats, risers, impacts), a generated hall and room reverb, sidechain from the kick,
+  gaps of silence before each hit, and the dial's own sounds read from the bake: its detent clicks from its angle, the glass hiss from its speed,
+  the ridge thuds from the frames it crosses them. The title dial's clicks follow the same law the picture draws.
+* **The brief's three gates** (`scripts/gate6.py` and the render checks in `scripts/qa.py`): first 45 frames must move, no static stretch over 30 frames,
+  5% safe zone, contrast of text on its plate, frames looked at at 0.5, 1.5, 3.0 and 5.0 s and at every cue.
+
+## Pipeline
+
+    node scripts/capture6.cjs take                       # needs `npx vite --port 5174` in the app and /tmp/claude-0/state5174.json (a seeded profile)
+    blender -b -P blender/hook6.py -- 1 186 public/v6/hook 1440 810 10     # or blender/render_hook6.sh (chunked)
+    gcc -O2 -o tsfr tsfr.c -lm && python3 scripts/score6.py                 # writes public/v6/score.wav and cues.json
+    npx remotion render src/index.ts V6 out/trailer6.mp4 --codec=h264 --crf=16
+    python3 scripts/gate6.py out/trailer6.mp4 && python3 scripts/qa.py out/trailer6.mp4 30
+
+The numbers on the app screens (drifts today, minutes held) are the app's own seeded demo history, which the app flags and lets you remove.
+
+---
+
 # Friction trailer (v4)
 
 A 45.6 s launch trailer. 1920x1080, 24 fps, 19 bars at 100 bpm so every cut lands on a bar line.
