@@ -92,7 +92,7 @@ const S3 = () => {
   return (
     <AbsoluteFill style={{ background: C.ground }}>
       <Fill style={{ scale: `${z}`, transformOrigin: '70% 45%' }}>
-        <OffthreadVideo src={staticFile('clips/landing.mp4')} startFrom={s(3.4)} muted style={{ width: 1920, height: 1080 }} />
+        <OffthreadVideo src={staticFile('clips/landing.mp4')} startFrom={0} muted style={{ width: 1920, height: 1080 }} />
       </Fill>
       <Fill style={{ left: 120, top: 118, opacity: t, translate: `0 ${(1 - t) * -20}px` }}>
         <Kicker size={30}>Meet Friction</Kicker>
@@ -129,7 +129,7 @@ const S4 = () => {
       <Dots opacity={0.3} />
       <Fill style={{ perspective: 2400 }}>
         <Screen style={{ left: 0, top: 0, scale: `${sc}`, rotate: `${shake.r}rad`, transform: `rotateY(${rot}deg)`, translate: `${330 + shake.x}px ${(1 - rise) * 600 + shake.y + 40}px`, transformOrigin: '50% 50%', opacity: rise, boxShadow: '0 60px 160px rgba(0,0,0,0.7)' }}>
-          <OffthreadVideo src={staticFile('clips/lock.mp4')} startFrom={s(1.5)} muted style={{ width: 1920, height: 1080 }} />
+          <OffthreadVideo src={staticFile('clips/lock.mp4')} startFrom={s(0.1)} muted style={{ width: 1920, height: 1080 }} />
         </Screen>
       </Fill>
       <div style={{ position: 'absolute', top: 110 }}><Callout at={26} side="l" sub="Pick a length. Lock in.">One screen.</Callout></div>
@@ -207,7 +207,7 @@ const S6 = () => {
       ) : (
         <>
           <Fill style={{ scale: `${z2}`, transformOrigin: '20% 50%' }}>
-            <OffthreadVideo src={staticFile('clips/widgets.mp4')} startFrom={s(2.2)} muted style={{ width: 1920, height: 1080 }} />
+            <OffthreadVideo src={staticFile('clips/widgets.mp4')} startFrom={s(0.1)} muted style={{ width: 1920, height: 1080 }} />
           </Fill>
           <Fill style={{ left: 0, right: 0, bottom: 0, height: 360, background: 'linear-gradient(transparent, rgba(5,7,12,0.92))' }} />
           <Fill style={{ left: 130, bottom: 90 }}>
