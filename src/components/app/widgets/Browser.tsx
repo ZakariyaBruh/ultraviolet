@@ -1,5 +1,5 @@
-import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, GraduationCap, Languages, Map as MapIcon, MessageCircleQuestion, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
 import { CloudScreen } from './CloudScreen'
 import { RelayScreen } from './RelayScreen'
@@ -8,7 +8,9 @@ import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
 import { FRAME_SHIM, frameRequest } from '@/lib/frameproxy'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
+import { ALT, MADE, altFor, type AltHit, type MadeId } from '@/lib/alts'
 import { field } from './Window'
+import type { AltProps } from './alts/kit'
 
 /**
  * The Browser: the open web for studying, without the parts that eat a focus session. Pages are read by our own server
@@ -18,12 +20,24 @@ import { field } from './Window'
  * play in YouTube's own embedded player and Shorts are refused. The pages that cannot work without scripts and that people most
  * want are answered by the window itself: search-engine results (the engine chosen in Settings) and YouTube search.
  */
+/** the screens made here, loaded the first time one is opened (the map library is the heavy one) */
+const MADE_VIEW: Record<MadeId, ReturnType<typeof lazy<ComponentType<AltProps>>>> = {
+  maps: lazy(() => import('./alts/Maps')),
+  translate: lazy(() => import('./alts/Translate')),
+  scholar: lazy(() => import('./alts/Scholar')),
+  stack: lazy(() => import('./alts/Stack')),
+}
+const MADE_ICON: Record<MadeId, ReactNode> = { maps: <MapIcon className="size-5" />, translate: <Languages className="size-5" />, scholar: <GraduationCap className="size-5" />, stack: <MessageCircleQuestion className="size-5" /> }
 type Hit = { title: string; url: string; about: string }
 type Video = { id: string; title: string; channel: string; length: string; views: string; when: string }
 type View =
   | { kind: 'home' }
   | { kind: 'search' }
   | { kind: 'add' }
+  /** a site that has a version made here: the window says so and offers it, or the real site in the cloud browser */
+  | { kind: 'offer'; url: string; hit: AltHit }
+  /** one of the versions made here */
+  | { kind: 'alt'; id: MadeId; hit: AltHit }
   | { kind: 'results'; q: string; list: Hit[]; engine: string; note: string }
   /** `q` is empty on YouTube's own start page */
   | { kind: 'youtube'; q: string; list: Video[] }
@@ -195,6 +209,8 @@ export function Browser() {
 
   const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setCloudLeft(null); setView(v) }
 
+  /** sites the person chose to try in the Browser itself, although a version made here exists */
+  const skipAlt = useRef(new Set<string>())
   /** hosts that were sent to the cloud browser on our own this visit, so a page that fails there as well is not sent back and forth */
   const tried = useRef(new Set<string>())
   /** the normal browser could not run this page: the cloud browser takes it, once for each site; if that was tried, `fail` is shown */
@@ -216,6 +232,9 @@ export function Browser() {
     if (!v.ok) return show({ kind: 'blocked', url: raw, why: v.why }, push)
     const id = youtubeId(v.url)
     if (id) return show({ kind: 'video', id, url: v.url.toString() }, push)
+    // a site that does not run here and has a version made here: say so, and offer it or the cloud browser
+    const made = how === 'auto' ? altFor(v.url) : null
+    if (made?.sure && !skipAlt.current.has(v.url.hostname)) return show({ kind: 'offer', url: v.url.toString(), hit: made }, push)
     // with page scripts on, Google, YouTube and the rest are opened as themselves; the window's own search pages stand in only when scripts are off
     if (scripts === 'off' || how === 'static') {
       const s = searched(v.url)
@@ -335,23 +354,28 @@ export function Browser() {
     return doc(view.html, '#fff', '#111', !!view.rendered)
   }, [view])
 
+  /** opens the version made here: its own screen, or the window's search or YouTube pages, or the Ask AI window */
+  const goAlt = (hit: AltHit) => {
+    const id = hit.alt.id
+    if (id === 'search') return hit.q ? void search(hit.q) : show({ kind: 'search' })
+    if (id === 'youtube') return hit.q ? void ytSearch(hit.q) : show({ kind: 'youtube', q: '', list: [] })
+    if (id === 'ask') { useStore.getState().setWidget('ask', true); return }
+    show({ kind: 'alt', id, hit })
+  }
   /** a friendlier version of this site that the window can open instead, when there is one */
   const wrapFor = (raw: string): { name: string; go: () => void } | null => {
     let u: URL
     try { u = new URL(raw) } catch { return null }
-    const h = u.hostname.replace(/^(www|m)\./, '')
-    if (/^(youtube\.com|youtu\.be|music\.youtube\.com)$/.test(h)) return { name: 'Friction YouTube', go: () => show({ kind: 'youtube', q: '', list: [] }) }
-    if (/^(google\.[a-z.]{2,6}|bing\.com|duckduckgo\.com|search\.brave\.com|yahoo\.com|ecosia\.org)$/.test(h)) return { name: 'FrictionX search', go: () => show({ kind: 'search' }) }
-    if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
-    return null
+    const hit = altFor(u)
+    return hit ? { name: hit.alt.name, go: () => goAlt(hit) } : null
   }
-  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'cloud' ? view.url : undefined
+  const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'cloud' || view.kind === 'cloudnote' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
   const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
   const reload = () => { if (view.kind === 'cloud') show({ kind: 'cloud', url: view.url, n: Date.now() }, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
-  const bar = view.kind !== 'search' && view.kind !== 'add' && !(view.kind === 'youtube' && !view.q)
+  const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
 
   return (
     <div className="grid gap-2">
@@ -383,7 +407,7 @@ export function Browser() {
             <p className="hud">Start</p>
             <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Start pages">
               <li><Tile icon={<BookOpen className="size-6" />} name="Wikipedia" sub="The encyclopedia" onClick={() => void open('https://en.wikipedia.org/wiki/Main_Page')} /></li>
-              <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => (scripts === 'off' ? show({ kind: 'youtube', q: '', list: [] }) : void open('https://www.youtube.com/'))} /></li>
+              <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => show({ kind: 'youtube', q: '', list: [] })} /></li>
               <li><Tile icon={<Search className="size-6" />} name="FrictionX" sub="Our own search" onClick={() => show({ kind: 'search' })} /></li>
               <li><Tile icon={<Search className="size-6" />} name={engineName} sub="Search the web" onClick={() => (scripts === 'off' ? show({ kind: 'search' }) : void open(engine === 'bing' ? 'https://www.bing.com/' : engine === 'duckduckgo' ? 'https://duckduckgo.com/' : 'https://www.google.com/'))} label={`${engineName}, your search engine`} /></li>
               {saved.map((p) => (
@@ -395,6 +419,19 @@ export function Browser() {
               ))}
               {saved.length < PAGES_MAX && <li><Tile icon={<Plus className="size-6" />} name="Add page" sub="Keep a site here" onClick={() => show({ kind: 'add' })} /></li>}
             </ul>
+            <div>
+              <p className="hud mb-1">Made here, for sites that do not run</p>
+              <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Made here">
+                {MADE.map((id) => (
+                  <li key={id}>
+                    <button onClick={() => show({ kind: 'alt', id, hit: { alt: ALT[id], site: ALT[id].short, sure: true } })} className="flex min-h-11 w-full items-center gap-2.5 border border-ink/25 bg-ink/[0.04] px-3 py-2 text-left transition-[transform,border-color,background-color] duration-150 ease-out hover:border-signal hover:bg-ink/[0.08] active:scale-[0.98]">
+                      <span className="text-signal" aria-hidden>{MADE_ICON[id]}</span>
+                      <span className="min-w-0"><span className="block truncate text-[14px] font-semibold leading-tight">{ALT[id].short}</span><span className="block truncate text-[12px] text-ink-3">{{ maps: 'Instead of Google Maps', translate: 'Instead of Google Translate', scholar: 'Instead of Google Scholar', stack: 'Questions and answers' }[id]}</span></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
             {saved.length > 0 && <button onClick={() => setEditing((v) => !v)} aria-pressed={editing} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-[13px] text-ink-2 hover:text-ink"><Pencil className="size-3.5" />{editing ? 'Done' : 'Remove pages'}</button>}
             {recent.length > 0 && (
               <div>
@@ -406,6 +443,21 @@ export function Browser() {
           </div>
         )}
         {view.kind === 'search' && <Start title="FrictionX" sub={`Search the web, made here. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
+        {view.kind === 'offer' && (
+          <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="region" aria-label={`${view.hit.site} has a version made here`}>
+            <p className="hud">{view.hit.site} does not run here</p>
+            <p className="text-[15px] leading-[1.45]">Use <strong>{view.hit.alt.name}</strong>, made here: {view.hit.alt.blurb}. Or open the real {view.hit.site} in the cloud browser, a real browser on a remote computer.</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => goAlt(view.hit)} autoFocus className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Use {view.hit.alt.name}</button>
+              <button onClick={() => void openCloud(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><Cloud className="size-4 text-signal" aria-hidden />Open in the cloud browser</button>
+            </div>
+            <p className="text-[12px] leading-[1.4] text-ink-3">The cloud browser is experimental and gives you 30 minutes a day. <button onClick={() => { skipAlt.current.add(new URL(view.url).hostname); void open(view.url) }} className="min-h-11 underline hover:text-ink">Try the site here anyway</button></p>
+          </div>
+        )}
+        {view.kind === 'alt' && (() => {
+          const Made = MADE_VIEW[view.id]
+          return <Suspense fallback={<div className="grid h-full place-items-center"><LoadingBlock label="Opening" size={48} /></div>}><Made key={view.id} hit={view.hit} onBack={back} onOpen={(u) => void open(u)} onCloud={(u) => void openCloud(u)} /></Suspense>
+        })()}
         {view.kind === 'add' && <AddPage onBack={back} onSave={(n, u) => { addPage(n, u); back() }} />}
         {view.kind === 'results' && (
           <div className="scroll-y h-full p-2">
@@ -540,6 +592,7 @@ export function Browser() {
             <div className="flex flex-wrap gap-2">
               {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openCloud(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
               {(view.why === 'down' || view.why === 'busy') && <button onClick={() => void openCloud(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}
+              {wrap && <button onClick={wrap.go} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" aria-hidden />Use {wrap.name}</button>}
               {view.why !== 'off' && <button type="button" onClick={() => setLeave(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" aria-hidden /></button>}
               <button onClick={() => show({ kind: 'home' })} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Back to start</button>
             </div>
@@ -550,7 +603,8 @@ export function Browser() {
             <p className="hud">Could not open it</p>
             <p className="text-[15px] leading-[1.4]">{view.msg}.</p>
             <div className="flex flex-wrap gap-2">
-              {view.url && !cloudOff && <button onClick={() => void openCloud(view.url!, false)} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
+              {wrap && <button onClick={wrap.go} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" aria-hidden />Use {wrap.name}</button>}
+              {view.url && !cloudOff && <button onClick={() => void openCloud(view.url!, false)} className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${wrap ? 'border border-ink/30 hover:bg-ink/10' : 'bg-signal font-semibold text-on-signal'}`}><Cloud className="size-4" aria-hidden />Open in the cloud browser</button>}
               {view.url && <button onClick={() => setIssues(true)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><CircleHelp className="size-4" />Facing issues?</button>}
               {view.run && <button onClick={view.run} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Zap className="size-4" />Run its scripts</button>}
               {view.redo && <button onClick={view.redo} className="h-11 border border-ink/30 px-4 text-sm hover:bg-ink/10">Try again</button>}

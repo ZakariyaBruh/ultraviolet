@@ -460,3 +460,15 @@ html[data-retro='5'] button { border-radius: 0 !important; }
   html:not([data-calm]) button:not(:disabled):active { scale: 0.97; }
 }
 @keyframes panel-rise { from { opacity: 0; scale: 0.975; } }
+
+/* Friction Maps (Leaflet): the page's image rules must not squeeze tiles, and the controls take the app's flat look */
+.leaflet-container { font: inherit; background: var(--surface); }
+.leaflet-container .leaflet-tile, .leaflet-container img { max-width: none !important; max-height: none !important; }
+.leaflet-bar { border: 1px solid var(--rule) !important; box-shadow: none !important; border-radius: 0 !important; }
+.leaflet-bar a, .leaflet-bar a:first-child, .leaflet-bar a:last-child { background: var(--surface); color: var(--ink); border-bottom-color: var(--rule); border-radius: 0 !important; }
+.leaflet-bar a:hover { background: var(--ground); color: var(--signal); }
+.leaflet-touch .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; }
+.leaflet-control-attribution { background: var(--ground) !important; color: var(--ink-3) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--ink-2) !important; }
+.leaflet-tooltip { background: var(--ground); color: var(--ink); border: 1px solid var(--rule); border-radius: 0; box-shadow: none; }
+.leaflet-tooltip-top::before { border-top-color: var(--rule); }
