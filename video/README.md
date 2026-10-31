@@ -23,7 +23,7 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
   -> `keyframe_points.add` + `foreach_set('co', ...)`. A frame-by-frame procedural render has nothing to blur; a baked curve does.
 * **Deterministic app footage:** Chromium's virtual time is advanced exactly one frame between screenshots (`Emulation.setVirtualTimePolicy`
   with a budget), the screenshot is at device pixels (3840x2160 for the 1280x720 page) so a 2x camera zoom is still one to one,
-  and the app's animation library is told it has no compositor animations (`delete Element.prototype.animate`) so its opacity springs
+  a press is a small filled pulse under the pointer (a ring would read as a second doughnut next to the dive), and the app's animation library is told it has no compositor animations (`delete Element.prototype.animate`) so its opacity springs
   follow the stepped clock too. The pointer is a spring overlay; clicks are real input events.
 * **Sound:** the picture is a broadcast station, retro against futuristic, so the score is analogue-style, not orchestral (the first cut used a soundfont
   string section, choir and timpani and they did not belong to it): detuned-saw pads, a pulse-wave pluck through a dotted-eighth delay, a mono saw bass,
@@ -33,6 +33,13 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
   law the picture draws. `scripts/tsfr.c` (a soundfont renderer) is no longer used by the score and is kept for experiments.
 * **The brief's three gates** (`scripts/gate6.py` and the render checks in `scripts/qa.py`): first 45 frames must move, no static stretch over 30 frames,
   5% safe zone, contrast of text on its plate, frames looked at at 0.5, 1.5, 3.0 and 5.0 s and at every cue.
+
+## Type (v6.2)
+
+The video speaks in the app's own faces and roles (DESIGN.md): Unbounded for the display lines and the wordmark (its letters arrive thin and gain weight, the way the
+landing animates it), Barlow Condensed in capitals, tracked wide, for labels and idents (the kickers, the tagline that types itself with a block caret, the
+Product Hunt ident window, the station footer), Hanken for reading (the captions, the address). Captions are flat ruled plates with registration ticks, as the app's own
+windows are, not a coloured bar. No text shadows, no monospace outside the ASCII art.
 
 ## Pipeline
 

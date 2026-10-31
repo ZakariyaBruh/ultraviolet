@@ -1,5 +1,7 @@
-import { Easing, interpolate, useCurrentFrame } from 'remotion'
+import { Easing, interpolate, useCurrentFrame, useDelayRender } from 'remotion'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { measureText } from '@remotion/layout-utils'
 import '../ui'
 
 export const FPS = 30
@@ -73,3 +75,37 @@ export const Blur = ({ n, children }: { n: number; children: (k: number) => Reac
 export const Cond = ({ children, size, color = P.ink, style }: { children: ReactNode; size: number; color?: string; style?: CSSProperties }) => (
   <div style={{ fontFamily: 'Barlow', fontWeight: 700, fontSize: size, lineHeight: 0.9, letterSpacing: '0.01em', textTransform: 'uppercase', color, ...style }}>{children}</div>
 )
+
+/** the station's label voice: Barlow Condensed in capitals, tracked wide, with the short yellow rule the app puts before its own kickers */
+export const Kicker = ({ children, size = 26, color = P.signal, rule = true, style }: { children: ReactNode; size?: number; color?: string; rule?: boolean; style?: CSSProperties }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.7, ...style }}>
+    {rule && <div style={{ width: size * 1.7, height: 3, background: color }} />}
+    <div style={{ fontFamily: 'Barlow', fontWeight: 700, fontSize: size, lineHeight: 1, letterSpacing: '0.2em', textTransform: 'uppercase', color }}>{children}</div>
+  </div>
+)
+
+/** registration ticks at the four corners of a floating plate, as on the app's own windows */
+export const Ticks = ({ inset = -7, len = 13, color = P.ink, opacity = 0.7 }: { inset?: number; len?: number; color?: string; opacity?: number }) => (
+  <>
+    {([['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']] as const).map(([v, h]) => (
+      <div key={v + h} style={{ position: 'absolute', [v]: inset, [h]: inset, width: len, height: len, opacity, borderColor: color, borderStyle: 'solid', borderWidth: 0, [`border${v === 'top' ? 'Top' : 'Bottom'}Width`]: 2, [`border${h === 'left' ? 'Left' : 'Right'}Width`]: 2 } as CSSProperties} />
+    ))}
+  </>
+)
+
+/** wordmark letter positions, measured at the weight they land on, so a letter can arrive thin and gain weight without anything around it moving */
+export const useLetters = (text: string, size: number) => {
+  const { delayRender, continueRender } = useDelayRender()
+  const [m, setM] = useState<{ x: number[]; w: number[]; total: number } | null>(null)
+  const [h] = useState(() => delayRender('letters'))
+  useEffect(() => {
+    document.fonts.load(`800 ${size}px Unbounded`).then(() => document.fonts.ready).then(() => {
+      const f = { fontFamily: 'Unbounded', fontWeight: '800', fontSize: size, letterSpacing: '-0.02em' }
+      const x = [0]
+      for (let i = 1; i <= text.length; i++) x.push(measureText({ text: text.slice(0, i), ...f }).width)
+      setM({ x: x.slice(0, -1), w: x.slice(1).map((v, i) => v - x[i]), total: x[text.length] })
+      continueRender(h)
+    })
+  }, [text, size, h, continueRender])
+  return m
+}

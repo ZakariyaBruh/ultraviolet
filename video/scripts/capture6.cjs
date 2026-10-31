@@ -17,7 +17,7 @@ const CURSOR = `(() => {
     c.innerHTML = '<svg width="44" height="44" viewBox="0 0 34 34"><path d="M4 2 L4 26 L10 20 L15 31 L19 29 L14 18 L23 18 Z" fill="#fff" stroke="#05070c" stroke-width="2" stroke-linejoin="round"/></svg>'
     document.documentElement.appendChild(c)
     const r = document.createElement('div'); r.id = 'fx-ripple'
-    r.style.cssText = 'position:fixed;left:0;top:0;width:60px;height:60px;margin:-30px 0 0 -30px;border:3px solid #ffd23f;border-radius:50%;pointer-events:none;z-index:2147483646;opacity:0'
+    r.style.cssText = 'position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;background:#ffd23f;border-radius:50%;pointer-events:none;z-index:2147483646;opacity:0'
     document.documentElement.appendChild(r)
     window.__fx = (x, y, s, rx, ry, rs, ro) => {
       c.style.transform = 'translate(' + (x - 5) + 'px,' + (y - 3) + 'px) scale(' + s + ')'
@@ -75,8 +75,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   }
   const paint = async () => {
     const age = (frame - ripple.t0) / FPS
-    const ro = age >= 0 && age < 0.5 ? 0.9 * (1 - age / 0.5) ** 1.5 : 0
-    const rs = 0.25 + 3.2 * (1 - Math.exp(-age * 7))
+    // a small filled pulse under the pointer tip (not a ring): it says 'pressed' and is gone in a quarter of a second
+    const ro = age >= 0 && age < 0.25 ? 0.5 * (1 - age / 0.25) ** 1.3 : 0
+    const rs = 0.3 + 0.9 * (1 - Math.exp(-age * 16))
     await p.evaluate(([x, y, s, rx, ry, rs, ro]) => window.__fx && window.__fx(x, y, s, rx, ry, rs, ro), [cur.x, cur.y, cur.s, ripple.x, ripple.y, rs, ro])
   }
   const shoot = async () => {

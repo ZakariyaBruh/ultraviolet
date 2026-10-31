@@ -1,5 +1,5 @@
 import { Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
-import { Cond, E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
+import { E, FPS, Fill, Grain, Kicker, P, Ticks, Vignette, clamp, shake, spr } from './kit'
 
 /** The real app, one take, filmed frame by frame (scripts/capture6.cjs) and played back through a virtual camera that is a spring:
  *  it carries its speed from one target to the next, so every move eases out of the last one instead of cutting between fixed crops. */
@@ -68,23 +68,25 @@ const TABLE: Cam[] = (() => {
   return out
 })()
 
-const CAPTIONS: { t0: number; t1: number; text: string; top?: boolean }[] = [
-  { t0: 1.0, t1: 3.1, text: 'Set a length. Lock in.' },
-  { t0: 4.6, t1: 6.7, text: 'Leave the tab. It counts.' },
-  { t0: 8.3, t1: 10.4, text: 'Finish. Earn credits.' },
-  { t0: 11.0, t1: 13.4, text: 'Five looks.' },
-  { t0: 14.0, t1: 15.8, text: 'Spend them on games.', top: true },
-  { t0: 16.5, t1: 20.2, text: 'No feed. No account.' },
+const CAPTIONS: { t0: number; t1: number; kicker: string; text: string; top?: boolean }[] = [
+  { t0: 1.0, t1: 3.1, kicker: 'The session', text: 'Set a length. Lock in.' },
+  { t0: 4.6, t1: 6.7, kicker: 'A drift', text: 'Leave the tab. It counts.' },
+  { t0: 8.3, t1: 10.4, kicker: 'The reward', text: 'Finish. Earn credits.' },
+  { t0: 11.0, t1: 13.4, kicker: 'Five themes', text: 'Same screen, five looks.' },
+  { t0: 14.0, t1: 15.8, kicker: 'The Arcade', text: 'Spend them on games.', top: true },
+  { t0: 16.5, t1: 20.2, kicker: 'The front page', text: 'No feed. No account.' },
 ]
-const Caption = ({ now, t0, t1, text, top }: { now: number; t0: number; t1: number; text: string; top?: boolean }) => {
+/** a floating plate as the app draws them: flat, ruled, registration ticks at the corners, the kicker in the station's label voice over a plain title */
+const Caption = ({ now, t0, t1, kicker, text, top }: { now: number; t0: number; t1: number; kicker: string; text: string; top?: boolean }) => {
   if (now < t0 - 0.05 || now > t1 + 0.4) return null
   const p = spr(now - t0, 0.5, 0.88)
   const out = interpolate(now, [t1, t1 + 0.25], [0, 1], { ...clamp, easing: E.in })
   return (
-    <div style={{ position: 'absolute', left: 96, ...(top ? { top: 96 } : { bottom: 96 }), transform: `translateX(${(1 - p) * -40 - out * 30}px)`, opacity: Math.min(1, p * 1.5) * (1 - out) }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', background: 'rgba(5,7,12,0.9)', border: `1px solid ${P.rule}` }}>
-        <div style={{ width: 8, background: P.signal }} />
-        <Cond size={64} style={{ padding: '18px 30px 14px' }}>{text}</Cond>
+    <div style={{ position: 'absolute', left: 104, ...(top ? { top: 104 } : { bottom: 104 }), transform: `translateY(${(1 - p) * (top ? -26 : 26) + out * (top ? -18 : 18)}px)`, opacity: Math.min(1, p * 1.5) * (1 - out) }}>
+      <div style={{ position: 'relative', background: 'rgba(5,7,12,0.94)', border: `1px solid ${P.rule}`, padding: '24px 40px 26px 34px' }}>
+        <Ticks />
+        <Kicker size={25} style={{ marginBottom: 14 }}>{kicker}</Kicker>
+        <div style={{ fontFamily: 'Hanken', fontWeight: 700, fontSize: 56, lineHeight: 1.04, letterSpacing: '-0.03em', color: P.ink, whiteSpace: 'nowrap' }}>{text}</div>
       </div>
     </div>
   )
@@ -127,12 +129,7 @@ export const AppScene = () => {
           </Fill>
         </Fill>
       </Fill>
-      <svg width="1920" height="1080" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {[0, 1, 2].map((i) => {
-          const q = spr(now - i * 0.07, 0.8, 1)
-          return <circle key={i} cx={960} cy={540} r={60 + 1500 * q} fill="none" stroke={P.signal} strokeWidth={Math.max(0.5, 10 - i * 3) * (1 - q * 0.6)} opacity={Math.max(0, 0.75 * (1 - q)) * (now < 1.2 ? 1 : 0)} />
-        })}
-      </svg>
+      {now >= 0 && now < 0.2 && <Fill style={{ background: '#fff', opacity: 0.16 * (1 - now / 0.2), pointerEvents: 'none' }} />}
       {CAPTIONS.map((cp) => <Caption key={cp.text} now={now} {...cp} />)}
       <Vignette k={0.35} />
       <Grain opacity={0.035} />

@@ -497,6 +497,8 @@ put(foley, ui_sample('click4', 1.3), CUE['logo'], 1.0)
 for i, t in enumerate(np.linspace(CUE['typing0'], CUE['typing1'], 54)):
     put(foley, blip(1500 + 600 * rng.random(), 0.12 + 0.1 * rng.random()), t, 1.0, 0.15)
 put(foley, ui_sample('rollover2', 0.9), CUE['arcade'] - 0.2, 0.5)
+# the title's tagline types itself, twenty characters a second from 9.5 s (Title.tsx)
+for i in range(22): put(foley, blip(1500 + 500 * rng.random(), 0.09 + 0.06 * rng.random()), 9.55 + i * 0.05, 1.0, 0.0)
 
 # ================================================================ MIX
 def bus(x, chain): return Pedalboard(chain)(x.T.astype(np.float32), SR).T.astype(np.float64)

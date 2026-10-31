@@ -1,14 +1,13 @@
 import { Easing, interpolate, useCurrentFrame } from 'remotion'
-import { useWordmark } from '../v4/Mark'
 import { Dial } from './Dial'
 import { Contours } from './Contours'
-import { Bars, E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
+import { Bars, E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr, useLetters } from './kit'
 
 /** the dial's turn in the last card: thrown at 0.55 s, slowed by friction (the score's ratchet follows this exact law) */
 export const A2 = 1080, T2 = 0.5, DIAL_AT = 0.55
 export const ang2 = (t: number) => (t <= DIAL_AT ? 0 : A2 * (1 - Math.exp(-(t - DIAL_AT) / T2)))
 const SIZE = 188
-const LETTERS = ['F', 'R', 'I', 'C', 'T', 'I']
+const WORD = 'FRICTION'
 export const END_TOTAL = 4.6
 
 /** The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, and v4's stack under it
@@ -16,12 +15,12 @@ export const END_TOTAL = 4.6
 export const End = () => {
   const f = useCurrentFrame()
   const now = f / FPS
-  const m = useWordmark(SIZE)
+  const m = useLetters(WORD, SIZE)
   if (!m) return <Fill style={{ background: P.ground }} />
-  const total = m.a + m.o + m.b
-  const left = (1920 - total) / 2
+  const left = (1920 - m.total) / 2
   const oy = 452
-  const ox = left + m.a + m.o / 2
+  const ox = left + m.x[6] + m.w[6] / 2
+  const mo = m.w[6]
   const s = shake(now, 0.45, 7)
 
   // the mark
@@ -53,29 +52,29 @@ export const End = () => {
           <rect x={MX + 0.89 * R - 25} y={MY - 0.82 * R - 25} width={50} height={50} fill={P.signal} style={{ transformOrigin: `${MX + 0.89 * R}px ${MY - 0.82 * R}px`, scale: `${sq}` }} />
         </svg>
         {/* v4: the stack */}
-        <div style={{ position: 'absolute', left, top: oy - SIZE * 0.52, display: 'flex', fontFamily: 'Unbounded', fontWeight: 800, fontSize: SIZE, lineHeight: 1, letterSpacing: '-0.02em', color: P.ink }}>
-          {LETTERS.map((c, i) => (
-            <span key={i} style={{ display: 'inline-block', opacity: Math.min(1, wordIn(i) * 1.4), transform: `translateY(${(1 - wordIn(i)) * 110}px)` }}>{c}</span>
+        <div style={{ position: 'absolute', left, top: oy - SIZE * 0.52, width: m.total, height: SIZE, fontFamily: 'Unbounded', fontSize: SIZE, lineHeight: 1, letterSpacing: '-0.02em', color: P.ink }}>
+          {WORD.split('').map((c, i) => i === 6 ? null : (
+            <span key={i} style={{ position: 'absolute', left: m.x[i], width: m.w[i], top: 0, textAlign: 'center', whiteSpace: 'nowrap', opacity: Math.min(1, wordIn(i) * 1.6), transform: `translateY(${(1 - wordIn(i)) * 90}px)`, fontWeight: Math.round(200 + 600 * Math.min(1, Math.max(0, wordIn(i)))) }}>{c}</span>
           ))}
-          <span style={{ display: 'inline-block', width: m.o }} />
-          <span style={{ display: 'inline-block', opacity: Math.min(1, wordIn(6) * 1.4), transform: `translateY(${(1 - wordIn(6)) * 110}px)` }}>N</span>
         </div>
-        <div style={{ position: 'absolute', left: ox - m.o / 2, top: oy - m.o / 2, width: m.o, height: m.o, transform: `scale(${2.6 - 1.6 * dialIn})`, opacity: Math.min(1, dialIn * 2) }}>
-          <Dial size={m.o} deg={ang2(now) + 17 + Math.max(0, now - 2.0) * 14} travel={Math.max(0, (rate * 0.5) / FPS)} />
+        <div style={{ position: 'absolute', left: ox - mo / 2, top: oy - mo / 2, width: mo, height: mo, transform: `scale(${2.6 - 1.6 * dialIn})`, opacity: Math.min(1, dialIn * 2) }}>
+          <Dial size={mo} deg={ang2(now) + 17 + Math.max(0, now - 2.0) * 14} travel={Math.max(0, (rate * 0.5) / FPS)} />
         </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 604, textAlign: 'center' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 600, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', position: 'relative', opacity: url, transform: `translateY(${(1 - url) * 16}px)`, fontFamily: 'Hanken', fontWeight: 600, fontSize: 80, letterSpacing: '-0.035em', color: P.ink }}>
             frictionx.vercel.app
             <div style={{ position: 'absolute', left: 0, bottom: -12, height: 6, width: `${underline * 100}%`, background: P.signal }} />
           </div>
         </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 718, textAlign: 'center', fontFamily: 'Hanken', fontWeight: 500, fontSize: 34, color: P.dim, opacity: line, transform: `translateY(${(1 - line) * 14}px)` }}>
-          Free. No account. Your data stays in your browser.
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 738, display: 'flex', justifyContent: 'center', opacity: ph, transform: `translateY(${(1 - ph) * 14}px)` }}>
+          <div style={{ position: 'relative', border: `2px solid ${P.signal}`, padding: '16px 34px 13px', background: 'rgba(5,7,12,0.9)', fontFamily: 'Barlow', fontWeight: 700, fontSize: 36, lineHeight: 1, letterSpacing: '0.24em', textTransform: 'uppercase', color: P.signal }}>
+            Launching on Product Hunt
+          </div>
         </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 792, textAlign: 'center', fontFamily: 'Barlow', fontWeight: 700, fontSize: 38, letterSpacing: '0.24em', textTransform: 'uppercase', color: P.signal, opacity: ph, transform: `translateY(${(1 - ph) * 14}px)` }}>
-          Launching on Product Hunt
+        <div style={{ position: 'absolute', left: 96, right: 96, bottom: 54, display: 'flex', justifyContent: 'space-between', fontFamily: 'Barlow', fontWeight: 700, fontSize: 24, letterSpacing: '0.22em', textTransform: 'uppercase', color: P.dim, opacity: line }}>
+          <span>frictionx.vercel.app</span><span>Free · No account · Your data stays in your browser</span>
         </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 60 }}><Bars progress={bars} height={20} /></div>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 100 }}><Bars progress={bars} height={18} /></div>
         <Vignette k={0.5} />
       </Fill>
       {lineOp > 0.001 && <Fill style={{ top: 538, height: 4, bottom: 'auto', background: '#fff', boxShadow: '0 0 30px 6px #fff', opacity: lineOp, left: `${(1 - sx) * 50}%`, right: `${(1 - sx) * 50}%` }} />}

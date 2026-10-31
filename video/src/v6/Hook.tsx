@@ -1,11 +1,11 @@
 import { Img, interpolate, staticFile, useCurrentFrame } from 'remotion'
-import { Cond, E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
+import { E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
 
 export const HOOK_FRAMES = 186
-const LINES: { t: string; at: number }[] = [
-  { t: 'No bottom.', at: 0.42 },
-  { t: 'No edge.', at: 1.42 },
-  { t: 'No brakes.', at: 2.42 },
+const LINES: { t: string; at: number; c: string }[] = [
+  { t: 'No bottom.', at: 0.42, c: P.ink },
+  { t: 'No edge.', at: 1.42, c: P.ink },
+  { t: 'No brakes.', at: 2.42, c: P.signal },
 ]
 const OUT_AT = 5.5
 
@@ -24,19 +24,13 @@ export const Hook = () => {
         <Img src={staticFile(`v6/hook/h_${String(idx).padStart(4, '0')}.png`)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       </Fill>
       <Fill>
-        <div style={{ position: 'absolute', left: 104, top: 86, display: 'flex', alignItems: 'center', gap: 16, opacity: interpolate(now, [0.1, 0.5, OUT_AT, OUT_AT + 0.25], [0, 1, 1, 0], clamp), transform: `translateY(${(1 - spr(now - 0.1, 0.5, 1)) * 14}px)` }}>
-          <div style={{ width: 54, height: 3, background: P.signal }} />
-          <Cond size={30} color={P.signal} style={{ letterSpacing: '0.16em' }}>Scrolling has no friction</Cond>
-        </div>
-        <div style={{ position: 'absolute', left: 100, top: 142, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ position: 'absolute', left: 100, top: 96, display: 'flex', flexDirection: 'column' }}>
           {LINES.map((l, i) => {
             const p = spr(now - l.at, 0.5, 0.86)
             const out = interpolate(now, [OUT_AT + i * 0.06, OUT_AT + i * 0.06 + 0.3], [0, 1], { ...clamp, easing: E.in })
             return (
-              <div key={l.t} style={{ overflow: 'hidden', height: 112, opacity: 1 - out }}>
-                <div style={{ transform: `translateY(${(1 - p) * 120 - out * 130}px)` }}>
-                  <Cond size={116} color={P.ink} style={{ lineHeight: '112px', textShadow: '0 4px 30px rgba(0,0,0,.55)' }}>{l.t}</Cond>
-                </div>
+              <div key={l.t} style={{ overflow: 'hidden', height: 106, opacity: 1 - out }}>
+                <div style={{ transform: `translateY(${(1 - p) * 118 - out * 130}px)`, fontFamily: 'Unbounded', fontWeight: 800, fontSize: 94, lineHeight: '106px', letterSpacing: '-0.03em', textTransform: 'uppercase', color: l.c }}>{l.t}</div>
               </div>
             )
           })}
