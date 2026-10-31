@@ -472,3 +472,8 @@ html[data-retro='5'] button { border-radius: 0 !important; }
 .leaflet-control-attribution a { color: var(--ink-2) !important; }
 .leaflet-tooltip { background: var(--ground); color: var(--ink); border: 1px solid var(--rule); border-radius: 0; box-shadow: none; }
 .leaflet-tooltip-top::before { border-top-color: var(--rule); }
+
+/* Tidy up (the layer manager): the windows glide to their new places */
+[data-widget-layer][data-tidy] [data-movable] { transition: translate 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { [data-widget-layer][data-tidy] [data-movable] { transition: none; } }
+html[data-calm] [data-widget-layer][data-tidy] [data-movable] { transition: none; }

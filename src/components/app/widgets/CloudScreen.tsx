@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useStore } from '@/lib/store'
 import Hyperbeam, { type HyperbeamEmbed } from '@hyperbeam/web'
 import { motion, useReducedMotion } from 'motion/react'
 import { verdict } from '@/lib/blocklist'
@@ -98,7 +99,8 @@ export function CloudScreen({ url, onClock, onProblem, onNote }: { url: string; 
     let last = 0
     const t = setInterval(() => {
       const s = sess.current
-      if (document.hidden || !document.hasFocus()) {
+      // a window tucked into the tray counts as away: nothing is used while it cannot be seen
+      if (document.hidden || !document.hasFocus() || useStore.getState().widgets.min?.includes('browser')) {
         since ||= Date.now()
         if (s && Date.now() - since > AWAY_MS) {
           // away: the picture is closed, nothing is used, and it starts again on the page it was on

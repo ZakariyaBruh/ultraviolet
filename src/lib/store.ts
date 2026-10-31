@@ -187,7 +187,8 @@ interface Data {
 export interface Todo { id: string; t: string; done: boolean }
 /** a shortcut the person added to the Browser's start page */
 export interface SavedPage { name: string; url: string }
-export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[] }
+/** `min`: open windows tucked into the tray (kept running, just out of the way); `ghost`: windows you can click through */
+export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[] }
 export const NOTE_MAX = 20000
 export const TODO_MAX = 60
 export const PAGES_MAX = 8
@@ -196,6 +197,12 @@ interface Actions {
   addPage: (name: string, url: string) => void
   removePage: (url: string) => void
   setWidget: (id: string, on: boolean) => void
+  /** tuck a window into the tray, or bring it back */
+  minWidget: (id: string, on: boolean) => void
+  /** hide every open window to the tray, or bring them all back */
+  minAllWidgets: (on: boolean) => void
+  /** make a window click-through (and faint), or solid again */
+  ghostWidget: (id: string, on: boolean) => void
   closeWidgets: () => void
   setNote: (text: string) => void
   addTodo: (text: string) => void
@@ -280,7 +287,7 @@ const emptyData = (): Data => ({
   mutes: [],
   learn: { xp: 0, days: [], done: {}, deck: [] },
   credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
-  widgets: { open: [], note: '', todos: [], pages: [] },
+  widgets: { open: [], note: '', todos: [], pages: [], min: [], ghost: [] },
 })
 
 export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
@@ -349,7 +356,8 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const open = Array.isArray(v.open) ? [...new Set(v.open.filter((x): x is string => typeof x === 'string' && x.length < 20))].slice(0, 12) : []
         const todos = Array.isArray(v.todos) ? v.todos.filter((x) => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && typeof x.done === 'boolean').slice(0, TODO_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 160), done: !!x.done })) : []
         const pages = Array.isArray(v.pages) ? v.pages.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.url === 'string' && /^https?:\/\/[^\s]{1,500}$/.test(x.url)).slice(0, PAGES_MAX).map((x) => ({ name: String(x.name).slice(0, 30), url: String(x.url) })) : []
-        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages }
+        const ids = (a: unknown) => (Array.isArray(a) ? [...new Set(a.filter((x): x is string => typeof x === 'string' && open.includes(x)))].slice(0, 12) : [])
+        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages, min: ids(v.min), ghost: ids(v.ghost) }
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -602,8 +610,12 @@ export const useStore = create<AppState>()(
         })
       },
       removePage: (url) => set((s) => ({ widgets: { ...s.widgets, pages: (s.widgets.pages ?? []).filter((p) => p.url !== url) } })),
-      setWidget: (id, on) => set((s) => ({ widgets: { ...s.widgets, open: on ? (s.widgets.open.includes(id) ? s.widgets.open : [...s.widgets.open, id]) : s.widgets.open.filter((x) => x !== id) } })),
-      closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [] } })),
+      // opening a window shows it (even from the tray); closing one also forgets that it was tucked away or faint
+      setWidget: (id, on) => set((s) => ({ widgets: { ...s.widgets, open: on ? (s.widgets.open.includes(id) ? s.widgets.open : [...s.widgets.open, id]) : s.widgets.open.filter((x) => x !== id), min: (s.widgets.min ?? []).filter((x) => x !== id), ghost: on ? (s.widgets.ghost ?? []) : (s.widgets.ghost ?? []).filter((x) => x !== id) } })),
+      minWidget: (id, on) => set((s) => (s.widgets.open.includes(id) ? { widgets: { ...s.widgets, min: on ? [...new Set([...(s.widgets.min ?? []), id])] : (s.widgets.min ?? []).filter((x) => x !== id) } } : s)),
+      minAllWidgets: (on) => set((s) => ({ widgets: { ...s.widgets, min: on ? [...s.widgets.open] : [] } })),
+      ghostWidget: (id, on) => set((s) => (s.widgets.open.includes(id) ? { widgets: { ...s.widgets, ghost: on ? [...new Set([...(s.widgets.ghost ?? []), id])] : (s.widgets.ghost ?? []).filter((x) => x !== id) } } : s)),
+      closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [], min: [], ghost: [] } })),
       setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX) } })),
       addTodo: (text) => {
         const t = text.trim().slice(0, 160)

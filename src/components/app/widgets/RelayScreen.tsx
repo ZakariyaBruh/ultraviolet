@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useStore } from '@/lib/store'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 
 /**
@@ -60,7 +61,8 @@ export function RelayScreen({ url, onClock, onProblem }: { url: string; onClock:
       const p = pass.current
       if (!p) return
       onClock(awayRef.current ? frozen.current : left())
-      if (document.hidden || !document.hasFocus()) {
+      // a window tucked into the tray counts as away: nothing is used while it cannot be seen
+      if (document.hidden || !document.hasFocus() || useStore.getState().widgets.min?.includes('browser')) {
         since ||= Date.now()
         if (!awayRef.current && Date.now() - since > AWAY_MS) { frozen.current = left(); awayRef.current = true; setAway(true) }
         return

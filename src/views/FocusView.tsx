@@ -16,7 +16,7 @@ import type { Shape } from '@/lib/ascii3d'
 import { useAmbience } from '@/lib/ambience'
 import { fx_say, quickPlay } from '@/lib/actions'
 import { PRESETS } from '@/lib/commands'
-import { nextTier, rateAt } from '@/lib/credits'
+import { nextTier, rateAt, TIERS } from '@/lib/credits'
 import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
@@ -67,18 +67,48 @@ function BreakClock({ until, kit }: { until: number; kit: boolean }) {
   )
 }
 
-/** What this session is paying, live: the rate climbs while you stay clean and drops back at a drift. */
+/**
+ * The pay ladder: credits a minute by minutes held without a drift. The step you are on is lit, the ones behind you are firm and the
+ * ones ahead are faint, so it reads as "the longer you stay, the more you earn". Without `cleanSec` nothing is lit (the idle dial).
+ */
+function Ladder({ cleanSec }: { cleanSec?: number }) {
+  const cur = cleanSec == null ? -1 : TIERS.reduce((at, t, i) => (cleanSec >= t.from ? i : at), 0)
+  return (
+    <span data-tour="ladder" className="grid w-full grid-cols-5 gap-1 bg-ground/70 px-1 pb-1 text-center" role="img" aria-label={`Credits a minute by minutes held without a drift: ${TIERS.map((t) => `${t.rate} from ${t.from / 60} minutes`).join(', ')}`}>
+      {TIERS.map((t, i) => (
+        <span key={t.from} aria-hidden className={`border-t-2 pt-1 ${i === cur ? 'border-signal text-signal' : i < cur ? 'border-ink/70 text-ink-2' : 'border-ink/20 text-ink-3'}`}>
+          <span className="fig block text-[14px] leading-none">{t.rate}</span>
+          <span className="mt-0.5 block text-[10px] leading-none">{i === 0 ? 'start' : `${t.from / 60} min`}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** What this session is paying, live: the rate climbs while you stay clean and starts again at a drift. */
 function CreditMeter() {
   const cleanSec = useStore((x) => x.session?.cleanSec ?? 0)
   const credit = useStore((x) => x.session?.credit ?? 0)
   const shields = useStore((x) => itemsOf(x.credits).shields)
+  const rate = rateAt(cleanSec)
   const next = nextTier(cleanSec)
   return (
-    <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5] ![text-shadow:0_0_5px_var(--ground),0_0_5px_var(--ground),0_0_2px_var(--ground)]" role="status" aria-live="off">
-      <span><span className="fig text-ink">{rateAt(cleanSec)}</span> credits a min · clean <span className="fig text-ink">{fmtClock(Math.floor(cleanSec))}</span> · +<span className="fig text-ink">{Math.floor(credit)}</span></span>
-      {next && <span className="text-ink-3">{next.rate} a min in <span className="fig">{fmtClock(Math.ceil(next.inSec))}</span> if you stay{shields > 0 && <> · shield <span className="fig text-signal">×{shields}</span></>}</span>}
-      {!next && shields > 0 && <span className="text-ink-3">shield <span className="fig text-signal">×{shields}</span> ready</span>}
-    </p>
+    <div className="hud grid w-[min(100%,19rem)] justify-items-center gap-1 text-center !text-[12px] leading-[1.4] ![text-shadow:0_0_5px_var(--ground),0_0_5px_var(--ground),0_0_2px_var(--ground)]" role="status" aria-live="off">
+      <p>Paying <span className="fig text-ink">{rate}</span> {rate === 1 ? 'credit' : 'credits'} a minute</p>
+      <p className="text-ink-3"><span className="fig text-ink">{Math.floor(credit)}</span> earned so far{shields > 0 && <> · shield <span className="fig text-signal">×{shields}</span></>}</p>
+      <p className="mb-0.5 text-ink-3">{next ? <>Stay clean <span className="fig text-ink">{fmtClock(Math.ceil(next.inSec))}</span> more for <span className="fig text-ink">{next.rate}</span> a minute</> : 'Top rate. A drift would start the climb over.'}</p>
+      <Ladder cleanSec={cleanSec} />
+    </div>
+  )
+}
+
+/** Before a session: the same ladder, so it is known what staying is worth. */
+function CreditHint() {
+  return (
+    <div className="hud grid w-[min(100%,19rem)] justify-items-center gap-1.5 text-center !text-[12px] leading-[1.4] ![text-shadow:0_0_5px_var(--ground),0_0_5px_var(--ground),0_0_2px_var(--ground)]">
+      <p className="text-ink-2">The longer you stay clean, the more you earn</p>
+      <Ladder />
+    </div>
   )
 }
 
@@ -166,7 +196,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         )}
 
         <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
-          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : <CreditMeter />) : undefined} />
+          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : <CreditMeter />) : <CreditHint />} />
 
           <AnimatePresence mode="wait" initial={false}>
             {!session ? (
