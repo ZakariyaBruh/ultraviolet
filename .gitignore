@@ -35,3 +35,7 @@ video/out
 video/public/v3
 video/public/v4
 video/public/v6
+
+# interactive demo build output (regenerate with demo/capture.cjs and demo/build.py)
+demo/dist
+demo/shots

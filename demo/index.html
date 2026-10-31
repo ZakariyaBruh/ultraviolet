@@ -1,0 +1,608 @@
+<title>Try Friction</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=Unbounded:wght@600;800&display=swap">
+<style>
+/* A player frame around the real app: test-card bars as the progress strip, one yellow pulse for the next thing to click, plates with registration ticks. */
+:root {
+  --ground: #05070c;
+  --surface: #0b101a;
+  --ink: #f3f1ea;
+  --ink2: #c4c2ba;
+  --dim: #8089a0;
+  --signal: #ffd23f;
+  --on-signal: #05070c;
+  --ice: #7fd3ff;
+  --rule: rgba(243, 241, 234, 0.2);
+  --stage-ground: #05070c;
+  --f-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-cond: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-disp: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+
+#app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-block: 10px; min-width: 0; }
+
+/* ---------- top bar ---------- */
+.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.brand { display: flex; align-items: center; gap: 9px; min-width: 0; margin-right: 4px; }
+.brand svg { flex: none; }
+.brand b { font: 800 13px var(--f-disp); letter-spacing: 0.01em; }
+.brand span { font: 600 12px var(--f-cond); letter-spacing: 0.24em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+.chapters { display: flex; gap: 4px; flex: 1 1 320px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.chapters::-webkit-scrollbar { display: none; }
+.ch { flex: none; min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); cursor: pointer; transition: color 0.15s, background 0.15s; }
+.ch:hover { color: var(--ink); }
+.ch.done { color: var(--ink2); }
+.ch.on { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+.tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.sw { width: 28px; height: 28px; padding: 0; border: 1px solid var(--rule); background: var(--c); position: relative; cursor: pointer; }
+.sw::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: var(--s); }
+.sw[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tb { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+.tb:hover { border-color: var(--ink2); }
+.tb[aria-pressed="true"] { background: var(--ice); border-color: var(--ice); color: var(--on-signal); }
+.tb.go { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+
+/* ---------- the room and the stage ---------- */
+.room { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.stage { position: relative; width: var(--sw, 100%); height: var(--sh, 56%); flex: none; background: var(--stage-ground); outline: 1px solid var(--rule); overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.ticks { position: relative; flex: none; }
+.cam { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 0.5s var(--ease); }
+.layer, .hits { position: absolute; inset: 0; }
+.shot { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; -webkit-user-drag: none; }
+.shot.nav { animation: shotIn 0.24s var(--ease); }
+.shot.theme { animation: shotFade 0.18s ease-out; }
+@keyframes shotIn { from { opacity: 0; transform: scale(1.014); } to { opacity: 1; transform: none; } }
+@keyframes shotFade { from { opacity: 0; } to { opacity: 1; } }
+
+.hs { position: absolute; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; border-radius: 0; touch-action: manipulation; }
+.hs.ghost { cursor: default; }
+.hs:hover:not(.ghost), .hs:focus-visible { box-shadow: inset 0 0 0 2px var(--signal); background: rgba(255, 210, 63, 0.1); }
+.hs.also { box-shadow: inset 0 0 0 2px rgba(255, 210, 63, 0.55); }
+.hs.target { box-shadow: 0 0 0 3px var(--signal); z-index: 5; }
+.hs.target::before { content: ""; position: absolute; inset: -3px; border: 3px solid var(--signal); animation: ping 1.5s var(--ease) infinite; pointer-events: none; }
+@keyframes ping { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.35, 1.9); opacity: 0; } }
+.hs.target:hover { background: rgba(255, 210, 63, 0.14); }
+.show .hs:not(.ghost), .flash .hs:not(.ghost) { box-shadow: inset 0 0 0 1px var(--ice); background: rgba(127, 211, 255, 0.1); }
+.show .hs.target, .flash .hs.target { box-shadow: 0 0 0 3px var(--signal); }
+.drag { cursor: ew-resize; }
+.rip { position: absolute; width: 38px; height: 38px; margin: -19px 0 0 -19px; border: 2px solid var(--signal); border-radius: 50%; pointer-events: none; animation: rip 0.5s ease-out forwards; z-index: 30; }
+@keyframes rip { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+
+/* ---------- plates ---------- */
+.plate { position: absolute; z-index: 20; width: 320px; max-width: calc(100% - 16px); background: var(--ground); border: 2px solid var(--signal); padding: 14px 16px 14px; animation: plateIn 0.22s var(--ease); }
+.plate.tip { border-color: var(--ice); width: 300px; }
+.plate.fin { width: min(520px, calc(100% - 24px)); padding: 22px 24px; left: 50%; top: 50%; transform: translate(-50%, -50%); animation: none; }
+@keyframes plateIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.plate i { position: absolute; width: 9px; height: 9px; border: 0 solid var(--ink); opacity: 0.8; }
+.plate i:nth-of-type(1) { left: -7px; top: -7px; border-width: 2px 0 0 2px; }
+.plate i:nth-of-type(2) { right: -7px; top: -7px; border-width: 2px 2px 0 0; }
+.plate i:nth-of-type(3) { left: -7px; bottom: -7px; border-width: 0 0 2px 2px; }
+.plate i:nth-of-type(4) { right: -7px; bottom: -7px; border-width: 0 2px 2px 0; }
+.k { font: 600 12px var(--f-cond); letter-spacing: 0.24em; text-transform: uppercase; color: var(--signal); display: flex; justify-content: space-between; gap: 8px; }
+.tip .k { color: var(--ice); }
+.plate h2 { margin: 6px 0 5px; font: 600 20px/1.15 var(--f-body); letter-spacing: -0.01em; text-wrap: balance; }
+.fin h2 { font: 800 clamp(22px, 3.4vw, 30px)/1.1 var(--f-disp); letter-spacing: -0.01em; margin: 10px 0 10px; }
+.plate p { margin: 0; color: var(--ink2); font-size: 14.5px; text-wrap: pretty; }
+.fin p { font-size: 15.5px; }
+.row { display: flex; gap: 8px; margin-top: 13px; align-items: center; flex-wrap: wrap; }
+.btn { min-height: 44px; padding: 0 16px; background: var(--signal); color: var(--on-signal); border: 0; font: 700 14px var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.btn.ghost:hover { border-color: var(--ink2); }
+.btn:active, .tb:active, .ch:active { transform: scale(0.98); }
+.lnk { background: none; border: 0; padding: 0 2px; min-height: 36px; color: var(--dim); font: 600 12.5px var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; }
+.lnk:hover { color: var(--ink); }
+.toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 40; background: var(--ground); border: 1px solid var(--ice); padding: 10px 16px; font-size: 14px; max-width: calc(100% - 24px); text-align: center; animation: plateIn 0.2s var(--ease); }
+
+/* ---------- the strip ---------- */
+.deck { display: grid; gap: 7px; min-width: 0; }
+.bars { position: relative; height: 8px; display: flex; background: var(--surface); }
+.bars b { flex: 1; display: block; }
+.bars b:nth-child(1) { background: #e8e8e8; } .bars b:nth-child(2) { background: #e6d800; } .bars b:nth-child(3) { background: #00cfcf; } .bars b:nth-child(4) { background: #00c400; }
+.bars b:nth-child(5) { background: #d000d0; } .bars b:nth-child(6) { background: #d00000; } .bars b:nth-child(7) { background: #0000d0; }
+.bars u { position: absolute; top: 0; bottom: 0; right: 0; width: calc(100% - var(--p, 0%)); background: rgba(5, 7, 12, 0.86); transition: width 0.4s var(--ease); }
+.bars.busy::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: sweep 0.9s linear infinite; }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.read { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; font: 600 12.5px var(--f-cond); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); min-width: 0; }
+.read .at { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.read .at em { font-style: normal; color: var(--signal); }
+.read kbd { font: inherit; border: 1px solid var(--rule); padding: 0 5px; color: var(--ink2); }
+
+/* ---------- about ---------- */
+.about { position: fixed; inset: 0; z-index: 100; background: rgba(5, 7, 12, 0.88); display: grid; place-items: center; padding: 16px; }
+.about[hidden] { display: none; }
+.about .plate { position: relative; width: min(560px, 100%); max-height: 100%; overflow-y: auto; animation: none; }
+.about h2 { font: 800 22px/1.1 var(--f-disp); margin: 8px 0 12px; }
+.about ul { margin: 0 0 8px; padding-left: 18px; color: var(--ink2); font-size: 14.5px; }
+.about li { margin-bottom: 6px; }
+
+.compact .plate:not(.fin) { position: relative; left: auto !important; top: auto !important; width: 100%; max-width: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .brand span { display: none; }
+  .tb .lab { display: none; }
+  .read .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .hs.target::before { border-width: 3px; opacity: 1; inset: -7px; }
+}
+</style>
+
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="7.5" fill="none" stroke="#f3f1ea" stroke-width="2.4"/><rect x="14.6" y="2.6" width="5" height="5" fill="#ffd23f"/></svg>
+      <b>FRICTION</b><span>Interactive demo</span>
+    </div>
+    <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+    <div class="tools">
+      <span id="swatches" style="display:flex;gap:6px" role="group" aria-label="Theme"></span>
+      <button class="tb" id="showBtn" aria-pressed="false" title="Outline everything you can click (H)"><span>◫</span><span class="lab">Show clickable</span></button>
+      <button class="tb" id="aboutBtn" title="About this demo" aria-label="About this demo">?</button>
+      <a class="tb go" id="openBtn" href="https://frictionx.vercel.app/" target="_blank" rel="noopener">Open Friction ↗</a>
+    </div>
+  </header>
+
+  <main class="room" id="room">
+    <div class="stage" id="stage">
+      <div class="cam" id="cam">
+        <div class="layer" id="layer"></div>
+        <div class="hits" id="hits"></div>
+      </div>
+      <div id="float"></div>
+    </div>
+    <div id="dock"></div>
+  </main>
+
+  <footer class="deck">
+    <div class="bars" id="bars" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><u id="barMask"></u></div>
+    <div class="read">
+      <span class="at" id="at">Click the glowing spot</span>
+      <span class="keys"><kbd>T</kbd> look · <kbd>H</kbd> show clickable · <kbd>N</kbd> next · <kbd>R</kbd> restart</span>
+    </div>
+  </footer>
+  <div class="sr" role="status" aria-live="polite" id="live"></div>
+</div>
+
+<div class="about" id="about" hidden role="dialog" aria-modal="true" aria-labelledby="aboutT">
+  <div class="plate">
+    <i></i><i></i><i></i><i></i>
+    <div class="k"><span>About this demo</span></div>
+    <h2 id="aboutT">Real screens, nothing faked</h2>
+    <ul>
+      <li>Every picture is a screenshot of the real Friction app, taken in a real browser. The click zones were measured from the page itself, so they sit on the real buttons.</li>
+      <li>The history you see (the chart, the score, the rings) is sample data, and the app flags it as sample data. In the real app it is yours, and one tap erases it.</li>
+      <li>Radio, TV, podcasts, music, news, books, lessons, rooms and the leaderboard need the network, so they run only in the real app. The demo says so when you click them.</li>
+      <li>The demo plays one 25 minute session. The ruler shows the other lengths, then goes back to 25 when you lock in.</li>
+      <li>Retro and ASCII dials are shown in the Station look. Everything else works in all five looks.</li>
+    </ul>
+    <div class="row"><button class="btn" id="aboutClose">Back to the demo</button></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.DEMO;
+  if (!D) { document.getElementById('at').textContent = 'The demo data did not load.'; return; }
+  var $ = function (id) { return document.getElementById(id); };
+  var APP = 'https://frictionx.vercel.app';
+  var THEMES = D.themes;               // [{id,name,ground,signal}]
+  var S = D.s;                          // S[theme][state] = [hotspot,...]
+  var DEF = { r: 1, a: 1 };
+
+  /* ------------------------------------------------------------ the tour */
+  var CHAPTERS = [
+    { id: 'start', name: 'Start', step: 0, go: 'landing' },
+    { id: 'session', name: 'Session', step: 1, go: 'focus' },
+    { id: 'windows', name: 'Windows', step: 5, go: 'focus@post', post: true },
+    { id: 'looks', name: 'Looks', step: 7, go: 'w-notes', post: true },
+    { id: 'arcade', name: 'Arcade', step: 8, go: 'focus@post', post: true },
+    { id: 'numbers', name: 'Numbers', step: 10, go: 'game-snake', post: true },
+    { id: 'dials', name: 'Dials', step: 11, go: 'insights@post', post: true }
+  ];
+  var STEPS = [
+    { ch: 0, at: 'landing', pick: 'Hold to tune in', title: 'Tune in', body: 'The front page. On the real site you hold this button. Here, a click is enough.', done: { state: 'focus' } },
+    { ch: 1, at: 'focus', pick: 'Lock in', also: ['Session length'], title: 'Lock in', body: 'Try the ruler if you like, then lock in. The clock only runs while this tab is in front.', done: { state: 'locked' } },
+    { ch: 1, at: 'locked', chip: { l: 'Switch tabs', to: 'drift' }, title: 'Try to look away', body: 'There is no pause button. Leave the tab and it counts as a drift.', done: { state: 'drift' } },
+    { ch: 1, at: 'drift', chip: { l: 'Skip to the end', to: 'done' }, title: 'Drifts are counted', body: 'The clock waited for you, and your clean streak started over. Nothing is hidden. Skip to the finish.', done: { state: 'done' } },
+    { ch: 1, at: 'done', chip: { l: 'Take the credits', to: 'focus@post' }, title: 'Credits are earned', body: 'A finished session pays out. Credits come from real focus only. You cannot win them in a game.', done: { state: 'focus' }, post: true },
+    { ch: 2, at: 'focus', pick: 'Widgets', title: 'Study windows', body: 'A notepad, calculator, to-do list, timer and more float over Focus. Deal the deck.', done: { state: 'deck' }, post: true },
+    { ch: 2, at: 'deck', pick: 'Notepad', title: 'Open the notepad', body: 'It saves as you type and stays in this browser. Every window drags around the screen.', done: { state: 'w-notes' }, post: true },
+    { ch: 3, at: '*', go: 'w-notes', pick: 'Theme', title: 'Five looks', body: 'Click the palette button, or press T. The whole app changes, not just the colours.', done: { theme: true }, post: true },
+    { ch: 4, at: '*', go: 'focus@post', pick: 'Arcade', title: 'Spend them', body: 'Open the Arcade. Sixteen games, four credits a round.', done: { state: 'arcade' }, post: true },
+    { ch: 4, at: 'arcade', pick: 'Snake', title: 'Play a round', body: 'Pick Snake. Real games with music that follows the action, played from the keys or an on-screen pad.', done: { state: 'game-snake' }, post: true },
+    { ch: 5, at: '*', go: 'game-snake', pick: 'Insights', title: 'Your attention, measured', body: 'Open Insights. Drifts by hour, steadiness and rings. The history here is sample data, and the app labels it so.', done: { state: 'insights' }, post: true },
+    { ch: 6, at: '*', go: 'insights@post', pick: 'Settings', title: 'Make it yours', body: 'Open Settings.', done: { state: 'settings' }, post: true },
+    { ch: 6, at: 'settings', pick: 'Look', title: 'The Look tab', body: 'Themes, colours and two dials live here.', done: { state: 'settings-look' }, post: true },
+    { ch: 6, at: 'settings-look', pick: 'Retro dial', also: ['ASCII dial'], title: 'Two dials', body: 'Retro changes how old the screen looks. ASCII changes how many text solids float behind it. Drag one.', done: { dial: true }, post: true }
+  ];
+
+  /* ------------------------------------------------------------ state */
+  var theme = 'station', post = false, len = 25, dials = { r: DEF.r, a: DEF.a };
+  var state = 'landing', step = 0, showAll = false, finished = false, freeRoam = false, zoomOn = true;
+  var tok = 0, misses = 0, seen = {}, tipTimer = 0, toastTimer = 0;
+
+  var stage = $('stage'), cam = $('cam'), layer = $('layer'), hits = $('hits'), floatEl = $('float'), dock = $('dock');
+  var room = $('room'), atEl = $('at'), bars = $('bars');
+  var SW = 800, SH = 450, compact = false;
+
+  /* ------------------------------------------------------------ helpers */
+  var has = function (t, id) { return !!(S[t] && S[t][id]); };
+  var base = function (id) { return id.replace('@post', '').replace(/^look-r\d-a\d$/, 'settings-look'); };
+  var file = function (t, id) { return 'shots/' + t + '/' + id.replace('@', '_') + '.webp'; };
+  function resolve(id) {
+    if (id === 'focus' && len !== 25) id = 'focus-' + len;
+    if (id === 'settings-look' && theme === 'station' && (dials.r !== DEF.r || dials.a !== DEF.a)) id = 'look-r' + dials.r + '-a' + dials.a;
+    if (post && has(theme, id + '@post')) return id + '@post';
+    if (!has(theme, id) && /^look-r/.test(id)) return 'settings-look';
+    return id;
+  }
+  var picks = function (arr) { var out = []; (arr || []).forEach(function (h) { out.push(h); }); return out; };
+  var hotsOf = function () { return S[theme][state] || []; };
+  var find = function (l) { var a = hotsOf(); for (var i = 0; i < a.length; i++) if (a[i].l === l) return a[i]; return null; };
+  var cached = {};
+  function preload(t, id) {
+    if (!has(t, id)) return;
+    var u = file(t, id);
+    if (cached[u]) return;
+    var im = new Image(); im.decoding = 'async'; im.src = u; cached[u] = im;
+  }
+  function preloadAround() {
+    hotsOf().forEach(function (h) { if (h.to) preload(theme, resolve(h.to)); });
+    var ti = THEMES.findIndex(function (t) { return t.id === theme; });
+    preload(THEMES[(ti + 1) % THEMES.length].id, has(THEMES[(ti + 1) % THEMES.length].id, state) ? state : base(state));
+    if (theme === 'station' && /^look-r|^settings-look/.test(state)) {
+      for (var i = 0; i < 6; i++) { preload('station', 'look-r' + i + '-a' + dials.a); preload('station', 'look-r' + dials.r + '-a' + i); }
+    }
+    var s = STEPS[step];
+    if (s && s.done && s.done.state) preload(theme, resolve(s.done.state));
+  }
+
+  /* ------------------------------------------------------------ sizing */
+  function size() {
+    var rw = room.clientWidth, rh = room.clientHeight;
+    compact = rw < 760 || rh < 300;
+    var tight = compact ? rh - 150 : rh;
+    var w = Math.min(rw, Math.max(tight, 160) * 16 / 9);
+    if (compact) w = rw;
+    SW = Math.floor(w); SH = Math.floor(w * 9 / 16);
+    stage.style.setProperty('--sw', SW + 'px'); stage.style.setProperty('--sh', SH + 'px');
+    room.classList.toggle('compact', compact);
+    camera(); placeGuide();
+  }
+  function camera() {
+    var h = targetHot();
+    if (!compact || !zoomOn || !h || freeRoam || finished) { cam.style.transform = 'none'; return; }
+    var k = 2.3, cx = (h.r[0] + h.r[2] / 2) * SW, cy = (h.r[1] + h.r[3] / 2) * SH;
+    var tx = Math.min(0, Math.max(SW - SW * k, SW / 2 - cx * k)), ty = Math.min(0, Math.max(SH - SH * k, SH / 2 - cy * k));
+    cam.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
+  }
+
+  /* ------------------------------------------------------------ pictures */
+  function setImage(url, mode, after) {
+    var t = ++tok, im = new Image();
+    im.alt = ''; im.draggable = false; im.decoding = 'async'; im.src = url;
+    var slow = setTimeout(function () { bars.classList.add('busy'); }, 260);
+    function place() {
+      clearTimeout(slow); bars.classList.remove('busy');
+      if (t !== tok) return;
+      im.className = 'shot ' + (mode === 'nav' ? 'nav' : mode === 'theme' ? 'theme' : '');
+      var olds = layer.querySelectorAll('.shot');
+      layer.appendChild(im);
+      Array.prototype.forEach.call(olds, function (o) { if (mode === 'swap') o.remove(); else setTimeout(function () { o.remove(); }, 320); });
+      after();
+    }
+    (im.decode ? im.decode() : Promise.reject()).then(place, place);
+  }
+
+  /* ------------------------------------------------------------ hotspots */
+  function targetHot() {
+    if (finished || freeRoam) return null;
+    var s = STEPS[step]; if (!s) return null;
+    if (s.pick) return find(s.pick);
+    return null;
+  }
+  function buildHits() {
+    hits.innerHTML = '';
+    var s = (!finished && !freeRoam) ? STEPS[step] : null;
+    var arr = hotsOf().slice().sort(function (a, b) { return (b.ghost ? 1 : 0) - (a.ghost ? 1 : 0); });
+    arr.forEach(function (h, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'hs' + (h.ghost ? ' ghost' : '') + (h.k === 'dial' && h.ruler || h.k === 'ruler' ? ' drag' : '');
+      b.style.left = h.r[0] * 100 + '%'; b.style.top = h.r[1] * 100 + '%'; b.style.width = h.r[2] * 100 + '%'; b.style.height = h.r[3] * 100 + '%';
+      b.setAttribute('aria-label', h.ghost ? 'Close the card' : h.l);
+      if (h.ghost) b.tabIndex = -1;
+      if (s && s.pick && h.l === s.pick) b.classList.add('target');
+      else if (s && s.also && s.also.indexOf(h.l) >= 0) b.classList.add('also');
+      b.addEventListener('pointerenter', function () { atEl.innerHTML = h.ghost ? '' : '<em>▸</em> ' + esc(h.l); });
+      b.addEventListener('pointerleave', function () { readout(); });
+      b.addEventListener('focus', function () { atEl.innerHTML = '<em>▸</em> ' + esc(h.l); });
+      b.addEventListener('pointerdown', function (e) { down(h, b, e); });
+      b.addEventListener('click', function (e) { if (e.detail === 0) act(h, b, null); });
+      b._h = h; hits.appendChild(b);
+    });
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function ripple(e) {
+    var r = stage.getBoundingClientRect(), d = document.createElement('i'); d.className = 'rip';
+    d.style.left = (e.clientX - r.left) + 'px'; d.style.top = (e.clientY - r.top) + 'px'; floatEl.appendChild(d);
+    setTimeout(function () { d.remove(); }, 520);
+  }
+  var dragging = null;
+  function frac(b, e) { var r = b.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); }
+  function down(h, b, e) {
+    if (e.button && e.button !== 0) return;
+    ripple(e);
+    if (h.k === 'ruler' || (h.k === 'dial' && h.ruler)) {
+      e.preventDefault(); dragging = { h: h, b: b }; try { b.setPointerCapture(e.pointerId); } catch (x) {}
+      act(h, b, frac(b, e), true);
+      b.onpointermove = function (ev) { if (dragging) act(h, b, frac(b, ev), true); };
+      b.onpointerup = b.onpointercancel = function () { dragging = null; b.onpointermove = null; };
+      return;
+    }
+    act(h, b, null);
+  }
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.target.closest && e.target.closest('.hs, .plate')) return;
+    ripple(e); flash(); misses++;
+    if (misses === 3 && !seen.hint) { seen.hint = 1; toast('Press H to outline everything you can click.'); }
+  });
+  var flashT = 0;
+  function flash() { stage.classList.add('flash'); clearTimeout(flashT); flashT = setTimeout(function () { stage.classList.remove('flash'); }, 700); }
+
+  /* ------------------------------------------------------------ actions */
+  function act(h, b, f, dragMove) {
+    clearTip();
+    var k = h.k;
+    if (k === 'theme') return cycleTheme();
+    if (k === 'themepick') return setTheme(h.th);
+    if (k === 'ruler') {
+      var m = 10 + (f == null ? 0.19 : f) * 80, stops = h.stops || [10, 25, 50, 90], best = stops[0];
+      stops.forEach(function (s) { if (Math.abs(s - m) < Math.abs(best - m)) best = s; });
+      if (best !== len) { len = best; go('focus', 'swap'); }
+      else if (!dragMove) tip(h, 'Session length', 'Pick 10, 25, 50 or 90 minutes. This demo runs the 25 minute session, so it goes back to 25 when you lock in.');
+      return;
+    }
+    if (k === 'dial') {
+      var r = dials.r, a = dials.a;
+      if (h.ruler) { var st = h.dial === 'retro' ? Math.round((1 - f) * 5) : Math.round(f * 5); if (h.dial === 'retro') r = st; else a = st; }
+      else { if (h.dial === 'retro') r = h.stop; else a = h.stop; }
+      if (r === dials.r && a === dials.a) return;
+      dials = { r: r, a: a };
+      if (theme !== 'station') { setThemeQuiet('station'); toast('Switched to Station. The dials are captured in that look.'); }
+      state = 'settings-look'; go('settings-look', 'swap'); advance({ dial: true });
+      return;
+    }
+    if (k === 'info') return tip(h, h.l, h.tip);
+    if (k === 'live') return tip(h, h.l, h.tip || (h.l + ' needs the network (live stations, feeds or a server), so it only runs in the real app.'), h.route);
+    if (h.to) {
+      if (h.to === 'locked' && len !== 25) { len = 25; toast('The demo runs a 25 minute session, so the ruler went back to 25.'); }
+      go(h.to, 'nav');
+    }
+  }
+  function go(id, mode, quiet) {
+    var target = resolve(base(id) === 'done' ? 'done' : id);
+    if (base(target) === 'done') post = true;
+    if (!has(theme, target)) target = base(target);
+    var prev = state; state = target;
+    setImage(file(theme, state), mode || 'nav', function () {
+      buildHits(); readout(); guide(); preloadAround(); camera();
+      $('live').textContent = (STEPS[step] && !finished && !freeRoam ? STEPS[step].title + '. ' : '') + '';
+    });
+    if (!quiet) advance({ state: base(target) });
+  }
+  function cycleTheme() { var i = THEMES.findIndex(function (t) { return t.id === theme; }); setTheme(THEMES[(i + 1) % THEMES.length].id); }
+  function setThemeQuiet(id) { theme = id; paintTheme(); }
+  function setTheme(id) {
+    if (id === theme) return;
+    theme = id; paintTheme();
+    var st = has(theme, state) ? state : (has(theme, base(state)) ? base(state) : 'focus');
+    state = st;
+    setImage(file(theme, state), 'theme', function () { buildHits(); readout(); guide(); preloadAround(); });
+    advance({ theme: true });
+  }
+  function paintTheme() {
+    var t = THEMES.find(function (x) { return x.id === theme; });
+    stage.style.setProperty('--stage-ground', t.ground);
+    Array.prototype.forEach.call($('swatches').children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === theme)); });
+  }
+
+  /* ------------------------------------------------------------ the guide */
+  function advance(ev) {
+    if (finished || freeRoam) return;
+    for (var i = step; i < STEPS.length; i++) {
+      var d = STEPS[i].done;
+      if ((d.state && ev.state === d.state) || (d.theme && ev.theme) || (d.dial && ev.dial)) {
+        if (i === step || (d.state && i > step)) { step = i + 1; if (step >= STEPS.length) finish(); stepChanged(); }
+        return;
+      }
+    }
+  }
+  function stepChanged() {
+    var s = STEPS[step];
+    if (s && s.post) post = post || false;
+    // after a step is done, re-draw the guide for the current state (a short beat so the picture lands first)
+    setTimeout(function () { buildHits(); guide(); camera(); }, 60);
+  }
+  function finish() { finished = true; progress(); }
+  function progress() {
+    var p = finished ? 100 : (step / STEPS.length) * 100;
+    $('barMask').style.width = (100 - p) + '%';
+    var cs = CHAPTERS.map(function (c, i) { return i; });
+    var cur = finished ? CHAPTERS.length : (STEPS[step] ? STEPS[step].ch : 0);
+    Array.prototype.forEach.call($('chapters').children, function (b, i) {
+      b.className = 'ch' + (i === cur ? ' on' : i < cur ? ' done' : '');
+      b.setAttribute('aria-current', i === cur ? 'step' : 'false');
+    });
+  }
+  function readout() {
+    if (finished) { atEl.innerHTML = '<em>●</em> Free roam. Click anything.'; return; }
+    if (freeRoam) { atEl.innerHTML = 'Free roam. Click anything'; return; }
+    var s = STEPS[step];
+    atEl.innerHTML = s ? 'Step <em>' + (step + 1) + '</em> of ' + STEPS.length + ' · ' + esc(s.title) : '';
+  }
+  function clearGuide() { var p = floatEl.querySelector('.plate.guide'); if (p) p.remove(); var d = dock.querySelector('.plate.guide'); if (d) d.remove(); }
+  function plateEl(cls, kicker, title, body) {
+    var p = document.createElement('div'); p.className = 'plate ' + cls;
+    p.innerHTML = '<i></i><i></i><i></i><i></i><div class="k">' + kicker + '</div>' + (title ? '<h2>' + esc(title) + '</h2>' : '') + (body ? '<p>' + esc(body) + '</p>' : '');
+    return p;
+  }
+  function guide() {
+    progress(); clearGuide();
+    if (freeRoam && !finished) { return; }
+    if (finished) { if (!freeRoam) finalePlate(); return; }
+    var s = STEPS[step]; if (!s) return;
+    var onPath = s.at === '*' ? !!(s.pick && find(s.pick)) : base(state) === s.at;
+    var kick = '<span>Step ' + (step + 1) + ' of ' + STEPS.length + ' · ' + esc(CHAPTERS[s.ch].name) + '</span>';
+    var p;
+    if (onPath) {
+      p = plateEl('guide', kick, s.title, s.body);
+      var row = document.createElement('div'); row.className = 'row';
+      if (s.chip) { var c = document.createElement('button'); c.className = 'btn'; c.textContent = s.chip.l; c.addEventListener('click', function () { go(s.chip.to, 'nav'); }); row.appendChild(c); }
+      var sk = document.createElement('button'); sk.className = 'lnk'; sk.textContent = 'Skip step'; sk.addEventListener('click', skipStep); row.appendChild(sk);
+      var fr = document.createElement('button'); fr.className = 'lnk'; fr.textContent = 'Free roam'; fr.addEventListener('click', roam); row.appendChild(fr);
+      p.appendChild(row);
+    } else {
+      p = plateEl('guide', kick, s.title, 'You wandered off the path. Jump back to carry on, or keep poking.');
+      var r2 = document.createElement('div'); r2.className = 'row';
+      var j = document.createElement('button'); j.className = 'btn'; j.textContent = 'Take me there'; j.addEventListener('click', function () { post = s.post ? true : post; go(s.at === '*' ? s.go : s.at, 'nav', true); }); r2.appendChild(j);
+      var f2 = document.createElement('button'); f2.className = 'lnk'; f2.textContent = 'Free roam'; f2.addEventListener('click', roam); r2.appendChild(f2);
+      p.appendChild(r2);
+    }
+    (compact ? dock : floatEl).appendChild(p);
+    placeGuide();
+  }
+  function placeGuide() {
+    var p = floatEl.querySelector('.plate.guide'); if (!p) return;
+    var h = targetHot() || null;
+    if (!h) { var chip = STEPS[step] && STEPS[step].chip; place(p, chip ? [0.62, 0.42, 0.01, 0.01] : null); return; }
+    place(p, h.r);
+  }
+  function place(p, r) {
+    if (compact) return;
+    var pw = p.offsetWidth, ph = p.offsetHeight, g = 18, W = SW, H = SH;
+    if (!r) { p.style.left = Math.round((W - pw) / 2) + 'px'; p.style.top = Math.round(H * 0.5 - ph / 2) + 'px'; return; }
+    var tx = r[0] * W, ty = r[1] * H, tw = r[2] * W, th = r[3] * H, cx = tx + tw / 2, cy = ty + th / 2;
+    var cl = function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
+    var below = { x: cl(cx - pw / 2, 10, W - pw - 10), y: ty + th + g }, above = { x: cl(cx - pw / 2, 10, W - pw - 10), y: ty - ph - g };
+    var right = { x: tx + tw + g, y: cl(cy - ph / 2, 10, H - ph - 10) }, left = { x: tx - pw - g, y: cl(cy - ph / 2, 10, H - ph - 10) };
+    var order = cy > H * 0.55 ? [above, right, left, below] : [below, right, left, above];
+    var pick = null;
+    for (var i = 0; i < order.length; i++) { var c = order[i]; if (c.x >= 8 && c.y >= 8 && c.x + pw <= W - 8 && c.y + ph <= H - 8) { pick = c; break; } }
+    if (!pick) pick = { x: cl(W - pw - 16, 8, W), y: cl(H - ph - 16, 8, H) };
+    p.style.left = Math.round(pick.x) + 'px'; p.style.top = Math.round(pick.y) + 'px';
+  }
+  function skipStep() {
+    var s = STEPS[step]; if (!s) return;
+    if (s.post) post = true;
+    var to = s.done && s.done.state;
+    if (to) go(to, 'nav'); else if (s.done && s.done.theme) { cycleTheme(); } else if (s.done && s.done.dial) { dials = { r: 4, a: 3 }; setThemeQuiet('station'); go('settings-look', 'swap'); advance({ dial: true }); }
+  }
+  function roam() { freeRoam = true; clearGuide(); readout(); buildHits(); camera(); progress(); }
+  function finalePlate() {
+    var p = plateEl('fin guide', '<span>That is Friction</span>', 'Now try it for real.', 'Everything you clicked is the real app. Radio, TV, podcasts, news, books, lessons and rooms need the network, so they only run there. It is free, there is no account, and your data stays in your browser.');
+    var row = document.createElement('div'); row.className = 'row';
+    var o = document.createElement('a'); o.className = 'btn'; o.href = APP + '/'; o.target = '_blank'; o.rel = 'noopener'; o.textContent = 'Open Friction ↗'; row.appendChild(o);
+    var kp = document.createElement('button'); kp.className = 'btn ghost'; kp.textContent = 'Keep poking'; kp.addEventListener('click', function () { freeRoam = true; guide(); readout(); }); row.appendChild(kp);
+    var rs = document.createElement('button'); rs.className = 'lnk'; rs.textContent = 'Start again'; rs.addEventListener('click', restart); row.appendChild(rs);
+    p.appendChild(row); floatEl.appendChild(p);
+  }
+
+  /* ------------------------------------------------------------ popovers */
+  function clearTip() { var t = floatEl.querySelector('.plate.tip'); if (t) t.remove(); var d = dock.querySelector('.plate.tip'); if (d) d.remove(); clearTimeout(tipTimer); }
+  function tip(h, title, body, route) {
+    clearTip();
+    var p = plateEl('tip', '<span>' + (route ? 'Lives in the real app' : 'In the real app') + '</span>', title, body);
+    var row = document.createElement('div'); row.className = 'row';
+    if (route) { var a = document.createElement('a'); a.className = 'btn'; a.href = APP + '/' + (route === 'focus' ? 'focus' : route); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open it ↗'; row.appendChild(a); }
+    var x = document.createElement('button'); x.className = 'lnk'; x.textContent = 'Got it'; x.addEventListener('click', clearTip); row.appendChild(x);
+    p.appendChild(row);
+    (compact ? dock : floatEl).appendChild(p);
+    if (!compact) place(p, h.r);
+    tipTimer = setTimeout(clearTip, 9000);
+  }
+  function toast(msg) {
+    var old = floatEl.querySelector('.toast'); if (old) old.remove();
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; floatEl.appendChild(t);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.remove(); }, 4200);
+  }
+
+  /* ------------------------------------------------------------ chrome */
+  function restart() {
+    post = false; len = 25; dials = { r: DEF.r, a: DEF.a }; step = 0; finished = false; freeRoam = false; misses = 0;
+    clearTip(); go('landing', 'nav', true);
+  }
+  CHAPTERS.forEach(function (c, i) {
+    var b = document.createElement('button'); b.className = 'ch'; b.type = 'button'; b.textContent = c.name;
+    b.addEventListener('click', function () {
+      finished = false; freeRoam = false; step = c.step; post = !!c.post; if (!c.post) { len = 25; }
+      clearTip(); go(c.go, 'nav', true);
+    });
+    $('chapters').appendChild(b);
+  });
+  THEMES.forEach(function (t) {
+    var b = document.createElement('button'); b.className = 'sw'; b.type = 'button'; b.dataset.id = t.id;
+    b.style.setProperty('--c', t.ground); b.style.setProperty('--s', t.signal); b.setAttribute('aria-label', t.name + ' look'); b.title = t.name;
+    b.addEventListener('click', function () { setTheme(t.id); });
+    $('swatches').appendChild(b);
+  });
+  $('showBtn').addEventListener('click', toggleShow);
+  function toggleShow() { showAll = !showAll; stage.classList.toggle('show', showAll); $('showBtn').setAttribute('aria-pressed', String(showAll)); }
+  $('aboutBtn').addEventListener('click', function () { $('about').hidden = false; $('aboutClose').focus(); });
+  $('aboutClose').addEventListener('click', function () { $('about').hidden = true; });
+  $('about').addEventListener('pointerdown', function (e) { if (e.target === $('about')) $('about').hidden = true; });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'Escape') { if (!$('about').hidden) $('about').hidden = true; else clearTip(); return; }
+    if (!$('about').hidden) return;
+    if (k === 't' || k === 'T') cycleTheme();
+    else if (k === 'h' || k === 'H') toggleShow();
+    else if (k === 'r' || k === 'R') restart();
+    else if (k === 'z' || k === 'Z') { zoomOn = !zoomOn; camera(); }
+    else if (k === 'n' || k === 'N') {
+      var s = STEPS[step]; if (finished || freeRoam || !s) return;
+      var on = s.at === '*' ? !!find(s.pick) : base(state) === s.at;
+      if (!on) { if (s.post) post = true; go(s.at === '*' ? s.go : s.at, 'nav', true); return; }
+      if (s.chip) go(s.chip.to, 'nav'); else { var t = hits.querySelector('.hs.target'); if (t) { var h = t._h; act(h, t, h.k === 'dial' && h.ruler ? 0.5 : (h.k === 'ruler' ? 0.5 : null)); } }
+    }
+  });
+
+  var ro = window.ResizeObserver ? new ResizeObserver(size) : null;
+  if (ro) ro.observe(room); window.addEventListener('resize', size);
+
+  /* ------------------------------------------------------------ start */
+  paintTheme(); size();
+  setImage(file(theme, state), 'nav', function () {
+    buildHits(); readout(); guide(); preloadAround(); camera();
+    var ids = ['focus', 'locked', 'drift', 'done', 'focus@post', 'deck', 'w-notes', 'arcade@post', 'game-snake', 'insights@post', 'settings', 'settings-look'];
+    var i = 0, t = window.requestIdleCallback || function (f) { return setTimeout(f, 250); };
+    (function next() { if (i < ids.length) { preload(theme, ids[i++]); t(next); } })();
+  });
+  window.__demo = { go: go, st: function () { return { state: state, step: step, theme: theme, post: post, len: len, dials: dials, finished: finished, freeRoam: freeRoam, compact: compact }; } };
+})();
+</script>
