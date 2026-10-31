@@ -1,5 +1,5 @@
 /**
- * Friction's own versions of sites that do not run in the Browser at all (they are script apps, or they turn programs away). When
+ * Friction's own versions of sites that do not run in the Browser at all (they are script apps, or they turn programs away). Each is either a wrapper of the site (its own content in our window) or made by us on open data, and says which wherever it is shown (`tagOf`). When
  * an address belongs to one, the window says so and offers the version made here or the cloud browser. A site that already reads
  * fine in the Browser gets no version: that is the rule, and the reason the first pile of stand-ins was removed.
  * Each version uses a free service that needs no key and is called from the browser; only the words typed are sent.
@@ -7,19 +7,27 @@
 export type AltId = 'maps' | 'translate' | 'scholar' | 'stack' | 'search' | 'youtube' | 'ask'
 /** the versions that have a screen of their own in the window */
 export type MadeId = 'maps' | 'translate' | 'scholar' | 'stack'
-export interface Alt { id: AltId; name: string; short: string; blurb: string }
+/**
+ * `wrapper`: our window around another site's own content (its videos, its questions, its search results). `ours`: made by us on
+ * open data (a map from OpenStreetMap, translations from MyMemory, papers from Crossref), in place of a site that does not run.
+ * `of` is the site wrapped, or the source of the data.
+ */
+export interface Alt { id: AltId; name: string; short: string; blurb: string; kind: 'wrapper' | 'ours'; of: string }
+/** the label shown wherever one of these is shown, so it is always clear which kind it is */
+export const tagOf = (a: Alt) => (a.kind === 'ours' ? 'Made by us' : `Wrapper of ${a.of}`)
 
 export const ALT: Record<AltId, Alt> = {
-  maps: { id: 'maps', name: 'Friction Maps', short: 'Maps', blurb: 'search places and get driving directions, on OpenStreetMap' },
-  translate: { id: 'translate', name: 'Friction Translate', short: 'Translate', blurb: 'translate between about 40 languages and listen to the result' },
-  scholar: { id: 'scholar', name: 'Friction Scholar', short: 'Scholar', blurb: 'search papers and articles, with abstracts and how often each is cited' },
-  stack: { id: 'stack', name: 'Friction Stack', short: 'Stack Overflow', blurb: 'search questions and read the answers, without the clutter' },
-  search: { id: 'search', name: 'FrictionX search', short: 'FrictionX', blurb: 'search the web from a plain page' },
-  youtube: { id: 'youtube', name: 'Friction YouTube', short: 'YouTube', blurb: 'search videos and play them in the privacy-friendly player' },
-  ask: { id: 'ask', name: 'Friction Ask AI', short: 'Ask AI', blurb: 'a study helper you can type to (AI generated)' },
+  maps: { id: 'maps', name: 'Friction Maps', short: 'Maps', blurb: 'search places and get driving directions, on OpenStreetMap', kind: 'ours', of: 'OpenStreetMap' },
+  translate: { id: 'translate', name: 'Friction Translate', short: 'Translate', blurb: 'translate between about 40 languages and listen to the result', kind: 'ours', of: 'MyMemory' },
+  scholar: { id: 'scholar', name: 'Friction Scholar', short: 'Scholar', blurb: 'search papers and articles, with abstracts and how often each is cited', kind: 'ours', of: 'Crossref' },
+  stack: { id: 'stack', name: 'Friction Stack', short: 'Stack Overflow', blurb: 'search questions and read the answers, without the clutter', kind: 'wrapper', of: 'Stack Exchange' },
+  search: { id: 'search', name: 'FrictionX search', short: 'FrictionX', blurb: 'search the web from a plain page', kind: 'wrapper', of: 'Bing' },
+  youtube: { id: 'youtube', name: 'Friction YouTube', short: 'YouTube', blurb: 'search videos and play them in the privacy-friendly player', kind: 'wrapper', of: 'YouTube' },
+  ask: { id: 'ask', name: 'Friction Ask AI', short: 'Ask AI', blurb: 'a study helper you can type to (AI generated)', kind: 'ours', of: 'free AI models' },
 }
-/** the ones with a start-page entry, in order */
-export const MADE: MadeId[] = ['maps', 'translate', 'scholar', 'stack']
+/** the start page lists them in two groups: our wrappers of other sites, and what we made */
+export const WRAPPERS: AltId[] = ['youtube', 'search', 'stack']
+export const OURS: AltId[] = ['maps', 'translate', 'scholar']
 
 export interface AltHit {
   alt: Alt

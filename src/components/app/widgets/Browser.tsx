@@ -8,7 +8,7 @@ import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
 import { FRAME_SHIM, frameRequest } from '@/lib/frameproxy'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
-import { ALT, MADE, altFor, type AltHit, type MadeId } from '@/lib/alts'
+import { ALT, OURS, WRAPPERS, altFor, tagOf, type AltHit, type AltId, type MadeId } from '@/lib/alts'
 import { field } from './Window'
 import type { AltProps } from './alts/kit'
 
@@ -27,7 +27,9 @@ const MADE_VIEW: Record<MadeId, ReturnType<typeof lazy<ComponentType<AltProps>>>
   scholar: lazy(() => import('./alts/Scholar')),
   stack: lazy(() => import('./alts/Stack')),
 }
-const MADE_ICON: Record<MadeId, ReactNode> = { maps: <MapIcon className="size-5" />, translate: <Languages className="size-5" />, scholar: <GraduationCap className="size-5" />, stack: <MessageCircleQuestion className="size-5" /> }
+const ALT_ICON: Partial<Record<AltId, ReactNode>> = { maps: <MapIcon className="size-5" />, translate: <Languages className="size-5" />, scholar: <GraduationCap className="size-5" />, stack: <MessageCircleQuestion className="size-5" />, youtube: <Play className="size-5" />, search: <Search className="size-5" /> }
+/** what each one is made from, in a few words, under its name on the start page */
+const ALT_SUB: Partial<Record<AltId, string>> = { youtube: 'YouTube’s videos', search: 'Bing’s results', stack: 'Stack Exchange’s answers', maps: 'Instead of Google Maps', translate: 'Instead of Google Translate', scholar: 'Instead of Google Scholar' }
 type Hit = { title: string; url: string; about: string }
 type Video = { id: string; title: string; channel: string; length: string; views: string; when: string }
 type View =
@@ -113,12 +115,13 @@ function Tile({ icon, name, sub, onClick, label }: { icon: ReactNode; name: stri
 }
 
 /** the start page of one search: a big box and a few things to try */
-function Start({ title, sub, placeholder, ideas, onSearch, onBack }: { title: string; sub: string; placeholder: string; ideas: string[]; onSearch: (q: string) => void; onBack: () => void }) {
+function Start({ title, tag, sub, placeholder, ideas, onSearch, onBack }: { title: string; tag?: string; sub: string; placeholder: string; ideas: string[]; onSearch: (q: string) => void; onBack: () => void }) {
   const [text, setText] = useState('')
   return (
     <div className="scroll-y grid h-full content-start justify-items-center gap-4 px-3 pb-4 pt-2 text-center">
       <button onClick={onBack} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-sm text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back</button>
       <div>
+        {tag && <p className="hud mb-1 inline-block border border-ink/25 px-1.5 py-0.5">{tag}</p>}
         <p className="dot text-[clamp(1.8rem,6vw,2.8rem)] font-bold leading-[1.05]">{title}</p>
         <p className="mt-1 text-[13px] text-ink-2">{sub}</p>
       </div>
@@ -363,11 +366,11 @@ export function Browser() {
     show({ kind: 'alt', id, hit })
   }
   /** a friendlier version of this site that the window can open instead, when there is one */
-  const wrapFor = (raw: string): { name: string; go: () => void } | null => {
+  const wrapFor = (raw: string): { name: string; tag: string; go: () => void } | null => {
     let u: URL
     try { u = new URL(raw) } catch { return null }
     const hit = altFor(u)
-    return hit ? { name: hit.alt.name, go: () => goAlt(hit) } : null
+    return hit ? { name: hit.alt.name, tag: tagOf(hit.alt), go: () => goAlt(hit) } : null
   }
   const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'cloud' || view.kind === 'cloudnote' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
@@ -407,8 +410,6 @@ export function Browser() {
             <p className="hud">Start</p>
             <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Start pages">
               <li><Tile icon={<BookOpen className="size-6" />} name="Wikipedia" sub="The encyclopedia" onClick={() => void open('https://en.wikipedia.org/wiki/Main_Page')} /></li>
-              <li><Tile icon={<Play className="size-6" />} name="YouTube" sub="Videos to learn from" onClick={() => show({ kind: 'youtube', q: '', list: [] })} /></li>
-              <li><Tile icon={<Search className="size-6" />} name="FrictionX" sub="Our own search" onClick={() => show({ kind: 'search' })} /></li>
               <li><Tile icon={<Search className="size-6" />} name={engineName} sub="Search the web" onClick={() => (scripts === 'off' ? show({ kind: 'search' }) : void open(engine === 'bing' ? 'https://www.bing.com/' : engine === 'duckduckgo' ? 'https://duckduckgo.com/' : 'https://www.google.com/'))} label={`${engineName}, your search engine`} /></li>
               {saved.map((p) => (
                 <li key={p.url}>
@@ -419,19 +420,26 @@ export function Browser() {
               ))}
               {saved.length < PAGES_MAX && <li><Tile icon={<Plus className="size-6" />} name="Add page" sub="Keep a site here" onClick={() => show({ kind: 'add' })} /></li>}
             </ul>
-            <div>
-              <p className="hud mb-1">Made here, for sites that do not run</p>
-              <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0" aria-label="Made here">
-                {MADE.map((id) => (
-                  <li key={id}>
-                    <button onClick={() => show({ kind: 'alt', id, hit: { alt: ALT[id], site: ALT[id].short, sure: true } })} className="flex min-h-11 w-full items-center gap-2.5 border border-ink/25 bg-ink/[0.04] px-3 py-2 text-left transition-[transform,border-color,background-color] duration-150 ease-out hover:border-signal hover:bg-ink/[0.08] active:scale-[0.98]">
-                      <span className="text-signal" aria-hidden>{MADE_ICON[id]}</span>
-                      <span className="min-w-0"><span className="block truncate text-[14px] font-semibold leading-tight">{ALT[id].short}</span><span className="block truncate text-[12px] text-ink-3">{{ maps: 'Instead of Google Maps', translate: 'Instead of Google Translate', scholar: 'Instead of Google Scholar', stack: 'Questions and answers' }[id]}</span></span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {([['Wrappers of other sites', 'Their own content, shown in a plain window.', WRAPPERS], ['Made by us', 'Built here on open data, in place of sites that do not run.', OURS]] as const).map(([title, note, ids]) => (
+              <div key={title}>
+                <p className="hud">{title}</p>
+                <p className="mb-1 text-[12px] leading-[1.35] text-ink-3">{note}</p>
+                <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-3" aria-label={title}>
+                  {ids.map((id) => (
+                    <li key={id}>
+                      <button
+                        onClick={() => (id === 'youtube' ? show({ kind: 'youtube', q: '', list: [] }) : id === 'search' ? show({ kind: 'search' }) : show({ kind: 'alt', id: id as MadeId, hit: { alt: ALT[id], site: ALT[id].short, sure: true } }))}
+                        aria-label={`${ALT[id].name}. ${tagOf(ALT[id])}.`}
+                        className="flex min-h-11 w-full items-center gap-2.5 border border-ink/25 bg-ink/[0.04] px-3 py-2 text-left transition-[transform,border-color,background-color] duration-150 ease-out hover:border-signal hover:bg-ink/[0.08] active:scale-[0.98]"
+                      >
+                        <span className="text-signal" aria-hidden>{ALT_ICON[id]}</span>
+                        <span className="min-w-0"><span className="block truncate text-[14px] font-semibold leading-tight">{ALT[id].short}</span><span className="block truncate text-[12px] text-ink-3">{ALT_SUB[id]}</span></span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
             {saved.length > 0 && <button onClick={() => setEditing((v) => !v)} aria-pressed={editing} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-[13px] text-ink-2 hover:text-ink"><Pencil className="size-3.5" />{editing ? 'Done' : 'Remove pages'}</button>}
             {recent.length > 0 && (
               <div>
@@ -442,11 +450,11 @@ export function Browser() {
             <p className="text-[12px] leading-[1.4] text-ink-3">Games and short-form social media are blocked. Full YouTube videos play; Shorts do not. Sites that do not work here open in the cloud browser.</p>
           </div>
         )}
-        {view.kind === 'search' && <Start title="FrictionX" sub={`Search the web, made here. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
+        {view.kind === 'search' && <Start title="FrictionX" tag={tagOf(ALT.search)} sub={`Search the web from a plain page. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
         {view.kind === 'offer' && (
           <div className="scroll-y grid h-full content-center justify-items-start gap-3 p-4" role="region" aria-label={`${view.hit.site} has a version made here`}>
             <p className="hud">{view.hit.site} does not run here</p>
-            <p className="text-[15px] leading-[1.45]">Use <strong>{view.hit.alt.name}</strong>, made here: {view.hit.alt.blurb}. Or open the real {view.hit.site} in the cloud browser, a real browser on a remote computer.</p>
+            <p className="text-[15px] leading-[1.45]">Use <strong>{view.hit.alt.name}</strong>, {view.hit.alt.kind === 'ours' ? 'made by us' : `our wrapper of ${view.hit.alt.of}`}: {view.hit.alt.blurb}. Or open the real {view.hit.site} in the cloud browser, a real browser on a remote computer.</p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => goAlt(view.hit)} autoFocus className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Use {view.hit.alt.name}</button>
               <button onClick={() => void openCloud(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><Cloud className="size-4 text-signal" aria-hidden />Open in the cloud browser</button>
@@ -476,10 +484,10 @@ export function Browser() {
             </ul>
           </div>
         )}
-        {view.kind === 'youtube' && !view.q && <Start title="YouTube" sub="Full videos to learn from. Shorts are left out. Paste a video link to play it." placeholder="Search YouTube or paste a link" ideas={CHANNELS} onSearch={(q) => go(q, true)} onBack={back} />}
+        {view.kind === 'youtube' && !view.q && <Start title="Friction YouTube" tag={tagOf(ALT.youtube)} sub="Full videos to learn from, from YouTube itself. Shorts are left out. Paste a video link to play it." placeholder="Search YouTube or paste a link" ideas={CHANNELS} onSearch={(q) => go(q, true)} onBack={back} />}
         {view.kind === 'youtube' && view.q && (
           <div className="scroll-y h-full p-2">
-            <p className="hud mb-1" role="status">{view.list.length ? `Videos for “${view.q}”` : 'Nothing found'}</p>
+            <p className="hud mb-1" role="status">{view.list.length ? `Videos for “${view.q}”` : 'Nothing found'} · {tagOf(ALT.youtube)}</p>
             <ul className="m-0 list-none p-0">
               {view.list.map((v) => (
                 <li key={v.id} className="border-b border-ink/10">
@@ -550,7 +558,7 @@ export function Browser() {
         {issues && (
           <div className="scroll-y absolute inset-0 z-20 grid content-start justify-items-start gap-3 bg-ground p-4" role="dialog" aria-label="Facing issues">
             <p className="hud">Page not working?</p>
-            <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} is a version we made that does.` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
+            <p className="text-[15px] leading-[1.4]">{wrap ? `This site does not work well inside Friction. ${wrap.name} does (${wrap.tag.toLowerCase()}).` : 'Some sites will not work inside Friction, for example ones that need you to log in or to prove you are a person. Here is what you can try.'}</p>
             {view.kind !== 'cloud' && <p className="text-[13px] leading-[1.4] text-ink-2"><strong className="text-ink">Cloud browser:</strong> a real browser on a server (Hyperbeam), streamed to you, so sites that need a full browser work, including chat and live ones. It is experimental and may break. You get 30 minutes a day, if the day&rsquo;s shared time is not used up.</p>}
             <div className="flex flex-wrap gap-2">
               {wrap && <button onClick={() => { setIssues(false); wrap.go() }} className="inline-flex h-11 items-center gap-1.5 bg-signal px-4 text-sm font-semibold text-on-signal"><Sparkles className="size-4" />Open {wrap.name}</button>}

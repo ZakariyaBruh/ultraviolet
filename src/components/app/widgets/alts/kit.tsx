@@ -1,6 +1,6 @@
 import { ArrowLeft, Cloud } from 'lucide-react'
 import type { ReactNode } from 'react'
-import type { Alt, AltHit } from '@/lib/alts'
+import { tagOf, type Alt, type AltHit } from '@/lib/alts'
 
 /** what every made-here screen is given by the Browser window */
 export interface AltProps {
@@ -18,7 +18,10 @@ export function AltFrame({ alt, site, cloudUrl, credit, onBack, onCloud, childre
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
       <div className="flex items-center gap-2 border-b border-ink/15 pr-3">
         <button onClick={onBack} aria-label="Back" className="grid size-11 shrink-0 place-items-center text-ink-2 hover:text-ink"><ArrowLeft className="size-4" /></button>
-        <p className="dot min-w-0 flex-1 truncate text-lg font-bold leading-none">{alt.name}</p>
+        <div className="min-w-0 flex-1 py-1">
+          <p className="dot truncate text-lg font-bold leading-none">{alt.name}</p>
+          <p className="hud mt-1 truncate !text-[11px] leading-none" title={alt.kind === 'ours' ? `Built by Friction on open data from ${alt.of}` : `Shows ${alt.of}'s own content in a plain window`}>{tagOf(alt)}</p>
+        </div>
       </div>
       <div className="min-h-0 overflow-hidden">{children}</div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 border-t border-ink/15 px-3 text-[12px] text-ink-3">
