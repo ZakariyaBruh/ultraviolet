@@ -130,7 +130,7 @@ function Dial({ title, hint, value, onChange, stops, labelOf, ends, label, flip 
 const RETRO = [
   { name: 'Future', note: 'Clean and sharp. No filters and no pixel type.' },
   { name: 'Afterglow', note: 'A faint scanline, a little grain and a warm tint.' },
-  { name: 'Broadcast', note: 'Adds an on-screen display (channel and REC) and pixel kickers. This is as far as the screen filters go.' },
+  { name: 'Broadcast', note: 'Pixel kickers on the labels. This is as far as the screen filters go.' },
   { name: 'Arcade', note: 'Pixel titles and labels, and hard offset shadows.' },
   { name: 'Terminal', note: 'Dashed panel outlines and a prompt before each page title.' },
   { name: 'Full retro', note: 'Square panels and heavier dashes. Words stay easy to read.' },
@@ -140,9 +140,9 @@ const ASCII = [
   { name: 'Off', note: 'No solids behind the page or beside the titles. The timer keeps its small turning solid.' },
   { name: 'Drift', note: 'One solid drifts slowly around the screen.' },
   { name: 'A few', note: 'Three solids roam the screen, and one turns beside each page title.' },
-  { name: 'Floor', note: 'Five solids and a floor of text lines that runs to the horizon. Two turn beside each title.' },
-  { name: 'Stars', note: 'Seven solids, text stars, and bigger, brighter shapes.' },
-  { name: 'World', note: 'A whole text world: nine solids, stars and the floor, all moving, with three beside each title.' },
+  { name: 'Orbit', note: 'Five solids circle the middle of the screen, each on a loop of its own. Two turn beside each title.' },
+  { name: 'Stars', note: 'Seven solids, text stars twinkling, and a floor of text lines that runs to the horizon.' },
+  { name: 'World', note: 'A whole text world: a sun on the horizon, nine solids circling it, falling stars and the floor, all moving, with three beside each title.' },
 ]
 
 function Screen() {

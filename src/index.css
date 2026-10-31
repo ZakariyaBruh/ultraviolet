@@ -401,14 +401,8 @@ html[data-ascii='3'] .crt, html[data-ascii='4'] .crt, html[data-ascii='5'] .crt 
 html[data-retro='0'] .caret { animation: none; }
 /* a glow on headings that grows to Broadcast and no further */
 .dot, .hud { text-shadow: 0 0 calc(var(--fx, 0) * 10px) color-mix(in srgb, var(--signal) calc(var(--fx, 0) * 45%), transparent); }
-/* the on-screen display appears at Broadcast */
-.osd-wrap { display: none; }
-html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .osd-wrap { display: flex; }
-.osd { font-family: 'VT323', monospace; text-transform: uppercase; letter-spacing: 0.06em; font-size: 24px; line-height: 1; color: var(--ink); text-shadow: 2px 2px 0 var(--ground); -webkit-font-smoothing: none; font-size-adjust: none; }
-.osd .rec { color: var(--hot); }
-.osd .rec::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; background: var(--hot); animation: blink 1.1s steps(2) infinite; vertical-align: 1px; }
 .blink { animation: blink 1s steps(2) infinite; }
-@media (prefers-reduced-motion: reduce) { .blink, .osd .rec::before { animation: none; } .retro-scan, .retro-grain { display: none; } }
+@media (prefers-reduced-motion: reduce) { .blink { animation: none; } .retro-scan, .retro-grain { display: none; } }
 /* stop 2+: pixel kickers */
 html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .kicker { font-family: 'Silkscreen', monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--signal); }
 /* stop 3+: Arcade. Pixel titles and labels, and a hard offset shadow under every panel */
