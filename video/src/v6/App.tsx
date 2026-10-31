@@ -1,4 +1,4 @@
-import { OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
+import { Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
 import { Cond, E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
 
 /** The real app, one take, filmed frame by frame (scripts/capture6.cjs) and played back through a virtual camera that is a spring:
@@ -32,6 +32,8 @@ const KEYS: Key[] = [
   { t: 21.45, r: [720, 100, 440, 247] },         // into the solid
 ]
 const SCENE_S = 22.0
+/** the scene is mounted this many frames before its own time zero (13.0 s), so the doughnut's hole has the app to show */
+export const PRE = 14
 
 const toCam = (r: Rect) => {
   const z = Math.max(1, Math.min(ZMAX, Math.min(SW / r[2], SH / r[3])))
@@ -89,9 +91,10 @@ const Caption = ({ now, t0, t1, text, top }: { now: number; t0: number; t1: numb
 }
 
 export const AppScene = () => {
-  const f = useCurrentFrame()
+  const raw = useCurrentFrame()
+  const f = raw - PRE
   const now = f / FPS
-  const c = TABLE[Math.min(TABLE.length - 1, f)]
+  const c = TABLE[Math.max(0, Math.min(TABLE.length - 1, f))]
   // motion blur from the camera's own speed: a box blur along its path, one shutter long (180 degrees)
   const bx = Math.abs(c.vx) * c.z * OUT * 0.5 / FPS * 0.2, by = Math.abs(c.vy) * c.z * OUT * 0.5 / FPS * 0.2
   const blurOn = bx > 0.35 || by > 0.35
@@ -100,22 +103,24 @@ export const AppScene = () => {
   const sc = OUT * c.z * bz
   const s = shake(now, 8.0, 6)
   // arrival: the screen opens out of the middle of the dial, with rings leaving it
-  const iris = interpolate(now, [0.0, 0.62], [0, 1], { ...clamp, easing: E.out })
-  const arrive = 0.62 + 0.38 * spr(now, 0.55, 0.82)
+  const arrive = 0.74 + 0.26 * spr(raw / FPS, 0.6, 0.84)
   return (
     <Fill style={{ background: P.deep }}>
       <svg width="0" height="0" style={{ position: 'absolute' }}><defs><filter id="camblur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation={`${bx.toFixed(2)} ${by.toFixed(2)}`} /></filter></defs></svg>
-      <Fill style={{ clipPath: now < 0.7 ? `circle(${(iris * 1500).toFixed(1)}px at 960px 540px)` : undefined }}>
-        <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${now < 0.9 ? arrive : 1})`, transformOrigin: '960px 540px' }}>
+      <Fill>
+        <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${raw / FPS < 1.4 ? arrive : 1})`, transformOrigin: '960px 540px' }}>
           <Fill style={{ filter: blurOn ? 'url(#camblur)' : undefined }}>
             <div style={{ position: 'absolute', left: 0, top: 0, width: SW, height: SH, transformOrigin: '0 0', transform: `translate(${960 + bxp}px, ${540 + byp}px) scale(${sc}) translate(${-c.cx}px, ${-c.cy}px)` }}>
-              <Sequence from={0} durationInFrames={4 * FPS} layout="none">
+              <Sequence from={0} durationInFrames={PRE} layout="none">
+                <Freeze frame={0}><OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={4} muted style={{ width: SW, height: SH }} /></Freeze>
+              </Sequence>
+              <Sequence from={PRE} durationInFrames={4 * FPS} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={4} muted style={{ width: SW, height: SH }} />
               </Sequence>
-              <Sequence from={4 * FPS} durationInFrames={3 * FPS} layout="none">
+              <Sequence from={PRE + 4 * FPS} durationInFrames={3 * FPS} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={149} muted style={{ width: SW, height: SH }} />
               </Sequence>
-              <Sequence from={7 * FPS} durationInFrames={15 * FPS + 4} layout="none">
+              <Sequence from={PRE + 7 * FPS} durationInFrames={15 * FPS + 4} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={262} muted style={{ width: SW, height: SH }} />
               </Sequence>
             </div>

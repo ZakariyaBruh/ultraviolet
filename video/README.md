@@ -10,9 +10,9 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 | --- | --- | --- |
 | 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. |
 | 6.2 - 7.0 | Black and silence. | The score gates everything except the room tone. |
-| 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the camera falls through the dial. | `src/v6/Title.tsx`, `Dial.tsx` (a vector dial, so the dive stays sharp). |
+| 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the O turns into the app's text doughnut, which grows until the camera flies through its hole into the app (the move v3 had). | `src/v6/Title.tsx` (the doughnut is the app's own `ascii3d.ts` engine, `src/Ascii.tsx`), `Dial.tsx`. The hole is a mask over the title; the app scene is mounted 14 frames early underneath it. |
 | 13.0 - 35.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish, five looks, the Arcade, the front page. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
-| 35.0 - 39.6 | The address, "Launching on Product Hunt". | `src/v6/End.tsx`. |
+| 35.0 - 39.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
 
 ## What was learned (and applied)
 
@@ -25,10 +25,12 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
   with a budget), the screenshot is at device pixels (3840x2160 for the 1280x720 page) so a 2x camera zoom is still one to one,
   and the app's animation library is told it has no compositor animations (`delete Element.prototype.animate`) so its opacity springs
   follow the stepped clock too. The pointer is a spring overlay; clicks are real input events.
-* **Sound:** real instruments from a General MIDI soundfont (strings, cello, piano, timpani, choir) rendered by `tsfr.c` (TinySoundFont),
-  everything else synthesised (sub, pulse, kick, clap, hats, risers, impacts), a generated hall and room reverb, sidechain from the kick,
-  gaps of silence before each hit, and the dial's own sounds read from the bake: its detent clicks from its angle, the glass hiss from its speed,
-  the ridge thuds from the frames it crosses them. The title dial's clicks follow the same law the picture draws.
+* **Sound:** the picture is a broadcast station, retro against futuristic, so the score is analogue-style, not orchestral (the first cut used a soundfont
+  string section, choir and timpani and they did not belong to it): detuned-saw pads, a pulse-wave pluck through a dotted-eighth delay, a mono saw bass,
+  an 808-style kit with a gated snare and metallic hats, polysynth stabs on the four big hits, station-ident tones, static between channels, a picture tube
+  switching off at the end, generated hall and room reverbs, kick sidechain, gaps of silence before each hit. The dial's own sounds are read from the bake:
+  its detent clicks from its angle, the glass hiss from its speed, the ridge thuds from the frames it crosses them; the title and end dials' clicks follow the
+  law the picture draws. `scripts/tsfr.c` (a soundfont renderer) is no longer used by the score and is kept for experiments.
 * **The brief's three gates** (`scripts/gate6.py` and the render checks in `scripts/qa.py`): first 45 frames must move, no static stretch over 30 frames,
   5% safe zone, contrast of text on its plate, frames looked at at 0.5, 1.5, 3.0 and 5.0 s and at every cue.
 

@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
-"""Friction trailer v6: score and sound design.
+"""Friction trailer v6.1: score and sound design.
 
-Real instruments (General MIDI soundfont, rendered by tsfr.c) for strings, cello, piano; everything else is synthesised
-here (sub, pulse, drums, risers, impacts, foley). The hook's sounds are not invented, they are read from the Blender
-bake (public/v6/hook/hook.json): the dial's detent clicks come from its angle, the glass hiss from its speed, the
-ridge thuds from the frames it crosses them. The title's dial uses the same law as the Remotion title (ang = A(1-e^-t/tau)).
-Everything sits on one 120 bpm grid (beat 0.5 s) so cuts and hits land on beats.
+The picture is a broadcast station, retro against futuristic, so the sound is too: analogue-style synths (detuned saw pads, a pulse-wave pluck
+through a dotted-eighth delay, a mono saw bass), an 808-style kit with a gated snare, station-ident tones, static between channels and a
+picture tube switching off at the end. No orchestra: the first cut used a General MIDI string section, choir and timpani and they did not belong
+to this picture. The hook's sounds are read from the Blender bake (public/v6/hook/hook.json): the dial's detent clicks come from its angle,
+the glass hiss from its speed, the ridge thuds from the frames it crosses them. The dials in the title and the end card use the same law as
+the Remotion scenes draw (ang = A(1-e^-t/tau)). Everything sits on one 120 bpm grid (beat 0.5 s) so cuts and hits land on beats.
 
   python3 score6.py          -> public/v6/score.wav (+ stems in /tmp/claude-0/audio/build/stems)
 """
 import numpy as np, json, subprocess, os, sys
-from pedalboard import Pedalboard, Reverb, Compressor, Limiter, LowpassFilter, HighpassFilter, Gain, PeakFilter, LowShelfFilter, HighShelfFilter, LadderFilter, Convolution, Distortion
+from pedalboard import Pedalboard, Reverb, Compressor, Limiter, LowpassFilter, HighpassFilter, Gain, PeakFilter, LowShelfFilter, HighShelfFilter, LadderFilter, Convolution, Distortion, Delay
 from pedalboard.io import AudioFile
 
 SR = 48000
 ROOT = '/home/user/ultraviolet/video'
 AUD = '/tmp/claude-0/audio'; BUILD = AUD + '/build'; STEMS = BUILD + '/stems'
 os.makedirs(STEMS, exist_ok=True)
-LEN = 41.5
+LEN = 41.0
 N = int(LEN * SR)
 rng = np.random.default_rng(66)
 BEAT = 0.5; BAR = 2.0
 
 # ---------------------------------------------------------------- the edit's clock (seconds on the master timeline)
 CUE = dict(
-    hook_end=6.2, stop=6.05, hit_title=7.0, wordmark=8.4, tagline=9.6, dive0=11.2, through=12.6, app=13.0,
+    hook_end=6.2, stop=6.05, hit_title=7.0, wordmark=8.4, tagline=9.6, dive0=11.2, grow0=11.4, through=12.95, app=13.0,
     slide_up0=13.96, slide_up1=14.36, slide_dn1=14.78, lock=15.5, toast=17.5, card=21.0, dismiss=23.0,
-    themes=24.0, arcade=27.0, logo=29.0, typing0=29.15, typing1=32.4, endcard=35.0, end=38.0,
+    themes=24.0, arcade=27.0, logo=29.0, typing0=29.15, typing1=32.4, endcard=35.0, ring=35.0, square=35.45, word=35.55, dial=35.55,
+    url=36.25, underline=36.5, line=36.95, ph=37.35, crt=38.7, end=39.6,
 )
 # chords, one per bar from 7.0
 PROG = ['Dm', 'Bb', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'C', 'D', 'D']
@@ -206,7 +208,7 @@ for i in range(len(ang) - 1):
     while k * 30 <= a1:
         u = (k * 30 - a0) / max(1e-9, a1 - a0); t = (i + u) / fps
         rate = (a1 - a0) * fps
-        vel = 0.10 + 0.55 / (1 + rate / 500)
+        vel = 0.05 + 0.5 / (1 + rate / 350)
         put(foley, detent(vel, 2300 + 600 * rng.random()), t, 1.0, 0.2)
         k += 1
 # the ridges the dial bites into
@@ -234,157 +236,263 @@ for k in range(1, 48):
     put(foley, detent(0.10 + 0.6 / (1 + rate / 450), 2000 + 700 * rng.random()), t, 1.0, 0.0)
 put(foley, thunk(0.9), CUE['hit_title'] + 2.45, 0.8, 0.0)                    # the last detent latches
 
-# ================================================================ MUSIC
-str_ev, cello_ev, piano_ev, tim_ev, choir_ev = [], [], [], [], []
-for b, name in enumerate(PROG):
-    t = bar_t(b); c = CH[name]
-    vel = 0.55 if b < 3 else 0.5
-    for m in c['str']: str_ev.append((t - 0.05, BAR + 0.55, m, vel))
-    if b >= 1: cello_ev.append((t, BAR + 0.1, c['root'] + 12, 0.6))
-    if b >= 3 and b != 14 and b != 15: cello_ev.append((t, BAR + 0.1, c['root'], 0.5))
-    pian = (b <= 2) or (3 <= b <= 6) or (11 <= b <= 15)
-    if pian:
-        a, bb = c['dy']; pv = 0.55 if b < 3 else 0.42
-        piano_ev.append((t, 1.8, a, pv)); piano_ev.append((t, 1.8, bb, pv * 0.85))
-        piano_ev.append((t + 1.0, 0.7, c['mo'][0], pv * 0.9)); piano_ev.append((t + 1.5, 1.4, c['mo'][1], pv * 0.8))
-# a low piano line under the final hit, a held choir under the end card
-for m in (38, 50): piano_ev.append((CUE['endcard'], 3.5, m, 0.8))
-for m in (62, 66, 69): choir_ev.append((CUE['endcard'] - 0.05, 3.2, m, 0.45))
-# timpani: the title hit, the app arrival, the celebration, the end card
-for t0, k, v in [(CUE['hit_title'], 38, 1.0), (CUE['hit_title'], 26, 0.9), (CUE['app'], 38, 0.95), (CUE['card'], 38, 1.0), (CUE['card'], 45, 0.8),
-                 (CUE['endcard'], 38, 1.0), (CUE['endcard'], 26, 0.9)]:
-    tim_ev.append((t0, 1.4, k, v))
-hook_cello = [(0.0, 6.0, 38, 0.55), (2.0, 4.0, 45, 0.4)]
-cello_ev += hook_cello
-hook_str = [(1.0, 5.2, m, 0.4) for m in (50, 57, 62)]
-str_ev += hook_str
 
-S_str = tsf(49, str_ev, 'strings')
-S_cel = tsf(42, cello_ev, 'cello')
-S_pia = tsf(0, piano_ev, 'piano')
-S_tim = tsf(47, tim_ev, 'timp')
-S_cho = tsf(52, choir_ev, 'choir')
-
-# synth pad: three detuned saws per chord note, low-passed, opening on the builds
-pad = zbuf()
-for b, name in enumerate(PROG):
-    t = bar_t(b); c = CH[name]
-    n = int((BAR + 0.6) * SR); tt = np.arange(n) / SR
-    y = np.zeros(n)
-    for m in c['tone']:
+# ================================================================ analogue-style voices
+def stereo_fade(x, a=0.003, b=0.01):
+    n = len(x); na = int(a * SR); nb = int(b * SR)
+    x = x.copy()
+    if na: x[:na] *= np.linspace(0, 1, na)[:, None]
+    if nb: x[-nb:] *= np.linspace(1, 0, nb)[:, None]
+    return x
+def supersaw(notes, n, det_l=(-0.009, -0.003), det_r=(0.003, 0.009)):
+    L = np.zeros(n); R = np.zeros(n)
+    for m in notes:
         f = hz(m)
-        y += saw(np.full(n, f * 0.997)) + saw(np.full(n, f * 1.003)) + saw(np.full(n, f))
-    y /= 12
-    cutv = 500 + 900 * np.sin(np.pi * np.clip(tt / (BAR + 0.6), 0, 1)) + (800 if name in ('D',) else 0)
-    y = auto_filter(y, LadderFilter.Mode.LPF24, cutv[::240], 0.12)
-    env = np.minimum(1, tt / 0.5) * np.clip((BAR + 0.6 - tt) / 0.6, 0, 1)
-    put(pad, np.stack([y * env, np.roll(y, 37) * env], 1), t - 0.05, 1.0)
-# the hook's pad: a D drone that opens as the dial speeds up
-n = int(6.1 * SR); tt = np.arange(n) / SR
-dr = (saw(np.full(n, hz(38) * 0.998)) + saw(np.full(n, hz(38) * 1.002)) + saw(np.full(n, hz(26)))) / 3
-dr = auto_filter(dr, LadderFilter.Mode.LPF24, (90 * (1500 / 90) ** (tt / 6.1) ** 1.4)[::240], 0.3)
-dr *= np.minimum(1, tt / 1.5) * np.clip((6.05 - tt) / 0.05, 0, 1)
-put(pad, np.stack([dr, dr], 1) * 1.4, 0.0, 1.0)
+        for d in det_l: L += saw(np.full(n, f * (1 + d)))
+        for d in det_r: R += saw(np.full(n, f * (1 + d)))
+    k = 1.0 / (len(notes) * max(len(det_l), len(det_r)))
+    return L * k, R * k
+def stab(notes, dur=1.5, vel=1.0, bright=1.0):
+    """a detuned-saw chord that opens and shuts like a polysynth stab"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    L, R = supersaw(notes, n, (-0.011, -0.004), (0.004, 0.011))
+    cut = (800 + 6500 * bright * np.exp(-t / 0.28))[::120]
+    L = auto_filter(L, LadderFilter.Mode.LPF24, cut, 0.2, chunk=120); R = auto_filter(R, LadderFilter.Mode.LPF24, cut, 0.2, chunk=120)
+    env = np.minimum(1, t / 0.004) * np.exp(-t / 0.6)
+    return stereo_fade(np.stack([L * env, R * env], 1) * vel * 2.2, 0.002, 0.2)
+def pad_bar(notes, dur, open_=1.0):
+    n = int(dur * SR); t = np.arange(n) / SR
+    L, R = supersaw(notes, n)
+    cut = (520 + 1500 * open_ * np.sin(np.pi * np.clip(t / dur, 0, 1)))[::240]
+    L = auto_filter(L, LadderFilter.Mode.LPF24, cut, 0.14); R = auto_filter(R, LadderFilter.Mode.LPF24, cut, 0.14)
+    env = np.minimum(1, t / 0.6) * np.clip((dur - t) / 0.7, 0, 1)
+    return np.stack([L * env, R * env], 1) * 2.4
+def pluck(m, dur=0.7, vel=1.0):
+    """a pulse and a saw through a filter that snaps shut: the sound of an old polysynth patch called Pluck"""
+    n = int(dur * SR); t = np.arange(n) / SR; f = hz(m)
+    ph = (np.cumsum(np.full(n, f)) / SR) % 1.0
+    width = 0.5 - 0.18 * np.sin(2 * np.pi * 0.8 * t)
+    y = 0.55 * np.where(ph < width, 1.0, -1.0) + 0.45 * saw(np.full(n, f * 1.005))
+    cut = (340 + 4600 * np.exp(-t / 0.11))[::120]
+    y = auto_filter(y, LadderFilter.Mode.LPF24, cut, 0.28, chunk=120)
+    env = np.minimum(1, t / 0.002) * np.exp(-t / 0.3) * np.clip((dur - t) / 0.05, 0, 1)
+    return y * env * vel * 1.5
+def bass_note(m, dur=0.23, vel=1.0):
+    n = int(dur * SR); t = np.arange(n) / SR; f = hz(m)
+    y = 0.6 * saw(np.full(n, f)) + 0.55 * np.sin(2 * np.pi * f * t) + 0.18 * np.where(((np.cumsum(np.full(n, f)) / SR) % 1) < 0.5, 1.0, -1.0)
+    cut = (150 + 1800 * np.exp(-t / 0.075))[::120]
+    y = auto_filter(y, LadderFilter.Mode.LPF24, cut, 0.3, 1.8, chunk=120)
+    env = np.minimum(1, t / 0.003) * np.exp(-t / 0.17) * np.clip((dur - t) / 0.025, 0, 1)
+    return np.tanh(y * env * 1.6) * vel * 0.8
+def kick(vel=1.0):
+    n = int(0.65 * SR); t = np.arange(n) / SR
+    f = 46 + 95 * np.exp(-t / 0.026)
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.17)
+    click = hp(noise(n), 2200) * np.exp(-t / 0.003) * 0.14
+    return stereo_fade(np.tanh((body + click) * 1.5)[:, None] * np.ones((1, 2)) * vel, 0.0005, 0.03)[:, 0]
+def snare(vel=1.0):
+    """tone, noise, and the gated reverb that made the eighties: a tail that holds flat and is cut off hard"""
+    n = int(0.5 * SR); t = np.arange(n) / SR
+    tone = np.sin(2 * np.pi * np.cumsum(185 + 70 * np.exp(-t / 0.02)) / SR) * np.exp(-t / 0.05) * 0.7
+    nz = hp(lp(noise(n), 7000), 900) * np.exp(-t / 0.085)
+    gate = hp(lp(noise(n), 4800), 500) * np.clip((0.16 - t) / 0.012, 0, 1) * 0.42 * np.minimum(1, t / 0.004)
+    return fade((tone + nz + gate) * vel * 1.3, 0.0005, 0.01)
+def clap(vel=1.0):
+    n = int(0.45 * SR); t = np.arange(n) / SR
+    y = np.zeros(n)
+    for o in (0.0, 0.011, 0.022):
+        s = int(o * SR); m = n - s
+        y[s:] += noise(m) * np.exp(-np.arange(m) / SR / 0.005) * 0.7
+    y += noise(n) * np.exp(-t / 0.085) * 0.45 * (t > 0.02)
+    y = auto_filter(y, LadderFilter.Mode.BPF12, np.full(n // 240 + 1, 1500.0), 0.25)
+    return fade(y * vel * 2.2, 0.0005, 0.02)
+HAT_F = [205.3, 304.4, 369.6, 522.7, 540.0, 814.8]
+def hat(vel=1.0, open_=False):
+    n = int((0.32 if open_ else 0.09) * SR); t = np.arange(n) / SR
+    y = sum(np.sign(np.sin(2 * np.pi * f * t)) for f in HAT_F) / 6
+    y = hp(y, 7200, 2) * np.exp(-t / (0.11 if open_ else 0.02))
+    return fade(y * vel * 1.4, 0.0003, 0.012)
+def tom(f0, vel=1.0):
+    n = int(0.5 * SR); t = np.arange(n) / SR
+    f = f0 * (1 + 0.9 * np.exp(-t / 0.03))
+    y = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.17) + hp(noise(n), 1500) * np.exp(-t / 0.01) * 0.15
+    return fade(np.tanh(y * 1.4) * vel, 0.0005, 0.02)
+def crash(tail=2.0):
+    n = int(tail * SR); t = np.arange(n) / SR
+    y = hp(noise(n), 3600, 2) * np.exp(-t / 0.6) + hp(noise(n), 9000) * np.exp(-t / 0.3) * 0.5
+    return fade(y * 0.8, 0.0005, 0.3)
+def rev_crash(dur):
+    c = crash(dur * 1.3)[int(dur * 0.0 * SR):int(dur * SR)]
+    return c[::-1] * np.linspace(0.2, 1.0, len(c)) ** 1.5
+def static(dur, level=1.0):
+    """between stations: hiss that flickers on and off at mains rate"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    y = hp(lp(noise(n), 9000), 250)
+    gate = np.repeat(rng.random(n // 320 + 1) > 0.3, 320)[:n]
+    y = y * gate * np.exp(-t / (dur * 0.6)) * np.minimum(1, t / 0.003)
+    return fade(y * level, 0.001, 0.02)
+def crt_off():
+    n = int(0.9 * SR); t = np.arange(n) / SR
+    f = 3200 * np.exp(-t / 0.045) + 48
+    y = lp(saw(f), 2600) * np.exp(-t / 0.11) * 0.8
+    th = np.sin(2 * np.pi * np.cumsum(46 + 70 * np.exp(-t / 0.05)) / SR) * np.exp(-t / 0.24)
+    pf = lp(noise(n), 700) * np.exp(-t / 0.03) * 0.6
+    return fade(np.tanh((y + th * 1.1 + pf) * 1.2), 0.0005, 0.25)
+def ident(f, dur=0.4, vel=1.0):
+    n = int(dur * SR); t = np.arange(n) / SR
+    vib = 1 + 0.004 * np.sin(2 * np.pi * 5.2 * t) * np.minimum(1, t / 0.2)
+    ph = np.cumsum(f * vib) / SR
+    y = np.sin(2 * np.pi * ph) + 0.22 * np.sin(4 * np.pi * ph) + 0.08 * np.sin(6 * np.pi * ph)
+    return fade(y * np.minimum(1, t / 0.006) * np.exp(-t / (dur * 0.5)) * vel * 0.45, 0.001, 0.05)
+def zap(dur=0.16, f0=5200, f1=240, vel=1.0):
+    n = int(dur * SR); t = np.arange(n) / SR; u = t / dur
+    f = f0 * (f1 / f0) ** u
+    return fade(np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / (dur * 0.6)) * vel, 0.0005, 0.01)
 
-# sub and pulse bass
-sub = zbuf(); pulse = zbuf()
+# ================================================================ MUSIC
+bed = zbuf(); pad = zbuf(); plk = zbuf(); sub = zbuf(); bas = zbuf(); kick_b = zbuf(); snr = zbuf(); hats = zbuf(); toms = zbuf(); fx = zbuf(); hits = zbuf()
+# the hook's bed: a D that opens like a filter on a drone, no instruments yet
+n = int(6.1 * SR); tt = np.arange(n) / SR
+dr = (saw(np.full(n, hz(38) * 0.998)) + saw(np.full(n, hz(38) * 1.002)) + saw(np.full(n, hz(26))) + 0.35 * np.sin(2 * np.pi * hz(26) * tt)) / 3.4
+dr = auto_filter(dr, LadderFilter.Mode.LPF24, (80 * (1700 / 80) ** (tt / 6.1) ** 1.4)[::240], 0.3)
+dr *= np.minimum(1, tt / 1.5) * np.clip((6.05 - tt) / 0.05, 0, 1)
+put(bed, np.stack([dr, dr], 1) * 1.6, 0.0)
+second = (saw(np.full(n, hz(50) * 0.997)) + saw(np.full(n, hz(50) * 1.003)) + saw(np.full(n, hz(57)))) / 3
+second = auto_filter(second, LadderFilter.Mode.LPF24, (200 * (2600 / 200) ** (tt / 6.1) ** 1.8)[::240], 0.2) * np.clip((tt - 1.5) / 3.0, 0, 1) * np.clip((6.05 - tt) / 0.05, 0, 1)
+put(bed, np.stack([second, second], 1) * 0.9, 0.0)
+
 for b, name in enumerate(PROG):
-    t = bar_t(b); c = CH[name]; r = c['root'] - 12
-    n = int((BAR + 0.1) * SR); tt = np.arange(n) / SR
-    s = np.sin(2 * np.pi * hz(r) * tt) + 0.25 * np.sin(2 * np.pi * hz(r) * 2 * tt)
-    s = np.tanh(s * 1.4) * np.minimum(1, tt / 0.03) * np.clip((BAR + 0.1 - tt) / 0.35, 0, 1)
+    t = bar_t(b); c = CH[name]
+    put(pad, pad_bar(c['str'], BAR + 0.75, 1.3 if b in (2, 6, 13) else 1.0), t - 0.05)
+    # a pluck motif: a dyad on the downbeat and two answering notes, through the delay
+    if (b <= 2) or (3 <= b <= 6) or (11 <= b <= 15):
+        a, bb = c['dy']; v = 0.9 if b < 3 else 0.7
+        put(plk, pluck(a, 0.9, v), t, 1.0, -0.25); put(plk, pluck(bb, 0.9, v * 0.8), t, 1.0, 0.25)
+        put(plk, pluck(c['mo'][0], 0.6, v), t + 1.0, 1.0, 0.3); put(plk, pluck(c['mo'][1], 0.9, v * 0.85), t + 1.5, 1.0, -0.3)
+    # the sub: one long note a bar
+    r = c['root'] - 12
+    nn = int((BAR + 0.1) * SR); tn = np.arange(nn) / SR
+    s = np.sin(2 * np.pi * hz(r) * tn) + 0.22 * np.sin(2 * np.pi * hz(r) * 2 * tn)
+    s = np.tanh(s * 1.3) * np.minimum(1, tn / 0.03) * np.clip((BAR + 0.1 - tn) / 0.35, 0, 1)
     put(sub, s, t, 0.7)
-    if 4 <= b <= 13 and b != 2:
-        for j in range(4):
-            for h in (0, 1):
-                tn = t + j * BEAT + h * BEAT * 0.5
-                m = int(0.22 * SR); u = np.arange(m) / SR
-                y = saw(np.full(m, hz(c['root']))) * 0.7 + np.sin(2 * np.pi * hz(c['root']) * u) * 0.5
-                cut_p = 240 + 1900 * np.exp(-u / 0.05)
-                y = auto_filter(y, LadderFilter.Mode.LPF24, cut_p[::120], 0.35, 1.5, chunk=120)
-                y *= np.exp(-u / 0.11) * (1.0 if h == 0 else 0.62)
-                put(pulse, y, tn, 1.0)
-put(sub, impact(0.9, 3.6, 29.0) * 0.8, CUE['hit_title'])
-put(sub, impact(0.75, 2.8, 31.0) * 0.8, CUE['app'])
+    # the bass: eighth notes with the octave jumping, from 17 s
+    if 5 <= b <= 13:
+        vels = [1.0, 0.55, 0.7, 0.55, 1.0, 0.55, 0.7, 0.9]
+        for j in range(8):
+            put(bas, bass_note(c['root'] + (12 if j in (3, 7) else 0), 0.23, vels[j]), t + j * 0.25, 1.0)
+# stabs and impacts on the four big hits
+STAB_DM = [50, 57, 62, 65, 69, 74]; STAB_D = [50, 57, 62, 66, 69, 74]
+put(hits, stab(STAB_DM, 1.8, 1.0, 1.0), CUE['hit_title'])
+put(hits, stab(STAB_DM, 1.4, 0.75, 0.8), CUE['app'])
+put(hits, stab([50, 57, 62, 65, 69, 74, 77, 81], 2.0, 1.1, 1.2), CUE['card'])
+put(hits, stab(STAB_D, 2.6, 1.05, 1.1), CUE['endcard'])
+put(sub, impact(0.95, 3.6, 31.0) * 0.55, CUE['hit_title'])
+put(sub, impact(0.7, 2.6, 31.0) * 0.8, CUE['app'])
 put(sub, impact(1.0, 3.6, 29.0) * 0.9, CUE['card'])
 put(sub, impact(0.9, 4.0, 29.0) * 0.85, CUE['endcard'])
 put(sub, impact(0.8, 2.0, 33.0), CUE['stop'] - 0.03)
 
-# drums
-kick_b = zbuf(); drum = zbuf()
-def groove(t0, t1, kicks=True, claps=True, hats=True):
+# the kit: groove sections as before
+def groove(t0, t1, kicks=True, backbeat=True, hat_on=True):
     t = t0
     while t < t1 - 1e-6:
-        bar_i = int(round((t - 7.0) / BAR))
-        for j, off in enumerate([0, 1, 2, 3]):
+        for off in range(4):
             tn = t + off * BEAT
             if tn >= t1 - 1e-6: break
             if kicks and off in (0, 2): put(kick_b, kick(1.0 if off == 0 else 0.85), tn, 1.0)
             if kicks and off == 3: put(kick_b, kick(0.6), tn + BEAT * 0.5, 1.0)
-            if claps and off in (1, 3): put(drum, clap(0.8), tn, 0.8, 0.1)
-            if hats:
-                put(drum, hat(0.5 if off % 2 == 0 else 0.35), tn, 0.7, -0.25)
-                put(drum, hat(0.9, False), tn + BEAT * 0.5, 0.7, 0.25)
+            if backbeat and off in (1, 3):
+                put(snr, snare(0.85), tn, 0.8, 0.05); put(snr, clap(0.5), tn, 0.5, 0.1)
+            if hat_on:
+                put(hats, hat(0.5 if off % 2 == 0 else 0.4), tn, 0.7, -0.25)
+                put(hats, hat(0.85, off in (1, 3)), tn + BEAT * 0.5, 0.7, 0.25)
         t += BAR
-groove(15.0, 17.0, kicks=True, claps=False, hats=False)
-groove(17.0, 19.0, kicks=True, claps=False, hats=True)
-groove(19.0, 21.0 - 0.001, kicks=True, claps=True, hats=True)
-groove(21.0, 29.0, kicks=True, claps=True, hats=True)
-groove(29.0, 31.0, kicks=True, claps=False, hats=False)
-for t in np.arange(11.0, 13.0, 0.25):                           # the dive: a snare-roll style crescendo of hats and a kick on each beat
-    put(drum, hat(0.2 + 0.7 * (t - 11.0) / 2.0), t, 0.7, 0.0)
+groove(15.0, 17.0, True, False, False)
+groove(17.0, 19.0, True, False, True)
+groove(19.0, 20.0, True, True, True)
+groove(21.0, 29.0, True, True, True)
+groove(29.0, 31.0, True, False, False)
+# the fill into the celebration: a snare roll that climbs, three toms falling, and a crash that arrives backwards
+for i, t in enumerate(np.arange(20.0, 20.88, 0.125)): put(snr, snare(0.25 + 0.7 * i / 7), t, 0.8, 0.05)
+for t0, f0 in [(20.25, 210), (20.5, 165), (20.75, 125), (20.875, 100)]: put(toms, tom(f0, 0.9), t0, 1.0, -0.2 + (f0 - 100) / 600)
+put(fx, np.stack([rev_crash(1.0)] * 2, 1) * 0.7, 20.0)
+put(hits, np.stack([crash(2.2)] * 2, 1) * 0.55, CUE['card'])
+put(hits, np.stack([crash(2.8)] * 2, 1) * 0.5, CUE['endcard'])
+put(toms, tom(120, 1.0), 34.5); put(toms, tom(90, 1.0), 34.75)
+# the dive through the doughnut: a stream of data blips that speeds up, hats that rise, a snare roll, a kick on each beat
+tb = 11.4; k = 0
+pent = [62, 65, 69, 72, 74, 77, 81, 84]
+while tb < 12.95:
+    u = (tb - 11.4) / 1.55
+    f = hz(pent[int(rng.integers(0, len(pent)))] + 12)
+    put(hits, blip(f, 0.1 + 0.18 * u, 0.014) * (np.sign(np.sin(2 * np.pi * f * np.arange(int(0.014 * SR)) / SR)) if False else 1.0), tb, 1.0, rng.uniform(-0.8, 0.8))
+    tb += 0.13 - 0.105 * u ** 0.8
+for t in np.arange(11.0, 12.0, 0.25): put(hats, hat(0.2 + 0.5 * (t - 11.0)), t, 0.7, 0.0)
+for i, t in enumerate(np.arange(12.0, 12.97, 0.125)): put(snr, snare(0.2 + 0.75 * i / 7.5), t, 0.8, 0.0)
 for t in np.arange(12.0, 13.0, 0.5): put(kick_b, kick(0.8), t)
-# a single kick in the hook for the stop, none on 6.2 - 7.0 (silence)
 
-# risers and hits (effects)
-fx = zbuf()
-put(fx, np.stack([riser(3.4, 160, 8000, 2.4) * 0.35] * 2, 1), 2.55)                       # hook: opens until the stop
+# risers
+put(fx, np.stack([riser(3.4, 160, 8000, 2.4) * 0.35] * 2, 1), 2.55)
 put(fx, np.stack([tone_riser(3.5, 26, 62, 0.35)] * 2, 1), 2.55)
-put(fx, np.stack([riser(1.55, 400, 10000, 2.0)] * 2, 1) * 0.75, CUE['dive0'])             # the dive
-put(fx, np.stack([tone_riser(1.55, 38, 74, 0.5)] * 2, 1), CUE['dive0'])
-put(fx, whoosh(1.2, 300, 3800, -0.9, 0.9) * 0.9, CUE['dive0'] + 0.45)
-put(fx, whoosh(0.55, 600, 5200, 0.9, -0.9) * 0.5, CUE['through'] + 0.1)
-put(fx, np.stack([riser(2.0, 300, 9500, 2.2)] * 2, 1) * 0.8, CUE['card'] - 2.0)           # into the celebration
+put(fx, np.stack([riser(1.6, 400, 10000, 2.0)] * 2, 1) * 0.75, CUE['dive0'])
+put(fx, np.stack([tone_riser(1.6, 38, 74, 0.5)] * 2, 1), CUE['dive0'])
+put(fx, whoosh(1.4, 300, 3800, -0.9, 0.9) * 0.9, CUE['dive0'] + 0.45)
+put(fx, whoosh(0.5, 600, 5200, 0.9, -0.9) * 0.55, CUE['through'] - 0.1)
+put(fx, np.stack([riser(2.0, 300, 9500, 2.2)] * 2, 1) * 0.8, CUE['card'] - 2.0)
 put(fx, np.stack([tone_riser(2.0, 45, 81, 0.45)] * 2, 1), CUE['card'] - 2.0)
 put(fx, whoosh(0.6, 500, 6000, -0.8, 0.8) * 0.45, CUE['logo'] - 0.15)
+put(fx, np.stack([riser(1.4, 300, 9000, 2.2)] * 2, 1) * 0.7, CUE['endcard'] - 1.4)
 put(fx, whoosh(0.7, 400, 5000, 0.8, -0.8) * 0.5, CUE['endcard'] - 0.5)
-hits = zbuf()
-put(hits, impact(1.0, 3.8), CUE['hit_title']); put(hits, impact(0.8, 3.0), CUE['app']); put(hits, impact(1.1, 4.0), CUE['card'])
-put(hits, impact(1.0, 4.2), CUE['endcard'])
-# the celebration: a pop, a rush of bright noise, a rising chord
-put(hits, clap(1.4) * 1.0, CUE['card'] + 0.02)
-sparkle = hp(noise(int(1.6 * SR)), 5000, 2) * np.exp(-np.arange(int(1.6 * SR)) / SR / 0.45)
-put(hits, np.stack([sparkle, np.roll(sparkle, 173)], 1) * 0.45, CUE['card'] + 0.05)
-# the rocket in the card lifts off at 21.45 and the confetti goes off at 21.95 (read from the capture: frames 305 and 320)
-put(fx, np.stack([riser(0.55, 140, 2600, 1.4, 0.3)] * 2, 1) * 0.55, 21.42)
-put(hits, clap(1.5), 21.95, 1.0, 0.0)
-spk = hp(noise(int(1.8 * SR)), 4500, 2) * np.exp(-np.arange(int(1.8 * SR)) / SR / 0.5)
-put(hits, np.stack([spk, np.roll(spk, 211)], 1) * 0.5, 21.97)
-for j in range(14):
-    f = hz(86 + [0, 2, 4, 7, 9][j % 5] + 12 * (j % 3 == 0)); nn = int(0.25 * SR); u = np.arange(nn) / SR
-    put(hits, np.sin(2 * np.pi * f * u) * np.exp(-u / 0.05) * 0.06, 21.98 + j * 0.035 + rng.random() * 0.02, 1.0, rng.uniform(-0.8, 0.8))
-# ticks of the 'you drifted' toast: a falling two-note sigh, quiet
-for t0, f, g in [(CUE['toast'], 330, 0.5), (CUE['toast'] + 0.11, 247, 0.5)]:
-    nn = int(0.7 * SR); u = np.arange(nn) / SR
-    put(hits, np.sin(2 * np.pi * f * u) * np.exp(-u / 0.22) * g * 0.35, t0, 1.0, 0.0)
-# app foley: slider ratchet, lock-in latch, themes as notes on the beat, tab presses, typed ident
+
+# the station: the sign-on at the wordmark, static between channels, a tube going dark
+for i in range(7):
+    put(hits, ident(hz(74 + [0, 3, 5, 7, 10, 12, 15][i]), 0.1, 0.18), 7.35 + i * 0.16, 1.0, -0.5 + i / 7)
+put(hits, ident(880, 0.14, 0.7), CUE['wordmark'], 1.0, -0.1); put(hits, ident(1174.7, 0.9, 0.8), CUE['wordmark'] + 0.15, 1.0, 0.1)
+put(hits, ident(880, 0.14, 0.6), CUE['ph'], 1.0, -0.1); put(hits, ident(1174.7, 1.2, 0.7), CUE['ph'] + 0.15, 1.0, 0.1)
+put(fx, np.stack([static(0.28, 0.45)] * 2, 1), CUE['arcade'] - 0.02)
+put(fx, np.stack([static(0.34, 0.5)] * 2, 1), CUE['logo'] - 0.02)
+put(fx, np.stack([crt_off()] * 2, 1) * 0.9, CUE['crt'])
+# the mark: the ring draws itself, the square lands
+nr = int(0.8 * SR); ur = np.linspace(0, 1, nr)
+ringsw = np.sin(2 * np.pi * np.cumsum(300 * (2400 / 300) ** (ur ** 1.4)) / SR) * (ur ** 1.4) * 0.12
+put(hits, np.stack([ringsw, ringsw], 1), CUE['ring'])
+put(hits, thunk(1.2), CUE['square'], 0.9); put(hits, zap(0.12, 3000, 400, 0.4), CUE['square'], 0.8)
+# the dial lands in the O of the end card: its clicks follow the law the picture draws
+A2, T2 = 1080.0, 0.5
+for k in range(1, 36):
+    r = 30 * k / A2
+    if r >= 0.995: break
+    t = CUE['dial'] - T2 * np.log(1 - r)
+    rate = A2 / T2 * (1 - r)
+    put(foley, detent(0.06 + 0.5 / (1 + rate / 350), 2000 + 700 * rng.random()), t, 1.0, 0.0)
+for i, t in enumerate(np.linspace(CUE['word'], CUE['word'] + 0.4, 8)): put(foley, blip(1400 + 90 * i, 0.12, 0.02), t, 1.0, -0.4 + 0.11 * i)
+for t in np.linspace(CUE['underline'], CUE['underline'] + 0.7, 14): put(foley, blip(1900, 0.06, 0.012), t, 1.0, 0.0)
+
+# app foley: slider ratchet, lock-in latch, themes as notes on the beat, tab presses, typed ident, the card
 slider_ticks = list(np.linspace(CUE['slide_up0'], CUE['slide_up1'], 8)) + list(np.linspace(CUE['slide_up1'], CUE['slide_dn1'], 8))
-for i, t in enumerate(slider_ticks): put(foley, detent(0.5, 1800), t, 0.8, -0.1)
+for t in slider_ticks: put(foley, detent(0.5, 1800), t, 0.8, -0.1)
 put(foley, ui_sample('mouseclick1', 1.2), CUE['slide_up0'] - 0.12, 0.8)
 put(foley, ui_sample('mouserelease1', 1.0), CUE['slide_dn1'] + 0.15, 0.7)
 put(foley, ui_sample('click3', 1.4, 0.8), CUE['lock'], 1.0)
 put(foley, thunk(1.2), CUE['lock'] + 0.03, 0.9)
 put(fx, whoosh(0.5, 300, 2400, -0.4, 0.5) * 0.4, CUE['lock'] + 0.02)
+# the toast: a soft falling pair, inside the chord (F major)
+for t0, f, g in [(CUE['toast'], 349.2, 0.5), (CUE['toast'] + 0.12, 293.7, 0.5)]: put(hits, ident(f, 0.5, g * 0.6), t0, 1.0, 0.0)
+put(foley, ui_sample('click2', 1.0), CUE['toast'] - 1.2, 0.5)
+# the rocket lifts off in the card at 21.45 and the confetti goes off at 21.95 (frames 305 and 320 of the take)
+put(fx, np.stack([riser(0.55, 140, 2600, 1.4, 0.3)] * 2, 1) * 0.55, 21.42)
+put(hits, clap(1.4), 21.95, 1.0, 0.0)
+spk = hp(noise(int(1.8 * SR)), 4500, 2) * np.exp(-np.arange(int(1.8 * SR)) / SR / 0.5)
+put(hits, np.stack([spk, np.roll(spk, 211)], 1) * 0.45, 21.97)
+for j in range(10):
+    put(hits, zap(0.07, 4200 + 400 * j, 2600, 0.12), 21.98 + j * 0.04, 1.0, rng.uniform(-0.8, 0.8))
+put(foley, ui_sample('click5', 1.1), CUE['dismiss'] - 0.05, 0.8)
 theme_notes = [62, 65, 69, 72, 74]
 for i, m in enumerate(theme_notes):
     t = CUE['themes'] + i * BEAT
-    nn = int(0.6 * SR); u = np.arange(nn) / SR
-    y = (np.sin(2 * np.pi * hz(m) * u) + 0.3 * np.sin(2 * np.pi * hz(m) * 2 * u)) * np.exp(-u / 0.16) * np.minimum(1, u / 0.003)
-    put(hits, y * 0.3, t, 1.0, -0.4 + 0.2 * i)
+    put(plk, pluck(m + 12, 0.5, 0.9), t, 1.0, -0.4 + 0.2 * i)
     put(foley, ui_sample('switch%d' % (5 + 3 * i), 0.9), t, 0.7)
 put(foley, ui_sample('click1', 1.3), CUE['arcade'], 1.0)
-put(foley, ui_sample('click5', 1.1), CUE['dismiss'] - 0.05, 0.8)
-put(foley, ui_sample('click2', 1.0), CUE['toast'] - 1.2, 0.5)
 put(foley, ui_sample('click4', 1.3), CUE['logo'], 1.0)
 for i, t in enumerate(np.linspace(CUE['typing0'], CUE['typing1'], 54)):
     put(foley, blip(1500 + 600 * rng.random(), 0.12 + 0.1 * rng.random()), t, 1.0, 0.15)
@@ -400,60 +508,56 @@ gap = np.ones(N)
 for h in (CUE['hit_title'], CUE['app'], CUE['card'], CUE['endcard']):
     a = int((h - 0.2) * SR); b = int((h - 0.002) * SR)
     gap[a:b] = np.linspace(1, 0, b - a) ** 2
-gap[int(6.1 * SR):int((CUE['hit_title'] - 0.001) * SR)] = 0             # silence after the hook, before the title
+gap[int(6.1 * SR):int((CUE['hit_title'] - 0.001) * SR)] = 0
 gap_m = gap[:, None]
 
-g_str = curve([(0, -60), (1.0, -16), (5.9, -9), (6.1, -60), (7.0, -60), (7.05, -10), (11, -8), (13, -11), (17, -9), (20.9, -5), (21, -3), (23, -7), (29, -8), (34.9, -6), (35.0, -3), (38, -4), (40, -30)])
-g_cel = curve([(0, -60), (0.3, -14), (5.9, -7), (6.1, -60), (7.0, -60), (7.05, -10), (13, -8), (21, -3), (29, -6), (35, -3), (38.5, -6), (40.5, -40)])
-g_pia = curve([(0, -60), (6.9, -60), (7.05, -3), (12.9, -3), (13, -2), (21, -1), (23, -60), (28.9, -60), (29, -4), (34.9, -3), (35, -2), (40, -12), (41, -60)])
-g_pad = curve([(0, -60), (0.2, -16), (5.9, -8), (6.1, -60), (7.0, -60), (7.05, -17), (11, -13), (13, -17), (20.9, -12), (21, -9), (29, -15), (35, -10), (38, -11), (40.5, -40)])
-g_sub = curve([(0, -60), (6.0, -60), (7.0, -11), (13, -14), (21, -9), (29, -17), (34.9, -14), (35, -9), (38, -14), (40.5, -40)])
-g_pul = curve([(0, -60), (16.9, -60), (17.0, -14), (21, -10), (29, -13), (30.9, -60)])
+g_pad = curve([(0, -60), (6.9, -60), (7.05, -12), (11, -10), (13, -13), (20.9, -11), (21, -8), (23, -12), (29, -12), (34.9, -9), (35, -7), (38.5, -9), (40, -40)])
+g_plk = curve([(0, -60), (6.9, -60), (7.05, -7), (12.9, -7), (13, -9), (20.9, -9), (21, -60), (23.9, -60), (24, -8), (28.9, -8), (29, -9), (34.9, -9), (35, -7), (38.5, -8), (40, -40)])
+g_sub = curve([(0, -60), (6.0, -60), (7.0, -16), (13, -19), (21, -14), (29, -22), (34.9, -19), (35, -14), (38, -19), (40, -40)])
+g_bas = curve([(0, -60), (16.9, -60), (17.0, -12), (21, -8), (29, -14), (30.9, -60)])
+g_bed = curve([(0, -3), (6.2, -3), (6.3, -60)])
 g_fx = curve([(0, -4), (41, -4)])
 sums = {}
 def stem(name, x):
     sums[name] = x
     with AudioFile(f'{STEMS}/{name}.wav', 'w', SR, 2) as f: f.write(x.T.astype(np.float32))
 
-m_str = bus(S_str * g_str[:, None] * gap_m, [HighpassFilter(190), PeakFilter(3200, 2.0, 0.8), LowpassFilter(9000)]) * duck(0.28)
-m_cel = bus(S_cel * g_cel[:, None] * gap_m, [HighpassFilter(110), LowpassFilter(5000)]) * duck(0.2)
-m_pia = bus(S_pia * g_pia[:, None] * gap_m, [HighpassFilter(90), Compressor(-22, 2.5, 8, 120), HighShelfFilter(5000, 1.5, 0.6)])
-m_pad = bus(pad * g_pad[:, None] * gap_m, [HighpassFilter(140), LowpassFilter(6500)]) * duck(0.5)
+m_bed = bus(bed * g_bed[:, None], [HighpassFilter(40), LowpassFilter(7000)])
+m_pad = bus(pad * g_pad[:, None] * gap_m, [HighpassFilter(150), LowpassFilter(7500), PeakFilter(2200, -2.0, 0.8)]) * duck(0.5)
+m_plk = bus(plk * g_plk[:, None] * gap_m, [HighpassFilter(180), Delay(0.375, 0.34, 0.3), LowpassFilter(8500)]) * duck(0.25)
 m_sub = bus(sub * g_sub[:, None] * gap_m, [LowpassFilter(220), Compressor(-18, 3, 5, 80)]) * duck(0.45)
-m_pul = bus(pulse * g_pul[:, None] * gap_m, [HighpassFilter(55), Distortion(5), LowpassFilter(3600)]) * duck(0.6)
+m_bas = bus(bas * g_bas[:, None] * gap_m, [HighpassFilter(45), LowpassFilter(3200), Compressor(-16, 3, 5, 80)]) * duck(0.55)
 m_kick = bus(kick_b, [HighpassFilter(28), Compressor(-14, 3, 2, 60)])
-m_drum = bus(drum, [HighpassFilter(160), HighShelfFilter(7000, 2.0, 0.7)])
-m_tim = bus(S_tim * 1.3, [HighpassFilter(40)])
-m_cho = bus(S_cho, [HighpassFilter(150), LowpassFilter(5000)])
+m_snr = bus(snr, [HighpassFilter(140)])
+m_hat = bus(hats, [HighpassFilter(300), HighShelfFilter(8000, 1.5, 0.7)])
+m_tom = bus(toms, [HighpassFilter(70)])
 m_fx = bus(fx * g_fx[:, None], [HighpassFilter(60), Compressor(-20, 2, 10, 120)])
 m_hit = bus(hits, [HighpassFilter(24), Compressor(-16, 3, 1, 150)])
 m_fol = bus(foley, [HighpassFilter(80), Compressor(-22, 2.5, 3, 80)])
 
-dry = (m_str * 0.9 + m_cel * 0.9 + m_pia * 1.0 + m_pad * 1.0 + m_sub * 0.9 + m_pul * 0.45 + m_kick * 0.75 + m_drum * 0.45 + m_tim * 0.5 + m_cho * 0.5 + m_fx * 0.8 + m_hit * 0.8 + m_fol * 1.0)
-wet_in = (m_str * 0.55 + m_cel * 0.4 + m_pia * 0.7 + m_pad * 0.4 + m_tim * 0.55 + m_cho * 0.9 + m_fx * 0.5 + m_hit * 0.55 + m_drum * 0.18)
-room_in = m_fol * 0.4 + m_kick * 0.1 + m_drum * 0.25
+dry = (m_bed * 1.0 + m_pad * 0.9 + m_plk * 0.8 + m_sub * 0.9 + m_bas * 0.7 + m_kick * 0.62 + m_snr * 0.75 + m_hat * 0.35 + m_tom * 0.7 + m_fx * 0.8 + m_hit * 0.8 + m_fol * 1.0)
+wet_in = (m_bed * 0.2 + m_pad * 0.5 + m_plk * 0.7 + m_snr * 0.5 + m_tom * 0.4 + m_fx * 0.5 + m_hit * 0.6 + m_hat * 0.1)
+room_in = m_fol * 0.4 + m_kick * 0.08 + m_snr * 0.2
 wet = convolve(wet_in, HALL)
 wet = bus(wet, [HighpassFilter(180), LowpassFilter(7500)])
 rm = convolve(room_in, ROOM)
-# the hook stops dead: the reverb is allowed to ring into the silence, but nothing new enters after 6.1 until the hit
-mix = dry + wet * 1.7 + rm * 0.6
-for nm, x in [('strings', m_str), ('cello', m_cel), ('piano', m_pia), ('pad', m_pad), ('sub', m_sub), ('pulse', m_pul), ('kick', m_kick), ('drums', m_drum), ('timp', m_tim), ('choir', m_cho), ('fx', m_fx), ('hits', m_hit), ('foley', m_fol), ('wet', wet)]:
+mix = dry + wet * 1.6 + rm * 0.6
+for nm, x in [('bed', m_bed), ('pad', m_pad), ('pluck', m_plk), ('sub', m_sub), ('bass', m_bas), ('kick', m_kick), ('snare', m_snr), ('hats', m_hat), ('toms', m_tom), ('fx', m_fx), ('hits', m_hit), ('foley', m_fol), ('wet', wet)]:
     stem(nm, x)
 rel = curve([(0, 0), (6.1, 0), (7.0, -1), (12.9, -1), (13.0, -4), (15.0, -5), (17, -3), (20.9, -2), (21.0, 2), (28.9, 1), (29.0, -3), (34.9, -3), (35.0, 2), (38, 1), (41, 1)])
 mix = mix * rel[:, None]
+# a little tape: soft saturation before the glue, then the master
+mix = np.tanh(mix * 0.85) / 0.85
 master = Pedalboard([HighpassFilter(30), PeakFilter(260, -2.5, 0.9), HighShelfFilter(9000, 1.0, 0.7), Compressor(-9, 1.6, 40, 300), Limiter(-1.2, 120)])
 out = master(mix.T.astype(np.float32), SR).T
-# tail fade and measure
-fadeout = np.clip((39.3 - np.arange(N) / SR) / 1.2, 0, 1)[:, None] ** 1.5
+fadeout = np.clip((CUE['end'] - 0.3 - np.arange(N) / SR) / 1.1, 0, 1)[:, None] ** 1.5
 out = out * fadeout
 tmp = f'{BUILD}/score_raw.wav'
 with AudioFile(tmp, 'w', SR, 2) as f: f.write(out.T.astype(np.float32))
 m = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', tmp, '-af', 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
-lines = [l for l in m.splitlines() if 'I:' in l or 'LRA:' in l or 'Peak:' in l]
 integ = float([l for l in m.splitlines() if l.strip().startswith('I:')][-1].split()[1])
 target = -14.5
-g = db(target - integ)
-out2 = out * g
+out2 = out * db(target - integ)
 pk = np.abs(out2).max()
 if pk > db(-1.8): out2 = out2 * (db(-1.8) / pk)          # the plugin limiter does not hard-cap; a plain trim keeps the peak under -1.8 dBFS
 dest = ROOT + '/public/v6/score.wav'
