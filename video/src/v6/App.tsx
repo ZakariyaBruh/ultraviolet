@@ -20,18 +20,18 @@ const KEYS: Key[] = [
   { t: 5.7, r: [0, 150, 640, 360] },             // the drift counted on the left
   { t: 6.9, r: [320, 110, 640, 360] },           // the timer running out
   { t: 7.9, r: [320, 180, 640, 360] },           // the card
-  { t: 10.0, r: [200, 100, 880, 495] },          // back out
-  { t: 11.0, r: [160, 90, 960, 540] },           // the looks
-  { t: 13.4, r: [640, 360, 640, 360] },          // down to the tab bar
-  { t: 14.45, r: [0, 0, 1280, 720] },            // the arcade
-  { t: 15.45, r: [0, 0, 640, 360] },             // up to the logo
-  { t: 16.35, r: [0, 130, 640, 360] },           // the front page: the status readout types out
-  { t: 18.4, r: [520, 90, 760, 428] },
-  { t: 19.8, r: [640, 360, 640, 360] },
-  { t: 20.8, r: [200, 40, 880, 495] },
-  { t: 21.45, r: [720, 100, 440, 247] },         // into the solid
+  { t: 9.2, r: [200, 100, 880, 495] },           // back out (the ASCII world covers the screen from here until 14.4)
+  { t: 14.0, r: [160, 90, 960, 540] },           // the looks, ready when the app comes back
+  { t: 17.4, r: [640, 360, 640, 360] },          // down to the tab bar
+  { t: 18.45, r: [0, 0, 1280, 720] },            // the arcade
+  { t: 19.45, r: [0, 0, 640, 360] },             // up to the logo
+  { t: 20.35, r: [0, 130, 640, 360] },           // the front page: the status readout types out
+  { t: 22.4, r: [520, 90, 760, 428] },
+  { t: 23.8, r: [640, 360, 640, 360] },
+  { t: 24.8, r: [200, 40, 880, 495] },
+  { t: 25.45, r: [720, 100, 440, 247] },         // into the solid
 ]
-const SCENE_S = 22.0
+const SCENE_S = 26.0
 /** the scene is mounted this many frames before its own time zero (13.0 s), so the doughnut's hole has the app to show */
 export const PRE = 14
 
@@ -72,9 +72,9 @@ const CAPTIONS: { t0: number; t1: number; kicker: string; text: string; top?: bo
   { t0: 1.0, t1: 3.1, kicker: 'The session', text: 'Set a length. Lock in.' },
   { t0: 4.6, t1: 6.7, kicker: 'A drift', text: 'Leave the tab. It counts.' },
   { t0: 8.3, t1: 10.4, kicker: 'The reward', text: 'Finish. Earn credits.' },
-  { t0: 11.0, t1: 13.4, kicker: 'Five themes', text: 'Same screen, five looks.' },
-  { t0: 14.0, t1: 15.8, kicker: 'The Arcade', text: 'Spend them on games.', top: true },
-  { t0: 16.5, t1: 20.2, kicker: 'The front page', text: 'No feed. No account.' },
+  { t0: 15.0, t1: 17.4, kicker: 'Five themes', text: 'Same screen, five looks.' },
+  { t0: 18.0, t1: 19.8, kicker: 'The Arcade', text: 'Spend them on games.', top: true },
+  { t0: 20.5, t1: 24.2, kicker: 'The front page', text: 'No feed. No account.' },
 ]
 /** a floating plate as the app draws them: flat, ruled, registration ticks at the corners, the kicker in the station's label voice over a plain title */
 const Caption = ({ now, t0, t1, kicker, text, top }: { now: number; t0: number; t1: number; kicker: string; text: string; top?: boolean }) => {
@@ -111,7 +111,7 @@ export const AppScene = () => {
       <svg width="0" height="0" style={{ position: 'absolute' }}><defs><filter id="camblur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation={`${bx.toFixed(2)} ${by.toFixed(2)}`} /></filter></defs></svg>
       <Fill>
         <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${raw / FPS < 1.4 ? arrive : 1})`, transformOrigin: '960px 540px' }}>
-          <Fill style={{ filter: blurOn ? 'url(#camblur)' : undefined }}>
+          <Fill style={{ filter: `${blurOn ? 'url(#camblur) ' : ''}contrast(1.07) saturate(1.1)` }}>
             <div style={{ position: 'absolute', left: 0, top: 0, width: SW, height: SH, transformOrigin: '0 0', transform: `translate(${960 + bxp}px, ${540 + byp}px) scale(${sc}) translate(${-c.cx}px, ${-c.cy}px)` }}>
               <Sequence from={0} durationInFrames={PRE} layout="none">
                 <Freeze frame={0}><OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={4} muted style={{ width: SW, height: SH }} /></Freeze>
@@ -122,8 +122,11 @@ export const AppScene = () => {
               <Sequence from={PRE + 4 * FPS} durationInFrames={3 * FPS} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={149} muted style={{ width: SW, height: SH }} />
               </Sequence>
-              <Sequence from={PRE + 7 * FPS} durationInFrames={15 * FPS + 4} layout="none">
+              <Sequence from={PRE + 7 * FPS} durationInFrames={Math.round(2.4 * FPS)} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={262} muted style={{ width: SW, height: SH }} />
+              </Sequence>
+              <Sequence from={PRE + Math.round(14.4 * FPS)} durationInFrames={Math.round(11.6 * FPS) + 4} layout="none">
+                <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={364} muted style={{ width: SW, height: SH }} />
               </Sequence>
             </div>
           </Fill>
@@ -131,8 +134,8 @@ export const AppScene = () => {
       </Fill>
       {now >= 0 && now < 0.2 && <Fill style={{ background: '#fff', opacity: 0.16 * (1 - now / 0.2), pointerEvents: 'none' }} />}
       {CAPTIONS.map((cp) => <Caption key={cp.text} now={now} {...cp} />)}
-      <Vignette k={0.35} />
-      <Grain opacity={0.035} />
+      <Fill style={{ background: 'rgb(4,9,22)', mixBlendMode: 'lighten', pointerEvents: 'none' }} />
+      <Grain opacity={0.03} />
     </Fill>
   )
 }

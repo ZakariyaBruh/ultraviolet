@@ -109,3 +109,26 @@ export const useLetters = (text: string, size: number) => {
   }, [text, size, h, continueRender])
   return m
 }
+
+
+/** between stations: the picture breaks into snow for a few frames, the way the app does when you change channel */
+export const Snow = ({ at, len = 6, peak = 0.8 }: { at: number; len?: number; peak?: number }) => {
+  const f = useCurrentFrame()
+  const u = f - at
+  if (u < 0 || u >= len) return null
+  const k = peak * (1 - u / len) ** 0.8
+  const bands = [0.12, 0.31, 0.58, 0.8].map((y, i) => ({ y: (y + ((u * 0.173 + i * 0.37) % 1)) % 1, h: 0.02 + 0.05 * ((i + u) % 3) }))
+  return (
+    <Fill style={{ pointerEvents: 'none' }}>
+      <Fill style={{ opacity: k, mixBlendMode: 'screen', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='270'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.35' numOctaves='2' seed='${(f * 7) % 97}'/><feColorMatrix type='saturate' values='0'/></filter><rect width='480' height='270' filter='url(%23n)'/></svg>")`, backgroundSize: '100% 100%' }} />
+      {bands.map((b, i) => <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: `${b.y * 100}%`, height: `${b.h * 100}%`, background: '#fff', opacity: k * 0.35, mixBlendMode: 'overlay' }} />)}
+    </Fill>
+  )
+}
+
+/** the vertical whip: the two pictures stacked in one strip that the camera runs up (or down) the length of. `u` is 0 to 1; the blur follows the speed. */
+export const whip = (u: number) => {
+  const e = Easing.bezier(0.72, 0, 0.18, 1)(Math.max(0, Math.min(1, u)))
+  const v = Math.abs(Easing.bezier(0.72, 0, 0.18, 1)(Math.min(1, u + 0.01)) - Easing.bezier(0.72, 0, 0.18, 1)(Math.max(0, u - 0.01))) / 0.02
+  return { e, blur: Math.min(46, v * 17) }
+}

@@ -1,6 +1,6 @@
-# Friction trailer (v6)
+# Friction trailer (v7)
 
-A 39.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
+A 43.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
 Renders, recordings and Blender frames are not in git (they are regenerated); everything that makes them is.
 The v4/v5 notes further down are kept for the pieces v6 still uses.
 
@@ -11,8 +11,10 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 | 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. The ridges are glowing ice-blue bars that rise ahead of the dial (before, they were dark mirror strips nobody could see), and the camera keeps the dial in the left third with open floor ahead of it. The words say what it is: "Scrolling has no friction." then, as it slows, "Until something pushes back." |
 | 6.2 - 7.0 | Black and silence. | The score gates everything except the room tone. |
 | 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the O turns into the app's text doughnut, which grows until the camera flies through its hole into the app (the move v3 had). | `src/v6/Title.tsx` (the doughnut is the app's own `ascii3d.ts` engine, `src/Ascii.tsx`), `Dial.tsx`. The hole is a mask over the title; the app scene is mounted 14 frames early underneath it. |
-| 13.0 - 35.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish, five looks, the Arcade, the front page. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
-| 35.0 - 39.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
+| 13.0 - 22.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish: the card, the rocket, the confetti. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
+| 22.0 - 28.0 | The second 3D segment: the camera runs up out of the app into the app's own ASCII engine turned all the way up. The ASCII dial clicks through its six stops (Off, Drift, A few, Floor, Stars, World), each click on a beat putting more in: one solid, three, a ridged ground drawn as text, stars, a sun on the horizon, then a flight through it. The camera runs back down into the app. | `src/v6/AsciiWorld.tsx` (the engine in `src/ascii3d.ts`, a voxel-style ground with grid lines, solids composited by depth), `Elevator` in `Trailer6.tsx`. |
+| 28.0 - 39.0 | Five looks, the Arcade, the front page. | `App.tsx`. |
+| 39.0 - 43.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
 
 ## What was learned (and applied)
 
@@ -33,6 +35,14 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
   law the picture draws. `scripts/tsfr.c` (a soundfont renderer) is no longer used by the score and is kept for experiments.
 * **The brief's three gates** (`scripts/gate6.py` and the render checks in `scripts/qa.py`): first 45 frames must move, no static stretch over 30 frames,
   5% safe zone, contrast of text on its plate, frames looked at at 0.5, 1.5, 3.0 and 5.0 s and at every cue.
+
+## v7: what changed and why
+
+* The dial becomes the doughnut in text, not by a crossfade: every cell of the 240 x 68 text screen is first a character of the dial's picture, then a character of the doughnut,
+  and a wave of scrambling characters runs outward to change one into the other (`AsciiMorph.tsx`).
+* Colour: the video is tagged bt709 limited range (`--color-space=bt709`), the app footage gets a gentle contrast and saturation lift and a navy floor under its blacks
+  so it sits in the same world as the Blender opening, and it no longer carries a vignette.
+* Between the opening and the title there is snow, as the app has on a channel change; the ASCII world is entered and left by a vertical whip with motion blur.
 
 ## Type (v6.2)
 

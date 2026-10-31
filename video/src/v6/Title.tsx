@@ -1,7 +1,7 @@
 import { interpolate, useCurrentFrame } from 'remotion'
 import { Dial } from './Dial'
 import { Contours } from './Contours'
-import { Ascii, COLS, ROWS } from '../Ascii'
+import { AsciiMorph } from './AsciiMorph'
 import { Bars, E, FPS, Fill, Grain, P, Vignette, clamp, shake, sp, spr, useLetters } from './kit'
 
 export const A_T = 1440, TAU = 0.55
@@ -11,7 +11,7 @@ export const angle = (t: number) => (t <= 0 ? 0 : A_T * (1 - Math.exp(-t / TAU))
 const SIZE = 205
 const WORD = 'FRICTION'
 const TAG = 'Put the friction back.'
-export const DIVE0 = 4.2, SWAP = 0.28, GROW0 = 4.4, GROW1 = 5.95
+export const DIVE0 = 4.1, SWAP = 0.8, GROW0 = 4.75, GROW1 = 5.95
 const S_END = 450                 // columns of reach when the hole has left the frame
 const END_Y = 685                 // where the hole ends up: over the Lock in button, so the camera goes through the doughnut and lands on the first thing to press
 
@@ -50,7 +50,7 @@ export const Title = () => {
   const push = 1 + 0.045 * interpolate(now, [1.8, DIVE0], [0, 1], clamp)
 
   // the dial hands over to the text doughnut, which then grows through the screen
-  const swap = interpolate(now, [DIVE0, DIVE0 + SWAP], [0, 1], { ...clamp, easing: E.out })
+  const swap = interpolate(now, [DIVE0, DIVE0 + SWAP], [0, 1], { ...clamp, easing: E.inOut })
   const size0 = (dO / 2) / 8
   const size = torusSize(now, size0)
   const u = interpolate(now, [GROW0, GROW1], [0, 1], clamp)
@@ -62,7 +62,7 @@ export const Title = () => {
   const hole = swap > 0.99 ? holeRadius(size) : 0
   const fadeText = interpolate(now, [DIVE0 + 0.05, DIVE0 + 0.7], [1, 0], { ...clamp, easing: E.in })
   const spread = 1 + 0.35 * interpolate(now, [DIVE0, DIVE0 + 0.8], [0, 1], { ...clamp, easing: E.in })
-  const dialOut = 1 - swap
+  const dialOut = 1 - interpolate(swap, [0.08, 0.5], [0, 1], clamp)
   const edge = interpolate(hole, [0, 1100], [1, 0], clamp)
 
   return (
@@ -89,7 +89,7 @@ export const Title = () => {
           )}
         </Fill>
       </Fill>
-      {swap > 0.001 && <Ascii shape="torus" cx={colX} cy={rowY} size={size} a={A} b={B} c={C} color={P.signal} opacity={swap} />}
+      {swap > 0.001 && <AsciiMorph colX={colX} rowY={rowY} size={size} A={A} B={B} C={C} p={swap} deg={angle(now)} frame={f} color={P.signal} />}
       <Vignette k={0.55 * edge} />
       <Grain opacity={0.05} />
     </Fill>
