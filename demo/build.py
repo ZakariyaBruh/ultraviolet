@@ -41,7 +41,7 @@ def main():
         d = os.path.join(CAP, tid)
         if not os.path.isdir(d): print('skip', tid); continue
         states = {}
-        for f in ('states.json', 'states-look.json'):
+        for f in ('states.json', 'states-look.json', 'states-shop.json'):
             p = os.path.join(d, f)
             if os.path.exists(p): states.update(json.load(open(p)))
         if not states: print('no states for', tid); continue

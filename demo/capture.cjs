@@ -84,6 +84,26 @@ async function main() {
     }
     await setSettings({ era: 80, ascii: 20 })
   }
+  if (only === 'shop') {
+    // the shop after a session (30 credits), pages 1 to 3: used to redo a capture that the dev server's reload spoiled
+    await go('/focus', 1200)
+    await store('S.earnCredits(30, "Finished Ambient radio")')
+    await go('/arcade'); await page.locator('button:has-text("Shop")').first().click(); await page.waitForTimeout(1100)
+    const arcSpots = async () => { await add(page.locator('button:has-text("Games")').first(), { to: 'arcade', label: 'Games' }); await add(page.locator('button:has-text("Shop")').first(), { to: 'shop', label: 'Shop' }) }
+    await arcSpots()
+    { const r = await box(page.locator('button:has(svg.lucide-chevron-right)').last()); if (r) hs.push({ r, to: 'shop-2', label: 'Next page' }) }
+    await chrome('arcade'); await snap('shop@post')
+    const nextBtn = page.locator('button:has(svg.lucide-chevron-right)').last()
+    for (const [n, id] of [[2, 'shop-2'], [3, 'shop-3']]) {
+      await nextBtn.click().catch(() => {}); await page.waitForTimeout(900)
+      await arcSpots()
+      const prev = await box(page.locator('button:has(svg.lucide-chevron-left)').last()); if (prev) hs.push({ r: prev, to: n === 2 ? 'shop' : 'shop-2', label: 'Previous page' })
+      if (n === 2) { const nx = await box(nextBtn); if (nx) hs.push({ r: nx, to: 'shop-3', label: 'Next page' }) }
+      await chrome('arcade'); await snap(id)
+    }
+    fs.writeFileSync(`${OUT}/states-shop.json`, JSON.stringify(states))
+    await b.close(); return
+  }
   if (only === 'look') {
     await lab()
     fs.writeFileSync(`${OUT}/states-look.json`, JSON.stringify(states))

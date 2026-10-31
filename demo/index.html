@@ -41,22 +41,22 @@ a { color: inherit; }
 #app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-block: 10px; min-width: 0; }
 
 /* ---------- top bar ---------- */
-.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; min-width: 0; }
 .brand { display: flex; align-items: center; gap: 9px; min-width: 0; margin-right: 4px; }
 .brand svg { flex: none; }
 .brand b { font: 800 13px var(--f-disp); letter-spacing: 0.01em; }
 .brand span { font: 600 12px var(--f-cond); letter-spacing: 0.24em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
-.chapters { display: flex; gap: 4px; flex: 1 1 320px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.chapters { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .chapters::-webkit-scrollbar { display: none; }
-.ch { flex: none; min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); cursor: pointer; transition: color 0.15s, background 0.15s; }
+.ch { flex: none; min-height: 36px; padding: 0 10px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); cursor: pointer; transition: color 0.15s, background 0.15s; }
 .ch:hover { color: var(--ink); }
 .ch.done { color: var(--ink2); }
 .ch.on { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
-.tools { display: flex; align-items: center; gap: 8px; flex: none; }
-.sw { width: 28px; height: 28px; padding: 0; border: 1px solid var(--rule); background: var(--c); position: relative; cursor: pointer; }
+.tools { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+.sw { width: 26px; height: 26px; padding: 0; border: 1px solid var(--rule); background: var(--c); position: relative; cursor: pointer; }
 .sw::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: var(--s); }
 .sw[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
-.tb { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+.tb { min-height: 36px; padding: 0 11px; background: transparent; border: 1px solid var(--rule); font: 600 12.5px var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
 .tb:hover { border-color: var(--ink2); }
 .tb[aria-pressed="true"] { background: var(--ice); border-color: var(--ice); color: var(--on-signal); }
 .tb.go { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
@@ -134,13 +134,27 @@ a { color: inherit; }
 .about ul { margin: 0 0 8px; padding-left: 18px; color: var(--ink2); font-size: 14.5px; }
 .about li { margin-bottom: 6px; }
 
+.room.compact { justify-content: flex-start; overflow-y: auto; }
+.tipping .plate.guide:not(.fin) { display: none; }
+.sm .plate:not(.fin) { width: min(250px, 52%); padding: 10px 12px; }
+.sm .plate h2 { font-size: 16px; margin: 4px 0 3px; }
+.sm .plate p { font-size: 12.5px; }
+.sm .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
 .compact .plate:not(.fin) { position: relative; left: auto !important; top: auto !important; width: 100%; max-width: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-@media (max-width: 720px) {
-  .brand span { display: none; }
-  .tb .lab { display: none; }
+@media (max-width: 1240px) { .brand span { display: none; } }
+@media (max-width: 760px) {
+  .tb .lab, .tb .long { display: none; }
   .read .keys { display: none; }
+  .chapters { order: 3; flex-basis: 100%; }
+  .tools { margin-left: auto; }
+}
+@media (max-width: 520px) { #swatches { display: none !important; } }
+@media (max-height: 520px) {
+  #app { gap: 6px; padding-block: 6px; }
+  .chapters, .read { display: none; }
+  .brand span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -159,7 +173,7 @@ a { color: inherit; }
       <span id="swatches" style="display:flex;gap:6px" role="group" aria-label="Theme"></span>
       <button class="tb" id="showBtn" aria-pressed="false" title="Outline everything you can click (H)"><span>◫</span><span class="lab">Show clickable</span></button>
       <button class="tb" id="aboutBtn" title="About this demo" aria-label="About this demo">?</button>
-      <a class="tb go" id="openBtn" href="https://frictionx.vercel.app/" target="_blank" rel="noopener">Open Friction ↗</a>
+      <a class="tb go" id="openBtn" href="https://frictionx.vercel.app/" target="_blank" rel="noopener"><span class="long">Open Friction </span>↗</a>
     </div>
   </header>
 
@@ -225,9 +239,9 @@ a { color: inherit; }
   var STEPS = [
     { ch: 0, at: 'landing', pick: 'Hold to tune in', title: 'Tune in', body: 'The front page. On the real site you hold this button. Here, a click is enough.', done: { state: 'focus' } },
     { ch: 1, at: 'focus', pick: 'Lock in', also: ['Session length'], title: 'Lock in', body: 'Try the ruler if you like, then lock in. The clock only runs while this tab is in front.', done: { state: 'locked' } },
-    { ch: 1, at: 'locked', chip: { l: 'Switch tabs', to: 'drift' }, title: 'Try to look away', body: 'There is no pause button. Leave the tab and it counts as a drift.', done: { state: 'drift' } },
-    { ch: 1, at: 'drift', chip: { l: 'Skip to the end', to: 'done' }, title: 'Drifts are counted', body: 'The clock waited for you, and your clean streak started over. Nothing is hidden. Skip to the finish.', done: { state: 'done' } },
-    { ch: 1, at: 'done', chip: { l: 'Take the credits', to: 'focus@post' }, title: 'Credits are earned', body: 'A finished session pays out. Credits come from real focus only. You cannot win them in a game.', done: { state: 'focus' }, post: true },
+    { ch: 1, at: 'locked', chip: { l: 'Switch tabs', to: 'drift' }, cam: [0.37, 0.12, 0.26, 0.5], title: 'Try to look away', body: 'There is no pause button. Leave the tab and it counts as a drift.', done: { state: 'drift' } },
+    { ch: 1, at: 'drift', chip: { l: 'Skip to the end', to: 'done' }, cam: [0.37, 0.12, 0.26, 0.5], title: 'Drifts are counted', body: 'The clock waited for you, and your clean streak started over. Nothing is hidden. Skip to the finish.', done: { state: 'done' } },
+    { ch: 1, at: 'done', chip: { l: 'Take the credits', to: 'focus@post' }, cam: [0.35, 0.4, 0.3, 0.3], title: 'Credits are earned', body: 'A finished session pays out. Credits come from real focus only. You cannot win them in a game.', done: { state: 'focus' }, post: true },
     { ch: 2, at: 'focus', pick: 'Widgets', title: 'Study windows', body: 'A notepad, calculator, to-do list, timer and more float over Focus. Deal the deck.', done: { state: 'deck' }, post: true },
     { ch: 2, at: 'deck', pick: 'Notepad', title: 'Open the notepad', body: 'It saves as you type and stays in this browser. Every window drags around the screen.', done: { state: 'w-notes' }, post: true },
     { ch: 3, at: '*', go: 'w-notes', pick: 'Theme', title: 'Five looks', body: 'Click the palette button, or press T. The whole app changes, not just the colours.', done: { theme: true }, post: true },
@@ -283,19 +297,18 @@ a { color: inherit; }
   /* ------------------------------------------------------------ sizing */
   function size() {
     var rw = room.clientWidth, rh = room.clientHeight;
-    compact = rw < 760 || rh < 300;
-    var tight = compact ? rh - 150 : rh;
-    var w = Math.min(rw, Math.max(tight, 160) * 16 / 9);
-    if (compact) w = rw;
+    compact = rw < 640;
+    var w = compact ? rw : Math.min(rw, Math.max(rh, 120) * 16 / 9);
     SW = Math.floor(w); SH = Math.floor(w * 9 / 16);
     stage.style.setProperty('--sw', SW + 'px'); stage.style.setProperty('--sh', SH + 'px');
     room.classList.toggle('compact', compact);
+    stage.classList.toggle('sm', SW < 760);
     camera(); placeGuide();
   }
   function camera() {
-    var h = targetHot();
-    if (!compact || !zoomOn || !h || freeRoam || finished) { cam.style.transform = 'none'; return; }
-    var k = 2.3, cx = (h.r[0] + h.r[2] / 2) * SW, cy = (h.r[1] + h.r[3] / 2) * SH;
+    var h = targetHot(), r = h ? h.r : (!finished && !freeRoam && STEPS[step] && STEPS[step].cam) || null;
+    if (!compact || !zoomOn || !r || freeRoam || finished) { cam.style.transform = 'none'; return; }
+    var k = 2.3, cx = (r[0] + r[2] / 2) * SW, cy = (r[1] + r[3] / 2) * SH;
     var tx = Math.min(0, Math.max(SW - SW * k, SW / 2 - cx * k)), ty = Math.min(0, Math.max(SH - SH * k, SH / 2 - cy * k));
     cam.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
   }
@@ -327,7 +340,9 @@ a { color: inherit; }
   function buildHits() {
     hits.innerHTML = '';
     var s = (!finished && !freeRoam) ? STEPS[step] : null;
-    var arr = hotsOf().slice().sort(function (a, b) { return (b.ghost ? 1 : 0) - (a.ghost ? 1 : 0); });
+    var area = function (h) { return h.ghost ? 9 : h.r[2] * h.r[3]; };
+    // big zones underneath, small ones on top, so a button inside a panel is never covered by the panel
+    var arr = hotsOf().slice().sort(function (a, b) { return area(b) - area(a); });
     arr.forEach(function (h, i) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'hs' + (h.ghost ? ' ghost' : '') + (h.k === 'dial' && h.ruler || h.k === 'ruler' ? ' drag' : '');
@@ -444,8 +459,7 @@ a { color: inherit; }
   function stepChanged() {
     var s = STEPS[step];
     if (s && s.post) post = post || false;
-    // after a step is done, re-draw the guide for the current state (a short beat so the picture lands first)
-    setTimeout(function () { buildHits(); guide(); camera(); }, 60);
+    progress();
   }
   function finish() { finished = true; progress(); }
   function progress() {
@@ -499,7 +513,11 @@ a { color: inherit; }
     var p = floatEl.querySelector('.plate.guide'); if (!p) return;
     var h = targetHot() || null;
     if (!h) { var chip = STEPS[step] && STEPS[step].chip; place(p, chip ? [0.62, 0.42, 0.01, 0.01] : null); return; }
-    place(p, h.r);
+    var rs = [h.r];
+    ((STEPS[step] && STEPS[step].also) || []).forEach(function (l) { var a = find(l); if (a) rs.push(a.r); });
+    var x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+    rs.forEach(function (r) { x0 = Math.min(x0, r[0]); y0 = Math.min(y0, r[1]); x1 = Math.max(x1, r[0] + r[2]); y1 = Math.max(y1, r[1] + r[3]); });
+    place(p, [x0, y0, x1 - x0, y1 - y0]);
   }
   function place(p, r) {
     if (compact) return;
@@ -509,7 +527,7 @@ a { color: inherit; }
     var cl = function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
     var below = { x: cl(cx - pw / 2, 10, W - pw - 10), y: ty + th + g }, above = { x: cl(cx - pw / 2, 10, W - pw - 10), y: ty - ph - g };
     var right = { x: tx + tw + g, y: cl(cy - ph / 2, 10, H - ph - 10) }, left = { x: tx - pw - g, y: cl(cy - ph / 2, 10, H - ph - 10) };
-    var order = cy > H * 0.55 ? [above, right, left, below] : [below, right, left, above];
+    var order = (th > H * 0.3 || tw > W * 0.3) ? [left, right, below, above] : (cy > H * 0.55 ? [above, right, left, below] : [below, right, left, above]);
     var pick = null;
     for (var i = 0; i < order.length; i++) { var c = order[i]; if (c.x >= 8 && c.y >= 8 && c.x + pw <= W - 8 && c.y + ph <= H - 8) { pick = c; break; } }
     if (!pick) pick = { x: cl(W - pw - 16, 8, W), y: cl(H - ph - 16, 8, H) };
@@ -532,7 +550,7 @@ a { color: inherit; }
   }
 
   /* ------------------------------------------------------------ popovers */
-  function clearTip() { var t = floatEl.querySelector('.plate.tip'); if (t) t.remove(); var d = dock.querySelector('.plate.tip'); if (d) d.remove(); clearTimeout(tipTimer); }
+  function clearTip() { var t = floatEl.querySelector('.plate.tip'); if (t) t.remove(); var d = dock.querySelector('.plate.tip'); if (d) d.remove(); clearTimeout(tipTimer); room.classList.remove('tipping'); }
   function tip(h, title, body, route) {
     clearTip();
     var p = plateEl('tip', '<span>' + (route ? 'Lives in the real app' : 'In the real app') + '</span>', title, body);
@@ -541,6 +559,7 @@ a { color: inherit; }
     var x = document.createElement('button'); x.className = 'lnk'; x.textContent = 'Got it'; x.addEventListener('click', clearTip); row.appendChild(x);
     p.appendChild(row);
     (compact ? dock : floatEl).appendChild(p);
+    room.classList.add('tipping');
     if (!compact) place(p, h.r);
     tipTimer = setTimeout(clearTip, 9000);
   }

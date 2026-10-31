@@ -5,7 +5,7 @@ const http = require('http'), fs = require('fs'), path = require('path')
 const DIST = path.join(__dirname, 'dist'), PORT = 5188
 const OUT = '/tmp/claude-0/demo/test'; fs.mkdirSync(OUT, { recursive: true })
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.webp': 'image/webp', '.css': 'text/css' }
-const srv = http.createServer((q, r) => { const f = path.join(DIST, decodeURIComponent(q.url.split('?')[0]).replace(/^\/$/, '/index.html')); fs.readFile(f, (e, b) => { if (e) { r.writeHead(404); r.end() } else { r.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' }); r.end(b) } }) }).listen(PORT)
+const srv = http.createServer((q, r) => { const f = path.join(DIST, decodeURIComponent(q.url.split('?')[0]).replace(/^\/$/, '/index.html')); fs.readFile(f, (e, b) => { if (e) { r.writeHead(404); r.end() } else { r.writeHead(200, { 'content-type': (MIME[path.extname(f)] || 'application/octet-stream') + (/html|javascript/.test(MIME[path.extname(f)] || '') ? '; charset=utf-8' : '') }); r.end(b) } }) }).listen(PORT)
 let bad = 0
 const ok = (c, m) => { if (!c) { bad++; console.log('FAIL', m) } else console.log('ok  ', m) }
 
