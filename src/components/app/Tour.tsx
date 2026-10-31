@@ -13,12 +13,16 @@ const timer = '[data-movable="timer"]'
 const tabEl = (id: string) => () => document.querySelector<HTMLElement>(`[data-tab="${id}"]`)
 const path = () => location.pathname.replace(/\/+$/, '')
 
-/** Opens a bought window's how-to later; the main walk-through below is the long one. */
+/** where things were when a step asked for something to be done (the session length, a window's corner) */
 const startMin = { v: 0 }
+const startAt = { x: 0, y: 0, down: false }
+/** the window's top-left corner on screen, or null when it is not there */
+const cornerOf = (sel: string) => { const r = document.querySelector<HTMLElement>(sel)?.getBoundingClientRect(); return r ? { x: r.left, y: r.top } : null }
 
 /**
- * The first-run walk-through, in chapters across the screens, about two minutes. Each step points at one part of a screen, some ask you to
- * do the thing, and a title card cuts between chapters. It starts once, after the welcome, and can be run again from Settings > Help.
+ * The first-run walk-through, in chapters across the screens, about two minutes. Each step points at one part of a screen and some ask you to
+ * do the thing. Only the welcome at the very start is a black title card; moving to the next screen is a plain step. It starts once, after
+ * the welcome, and can be run again from Settings > Help.
  * It says in plain words what is built by rules, what is AI and what is stored where, since that is what people ask.
  */
 export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
@@ -37,30 +41,34 @@ export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
   const steps = useMemo<GStep[]>(() => [
     { id: 'open', view: 'focus', card: { kicker: 'Friction', title: 'Welcome', lines: ['Nothing here scrolls.', 'Every time you leave is counted.', 'A two-minute tour. Try the things it asks.'] } },
 
-    { id: 'c-focus', view: 'focus', card: { kicker: '1 · Focus', title: 'Lock in' } },
-    { id: 'dial', target: `${timer} > :first-child`, scope: timer, place: 'right', title: 'This is your clock', body: 'It counts down only while you are locked in and on this tab.' },
+    { id: 'dial', view: 'focus', chapter: 'Focus', target: `${timer} > :first-child`, scope: timer, place: 'right', title: 'This is your clock', body: 'It counts down only while you are locked in and on this tab.' },
     { id: 'length', target: () => document.querySelector<HTMLElement>(`${timer} [role="slider"]`)?.lastElementChild as HTMLElement | null, scope: `${timer} [role="slider"]`, place: 'top', pad: 6, title: 'Pick a length', body: 'The yellow tag is the minutes.', task: 'Drag it left or right', setup: () => { startMin.v = useStore.getState().settings.sessionMin }, done: () => useStore.getState().settings.sessionMin !== startMin.v },
     { id: 'lock', target: withText('button', 'lock in', timer), scope: timer, place: 'bottom', title: 'Then lock in', body: 'Leave this tab for 6 seconds or more and it counts as a drift. Finish and you earn credits.' },
     { id: 'deck', target: '[data-tour="widgets"] button', place: 'bottom', title: 'Study windows', body: 'A deck of tools: notepad, timer, calculator and more.', task: 'Tap the deck', done: () => !!document.querySelector('[role="group"][aria-label="Widgets"]') },
     { id: 'card', target: '[role="group"][aria-label="Widgets"] [aria-label^="Timer"]', scope: '[role="group"][aria-label="Widgets"]', place: 'left', title: 'Open one', body: 'Each card is a window.', task: 'Press the Timer card', setup: (c) => c.onClose(() => { useStore.getState().setWidget('timer', false); useStore.getState().closeWidgets?.() }), done: () => useStore.getState().widgets.open.includes('timer') },
-    { id: 'window', target: '[data-movable="widget-timer"]', place: 'bottom', title: 'It floats', body: 'Drag it by the title bar and it stays where you leave it.' },
+    { id: 'window', target: '[data-movable="widget-timer"]', place: 'bottom', title: 'It floats', body: 'Grab it by the title bar or a bare edge and move it. It stays where you leave it.', task: 'Drag the window',
+      // a drag is a press inside the window followed by it actually moving, so a window that settles on its own does not count
+      setup: (c) => {
+        const at = cornerOf('[data-movable="widget-timer"]')
+        startAt.x = at?.x ?? 0; startAt.y = at?.y ?? 0; startAt.down = false
+        const down = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.('[data-movable="widget-timer"]')) startAt.down = true }
+        document.addEventListener('pointerdown', down, true)
+        c.onClose(() => document.removeEventListener('pointerdown', down, true))
+      },
+      done: () => { const at = cornerOf('[data-movable="widget-timer"]'); return startAt.down && !!at && Math.hypot(at.x - startAt.x, at.y - startAt.y) > 12 } },
     { id: 'nav', target: tabEl('radio'), scope: '[data-movable="shell-nav"]', place: 'top', title: 'Tabs take you around', body: 'No scrolling, no feed. Visit Radio.', task: 'Tap Radio', done: () => path() === '/radio' },
 
-    { id: 'c-radio', view: 'radio', card: { kicker: '2 · Tune in', title: 'Radio and TV' } },
-    { id: 'search', target: 'input[placeholder="Search every station"]', place: 'bottom', title: 'Find a station', body: 'Search looks at every station, not only the chip you are on.', task: 'Type any word', done: () => ((document.querySelector('input[placeholder="Search every station"]') as HTMLInputElement | null)?.value.length ?? 0) > 1 },
+    { id: 'search', view: 'radio', chapter: 'Tune in', target: 'input[placeholder="Search every station"]', place: 'bottom', title: 'Find a station', body: 'Search looks at every station, not only the chip you are on.', task: 'Type any word', done: () => ((document.querySelector('input[placeholder="Search every station"]') as HTMLInputElement | null)?.value.length ?? 0) > 1 },
     { id: 'player', target: () => document.querySelector<HTMLElement>('[data-movable="shell-player"] [aria-label="Previous"]')?.nextElementSibling as HTMLElement | null, scope: '[data-movable="shell-player"]', place: 'top', title: 'The player', body: 'Play and skip from here on any screen. It never stops when you move around.' },
 
-    { id: 'c-learn', view: 'learn', card: { kicker: '3 · Learn', title: 'Lessons' } },
-    { id: 'learn', target: 'input[placeholder="Learn about anything"]', place: 'bottom', title: 'Learn anything', body: 'Lessons are built from Wikipedia by fixed rules. No AI writes them.', task: 'Type any subject', done: () => ((document.querySelector('input[placeholder="Learn about anything"]') as HTMLInputElement | null)?.value.length ?? 0) > 1 },
+    { id: 'learn', view: 'learn', chapter: 'Learn', target: 'input[placeholder="Learn about anything"]', place: 'bottom', title: 'Learn anything', body: 'Lessons are built from Wikipedia by fixed rules. No AI writes them.', task: 'Type any subject', done: () => ((document.querySelector('input[placeholder="Learn about anything"]') as HTMLInputElement | null)?.value.length ?? 0) > 1 },
 
-    { id: 'c-credits', view: 'arcade', card: { kicker: '4 · Credits', title: 'Earn, then spend' } },
-    { id: 'credits', target: '[aria-label="Your credits"]', place: 'bottom', title: 'Your credits', body: 'You earn them by focusing. A game can never win you any.' },
+    { id: 'credits', view: 'arcade', chapter: 'Credits', target: '[aria-label="Your credits"]', place: 'bottom', title: 'Your credits', body: 'You earn them by focusing. A game can never win you any.' },
     { id: 'shop', target: withText('button', 'shop'), place: 'bottom', title: 'The Shop', body: 'Breaks, a streak shield, a sound machine and more.', task: 'Open the Shop', done: () => /Sound machine|Long break|Streak shield/i.test(document.getElementById('canvas')?.textContent ?? '') },
 
-    { id: 'c-look', view: 'settings', card: { kicker: '5 · Settings', title: 'Make it yours' } },
-    { id: 'dials', target: '[role="slider"][aria-label^="Retro"]', scope: '[role="slider"][aria-label^="Retro"]', place: 'top', title: 'Two dials', body: 'Retro changes how old the screen looks. ASCII changes how many text-drawn shapes roam the page. Both are here, under Look.', setup: () => click('button', 'look') },
+    { id: 'dials', view: 'settings', chapter: 'Settings', target: '[role="slider"][aria-label^="Retro"]', scope: '[role="slider"][aria-label^="Retro"]', place: 'top', title: 'Two dials', body: 'Retro changes how old the screen looks. ASCII changes how many text-drawn shapes roam the page. Both are here, under Look.', setup: () => click('button', 'look') },
 
-    { id: 'end', view: 'focus', card: { kicker: 'That is the tour', title: 'Lock in', lines: ['Run it again any time: Settings, Help.'] } },
+    { id: 'end', view: 'focus', chapter: 'Done', title: 'That is the tour', body: 'Lock in when you are ready. You can run this again any time from Settings, then Help.' },
   ], [])
 
   const close = (why: 'done' | 'skip') => {
@@ -72,20 +80,19 @@ export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
   return <Guide steps={steps} open={open} onClose={close} view={view} go={go} label="Tour" />
 }
 
-/** The Browser's own first-open walk-through: what it is, what it will not do, and what happens when a site cannot run here. */
+/** The Browser's own first-open walk-through: how to use it like any browser, that it is experimental, and what to do when a site will not run. */
 export function BrowserTour({ view, go }: { view: View; go: (v: View) => void }) {
   const open = useUI((s) => s.browserTour)
   const setSettings = useStore((s) => s.setSettings)
   const win = '[data-movable="widget-browser"]'
+  const start = `${win} [aria-label="Start pages"]`
   const steps = useMemo<GStep[]>(() => [
-    { id: 'b-open', card: { kicker: 'Browser', title: 'A browser for studying', lines: ['Small on purpose. Some doors stay shut.'] } },
-    { id: 'b-win', target: win, place: 'left', title: 'What it blocks', body: 'Games and short-form social media. A free AI helps screen sites it does not know, from the address and a short excerpt only.' },
-    { id: 'b-bar', target: `${win} form input`, scope: `${win} form`, place: 'bottom', title: 'Type or search', body: 'An address, or any words to search.' },
-    { id: 'b-alts', target: () => withText('button', 'friction alts', win)(), scope: `${win} [aria-label="Start pages"]`, place: 'left', title: 'Friction alts', body: 'Sites that cannot run here, rebuilt: maps, weather, dictionary and more.', task: 'Open Friction alts', done: () => !document.querySelector(`${win} [aria-label="Start pages"]`) },
-    { id: 'b-back', target: () => withText('button', 'back', win)() ?? document.querySelector<HTMLElement>(`${win} [aria-label="Back"]`), place: 'bottom', title: 'Back to start', body: 'Back goes to the last page.', task: 'Press Back', done: () => !!document.querySelector(`${win} [aria-label="Start pages"]`) },
-    { id: 'b-cloud', target: win, place: 'left', title: 'When a site will not run', body: 'The cloud browser opens it for you. Its timer shows your 30 minutes a day, and only counts down while you are here. It switches off when you leave.' },
-    { id: 'b-end', card: { kicker: 'Browser', title: 'Page not working?', lines: ['Every error has a button for what to try next.'] } },
-  ], [win])
+    { id: 'b-what', chapter: 'Browser', target: win, place: 'left', title: 'A browser, with a warning', body: 'Use it like any browser. It is experimental, though, and most sites will not work properly here. Games and short-form social media are blocked.' },
+    { id: 'b-bar', target: `${win} form input`, scope: `${win} form`, place: 'bottom', title: 'Type an address or search', body: 'Type a site or any words and press Enter. Pages open inside this window.', task: 'Type anything', done: () => ((document.querySelector(`${win} form input`) as HTMLInputElement | null)?.value.length ?? 0) > 1 },
+    { id: 'b-tiles', target: start, place: 'left', title: 'Or start from a tile', body: 'Wikipedia, YouTube and our own FrictionX search work here. Add page keeps the sites you use.', task: 'Open Wikipedia', done: () => !document.querySelector(start) },
+    { id: 'b-back', target: () => document.querySelector<HTMLElement>(`${win} [aria-label="Back"]`), place: 'bottom', title: 'Back works as usual', body: 'Back returns to the last page. Reload is next to the address bar.', task: 'Press Back', done: () => !!document.querySelector(start) },
+    { id: 'b-cloud', target: win, place: 'left', title: 'If a site does not work', body: 'Press Issues, or Open in the cloud browser when an error shows. It runs the site in a real browser on a remote computer. You get 30 minutes a day, and the timer only counts down while you are here.' },
+  ], [win, start])
   const close = () => { useUI.getState().set({ browserTour: false }); setSettings({ browserToured: true }) }
   return <Guide steps={steps} open={open} onClose={close} view={view} go={go} label="Browser" />
 }

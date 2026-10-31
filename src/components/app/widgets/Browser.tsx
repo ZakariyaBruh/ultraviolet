@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, LayoutGrid, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
 import { CloudScreen } from './CloudScreen'
@@ -8,9 +8,7 @@ import { verdict, youtubeId } from '@/lib/blocklist'
 import { screenPage } from '@/lib/screen'
 import { FRAME_SHIM, frameRequest } from '@/lib/frameproxy'
 import { PAGES_MAX, useStore, type SavedPage } from '@/lib/store'
-import { ALTS, altFor } from '@/lib/alts'
 import { field } from './Window'
-import { AltsHome, AltView } from './Alts'
 
 /**
  * The Browser: the open web for studying, without the parts that eat a focus session. Pages are read by our own server
@@ -26,8 +24,6 @@ type View =
   | { kind: 'home' }
   | { kind: 'search' }
   | { kind: 'add' }
-  | { kind: 'alts' }
-  | { kind: 'alt'; id: string }
   | { kind: 'results'; q: string; list: Hit[]; engine: string; note: string }
   /** `q` is empty on YouTube's own start page */
   | { kind: 'youtube'; q: string; list: Video[] }
@@ -344,8 +340,6 @@ export function Browser() {
     let u: URL
     try { u = new URL(raw) } catch { return null }
     const h = u.hostname.replace(/^(www|m)\./, '')
-    const alt = altFor(u)
-    if (alt) return { name: `Friction ${alt.name}`, go: () => show({ kind: 'alt', id: alt.id }) }
     if (/^(youtube\.com|youtu\.be|music\.youtube\.com)$/.test(h)) return { name: 'Friction YouTube', go: () => show({ kind: 'youtube', q: '', list: [] }) }
     if (/^(google\.[a-z.]{2,6}|bing\.com|duckduckgo\.com|search\.brave\.com|yahoo\.com|ecosia\.org)$/.test(h)) return { name: 'FrictionX search', go: () => show({ kind: 'search' }) }
     if (/^(chatgpt\.com|chat\.openai\.com|openai\.com|claude\.ai|gemini\.google\.com|copilot\.microsoft\.com|perplexity\.ai|character\.ai|poe\.com)$/.test(h)) return { name: 'Friction Ask AI', go: () => useStore.getState().setWidget('ask', true) }
@@ -357,7 +351,7 @@ export function Browser() {
   const reload = () => { if (view.kind === 'cloud') show({ kind: 'cloud', url: view.url, n: Date.now() }, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
   const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
-  const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alts' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
+  const bar = view.kind !== 'search' && view.kind !== 'add' && !(view.kind === 'youtube' && !view.q)
 
   return (
     <div className="grid gap-2">
@@ -399,7 +393,6 @@ export function Browser() {
                     : <Tile icon={p.name[0]?.toUpperCase() ?? '?'} name={p.name} sub={p.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')} onClick={() => void open(p.url)} />}
                 </li>
               ))}
-              <li><Tile icon={<LayoutGrid className="size-6" />} name="Friction alts" sub={`${ALTS.length} sites, made here`} onClick={() => show({ kind: 'alts' })} /></li>
               {saved.length < PAGES_MAX && <li><Tile icon={<Plus className="size-6" />} name="Add page" sub="Keep a site here" onClick={() => show({ kind: 'add' })} /></li>}
             </ul>
             {saved.length > 0 && <button onClick={() => setEditing((v) => !v)} aria-pressed={editing} className="inline-flex h-11 items-center gap-1.5 justify-self-start text-[13px] text-ink-2 hover:text-ink"><Pencil className="size-3.5" />{editing ? 'Done' : 'Remove pages'}</button>}
@@ -413,8 +406,6 @@ export function Browser() {
           </div>
         )}
         {view.kind === 'search' && <Start title="FrictionX" sub={`Search the web, made here. The results come from ${engineName}.`} placeholder={`Search with ${engineName}`} ideas={IDEAS} onSearch={(q) => go(q, false)} onBack={back} />}
-        {view.kind === 'alts' && <AltsHome onBack={back} onPick={(id) => show({ kind: 'alt', id })} />}
-        {view.kind === 'alt' && <AltView key={view.id} alt={ALTS.find((a) => a.id === view.id)!} onBack={() => show({ kind: 'alts' })} onOpen={(u) => void open(u)} />}
         {view.kind === 'add' && <AddPage onBack={back} onSave={(n, u) => { addPage(n, u); back() }} />}
         {view.kind === 'results' && (
           <div className="scroll-y h-full p-2">
@@ -545,12 +536,11 @@ export function Browser() {
               {view.why === 'down' && <>The cloud browser is not answering. It is experimental, and it can also be switched off when its budget runs out. Everything else in Friction still works.</>}
               {view.why === 'off' && <>You turned the cloud browser off, so nothing opens in it and no time is used.</>}
             </p>
-            <p className="text-[13px] leading-[1.4] text-ink-2">{view.why === 'off' ? 'Turn it back on to open this page.' : 'Meanwhile this page can be opened in your own browser, or you can try a Friction alt, a built-in stand-in for popular sites.'}</p>
+            <p className="text-[13px] leading-[1.4] text-ink-2">{view.why === 'off' ? 'Turn it back on to open this page.' : 'Meanwhile this page can be opened in your own browser.'}</p>
             <div className="flex flex-wrap gap-2">
               {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openCloud(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
               {(view.why === 'down' || view.why === 'busy') && <button onClick={() => void openCloud(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}
               {view.why !== 'off' && <button type="button" onClick={() => setLeave(view.url)} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10">Open in your browser <ExternalLink className="size-3.5" aria-hidden /></button>}
-              <button onClick={() => show({ kind: 'alts' })} className="inline-flex h-11 items-center gap-1.5 border border-ink/30 px-4 text-sm hover:bg-ink/10"><LayoutGrid className="size-4" aria-hidden />Friction alts</button>
               <button onClick={() => show({ kind: 'home' })} className="h-11 px-3 text-sm text-ink-2 hover:text-ink">Back to start</button>
             </div>
           </div>

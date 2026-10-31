@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 
 /**
  * The guided tour. A step either points at one specific part of the screen (a hole is cut in the dim around exactly that part, the
- * rest of its panel is outlined faintly so you can see where the part sits), or it is a title card that cuts between chapters.
+ * rest of its panel is outlined faintly so you can see where the part sits), or it has no part and sits in the middle. The only black
+ * title card is the welcome the very first time the app is opened (`card`); every other change of screen is a plain step with `chapter`.
  * A step can ask you to do the thing (`done` is checked ten times a second and the tour moves on by itself when it is true).
  * Steps know which screen they belong to and take you there. Calm motion and reduced motion swap the moves for fades.
  */
@@ -15,8 +16,10 @@ export type GTarget = string | (() => HTMLElement | null)
 export interface GCtx { go: (v: View) => void; onClose: (undo: () => void) => void }
 export interface GStep {
   id: string
-  /** a title card: black bars close over the screen, the card is read, the bars open on the next screen */
+  /** the black welcome card, for the first run only: bars close over the screen, the card is read, the bars open on it */
   card?: { kicker: string; title: string; lines?: string[] }
+  /** names the chapter from this step on (shown in the card's heading) */
+  chapter?: string
   view?: View
   /** the part to point at */
   target?: GTarget
@@ -196,10 +199,9 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
   }
 
   const interactive = !!step.done
-  const lastInChapter = !steps[i + 1] || !!steps[i + 1].card
   const spots = steps.filter((x) => !x.card)
   const spotNo = spots.indexOf(step) + 1
-  const chapterName = (() => { let a = i; while (a > 0 && !steps[a].card) a--; return steps[a].card?.kicker ?? label })()
+  const chapterName = (() => { for (let a = i; a >= 0; a--) { const c = steps[a].chapter ?? steps[a].card?.kicker; if (c) return c } return label })()
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[140]" role="presentation" data-guide>
@@ -250,7 +252,7 @@ export function Guide({ steps, open, onClose, view, go, label }: { steps: GStep[
             {interactive && !won ? (
               <button onClick={next} className={cn('h-11 shrink-0 whitespace-nowrap px-3 text-sm', late ? 'bg-ink font-semibold text-ground' : 'text-ink-3 hover:text-ink')}>Skip step</button>
             ) : (
-              <button autoFocus={!interactive} onClick={next} className="h-11 shrink-0 whitespace-nowrap bg-signal px-5 text-sm font-semibold text-on-signal">{lastInChapter && i >= steps.length - 2 ? 'Finish' : 'Next'}</button>
+              <button autoFocus={!interactive} onClick={next} className="h-11 shrink-0 whitespace-nowrap bg-signal px-5 text-sm font-semibold text-on-signal">{i >= steps.length - 1 ? 'Finish' : 'Next'}</button>
             )}
           </div>
         </motion.div>

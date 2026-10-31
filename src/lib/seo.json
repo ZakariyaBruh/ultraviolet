@@ -74,9 +74,9 @@
   },
   "/music": {
     "title": "Free Music Player for Studying: Songs and Radio | Friction",
-    "description": "Play whole free songs from Audius, Openverse and the Internet Archive, filtered to the age you choose. No account, and your searches stay in this browser.",
+    "description": "Play whole free songs from Audius, Openverse, Wikimedia Commons, the Library of Congress and the Internet Archive, filtered to your age. No account.",
     "h1": "Free music player for studying: songs and radio",
-    "lead": "Play whole free songs while you study. Friction searches three services that need no key: Audius for independent artists, Openverse for openly licensed music and the Internet Archive. Results are mixed together and shown on one screen, with a trending list when you have not searched yet.",
+    "lead": "Play whole free songs while you study. Friction searches five services that need no key: Audius for independent artists, Openverse for openly licensed music, Wikimedia Commons for classical and folk recordings, the Library of Congress for early records and the Internet Archive. Results are mixed together and shown on one screen, with a trending list when you have not searched yet.",
     "points": [
       "Choose an age setting the first time: everyone, teens or adults",
       "Songs flagged explicit or mature are filtered out for the younger settings",
