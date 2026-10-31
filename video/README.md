@@ -8,7 +8,7 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 
 | time | what | how it is made |
 | --- | --- | --- |
-| 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. |
+| 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. The ridges are glowing ice-blue bars that rise ahead of the dial (before, they were dark mirror strips nobody could see), and the camera keeps the dial in the left third with open floor ahead of it. The words say what it is: "Scrolling has no friction." then, as it slows, "Until something pushes back." |
 | 6.2 - 7.0 | Black and silence. | The score gates everything except the room tone. |
 | 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the O turns into the app's text doughnut, which grows until the camera flies through its hole into the app (the move v3 had). | `src/v6/Title.tsx` (the doughnut is the app's own `ascii3d.ts` engine, `src/Ascii.tsx`), `Dial.tsx`. The hole is a mask over the title; the app scene is mounted 14 frames early underneath it. |
 | 13.0 - 35.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish, five looks, the Arcade, the front page. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |

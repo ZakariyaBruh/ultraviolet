@@ -7,7 +7,7 @@ mkdir -p $O
 for a in $(seq 1 31 186); do
   b=$((a+30)); [ $b -gt 186 ] && b=186
   [ -f $O/h_$(printf "%04d" $b).png ] && continue
-  nice -n 8 $B -b -P $S -- $a $b $O 1440 810 10 > /tmp/claude-0/hk/chunk_$a.log 2>&1
+  nice -n 8 $B -b -P $S -- $a $b $O 1440 810 7 > /tmp/claude-0/hk/chunk_$a.log 2>&1
   echo "chunk $a-$b $(date +%T)" >> /tmp/claude-0/hk/progress.log
 done
 echo done >> /tmp/claude-0/hk/progress.log

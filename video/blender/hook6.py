@@ -8,7 +8,7 @@ F0, F1 = int(argv[0]), int(argv[1]); OUT = argv[2]
 W = int(argv[3]) if len(argv) > 3 else 1440; H = int(argv[4]) if len(argv) > 4 else 810; SAMPLES = int(argv[5]) if len(argv) > 5 else 10
 FPS = 30; DT = 1 / FPS; NF = 186            # 6.2 s
 YEL = (1.0, 0.62, 0.035, 1)
-SPACING = 0.9
+SPACING = 1.5
 random.seed(7)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -129,27 +129,27 @@ bpy.ops.mesh.primitive_plane_add(size=1, location=(80, 0, 0)); fl = bpy.context.
 fl.data.materials.append(mat('floor', (0.005, 0.008, 0.018, 1), rough=0.05, spec=0.8))
 for i in range(34):
     bpy.ops.mesh.primitive_cube_add(size=1, location=(i * 6.5 - 20, 10, 4.6)); s = bpy.context.object; s.scale = (2.8, 0.12, 0.12)
-    s.data.materials.append(mat('strip', (0.5, 0.8, 1, 1), rough=1, emit=(0.5, 0.82, 1.0, 1), emit_k=5 if i % 2 == 0 else 2.2)); s.visible_camera = False
+    s.data.materials.append(mat('strip', (0.5, 0.8, 1, 1), rough=1, emit=(0.5, 0.82, 1.0, 1), emit_k=2.0 if i % 2 == 0 else 0.8)); s.visible_camera = False
 
 bpy.ops.mesh.primitive_cube_add(size=1); rid = bpy.context.object
 rid.modifiers.new('bevel', 'BEVEL').width = 0.014
-rid.data.materials.append(mat('ridge', (0.035, 0.05, 0.1, 1), rough=0.1, metal=0.85, spec=1.0)); ridge_mesh = rid.data; bpy.data.objects.remove(rid)
+rid.data.materials.append(mat('ridge', (0.2, 0.45, 0.8, 1), rough=0.35, emit=(0.35, 0.68, 1.0, 1), emit_k=0.9, spec=0.5)); ridge_mesh = rid.data; bpy.data.objects.remove(rid)
 xf = at(T_FRONT, 1)
-RH = 0.125
+RH = 0.2
 ridge_h = []                      # (x, emergence time) kept for the dial's hops
 NR = 150
 for i in range(NR):
     xi = 6 + i * SPACING
     te = T_FRONT + (xi - xf) / FRONT_V if xi > xf else 1e9
+    ridge_h.append((xi, te))
+    if te >= 1e8: continue          # behind the dial at the moment they rise: never seen, so never built (a flat glowing line there would read as a lane marking)
     o = bpy.data.objects.new('r%d' % i, ridge_mesh); sc.collection.objects.link(o); o.modifiers.new('bevel', 'BEVEL').width = 0.014
-    o.scale = (0.15, 9.0, 0.012); o.location = (xi, 0, 0.002)
+    o.scale = (0.2, 4.2, 0.0004); o.location = (xi, 0, 0.0)
     vals_s, vals_z = [], []
     for f in frames:
-        tt = f * DT; h = 0.012 + (RH - 0.012) * (sm((tt - te) / 0.30) if te < 1e8 else 0.0)
+        tt = f * DT; h = 0.0004 + (RH - 0.0004) * sm((tt - te) / 0.30)
         vals_s.append(h); vals_z.append(h / 2 - 0.004)
-    if te < 1e8:
-        bake(o, 'scale', 2, vals_s); bake(o, 'location', 2, vals_z)
-    ridge_h.append((xi, te))
+    bake(o, 'scale', 2, vals_s); bake(o, 'location', 2, vals_z)
 
 def lift_at(t, x):
     lift = 0.0
@@ -179,8 +179,8 @@ def area(name, loc, rot, size, energy, color, shape='RECTANGLE', sy=None):
     l = bpy.data.lights.new(name, 'AREA'); l.energy = energy; l.color = color; l.shape = shape; l.size = size
     if sy: l.size_y = sy
     o = bpy.data.objects.new(name, l); sc.collection.objects.link(o); o.location = loc; o.rotation_euler = [math.radians(a) for a in rot]; o.parent = rig; return o
-area('ice', (0, -5, 5.5), (58, 0, 0), 22, 2100, (0.5, 0.82, 1.0), sy=0.9)
-area('back', (30, 14, 1.2), (90, 0, 55), 18, 1800, (0.45, 0.7, 1.0), sy=0.4)
+area('ice', (0, -5, 5.5), (58, 0, 0), 22, 2100, (0.5, 0.82, 1.0), sy=0.9).visible_glossy = False
+area('back', (30, 14, 1.2), (90, 0, 55), 18, 1800, (0.45, 0.7, 1.0), sy=0.4).visible_glossy = False
 area('warm', (2.0, -6.5, 3.0), (64, 0, 0), 4, 420, (1.0, 0.92, 0.75), sy=2)
 area('rim', (-5, -1.5, 3.2), (70, 0, -80), 3, 300, (0.55, 0.8, 1.0), shape='SQUARE')
 area('kick', (1.5, 1.5, 4.2), (-50, 0, 25), 3, 260, (1.0, 0.9, 0.7), shape='SQUARE')   # a little light for the top, so the indicator reads
@@ -190,15 +190,16 @@ cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d); s
 cam_d.sensor_width = 36; cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 2.8
 tgt = bpy.data.objects.new('tgt', None); sc.collection.objects.link(tgt); cam_d.dof.focus_object = tgt
 tc = cam.constraints.new('TRACK_TO'); tc.target = tgt; tc.track_axis = 'TRACK_NEGATIVE_Z'; tc.up_axis = 'UP_Y'
-sx = Spring(dial_x[0] + 5.0, 0.55, 0.85); sy_ = Spring(-6.0, 0.7, 0.9); sz = Spring(1.9, 0.7, 0.9); sl = Spring(34.0, 0.6, 0.8)
+sx = Spring(dial_x[0] + 3.6, 0.55, 0.85); sy_ = Spring(-6.0, 0.7, 0.9); sz = Spring(1.9, 0.7, 0.9); sl = Spring(34.0, 0.6, 0.8)
 tx = Spring(dial_x[0] + 0.5, 0.35, 0.9); tz = Spring(0.45, 0.6, 0.9)
 cx, cy, cz, cl, ttx, ttz = [], [], [], [], [], []
 T_IMP = T_ACC + 0.05
 for f in frames:
     t = f * DT; x = dial_x[f]
-    lead = 5.0 - 3.0 * sm((t - 0.2) / 3.3)                      # it starts ahead of the dial and lets the dial overtake as it accelerates
-    if t > T_IMP: lead = 1.6 - 0.8 * sm((t - T_IMP) / 2.0)
-    cx.append(sx.step(x + lead, DT))
+    # the camera keeps the dial in the left third with open floor ahead of it, so the ridges rising in front are seen before it reaches them;
+    # the spring lags by about 0.15 s of travel, which the feed-forward cancels. After the first bite it closes in.
+    lead = 3.6 - 1.8 * sm((t - T_IMP) / 1.5)
+    cx.append(sx.step(x + lead + 0.15 * v_at(t), DT))
     cy.append(sy_.step(-6.4 + 1.2 * sm((t - T_IMP) / 1.2) + 1.0 * sm((t - T_IMP - 1.2) / 1.6), DT))
     cz.append(sz.step(1.7 + 0.5 * sm((t - T_IMP) / 2.4) + 0.7 * sm((t - T_IMP - 1.8) / 1.8), DT))
     punch = math.exp(-((t - (T_IMP + 0.03)) / 0.09) ** 2)

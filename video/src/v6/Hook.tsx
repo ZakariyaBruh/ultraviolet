@@ -3,10 +3,15 @@ import { E, FPS, Fill, Grain, P, Vignette, clamp, shake, spr } from './kit'
 
 export const HOOK_FRAMES = 186
 const LINES: { t: string; at: number; c: string }[] = [
-  { t: 'No bottom.', at: 0.42, c: P.ink },
-  { t: 'No edge.', at: 1.42, c: P.ink },
-  { t: 'No brakes.', at: 2.42, c: P.signal },
+  { t: 'Scrolling', at: 0.35, c: P.ink },
+  { t: 'has no', at: 0.95, c: P.ink },
+  { t: 'friction.', at: 1.55, c: P.signal },
 ]
+const THEN: { t: string; at: number }[] = [
+  { t: 'Until something', at: 3.85 },
+  { t: 'pushes back.', at: 4.1 },
+]
+const FIRST_OUT = 3.45
 const OUT_AT = 5.5
 
 /** The baked Blender hook: a dial that slides and spins faster and faster with nothing to stop it, then the floor bites. The words land as it speeds up. */
@@ -24,10 +29,10 @@ export const Hook = () => {
         <Img src={staticFile(`v6/hook/h_${String(idx).padStart(4, '0')}.png`)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       </Fill>
       <Fill>
-        <div style={{ position: 'absolute', left: 100, top: 96, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'absolute', left: 100, top: 90, display: 'flex', flexDirection: 'column' }}>
           {LINES.map((l, i) => {
             const p = spr(now - l.at, 0.5, 0.86)
-            const out = interpolate(now, [OUT_AT + i * 0.06, OUT_AT + i * 0.06 + 0.3], [0, 1], { ...clamp, easing: E.in })
+            const out = interpolate(now, [FIRST_OUT + i * 0.06, FIRST_OUT + i * 0.06 + 0.28], [0, 1], { ...clamp, easing: E.in })
             return (
               <div key={l.t} style={{ overflow: 'hidden', height: 106, opacity: 1 - out }}>
                 <div style={{ transform: `translateY(${(1 - p) * 118 - out * 130}px)`, fontFamily: 'Unbounded', fontWeight: 800, fontSize: 94, lineHeight: '106px', letterSpacing: '-0.03em', textTransform: 'uppercase', color: l.c }}>{l.t}</div>
@@ -35,7 +40,20 @@ export const Hook = () => {
             )
           })}
         </div>
+        <div style={{ position: 'absolute', left: 104, top: 96, display: 'flex', flexDirection: 'column' }}>
+          {THEN.map((l, i) => {
+            const p = spr(now - l.at, 0.5, 0.88)
+            const out = interpolate(now, [OUT_AT + i * 0.06, OUT_AT + i * 0.06 + 0.28], [0, 1], { ...clamp, easing: E.in })
+            return (
+              <div key={l.t} style={{ overflow: 'hidden', height: 84, opacity: 1 - out }}>
+                <div style={{ transform: `translateY(${(1 - p) * 92 - out * 100}px)`, fontFamily: 'Hanken', fontWeight: 600, fontSize: 72, lineHeight: '84px', letterSpacing: '-0.03em', color: P.ink }}>{l.t}</div>
+              </div>
+            )
+          })}
+        </div>
       </Fill>
+      {/* the glass throws one lamp back at the lower left of every frame: a plain white wedge that competes with the dial, so the corner is graded down */}
+      <Fill style={{ background: 'radial-gradient(ellipse 36% 32% at 0% 100%, rgba(2,4,10,0.97) 0%, rgba(2,4,10,0.8) 50%, rgba(2,4,10,0) 100%)', pointerEvents: 'none' }} />
       <Vignette k={0.5} />
       <Grain opacity={0.05} />
     </Fill>

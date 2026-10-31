@@ -186,43 +186,55 @@ def convolve(x, path, mix=1.0):
     y = Pedalboard([Convolution(path, mix=mix)])(x.T.astype(np.float32), SR).T
     return y.astype(np.float64)
 
-# ================================================================ THE HOOK (0 - 6.2): the sounds of the bake
+# ================================================================ THE HOOK (0 - 6.2): the sounds of the bake, kept few so each one can be read
+# 1. the dial is free: a quiet rush of air and a thin whine, both rising with its speed (nothing else, so acceleration is the only story)
+# 2. the ridges rise ahead of it (2.45 - 3.6): one rising sweep
+# 3. it hits them: a roll of ticks that spaces out as it slows, like a ratchet running down: one tick for each ridge on screen
+# 4. it stops: one heavy clunk, then silence
 hk = json.load(open(ROOT + '/public/v6/hook/hook.json'))
 sp = np.array(hk['speed']); ang = np.array(hk['ang']); ticks = hk['ticks']; fps = hk['fps']
 tf = np.arange(len(sp)) / fps
 foley = zbuf()      # diegetic sounds: dial, ridges, ui
-# glass hiss follows the dial's speed
 n_h = int(6.1 * SR)
 tt = np.arange(n_h) / SR
 spd = np.interp(tt, tf, sp)
-cut = (160 + 62 * spd)[::240]
-hiss = auto_filter(noise(n_h), LadderFilter.Mode.BPF12, cut, 0.3)
-hiss *= (0.05 + 0.95 * (spd / 36.0) ** 1.5)
-hiss *= np.minimum(1, tt / 0.4) * np.clip((6.05 - tt) / 0.5, 0, 1)
-put(foley, hiss * 0.55, 0.0, 1.0, 0.25)
-# detent clicks from the baked angle (30 degree detents): a whirr when fast, distinct ticks when it slows
-k0 = int(ang[0] // 30)
-for i in range(len(ang) - 1):
-    a0, a1 = ang[i], ang[i + 1]
-    k = int(np.floor(a0 / 30)) + 1
-    while k * 30 <= a1:
-        u = (k * 30 - a0) / max(1e-9, a1 - a0); t = (i + u) / fps
-        rate = (a1 - a0) * fps
-        vel = 0.05 + 0.5 / (1 + rate / 350)
-        put(foley, detent(vel, 2300 + 600 * rng.random()), t, 1.0, 0.2)
-        k += 1
-# the ridges the dial bites into
+hiss = auto_filter(noise(n_h), LadderFilter.Mode.BPF12, (220 + 70 * spd)[::240], 0.25)
+hiss *= (spd / 36.0) ** 1.4 * np.minimum(1, tt / 0.5) * np.clip((6.05 - tt) / 0.4, 0, 1)
+put(foley, hiss * 0.42, 0.0, 1.0, 0.2)
+whine = np.sin(2 * np.pi * np.cumsum(150 + 20 * spd) / SR) * (spd / 36.0) ** 1.8 * np.minimum(1, tt / 0.8) * np.clip((6.05 - tt) / 0.1, 0, 1)
+put(foley, np.stack([whine, whine], 1) * 0.05, 0.0)
+def tock(vel=1.0, f=780, body=1.0):
+    # the low body only on the slow ticks: a fast roll of them would add up to a hum
+    n = int(0.09 * SR); t = np.arange(n) / SR
+    y = hp(lp(noise(n), 5200), 1100) * np.exp(-t / 0.004) * 0.8 + np.sin(2 * np.pi * f * t) * np.exp(-t / 0.016) * 0.6 + np.sin(2 * np.pi * 118 * t) * np.exp(-t / 0.035) * 0.7 * body
+    return fade(y * vel, 0.0002, 0.01)
+# the exact moments the dial's centre crosses each ridge, from its speed (the bake's own list is rounded to frames)
+tfine = np.arange(0, 6.2, 0.001); xfine = np.cumsum(np.interp(tfine, tf, sp)) * 0.001
+x_front = float(np.interp(2.45, tfine, xfine))
+ticks = []; ridge_rise = []
+for i in range(300):
+    xi = 6 + 1.5 * i
+    if xi <= x_front + 0.5: continue
+    j = int(np.searchsorted(xfine, xi))
+    if j >= len(tfine) or tfine[j] > 6.0: break
+    ticks.append(float(tfine[j]))
+    te = 2.45 + (xi - x_front) / 85.0                       # when this ridge starts to rise (hook6.py: the wave moves at 85 units a second)
+    u = min(1.0, max(0.0, (float(tfine[j]) - te) / 0.30)); ticks_h = u * u * (3 - 2 * u)
+    ridge_rise.append(ticks_h)
 for i, t in enumerate(ticks):
-    v = 0.35 + 0.65 * min(1, i / 20)
-    put(foley, thunk(v), t, 1.0, -0.15)
-# the grind as it brakes: friction noise that falls in pitch as the speed drops
+    if ridge_rise[i] < 0.08: continue                       # the dial passes over a ridge that has not come up yet: nothing to hear
+    gap = (ticks[i + 1] - t) if i + 1 < len(ticks) else 0.4
+    v = (0.5 + 0.5 * min(1.0, gap / 0.12)) * (1.0 if i > 8 else 1.2) * ridge_rise[i]
+    put(foley, tock(v, 700 + 140 * rng.random(), min(1.0, max(0.0, (gap - 0.06) / 0.14))), t, 1.0, -0.05 + 0.1 * rng.random())
+put(foley, thunk(1.0), ticks[next(k for k, h in enumerate(ridge_rise) if h > 0.9)], 0.8, 0.0)   # the first full bite is heavier
+# the grind as it brakes: friction noise that falls in pitch as the speed drops, kept low under the ticks
 dec = np.clip(-np.gradient(sp, 1 / fps), 0, None)
 n_g = int(2.4 * SR); tg = 3.7 + np.arange(n_g) / SR
 d_i = np.interp(tg, tf, dec / max(1, dec.max()))
 s_i = np.interp(tg, tf, sp)
 grind = auto_filter(noise(n_g), LadderFilter.Mode.BPF24, (200 + 55 * s_i)[::240], 0.6)
 grind = grind * (d_i ** 0.8) * np.clip((6.05 - tg) / 0.15, 0, 1)
-put(foley, grind * 0.9, 3.7, 1.0, 0.0)
+put(foley, grind * 0.4, 3.7, 1.0, 0.0)
 put(foley, thunk(1.6), CUE['stop'] - 0.02, 1.0, 0.0)
 put(foley, detent(1.0, 1800), CUE['stop'] + 0.04, 1.0, 0.1)
 
@@ -353,13 +365,13 @@ def zap(dur=0.16, f0=5200, f1=240, vel=1.0):
 bed = zbuf(); pad = zbuf(); plk = zbuf(); sub = zbuf(); bas = zbuf(); kick_b = zbuf(); snr = zbuf(); hats = zbuf(); toms = zbuf(); fx = zbuf(); hits = zbuf()
 # the hook's bed: a D that opens like a filter on a drone, no instruments yet
 n = int(6.1 * SR); tt = np.arange(n) / SR
-dr = (saw(np.full(n, hz(38) * 0.998)) + saw(np.full(n, hz(38) * 1.002)) + saw(np.full(n, hz(26))) + 0.35 * np.sin(2 * np.pi * hz(26) * tt)) / 3.4
-dr = auto_filter(dr, LadderFilter.Mode.LPF24, (80 * (1700 / 80) ** (tt / 6.1) ** 1.4)[::240], 0.3)
+dr = (saw(np.full(n, hz(50) * 0.998)) + saw(np.full(n, hz(50) * 1.002)) + 0.7 * saw(np.full(n, hz(57)))) / 2.7
+dr = auto_filter(dr, LadderFilter.Mode.LPF24, (260 * (2400 / 260) ** (tt / 6.1) ** 1.4)[::240], 0.3)
 dr *= np.minimum(1, tt / 1.5) * np.clip((6.05 - tt) / 0.05, 0, 1)
-put(bed, np.stack([dr, dr], 1) * 1.6, 0.0)
-second = (saw(np.full(n, hz(50) * 0.997)) + saw(np.full(n, hz(50) * 1.003)) + saw(np.full(n, hz(57)))) / 3
+put(bed, np.stack([dr, dr], 1) * 0.8, 0.0)
+second = (saw(np.full(n, hz(62) * 0.997)) + saw(np.full(n, hz(62) * 1.003)) + saw(np.full(n, hz(69)))) / 3
 second = auto_filter(second, LadderFilter.Mode.LPF24, (200 * (2600 / 200) ** (tt / 6.1) ** 1.8)[::240], 0.2) * np.clip((tt - 1.5) / 3.0, 0, 1) * np.clip((6.05 - tt) / 0.05, 0, 1)
-put(bed, np.stack([second, second], 1) * 0.9, 0.0)
+put(bed, np.stack([second, second], 1) * 0.6, 0.0)
 
 for b, name in enumerate(PROG):
     t = bar_t(b); c = CH[name]
@@ -390,7 +402,7 @@ put(sub, impact(0.95, 3.6, 31.0) * 0.55, CUE['hit_title'])
 put(sub, impact(0.7, 2.6, 31.0) * 0.8, CUE['app'])
 put(sub, impact(1.0, 3.6, 29.0) * 0.9, CUE['card'])
 put(sub, impact(0.9, 4.0, 29.0) * 0.85, CUE['endcard'])
-put(sub, impact(0.8, 2.0, 33.0), CUE['stop'] - 0.03)
+put(sub, impact(0.6, 1.6, 40.0) * 0.5, CUE['stop'] - 0.03)
 
 # the kit: groove sections as before
 def groove(t0, t1, kicks=True, backbeat=True, hat_on=True):
@@ -432,8 +444,8 @@ for i, t in enumerate(np.arange(12.0, 12.97, 0.125)): put(snr, snare(0.2 + 0.75 
 for t in np.arange(12.0, 13.0, 0.5): put(kick_b, kick(0.8), t)
 
 # risers
-put(fx, np.stack([riser(3.4, 160, 8000, 2.4) * 0.35] * 2, 1), 2.55)
-put(fx, np.stack([tone_riser(3.5, 26, 62, 0.35)] * 2, 1), 2.55)
+put(fx, np.stack([riser(1.15, 300, 7000, 2.0) * 0.4] * 2, 1), 2.45)
+put(fx, np.stack([tone_riser(1.15, 50, 86, 0.3)] * 2, 1), 2.45)
 put(fx, np.stack([riser(1.6, 400, 10000, 2.0)] * 2, 1) * 0.75, CUE['dive0'])
 put(fx, np.stack([tone_riser(1.6, 38, 74, 0.5)] * 2, 1), CUE['dive0'])
 put(fx, whoosh(1.4, 300, 3800, -0.9, 0.9) * 0.9, CUE['dive0'] + 0.45)
@@ -517,14 +529,14 @@ g_pad = curve([(0, -60), (6.9, -60), (7.05, -12), (11, -10), (13, -13), (20.9, -
 g_plk = curve([(0, -60), (6.9, -60), (7.05, -7), (12.9, -7), (13, -9), (20.9, -9), (21, -60), (23.9, -60), (24, -8), (28.9, -8), (29, -9), (34.9, -9), (35, -7), (38.5, -8), (40, -40)])
 g_sub = curve([(0, -60), (6.0, -60), (7.0, -16), (13, -19), (21, -14), (29, -22), (34.9, -19), (35, -14), (38, -19), (40, -40)])
 g_bas = curve([(0, -60), (16.9, -60), (17.0, -12), (21, -8), (29, -14), (30.9, -60)])
-g_bed = curve([(0, -3), (6.2, -3), (6.3, -60)])
+g_bed = curve([(0, -9), (3.4, -7), (6.0, -6), (6.1, -60)])
 g_fx = curve([(0, -4), (41, -4)])
 sums = {}
 def stem(name, x):
     sums[name] = x
     with AudioFile(f'{STEMS}/{name}.wav', 'w', SR, 2) as f: f.write(x.T.astype(np.float32))
 
-m_bed = bus(bed * g_bed[:, None], [HighpassFilter(40), LowpassFilter(7000)])
+m_bed = bus(bed * g_bed[:, None], [HighpassFilter(130), LowpassFilter(7000)])
 m_pad = bus(pad * g_pad[:, None] * gap_m, [HighpassFilter(150), LowpassFilter(7500), PeakFilter(2200, -2.0, 0.8)]) * duck(0.5)
 m_plk = bus(plk * g_plk[:, None] * gap_m, [HighpassFilter(180), Delay(0.375, 0.34, 0.3), LowpassFilter(8500)]) * duck(0.25)
 m_sub = bus(sub * g_sub[:, None] * gap_m, [LowpassFilter(220), Compressor(-18, 3, 5, 80)]) * duck(0.45)
