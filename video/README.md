@@ -1,6 +1,6 @@
-# Friction trailer (v7)
+# Friction trailer (v8)
 
-A 43.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
+A 45.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
 Renders, recordings and Blender frames are not in git (they are regenerated); everything that makes them is.
 The v4/v5 notes further down are kept for the pieces v6 still uses.
 
@@ -13,8 +13,9 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 | 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the O turns into the app's text doughnut, which grows until the camera flies through its hole into the app (the move v3 had). | `src/v6/Title.tsx` (the doughnut is the app's own `ascii3d.ts` engine, `src/Ascii.tsx`), `Dial.tsx`. The hole is a mask over the title; the app scene is mounted 14 frames early underneath it. |
 | 13.0 - 22.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish: the card, the rocket, the confetti. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
 | 22.0 - 28.0 | The second 3D segment: the camera runs up out of the app into the app's own ASCII engine turned all the way up. The ASCII dial clicks through its six stops (Off, Drift, A few, Floor, Stars, World), each click on a beat putting more in: one solid, three, a ridged ground drawn as text, stars, a sun on the horizon, then a flight through it. The camera runs back down into the app. | `src/v6/AsciiWorld.tsx` (the engine in `src/ascii3d.ts`, a voxel-style ground with grid lines, solids composited by depth), `Elevator` in `Trailer6.tsx`. |
-| 28.0 - 39.0 | Five looks, the Arcade, the front page. | `App.tsx`. |
-| 39.0 - 43.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
+| 28.0 - 37.0 | Five looks, the Arcade, the front page; the camera plunges into the yellow solid on the front page. | `App.tsx`. |
+| 37.0 - 41.0 | The second photoreal shot: the dial locks in. It clicks round six detents on the beat; each of the first five raises a ring of glowing ridges around it (the opening's friction, now a field that holds it); the camera starts on the knurled edge, backs away and climbs, and ends straight down on a target of rings. The sixth click locks, with a pulse of light. | `blender/lock7.py` (baked from springs, Cycles, 1440 x 810, light linking so the glass does not mirror the dial's lamps), `blender/render_lock7.sh`, `src/v6/LockSegment.tsx`. |
+| 41.0 - 45.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
 
 ## What was learned (and applied)
 

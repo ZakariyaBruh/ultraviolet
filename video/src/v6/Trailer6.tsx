@@ -5,10 +5,11 @@ import { Title } from './Title'
 import { AppScene, PRE } from './App'
 import { AsciiWorld } from './AsciiWorld'
 import { End, END_TOTAL } from './End'
+import { LockSegment, LOCK_S } from './LockSegment'
 
 /** the master clock, in seconds, of the cuts that matter (the score reads the same numbers) */
-export const T = { world: 22.0, whipIn: 0.45, back: 27.4, backLen: 0.6, appEnd: 39.0 }
-export const TOTAL = sec(T.appEnd + END_TOTAL)
+export const T = { world: 22.0, whipIn: 0.45, back: 27.4, backLen: 0.6, appEnd: 37.0, lockEnd: 41.0 }
+export const TOTAL = sec(T.lockEnd + END_TOTAL)
 
 /** the app and the ASCII world are two ends of one strip: the camera runs up it into the world and, later, back down */
 const Elevator = ({ kind, children }: { kind: 'ui' | 'world'; children: React.ReactNode }) => {
@@ -32,7 +33,8 @@ export const Trailer6 = () => (
     <Elevator kind="ui"><Sequence from={sec(13.0) - PRE} durationInFrames={sec(T.appEnd - 13.0) + PRE}><AppScene /></Sequence></Elevator>
     <Elevator kind="world"><Sequence from={sec(T.world)} durationInFrames={sec(T.back - T.world + T.backLen)}><AsciiWorld /></Sequence></Elevator>
     <Sequence from={sec(7.0)} durationInFrames={sec(6.0)}><Title /></Sequence>
-    <Sequence from={sec(T.appEnd)} durationInFrames={sec(END_TOTAL)}><End /></Sequence>
+    <Sequence from={sec(T.appEnd)} durationInFrames={sec(LOCK_S)}><LockSegment /></Sequence>
+    <Sequence from={sec(T.lockEnd)} durationInFrames={sec(END_TOTAL)}><End /></Sequence>
     <Snow at={sec(6.76)} len={6} peak={0.6} />
     <Audio src={staticFile('v6/score.wav')} />
   </AbsoluteFill>

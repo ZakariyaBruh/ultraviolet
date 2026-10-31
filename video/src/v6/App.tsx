@@ -27,11 +27,9 @@ const KEYS: Key[] = [
   { t: 19.45, r: [0, 0, 640, 360] },             // up to the logo
   { t: 20.35, r: [0, 130, 640, 360] },           // the front page: the status readout types out
   { t: 22.4, r: [520, 90, 760, 428] },
-  { t: 23.8, r: [640, 360, 640, 360] },
-  { t: 24.8, r: [200, 40, 880, 495] },
-  { t: 25.45, r: [720, 100, 440, 247] },         // into the solid
+  { t: 23.1, r: [720, 100, 440, 247] },          // into the solid
 ]
-const SCENE_S = 26.0
+const SCENE_S = 24.0
 /** the scene is mounted this many frames before its own time zero (13.0 s), so the doughnut's hole has the app to show */
 export const PRE = 14
 
@@ -74,7 +72,7 @@ const CAPTIONS: { t0: number; t1: number; kicker: string; text: string; top?: bo
   { t0: 8.3, t1: 10.4, kicker: 'The reward', text: 'Finish. Earn credits.' },
   { t0: 15.0, t1: 17.4, kicker: 'Five themes', text: 'Same screen, five looks.' },
   { t0: 18.0, t1: 19.8, kicker: 'The Arcade', text: 'Spend them on games.', top: true },
-  { t0: 20.5, t1: 24.2, kicker: 'The front page', text: 'No feed. No account.' },
+  { t0: 20.5, t1: 23.0, kicker: 'The front page', text: 'No feed. No account.' },
 ]
 /** a floating plate as the app draws them: flat, ruled, registration ticks at the corners, the kicker in the station's label voice over a plain title */
 const Caption = ({ now, t0, t1, kicker, text, top }: { now: number; t0: number; t1: number; kicker: string; text: string; top?: boolean }) => {
@@ -102,7 +100,8 @@ export const AppScene = () => {
   const blurOn = bx > 0.35 || by > 0.35
   // a breath in the frame so no shot is ever a still: a hundredth of zoom and a few pixels
   const bz = 1 + 0.006 * Math.sin(now * 0.8), bxp = Math.sin(now * 0.55) * 3, byp = Math.cos(now * 0.43) * 2
-  const sc = OUT * c.z * bz
+  const plunge = interpolate(now, [23.2, 24.0], [0, 1], { ...clamp, easing: E.in })
+  const sc = OUT * c.z * bz * (1 + 5 * plunge)
   const s = shake(now, 8.0, 6)
   // arrival: the screen opens out of the middle of the dial, with rings leaving it
   const arrive = 0.74 + 0.26 * spr(raw / FPS, 0.6, 0.84)

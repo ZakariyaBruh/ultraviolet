@@ -18,7 +18,7 @@ SR = 48000
 ROOT = '/home/user/ultraviolet/video'
 AUD = '/tmp/claude-0/audio'; BUILD = AUD + '/build'; STEMS = BUILD + '/stems'
 os.makedirs(STEMS, exist_ok=True)
-LEN = 45.0
+LEN = 48.0
 N = int(LEN * SR)
 rng = np.random.default_rng(66)
 BEAT = 0.5; BAR = 2.0
@@ -28,10 +28,11 @@ CUE = dict(
     hook_end=6.2, stop=6.05, hit_title=7.0, wordmark=8.4, tagline=9.6, dive0=11.1, grow0=11.75, through=12.95, app=13.0,
     slide_up0=13.96, slide_up1=14.36, slide_dn1=14.78, lock=15.5, toast=17.5, card=21.0,
     world=22.0, stop1=23.0, stop2=23.5, stop3=24.0, stop4=24.5, stop5=25.0, back=27.4, themes=28.0, arcade=31.0, logo=33.0, typing0=33.15, typing1=36.4,
-    endcard=39.0, ring=39.0, square=39.45, word=39.55, dial=39.55, url=40.25, underline=40.5, line=40.95, ph=41.35, crt=42.7, end=43.6,
+    lk0=37.0, lk1=37.5, lk2=38.0, lk3=38.5, lk4=39.0, lk5=39.5, lockhit=40.0,
+    endcard=41.0, ring=41.0, square=41.45, word=41.55, dial=41.55, url=42.25, underline=42.5, line=42.95, ph=43.35, crt=44.7, end=45.6,
 )
 # chords, one per bar from 7.0
-PROG = ['Dm', 'Bb', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Dm', 'Bb', 'C', 'D', 'D', 'D']
+PROG = ['Dm', 'Bb', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Dm', 'Bb', 'F', 'C', 'D', 'D', 'D']
 CH = {
     'Dm': dict(root=38, str=[57, 62, 65, 69], dy=(62, 69), mo=(77, 76), tone=[50, 57, 62, 65]),
     'Bb': dict(root=34, str=[53, 58, 62, 65], dy=(58, 65), mo=(74, 72), tone=[46, 53, 58, 62]),
@@ -375,7 +376,7 @@ put(bed, np.stack([second, second], 1) * 0.6, 0.0)
 
 for b, name in enumerate(PROG):
     t = bar_t(b); c = CH[name]
-    put(pad, pad_bar(c['str'], BAR + 0.75, 1.3 if b in (2, 6, 9, 15) else 1.0), t - 0.05)
+    put(pad, pad_bar(c['str'], BAR + 0.75, 1.3 if b in (2, 6, 9, 16) else 1.0), t - 0.05)
     # a pluck motif: a dyad on the downbeat and two answering notes, through the delay
     if (b <= 6) or (8 <= b <= 9) or (b >= 13):
         a, bb = c['dy']; v = 0.9 if b < 3 else 0.7
@@ -439,7 +440,7 @@ put(fx, np.stack([rev_crash(1.0)] * 2, 1) * 0.7, 20.0)
 put(hits, np.stack([crash(2.2)] * 2, 1) * 0.55, CUE['card'])
 put(hits, np.stack([crash(2.8)] * 2, 1) * 0.5, CUE['endcard'])
 put(hits, np.stack([crash(2.0)] * 2, 1) * 0.4, CUE['themes'])
-put(toms, tom(120, 1.0), 38.5); put(toms, tom(90, 1.0), 38.75)
+put(toms, tom(120, 1.0), 40.5); put(toms, tom(90, 1.0), 40.75)
 # the fill into the app's return: a roll that climbs, two toms, a crash backwards
 for i, t in enumerate(np.arange(27.0, 27.88, 0.125)): put(snr, snare(0.2 + 0.7 * i / 7), t, 0.8, 0.0)
 put(toms, tom(160, 0.9), 27.5); put(toms, tom(120, 0.9), 27.75)
@@ -510,6 +511,21 @@ while tw < 27.3:                                                                
     put(fx, whoosh(0.4, 700, 3200, -0.9 if kw % 2 else 0.9, 0.9 if kw % 2 else -0.9) * 0.3, tw)
     tw += 0.7 - 0.45 * (tw - 25.4) / 1.9; kw += 1
 
+# the second 3D shot (37.0 - 41.0): the cut from the landing, then the dial locking in. Each click raises a ring: a rising sweep, a soft low thump, a note up the pentatonic.
+put(hits, impact(0.9, 2.6, 33.0) * 0.8, CUE['lk0']); put(fx, np.stack([crash(1.4)] * 2, 1) * 0.35, CUE['lk0'])
+put(fx, np.stack([riser(0.9, 300, 9000, 2.0)] * 2, 1) * 0.6, CUE['lk0'] - 0.9)
+for i, t in enumerate([CUE['lk1'], CUE['lk2'], CUE['lk3'], CUE['lk4'], CUE['lk5']]):
+    put(foley, detent(1.0, 1700), t, 1.0, 0.0); put(foley, thunk(0.7), t, 0.7, 0.0)
+    nn = int(0.5 * SR); u = np.linspace(0, 1, nn)
+    sweep = np.sin(2 * np.pi * np.cumsum(260 * (1100 / 260) ** (u ** 0.7) * (1 + 0.1 * i)) / SR) * np.exp(-u * 4.0) * 0.07
+    put(hits, np.stack([sweep, sweep], 1), t - 0.02)
+    put(hits, ident(hz([62, 65, 69, 72, 74][i] + 12), 0.9, 0.22), t + 0.02, 1.0, -0.5 + 0.25 * i)       # a note a ring, climbing D minor pentatonic
+    put(fx, whoosh(0.5, 400, 2600 + 400 * i, -0.8 + 0.4 * i, 0.8 - 0.4 * i) * 0.18, t - 0.05)
+put(hits, stab([50, 57, 62, 65, 69, 74], 2.0, 0.95, 1.0), CUE['lockhit']); put(sub, impact(0.9, 3.0, 31.0) * 0.7, CUE['lockhit'])
+put(hits, np.stack([crash(1.8)] * 2, 1) * 0.35, CUE['lockhit'])
+put(fx, np.stack([riser(1.0, 250, 9500, 2.2)] * 2, 1) * 0.8, CUE['lockhit']); put(fx, np.stack([tone_riser(1.0, 50, 86, 0.4)] * 2, 1), CUE['lockhit'])
+for t in np.arange(38.0, 40.0, 0.5): put(kick_b, kick(0.5 + 0.25 * (t - 38.0)), t)
+
 # app foley: slider ratchet, lock-in latch, themes as notes on the beat, tab presses, typed ident, the card
 slider_ticks = list(np.linspace(CUE['slide_up0'], CUE['slide_up1'], 8)) + list(np.linspace(CUE['slide_up1'], CUE['slide_dn1'], 8))
 for t in slider_ticks: put(foley, detent(0.5, 1800), t, 0.8, -0.1)
@@ -548,15 +564,15 @@ sc = np.convolve(kick_env, np.ones(1024) / 1024, 'same'); sc = np.minimum(1, sc 
 sc = np.convolve(sc, np.ones(4800) / 4800, 'same')
 duck = lambda depth: 1 - depth * np.minimum(1, sc * 1.4)[:, None]
 gap = np.ones(N)
-for h in (CUE['hit_title'], CUE['app'], CUE['card'], CUE['themes'], CUE['endcard']):
+for h in (CUE['hit_title'], CUE['app'], CUE['card'], CUE['themes'], CUE['lk0'], CUE['endcard']):
     a = int((h - 0.2) * SR); b = int((h - 0.002) * SR)
     gap[a:b] = np.linspace(1, 0, b - a) ** 2
 gap[int(6.1 * SR):int((CUE['hit_title'] - 0.001) * SR)] = 0
 gap_m = gap[:, None]
 
-g_pad = curve([(0, -60), (6.9, -60), (7.05, -12), (11, -10), (13, -13), (20.9, -11), (21, -8), (22, -10), (25, -8), (27.9, -10), (28, -12), (33, -13), (38.9, -9), (39, -7), (42.5, -9), (44.5, -40)])
-g_plk = curve([(0, -60), (6.9, -60), (7.05, -7), (12.9, -7), (13, -9), (20.9, -9), (21, -60), (22.9, -60), (23, -9), (27, -9), (27.1, -60), (27.9, -60), (28, -60), (32.9, -60), (33, -9), (38.9, -9), (39, -7), (42.8, -8), (44.5, -40)])
-g_sub = curve([(0, -60), (6.0, -60), (7.0, -16), (13, -19), (21, -14), (22, -18), (24.9, -18), (25, -12), (28, -15), (33, -22), (38.9, -19), (39, -14), (43, -19), (44.5, -40)])
+g_pad = curve([(0, -60), (6.9, -60), (7.05, -12), (11, -10), (13, -13), (20.9, -11), (21, -8), (22, -10), (25, -8), (27.9, -10), (28, -12), (33, -13), (36.9, -12), (37.5, -9), (40.9, -9), (41, -7), (44.5, -9), (46.5, -40)])
+g_plk = curve([(0, -60), (6.9, -60), (7.05, -7), (12.9, -7), (13, -9), (20.9, -9), (21, -60), (22.9, -60), (23, -9), (27, -9), (27.1, -60), (27.9, -60), (28, -60), (32.9, -60), (33, -9), (36.9, -9), (37, -60), (40.9, -60), (41, -7), (44.8, -8), (46.5, -40)])
+g_sub = curve([(0, -60), (6.0, -60), (7.0, -16), (13, -19), (21, -14), (22, -18), (24.9, -18), (25, -12), (28, -15), (33, -22), (36.9, -20), (37, -15), (40.9, -16), (41, -14), (45, -19), (46.5, -40)])
 g_bas = curve([(0, -60), (16.9, -60), (17, -12), (21, -8), (21.95, -8), (22, -60), (27.95, -60), (28, -10), (33, -16), (34.9, -60)])
 g_bed = curve([(0, -9), (3.4, -7), (6.0, -6), (6.1, -60)])
 g_fx = curve([(0, -4), (41, -4)])
@@ -587,7 +603,7 @@ rm = convolve(room_in, ROOM)
 mix = dry + wet * 1.6 + rm * 0.6
 for nm, x in [('bed', m_bed), ('pad', m_pad), ('pluck', m_plk), ('sub', m_sub), ('bass', m_bas), ('kick', m_kick), ('snare', m_snr), ('hats', m_hat), ('toms', m_tom), ('fx', m_fx), ('hits', m_hit), ('foley', m_fol), ('wet', wet)]:
     stem(nm, x)
-rel = curve([(0, 0), (6.1, 0), (7.0, -1), (12.9, -1), (13.0, -4), (15.0, -5), (17, -3), (20.9, -2), (21.0, 2), (22, -1), (24.9, -1), (25.0, 1), (27.9, 0), (28.0, 2), (32.9, 1), (33.0, -3), (38.9, -3), (39.0, 2), (42, 1), (45, 1)])
+rel = curve([(0, 0), (6.1, 0), (7.0, -1), (12.9, -1), (13.0, -4), (15.0, -5), (17, -3), (20.9, -2), (21.0, 2), (22, -1), (24.9, -1), (25.0, 1), (27.9, 0), (28.0, 2), (32.9, 1), (33.0, -3), (36.9, -3), (37.0, 1), (40.9, 1), (41.0, 2), (44, 1), (48, 1)])
 mix = mix * rel[:, None]
 # a little tape: soft saturation before the glue, then the master
 mix = np.tanh(mix * 0.85) / 0.85
