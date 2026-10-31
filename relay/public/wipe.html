@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Friction relay: wipe</title>
+<script>
+// "Erase everything" in Friction opens this in a hidden frame: it forgets what pages opened through the relay stored here
+// (logins and cookies, local storage, databases, caches, the service worker), then tells Friction it is done.
+(async () => {
+  try {
+    for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister()
+    localStorage.clear(); sessionStorage.clear()
+    if (indexedDB.databases) for (const d of await indexedDB.databases()) if (d.name) await new Promise((ok) => { const q = indexedDB.deleteDatabase(d.name); q.onsuccess = q.onerror = q.onblocked = () => ok() })
+    for (const k of await caches.keys()) await caches.delete(k)
+  } catch (e) { /* nothing more to do */ }
+  parent.postMessage({ frictionWiped: 1 }, 'https://frictionx.vercel.app')
+})()
+</script>

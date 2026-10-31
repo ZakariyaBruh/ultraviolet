@@ -1,0 +1,462 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/unbounded";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/dela-gothic-one";
+@import "@fontsource/silkscreen/400.css";
+@import "@fontsource/silkscreen/700.css";
+@import "@fontsource/vt323";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace; /* taste-skill-ignore */
+    --color-signal: var(--signal);
+    --color-signal-soft: var(--signal-soft);
+    --color-ink: var(--ink);
+    /* EasyUI's own token names, mapped onto this palette */
+    --color-surface-raised: var(--surface);
+    --color-surface-hover: var(--raised);
+    --color-border-hover: var(--control);
+    --color-text-primary: var(--ink);
+    --color-text-secondary: var(--ink-2);
+    --color-text-muted: var(--ink-2);
+    --color-ink-2: var(--ink-2);
+    --color-ink-3: var(--ink-3);
+    --color-surface: var(--surface);
+    --color-raised: var(--raised);
+    --color-ground: var(--ground);
+    --font-sans: 'Hanken Grotesk Variable', system-ui, sans-serif;
+    --font-cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --font-dot: 'Unbounded Variable', 'Geist Mono Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: 1px;
+    --radius-md: 2px;
+    --radius-lg: 3px;
+    --radius-xl: 3px;
+    --radius-2xl: 4px;
+    --radius-3xl: 4px;
+    --radius-4xl: 6px;
+}
+
+
+@theme inline {
+    --color-ink: var(--ink);
+    --color-ink-2: var(--ink-2);
+    --color-ink-3: var(--ink-3);
+    --color-signal: var(--signal);
+    --color-signal-soft: var(--signal-soft);
+    --color-warn: var(--warn);
+    --color-danger: var(--danger);
+    --color-ok: var(--ok);
+    --color-ground: var(--ground);
+    --color-hot: var(--hot);
+    --color-on-signal: var(--on-signal);
+    --color-ice: var(--ice);
+    --color-surface: var(--surface);
+    --color-raised: var(--raised);
+    /* EasyUI's own token names, mapped onto this palette */
+    --color-surface-raised: var(--raised);
+    --color-surface-hover: var(--raised-2);
+    --color-border-hover: var(--control);
+    --color-text-primary: var(--ink);
+    --color-text-secondary: var(--ink-2);
+    --color-text-muted: var(--ink-3);
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+/* ═════════ FRICTION: black ground, bone ink, one heat colour ═════════ */
+:root, .dark {
+    color-scheme: dark;
+    --ground: #05070c;
+    --surface: #0a0d14;
+    --raised: #11151f;
+    --raised-2: #181d2a;
+    --ink: #f3f1ea;
+    --ink-2: #c3c2bb;
+    --ink-3: #9d9d97;
+    --rule: rgba(243, 241, 234, 0.16);
+    --control: rgba(243, 241, 234, 0.34);
+    --signal: #ffd23f;
+    --on-signal: #000000;
+    --signal-soft: rgba(255, 210, 63, 0.16);
+    --hot: #ff5d8f;
+    --warn: #ffd23f;
+    --danger: #ff6b7d;
+    --ok: #6ee7b7;
+    --ice: #7fd3ff;
+
+    --background: var(--ground);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: #0a0a0a;
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: #000;
+    --secondary: var(--raised);
+    --secondary-foreground: var(--ink);
+    --muted: var(--raised);
+    --muted-foreground: var(--ink-2);
+    --accent: var(--raised-2);
+    --accent-foreground: var(--ink);
+    --destructive: var(--danger);
+    --border: var(--rule);
+    --input: var(--control);
+    --ring: var(--signal);
+    --chart-1: var(--signal);
+    --chart-2: var(--hot);
+    --chart-3: var(--ink);
+    --chart-4: var(--warn);
+    --chart-5: var(--ok);
+    --radius: 0.2rem;
+    --sidebar: transparent;
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--signal);
+    --sidebar-primary-foreground: #000;
+    --sidebar-accent: var(--raised-2);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--rule);
+    --sidebar-ring: var(--signal);
+
+    --ease-out: cubic-bezier(0.2, 0, 0, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+/* light: paper and ink. Same shapes, same single heat colour. */
+html.light {
+    color-scheme: light;
+    --ground: #f2efe6;
+    --surface: #fbf9f2;
+    --raised: #e8e4d6;
+    --raised-2: #ddd8c6;
+    --ink: #0a0c12;
+    --ink-2: #3b3d45;
+    --ink-3: #5a5c63;
+    --rule: rgba(10, 12, 18, 0.2);
+    --control: rgba(10, 12, 18, 0.5);
+    --signal: #1f3bff;
+    --on-signal: #ffffff;
+    --signal-soft: rgba(31, 59, 255, 0.12);
+    --hot: #c4005f;
+    --warn: #8a5a00;
+    --danger: #c4163a;
+    --ok: #1f7a4d;
+    --ice: #0a6e8a;
+    --popover: #fbf9f2;
+    --primary-foreground: #f2efe6;
+    --sidebar-primary-foreground: #fff;
+}
+/* ───────── themes. Station is the default above; paper is html.light ───────── */
+html[data-theme='phosphor'] {
+    --font-sans: 'Hanken Grotesk Variable', system-ui, sans-serif;
+    --font-cond: 'Geist Mono Variable', ui-monospace, monospace;
+    --font-dot: 'Geist Mono Variable', ui-monospace, monospace;
+    --ground: #0d130e; --surface: #121a13; --raised: #19231a; --raised-2: #212d22;
+    --ink: #d4dccb; --ink-2: #a9b8a3; --ink-3: #8a9c86;
+    --rule: rgba(212, 220, 203, 0.16); --control: rgba(212, 220, 203, 0.36);
+    --signal: #9fe870; --on-signal: #0d1a07; --signal-soft: rgba(159, 232, 112, 0.14);
+    --hot: #e6f27a; --warn: #e6c85a; --danger: #ef8a7a; --ok: #9fe870; --ice: #8fd0b4; --popover: #121a13;
+}
+html[data-theme='blueprint'] {
+    --ground: #0a2557; --surface: #0d2f6e; --raised: #123a82; --raised-2: #184592;
+    --ink: #eaf3ff; --ink-2: #c4d8f6; --ink-3: #a3c0ec;
+    --rule: rgba(234, 243, 255, 0.28); --control: rgba(234, 243, 255, 0.5);
+    --signal: #7ff0ff; --on-signal: #00203a; --signal-soft: rgba(127, 240, 255, 0.16);
+    --hot: #ff9ec7; --warn: #ffe27a; --danger: #ff8fa3; --ok: #8ff0c0; --ice: #ffffff; --popover: #0d2f6e;
+}
+html[data-theme='sunset'] {
+    --ground: #140a24; --surface: #1c0f33; --raised: #28144a; --raised-2: #351a60;
+    --ink: #fff1f7; --ink-2: #ecc9df; --ink-3: #cfa8c9;
+    --rule: rgba(255, 241, 247, 0.2); --control: rgba(255, 241, 247, 0.4);
+    --signal: #ff4fa3; --on-signal: #1a0010; --signal-soft: rgba(255, 79, 163, 0.18);
+    --hot: #ffb86b; --warn: #ffb86b; --danger: #ff6b7d; --ok: #7ef0c0; --ice: #ffb86b; --popover: #1c0f33;
+}
+html[data-theme='phosphor'] .dot { font-weight: 600; letter-spacing: -0.02em; }
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+  html { @apply font-sans; }
+}
+
+/* ───────── page ───────── */
+html, body, #root { height: 100%; }
+html { overflow: hidden; overscroll-behavior: none; background: var(--ground); }
+body {
+  overflow: hidden; overscroll-behavior: none;
+  background: var(--ground); color: var(--ink);
+  font-size: 14px; line-height: 20px;
+  -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased;
+}
+button { cursor: pointer; }
+button:not(:disabled):active { scale: 0.98; }
+button { transition-property: color, background-color, border-color, scale, opacity; transition-duration: 140ms; }
+.fig { font-variant-numeric: tabular-nums; }
+.hud { font-family: var(--font-cond); font-weight: 600; font-size: 14px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+/* the futuristic voice: ultra-wide display type for titles and numerals. Everything else is retro mono. */
+@layer components { .dot { font-family: var(--font-dot); font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums; } }
+
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 2px; }
+::selection { background: var(--signal); color: var(--on-signal); }
+input { caret-color: var(--signal); }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+
+/* ───────── surfaces: flat, ruled, dotted. No blur, no gradient, no glow ───────── */
+.glass, .glass-clear, .material {
+  position: relative; border-radius: var(--r, 4px);
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.glass-clear { background-color: color-mix(in srgb, var(--ground) 72%, transparent); }
+/* registration ticks on the corners of the floating layer */
+.glass::before, .glass-clear::before {
+  content: ""; position: absolute; inset: -1px; pointer-events: none; border-radius: inherit;
+  background:
+    linear-gradient(var(--ink), var(--ink)) top left / 7px 1px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) top left / 1px 7px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) bottom right / 7px 1px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) bottom right / 1px 7px no-repeat;
+}
+@media (prefers-contrast: more) {
+  .glass, .glass-clear, .material { box-shadow: inset 0 0 0 1px var(--ink); }
+  :root { --ink-2: #e6e2d4; --ink-3: #cfcabb; }
+}
+
+/* ───────── live-state primitives ───────── */
+.live-dot { width: 7px; height: 7px; background: var(--signal); position: relative; }
+.live-dot::after { content: ""; position: absolute; inset: -4px; border: 1px solid var(--signal); opacity: 0; animation: ping 1.6s steps(6) infinite; }
+@keyframes ping { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+.eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; color: var(--signal); }
+.eq i { width: 2px; height: 100%; background: currentColor; transform-origin: bottom; animation: eq 900ms steps(5) infinite; }
+.eq i:nth-child(2) { animation-delay: -.3s; animation-duration: 700ms; }
+.eq i:nth-child(3) { animation-delay: -.6s; animation-duration: 1100ms; }
+.eq i:nth-child(4) { animation-delay: -.15s; animation-duration: 800ms; }
+.eq.paused i { animation-play-state: paused; transform: scaleY(.25); }
+@keyframes eq { 0%,100% { transform: scaleY(.2); } 50% { transform: scaleY(1); } }
+/* a blocked scroll: the screen takes the hit */
+@keyframes ripple { 0% { transform: scale(1); } 30% { transform: scale(.992) translateY(3px); } 65% { transform: scale(1.003) translateY(-1px); } 100% { transform: scale(1); } }
+.ripple { animation: ripple 320ms var(--ease-out); }
+.fade-end { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.fade-end[data-fit="true"] { -webkit-mask-image: none; mask-image: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eq i, .live-dot::after, .ripple { animation: none !important; }
+}
+.motion-calm .eq i, .motion-calm .live-dot::after { animation-play-state: paused !important; }
+@keyframes blink { 50% { opacity: 0.15; } }
+
+/* retro zones: a CRT's scanlines. Futuristic zones never get them. */
+.crt::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.32) 0 1px, transparent 1px 3px); }
+html.light .crt::after { background: repeating-linear-gradient(0deg, rgba(11,11,10,0.07) 0 1px, transparent 1px 3px); }
+@media (prefers-reduced-motion: no-preference) { .crt-flicker { animation: crtflick 4s steps(1) infinite; } }
+@keyframes crtflick { 0%, 92%, 100% { opacity: 1; } 94% { opacity: 0.86; } 96% { opacity: 1; } 97% { opacity: 0.92; } }
+.caret { display: inline-block; width: 0.6em; height: 1em; background: currentColor; vertical-align: -0.12em; animation: blink 1s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+
+/* ───────── theme structure: each theme is a different object, not a recolour ───────── */
+/* Phosphor: a CRT terminal. Square, double-framed, uppercase mono, scanlines over everything. */
+html[data-theme='phosphor'] .glass, html[data-theme='phosphor'] .glass-clear, html[data-theme='phosphor'] .material {
+  border-radius: 0; background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule), inset 3px 0 0 0 var(--signal);
+}
+html[data-theme='phosphor'] .glass::before, html[data-theme='phosphor'] .glass-clear::before { display: none; }
+html[data-theme='phosphor'] body::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 4px); }
+html[data-theme='phosphor'] .hud { letter-spacing: 0.06em; }
+/* Blueprint: a drafting sheet. Graph paper, hairline dashed frames, drawn-on lettering. */
+html[data-theme='blueprint'] body, html[data-theme='blueprint'] .bp-ground {
+  background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px;
+}
+html[data-theme='blueprint'] .glass, html[data-theme='blueprint'] .glass-clear, html[data-theme='blueprint'] .material {
+  border-radius: 0; background-color: var(--ground);
+  box-shadow: none; outline: 1px dashed var(--ink); outline-offset: -4px; border: 1px solid var(--ink);
+}
+html[data-theme='blueprint'] .glass::before, html[data-theme='blueprint'] .glass-clear::before { display: none; }
+html[data-theme='blueprint'] .dot { font-family: var(--font-cond); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+html[data-theme='blueprint'] h1 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+/* Sunset: soft and round. Floating pills, no rules, deep drop shadows, a low sun. */
+html[data-theme='sunset'] .glass, html[data-theme='sunset'] .glass-clear, html[data-theme='sunset'] .material {
+  --r: 24px; border-radius: 24px; background-color: var(--surface);
+  box-shadow: 0 22px 44px -22px rgba(0,0,0,.65);
+}
+html[data-theme='sunset'] .glass::before, html[data-theme='sunset'] .glass-clear::before { display: none; }
+html[data-theme='sunset'] button:not([class*='rounded']):not([role='slider']), html[data-theme='sunset'] [data-tab], html[data-theme='sunset'] .deck-block { border-radius: 999px; }
+html[data-theme='sunset'] nav[aria-label='Screens'] { border-radius: 999px; }
+html[data-theme='sunset'] .dot { font-weight: 800; letter-spacing: -0.02em; }
+.sun { position: absolute; left: 50%; bottom: -22vmin; width: 62vmin; height: 62vmin; translate: -50% 0; border-radius: 50%; background: var(--signal); opacity: .3;
+  -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); mask-image: repeating-linear-gradient(0deg, #000 0 14px, transparent 14px 18px); }
+
+/* ───────── every panel can be picked up: grab it, throw it ───────── */
+/* a control that is 44px (or taller) never squashes below that when its container runs short: the container scrolls instead */
+button[class~="h-11"], input[class~="h-11"], a[class~="h-11"] { min-height: 2.75rem; }
+button[class~="h-12"], input[class~="h-12"], a[class~="h-12"] { min-height: 3rem; }
+button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
+/* a solid beside a title wanders a little inside its own space */
+@keyframes sway { 0% { translate: -6px 4px; } 50% { translate: 8px -5px; } 100% { translate: -3px -6px; } }
+.ascii-sway { display: inline-block; animation: sway 9s ease-in-out infinite alternate; }
+@keyframes bars { 0%, 100% { height: 6px; } 50% { height: 28px; } }
+.bar-dance { animation: bars 1.1s ease-in-out infinite; }
+@keyframes winin { from { opacity: 0; } }
+.win-in { animation: winin 160ms var(--ease-out, ease-out); }
+/* text that does not fit its box scrolls inside it, with a thin bar, instead of being cut off */
+.scroll-y { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+/* the landing's middle band measures itself: the station ident and the solids only show when the band is tall enough to hold them */
+.land-mid { container-type: size; }
+.land-ident { display: none; }
+.land-solids { display: none; }
+@container (min-height: 18rem) { .land-ident { display: block; } }
+@container (min-height: 17.5rem) and (min-width: 40rem) { .land-solids { display: block; } }
+/* a window too small for its screen: the page area becomes its own scroll box, sitting exactly between the header and the nav, so nothing runs underneath them */
+#canvas[data-scroll] { top: var(--pt); bottom: var(--pb); padding-top: 0; padding-bottom: 6px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+#canvas[data-scroll] [data-movable] { touch-action: pan-y; }
+/* a canvas is a picture, never text: nothing on it can be selected, no long-press callout, no tap flash */
+canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+[data-movable] { touch-action: none; cursor: grab; transition: scale 200ms var(--ease-out); }
+[data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.03; transition: none; user-select: none; }
+[data-movable][data-moved] { z-index: 6; }
+html[data-dragging] * { cursor: grabbing !important; user-select: none; }
+@media (prefers-reduced-motion: reduce) { [data-movable] { transition: none; } [data-movable][data-dragging] { scale: 1; } }
+
+/* ───────── paper: a manga page. Heavy ink keylines, hard offset shadows, screentone, newsprint grain ───────── */
+html[data-theme='paper'] {
+    --font-dot: 'Dela Gothic One', 'Hanken Grotesk Variable', sans-serif;
+    --ground: #f1ecdd;
+    --surface: #fbf8ee;
+    --raised: #e9e3d0;
+}
+html[data-theme='paper'] .dot { font-weight: 400; letter-spacing: 0; text-transform: uppercase; }
+html[data-theme='paper'] .glass, html[data-theme='paper'] .glass-clear, html[data-theme='paper'] .material {
+  --r: 2px;
+  background-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--ink), 5px 5px 0 0 var(--ink);
+}
+html[data-theme='paper'] .glass-clear { background-color: var(--surface); }
+html[data-theme='paper'] .glass::before, html[data-theme='paper'] .glass-clear::before { display: none; }
+/* screentone: a halftone dot field fading in from two corners, like a manga page's shading */
+.screentone {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background: radial-gradient(circle at center, var(--ink) 0 1.1px, transparent 1.6px) 0 0 / 7px 7px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 100% 100%, #000, transparent 70%), radial-gradient(ellipse 45% 40% at 0% 0%, #000, transparent 70%);
+  mask-image: radial-gradient(ellipse 70% 60% at 100% 100%, #000, transparent 70%), radial-gradient(ellipse 45% 40% at 0% 0%, #000, transparent 70%);
+}
+/* newsprint grain over the whole page, under the UI */
+.paper-grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .3  0 0 0 0 .2  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* locked in: the speed warp runs behind everything, so panels let some of it through (no blur) */
+html[data-locked][data-theme] .glass, html[data-locked][data-theme] .glass-clear, html[data-locked][data-theme] .material { background-color: color-mix(in srgb, var(--surface) 72%, transparent); }
+html[data-locked][data-theme='paper'] .glass, html[data-locked][data-theme='paper'] .material { background-color: color-mix(in srgb, var(--surface) 86%, transparent); }
+
+/* ───────── the era dial (Settings) ─────────
+   Six stops: 0 Future, 1 Afterglow, 2 Broadcast, 3 Arcade, 4 Terminal, 5 Full ASCII.
+   Screen effects (scanline, grain, warmth, glow) follow --fx and stop growing at Broadcast. From there back the dial adds solids
+   drawn in text (AsciiScene behind the app, solids in page headers) and pixel type for titles and labels, never heavier filters.
+   Body copy stays in the normal face at every stop. */
+.retro-fx { position: fixed; inset: 0; z-index: 130; pointer-events: none; }
+.retro-scan { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 1px, transparent 1px 3px); opacity: calc(var(--fx, 0) * 0.4); }
+.retro-grain { opacity: calc(var(--fx, 0) * 0.5); mix-blend-mode: overlay; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.retro-warm { background: #ffa83c; mix-blend-mode: soft-light; opacity: calc(var(--fx, 0) * 0.24); }
+html[data-retro='0'] .crt::after { display: none; }
+/* from Arcade back the whole screen is already text, so the dial's solid steps back and the small lines over it stay easy to read */
+html[data-ascii='3'] .crt, html[data-ascii='4'] .crt, html[data-ascii='5'] .crt { opacity: 0.42; }
+html[data-retro='0'] .caret { animation: none; }
+/* a glow on headings that grows to Broadcast and no further */
+.dot, .hud { text-shadow: 0 0 calc(var(--fx, 0) * 10px) color-mix(in srgb, var(--signal) calc(var(--fx, 0) * 45%), transparent); }
+/* the on-screen display appears at Broadcast */
+.osd-wrap { display: none; }
+html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .osd-wrap { display: flex; }
+.osd { font-family: 'VT323', monospace; text-transform: uppercase; letter-spacing: 0.06em; font-size: 24px; line-height: 1; color: var(--ink); text-shadow: 2px 2px 0 var(--ground); -webkit-font-smoothing: none; font-size-adjust: none; }
+.osd .rec { color: var(--hot); }
+.osd .rec::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; background: var(--hot); animation: blink 1.1s steps(2) infinite; vertical-align: 1px; }
+.blink { animation: blink 1s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .blink, .osd .rec::before { animation: none; } .retro-scan, .retro-grain { display: none; } }
+/* stop 2+: pixel kickers */
+html:is([data-retro='2'], [data-retro='3'], [data-retro='4'], [data-retro='5']) .kicker { font-family: 'Silkscreen', monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--signal); }
+/* stop 3+: Arcade. Pixel titles and labels, and a hard offset shadow under every panel */
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .dot { font-family: 'Silkscreen', 'Unbounded Variable', sans-serif; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) .hud { font-family: 'VT323', monospace; font-size: 18px; letter-spacing: 0.1em; font-weight: 400; }
+html:is([data-retro='3'], [data-retro='4'], [data-retro='5']) :is(.glass, .material) { box-shadow: inset 0 0 0 1px var(--rule), 3px 3px 0 0 color-mix(in srgb, var(--signal) 28%, transparent); }
+/* stop 4+: Terminal. Panels are outlined in dashes and the page title gets a prompt */
+html:is([data-retro='4'], [data-retro='5']) :is(.glass, .material) { outline: 1px dashed color-mix(in srgb, var(--signal) 45%, transparent); outline-offset: -4px; }
+html:is([data-retro='4'], [data-retro='5']):not([data-theme='phosphor']) h1::before { content: '> '; color: var(--signal); }
+/* stop 5: Full ASCII. Square everything and heavier dashes */
+html[data-retro='5'] :is(.glass, .material) { outline-width: 2px; border-radius: 0; }
+html[data-retro='5'] button { border-radius: 0 !important; }
+
+
+/* the end-session slider, set in the station's own voice: flat, ruled, one yellow, condensed capitals */
+.slide-end { max-width: 19rem; margin-inline: auto; }
+.slide-end > div:first-child { border-radius: 0 !important; background: transparent !important; border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent) !important; box-shadow: none !important; }
+.slide-end > div:first-child > div:first-child { border-radius: 0 !important; background: color-mix(in srgb, var(--signal) 24%, transparent) !important; border-right: 1px solid var(--signal) !important; }
+.slide-end > div:first-child > div:nth-child(2) { font-family: var(--font-cond); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.slide-end [role='slider'] { border-radius: 0 !important; background: var(--signal) !important; border: 0 !important; box-shadow: none !important; color: var(--on-signal) !important; }
+.slide-end [role='slider'] svg { color: var(--on-signal) !important; }
+/* the erase slider is the same object in the danger colour, so it reads as the serious one */
+.slide-end.slide-danger > div:first-child { border-color: color-mix(in srgb, var(--danger) 60%, transparent) !important; }
+.slide-end.slide-danger > div:first-child > div:first-child { background: color-mix(in srgb, var(--danger) 26%, transparent) !important; border-right-color: var(--danger) !important; }
+.slide-end.slide-danger [role='slider'] { background: var(--danger) !important; color: var(--ground) !important; }
+.slide-end.slide-danger [role='slider'] svg { color: var(--ground) !important; }
+
+/* the tour: a ring that leaves the spotlight like a sonar ping, so the eye goes to what is being pointed at */
+.tour-ping { transform-box: fill-box; transform-origin: center; pointer-events: none; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) { .tour-ping { animation: tourping 1.7s cubic-bezier(0.2, 0, 0, 1) infinite; } }
+@keyframes tourping { 0% { transform: scale(1); opacity: 0.8; } 70%, 100% { transform: scale(1.16, 1.3); opacity: 0; } }
+
+/* the Widgets deck: the cards are dealt from the stack with a short stagger and rest in a fan; the top card of the closed deck turns */
+.wcard { rotate: var(--tilt, 0deg); animation: deal 240ms ease-out backwards; }
+@keyframes deal { from { opacity: 0; translate: 0 -16px; rotate: 0deg; scale: 0.88; } }
+@keyframes deck-flip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wcard { animation: none; } }
+
+/* the guided tour: the blink on a task, and the first-view rise of each panel when a screen opens */
+@keyframes tour-blink { 50% { opacity: 0.2; } }
+
+/* moving around: a screen's panels come up one after another, a pressed button gives a little, and a signal line sweeps the top edge on a cut.
+   Only opacity and scale, so a panel the person has moved (its inline translate) is never fought. Off under calm motion and reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-calm]) #canvas [data-movable]:not([data-movable^="widget-"]):not([data-movable^="shell-"]) { animation: panel-rise 380ms cubic-bezier(0.2, 0, 0, 1) backwards; }
+  html:not([data-calm]) #canvas [data-movable]:nth-child(2) { animation-delay: 50ms; }
+  html:not([data-calm]) #canvas [data-movable]:nth-child(3) { animation-delay: 100ms; }
+  html:not([data-calm]) #canvas [data-movable]:nth-child(n + 4) { animation-delay: 150ms; }
+  html:not([data-calm]) button:not(:disabled):active { scale: 0.97; }
+}
+@keyframes panel-rise { from { opacity: 0; scale: 0.975; } }

@@ -1,0 +1,747 @@
+import { create } from 'zustand'
+import { BREAK_MIN, CAPSULE_MAX, finishBonus, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
+import { useFx } from './fx'
+import { useUI } from './ui'
+import { normalizeTheme, type ThemeId } from './themes'
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { dateKey } from './dates'
+
+export interface Mute {
+  id: string
+  word: string
+  /** epoch ms the mute ends; 0 means until you lift it */
+  until: number
+}
+
+export interface Flash {
+  id: string
+  front: string
+  back: string
+  /** Leitner box 0..4 */
+  box: number
+  due: number
+}
+export interface Learn {
+  xp: number
+  /** days (YYYY-MM-DD) with any learning */
+  days: string[]
+  done: Record<string, { at: number; score: number; total: number }>
+  deck: Flash[]
+}
+
+export type MediaKind = 'radio' | 'tv'
+
+export interface MediaItem {
+  id: string
+  kind: MediaKind
+  name: string
+  url: string
+  logo?: string
+  meta?: string
+  tags?: string[]
+  uuid?: string
+}
+
+import type { BookRef } from './books'
+
+export interface SessionRec {
+  id: string
+  start: number
+  end: number
+  goalMin: number
+  focusSec: number
+  urges: number
+  lapses: number
+  source: MediaKind | 'silent'
+  title: string
+  completed: boolean
+  breaks?: number
+}
+
+export interface ActiveSession {
+  id: string
+  start: number
+  goalMin: number
+  elapsedSec: number
+  urges: number
+  lapses: number
+  paused: boolean
+  source: MediaKind | 'silent'
+  title: string
+  /** seconds since the session began or the last drift: sets the credit rate */
+  cleanSec?: number
+  /** credits earned so far this session (fractional) */
+  credit?: number
+  /** a paid break is running until this time (ms) */
+  breakUntil?: number
+  breaks?: number
+  /** drifts a streak shield absorbed this session */
+  shielded?: number
+}
+
+export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
+
+export interface EventRec {
+  id: string
+  t: number
+  kind: EventKind
+  text: string
+  read: boolean
+}
+
+export interface Profile {
+  name: string
+  since: number
+}
+
+export interface Settings {
+  dailyGoalMin: number
+  sessionMin: number
+  /** 0 calm · 1 lively · 2 maximum */
+  motion: 0 | 1 | 2
+  volume: number
+  /** swallow and count scroll gestures (on by default) */
+  guard: boolean
+  theme: ThemeId
+  /** how retro the screen and type look: 0 is the past (most retro), 100 is the future. Six stops of 20. */
+  era: number
+  /** how much of the page is 3D solids drawn in text: 0 off, 100 a whole text world. Six stops of 20, set apart from era. */
+  ascii: number
+  /** custom accent and background colours (#rrggbb), '' keeps the theme's own */
+  accent: string
+  bg: string
+  /** ask an AI to write a small interactive demo for each new lesson (only the topic title leaves the browser) */
+  aiDemos: boolean
+  /** the built-in music: on or off, which mood, and how loud (it also follows the main volume) */
+  music: boolean
+  musicMood: string
+  musicLevel: number
+  /** the age rating of songs to offer: 0 everyone (the default), 1 teens, 2 adults */
+  songAge: number
+  /** the first-run walkthrough has been shown */
+  toured: boolean
+  /** the Browser's own walkthrough has been shown */
+  browserToured: boolean
+  /** the cloud browser is switched off: nothing opens in it on its own and no time is used */
+  cloudOff: boolean
+}
+
+/** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
+export interface Credits {
+  bal: number
+  earned: number
+  spent: number
+  best: Record<string, number>
+  log: { t: number; n: number; why: string }[]
+  /** things bought in the shop */
+  items?: Items
+}
+
+/** What the shop has sold you: things to spend (counts) and things to keep (`owned`), plus the settings of the ones you can adjust. */
+export interface Items {
+  breaks: number
+  longBreaks: number
+  shields: number
+  lifelines: number
+  owned: string[]
+  clunks: number
+  spins: number
+  /** the solid in the timer, when the Solids pack is owned ('' is the donut) */
+  dial: string
+  /** sound machine levels, 0 to 1 per layer */
+  mix: Record<string, number>
+  /** a note waiting to open after the next finished session */
+  capsule: string
+}
+export const noItems = (): Items => ({ breaks: 0, longBreaks: 0, shields: 0, lifelines: 0, owned: [], clunks: 0, spins: 0, dial: '', mix: {}, capsule: '' })
+export const itemsOf = (c: Credits): Items => ({ ...noItems(), ...c.items })
+
+type HourLog = Record<string, number[]>
+export type SourceKey = MediaKind | 'silent'
+export type SourceLog = Record<string, Record<SourceKey, number[]>>
+
+interface Data {
+  settings: Settings
+  focusLog: HourLog
+  /** minutes per hour, split by what was playing */
+  sourceLog: SourceLog
+  urgeLog: HourLog
+  lapseLog: Record<string, number>
+  sourceSecs: Record<MediaKind | 'silent', number>
+  sessions: SessionRec[]
+  favorites: MediaItem[]
+  recent: MediaItem[]
+  seenIntro: boolean
+  demo: boolean
+  profile: Profile | null
+  events: EventRec[]
+  books: BookRef[]
+  /** topics hidden from the news, until a time (0 = until removed) */
+  mutes: Mute[]
+  learn: Learn
+  credits: Credits
+  widgets: Widgets
+}
+
+/** the study windows on the Focus screen: which are open, and what the notepad and the to-do list hold */
+export interface Todo { id: string; t: string; done: boolean }
+/** a shortcut the person added to the Browser's start page */
+export interface SavedPage { name: string; url: string }
+export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[] }
+export const NOTE_MAX = 20000
+export const TODO_MAX = 60
+export const PAGES_MAX = 8
+
+interface Actions {
+  addPage: (name: string, url: string) => void
+  removePage: (url: string) => void
+  setWidget: (id: string, on: boolean) => void
+  closeWidgets: () => void
+  setNote: (text: string) => void
+  addTodo: (text: string) => void
+  toggleTodo: (id: string) => void
+  removeTodo: (id: string) => void
+  clearDoneTodos: () => void
+  earnCredits: (n: number, why: string) => void
+  spendCredits: (n: number, why: string) => boolean
+  buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
+  sealCapsule: (text: string) => boolean
+  useBreak: (long?: boolean) => void
+  useLifeline: () => boolean
+  setDial: (shape: string) => void
+  setMix: (layer: string, level: number) => void
+  addSpins: (n: number) => void
+  endBreak: () => void
+  clunk: () => void
+  setBest: (game: string, score: number) => void
+  setSettings: (patch: Partial<Settings>) => void
+  startSession: (goalMin: number, source: MediaKind | 'silent', title: string) => void
+  setSessionSource: (source: MediaKind | 'silent', title: string) => void
+  tick: (sec?: number) => void
+  addLapse: () => void
+  endSession: (completed: boolean) => void
+  toggleFavorite: (item: MediaItem) => void
+  toggleBook: (book: BookRef) => void
+  setMutes: (m: Mute[]) => void
+  setLearn: (l: Learn) => void
+  pushRecent: (item: MediaItem) => void
+  markIntroSeen: () => void
+  setProfile: (p: Profile | null) => void
+  log: (kind: EventKind, text: string) => void
+  markEventsRead: () => void
+  markEventRead: (id: string) => void
+  loadDemo: () => void
+  resetAll: () => void
+  restore: (snapshot: Data) => void
+}
+
+interface Live {
+  session: ActiveSession | null
+}
+
+export type AppState = Data & Actions & Live
+
+export const DEFAULT_SETTINGS: Settings = {
+  dailyGoalMin: 90,
+  sessionMin: 25,
+  motion: 1,
+  volume: 0.8,
+  guard: true,
+  theme: 'station',
+  era: 80,
+  ascii: 20,
+  accent: '',
+  bg: '',
+  aiDemos: true,
+  music: false,
+  musicMood: 'calm',
+  musicLevel: 0.6,
+  songAge: 0,
+  toured: false,
+  browserToured: false,
+  cloudOff: false,
+}
+
+const emptyData = (): Data => ({
+  settings: { ...DEFAULT_SETTINGS },
+  focusLog: {},
+  sourceLog: {},
+  urgeLog: {},
+  lapseLog: {},
+  sourceSecs: { radio: 0, tv: 0, silent: 0 },
+  sessions: [],
+  favorites: [],
+  recent: [],
+  seenIntro: false,
+  demo: false,
+  profile: null,
+  events: [],
+  books: [],
+  mutes: [],
+  learn: { xp: 0, days: [], done: {}, deck: [] },
+  credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
+  widgets: { open: [], note: '', todos: [], pages: [] },
+})
+
+export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
+
+
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/** Accept only what has the right shape; anything else falls back to the default for that key. */
+export function sanitizeData(raw: unknown): { data: Data; matched: number } {
+  const base = emptyData()
+  const out: Record<string, unknown> = { ...base }
+  let matched = 0
+  if (!isObj(raw)) return { data: base, matched }
+  const hourLog = (v: unknown) => {
+    if (!isObj(v)) return null
+    const o: Record<string, number[]> = {}
+    for (const [k, row] of Object.entries(v)) if (Array.isArray(row) && row.length === 24 && row.every((n) => typeof n === 'number')) o[k] = row as number[]
+    return o
+  }
+  for (const k of DATA_KEYS) {
+    const v = raw[k]
+    if (v === undefined) continue
+    const b = (base as unknown as Record<string, unknown>)[k]
+    let ok: unknown = undefined
+    if (k === 'settings') {
+      if (isObj(v)) {
+        const st: Record<string, unknown> = { ...DEFAULT_SETTINGS }
+        for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
+        if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
+        st.theme = normalizeTheme(v.theme)
+        const era = Number.isFinite(Number(st.era)) ? Number(st.era) : 80
+        st.era = Math.min(100, Math.max(0, Math.round(era / 20) * 20))
+        // before the two dials were split, the era stop also set how many solids there were: keep what people were seeing
+        st.ascii = typeof v.ascii === 'number' && Number.isFinite(v.ascii) ? Math.min(100, Math.max(0, Math.round(v.ascii / 20) * 20)) : Math.round((100 - (st.era as number)) / 20) * 20
+        // a save from before the tour existed that already has a name is someone who knows their way around: no tour pops up for them (it is still in Settings > Help)
+        if (typeof v.toured !== 'boolean' && isObj(raw.profile)) st.toured = true
+        st.musicLevel = Math.min(1, Math.max(0, Number(st.musicLevel) || 0))
+        if (![0, 1, 2].includes(st.songAge as number)) st.songAge = 0
+        if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
+        for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
+        ok = st
+      }
+    } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined
+    else if (k === 'sourceLog') {
+      if (isObj(v)) {
+        const o: Record<string, unknown> = {}
+        for (const [d, day] of Object.entries(v)) if (isObj(day) && ['radio', 'tv', 'silent'].every((x) => Array.isArray(day[x]) && (day[x] as unknown[]).length === 24)) o[d] = day
+        ok = o
+      }
+    } else if (k === 'profile') ok = v === null || (isObj(v) && typeof v.name === 'string') ? v : undefined
+    else if (k === 'credits') {
+      if (isObj(v)) {
+        const n = (x: unknown) => (typeof x === 'number' && isFinite(x) && x >= 0 ? Math.floor(x) : 0)
+        const best: Record<string, number> = {}
+        if (isObj(v.best)) for (const [g, sc] of Object.entries(v.best)) if (typeof sc === 'number' && isFinite(sc) && sc >= 0) best[g.slice(0, 20)] = Math.floor(sc)
+        const log = Array.isArray(v.log) ? v.log.filter((r) => isObj(r) && typeof r.t === 'number' && typeof r.n === 'number' && typeof r.why === 'string').slice(0, 40) : []
+        const it = isObj(v.items) ? v.items : {}
+        const owned = Array.isArray(it.owned) ? it.owned.filter((x): x is string => typeof x === 'string' && x in SHOP).slice(0, 20) : []
+        if (it.brick === true && !owned.includes('brick')) owned.push('brick') // from before there was a list
+        const mix: Record<string, number> = {}
+        if (isObj(it.mix)) for (const [l, lv] of Object.entries(it.mix)) if (typeof lv === 'number' && isFinite(lv)) mix[l.slice(0, 12)] = Math.min(1, Math.max(0, lv))
+        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), longBreaks: n(it.longBreaks), shields: n(it.shields), lifelines: n(it.lifelines), owned, clunks: n(it.clunks), spins: n(it.spins), dial: typeof it.dial === 'string' ? it.dial.slice(0, 12) : '', mix, capsule: typeof it.capsule === 'string' ? it.capsule.slice(0, CAPSULE_MAX) : '' } }
+      }
+    } else if (k === 'widgets') {
+      if (isObj(v)) {
+        const open = Array.isArray(v.open) ? [...new Set(v.open.filter((x): x is string => typeof x === 'string' && x.length < 20))].slice(0, 12) : []
+        const todos = Array.isArray(v.todos) ? v.todos.filter((x) => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && typeof x.done === 'boolean').slice(0, TODO_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 160), done: !!x.done })) : []
+        const pages = Array.isArray(v.pages) ? v.pages.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.url === 'string' && /^https?:\/\/[^\s]{1,500}$/.test(x.url)).slice(0, PAGES_MAX).map((x) => ({ name: String(x.name).slice(0, 30), url: String(x.url) })) : []
+        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages }
+      }
+    } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
+    else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
+    else if (isObj(b)) ok = isObj(v) ? v : undefined
+    if (ok !== undefined) {
+      out[k] = ok
+      matched++
+    }
+  }
+  return { data: out as unknown as Data, matched }
+}
+
+const zeros = () => new Array<number>(24).fill(0)
+
+const hours = (log: HourLog, key: string) => {
+  const row = log[key]
+  return row ? row.slice() : new Array(24).fill(0)
+}
+
+/** localStorage with debounced writes (the store ticks every second). */
+let timer: ReturnType<typeof setTimeout> | undefined
+let pending: [string, string] | null = null
+const flush = () => {
+  if (!pending) return
+  try {
+    localStorage.setItem(pending[0], pending[1])
+  } catch {
+    /* storage full or blocked: keep running in memory */
+  }
+  pending = null
+}
+const debounced: StateStorage = {
+  getItem: (k) => {
+    try {
+      return localStorage.getItem(k)
+    } catch {
+      return null
+    }
+  },
+  setItem: (k, v) => {
+    pending = [k, v]
+    clearTimeout(timer)
+    timer = setTimeout(flush, 500)
+  },
+  removeItem: (k) => {
+    pending = null
+    try {
+      localStorage.removeItem(k)
+    } catch {
+      /* ignore */
+    }
+  },
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flush)
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush())
+}
+
+const uid = () => Math.random().toString(36).slice(2, 10)
+
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      ...emptyData(),
+      session: null,
+
+      setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+      startSession: (goalMin, source, title) =>
+        set({
+          session: {
+            id: uid(),
+            start: Date.now(),
+            goalMin,
+            elapsedSec: 0,
+            urges: 0,
+            lapses: 0,
+            paused: false,
+            source,
+            title,
+            cleanSec: 0,
+            credit: 0,
+            breaks: 0,
+          },
+        }),
+
+      setSessionSource: (source, title) =>
+        set((s) => (s.session ? { session: { ...s.session, source, title } } : s)),
+
+      tick: (sec = 1) => {
+        const s = get()
+        const a = s.session
+        if (!a || a.paused) return
+        const now = new Date()
+        const key = dateKey(now)
+        const row = hours(s.focusLog, key)
+        row[now.getHours()] += sec / 60
+        const elapsed = a.elapsedSec + sec
+        const day = s.sourceLog[key] ?? { radio: zeros(), tv: zeros(), silent: zeros() }
+        const srcRow = (day[a.source] ?? zeros()).slice()
+        srcRow[now.getHours()] += sec / 60
+        set({
+          focusLog: { ...s.focusLog, [key]: row },
+          sourceLog: { ...s.sourceLog, [key]: { ...day, [a.source]: srcRow } },
+          sourceSecs: { ...s.sourceSecs, [a.source]: s.sourceSecs[a.source] + sec },
+          session: { ...a, elapsedSec: elapsed, cleanSec: (a.cleanSec ?? 0) + sec, credit: (a.credit ?? 0) + (sec / 60) * rateAt(a.cleanSec ?? 0) },
+        })
+        if (elapsed >= a.goalMin * 60) get().endSession(true)
+      },
+
+      addLapse: () => {
+        const s = get()
+        const now = new Date()
+        const key = dateKey(now)
+        const row = hours(s.urgeLog, key)
+        row[now.getHours()] += 1
+        // a streak shield keeps a long clean streak alive through one drift; the drift itself is still counted
+        const have = itemsOf(s.credits)
+        const shielded = !!s.session && have.shields > 0 && (s.session.cleanSec ?? 0) >= 600
+        set({
+          urgeLog: { ...s.urgeLog, [key]: row },
+          lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
+          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: shielded ? s.session.cleanSec : 0, shielded: (s.session.shielded ?? 0) + (shielded ? 1 : 0) } : null,
+          ...(shielded ? { credits: { ...s.credits, items: { ...have, shields: have.shields - 1 } } } : {}),
+        })
+        get().log('wander', s.session ? `You left the tab during ${s.session.title}${shielded ? '. A streak shield kept the clean streak' : ''}` : 'You left the tab mid-session')
+        if (shielded) useFx.getState().say({ title: 'Shield used', description: 'Your clean streak carries on. The drift still counts.' })
+      },
+
+      endSession: (completed) => {
+        const s = get()
+        const a = s.session
+        if (!a) return
+        const rec: SessionRec = {
+          id: a.id,
+          start: a.start,
+          end: Date.now(),
+          goalMin: a.goalMin,
+          focusSec: a.elapsedSec,
+          urges: a.urges,
+          lapses: a.lapses,
+          source: a.source,
+          title: a.title,
+          completed,
+          breaks: a.breaks || undefined,
+        }
+        set({
+          session: null,
+          sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
+        })
+        const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses) : 0)
+        if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
+        // a sealed time capsule opens once, after a session that was finished
+        const note = completed ? itemsOf(get().credits).capsule : ''
+        if (note) set((st) => ({ credits: { ...st.credits, items: { ...itemsOf(st.credits), capsule: '' } } }))
+        if (completed) useUI.getState().set({ celebrate: { title: note ? 'A note from past you' : 'Session complete', detail: `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
+        // a finished session gets the celebration card instead of a toast
+        if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
+        get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
+      },
+
+      earnCredits: (n, why) => {
+        const k = Math.floor(n)
+        if (k <= 0) return
+        set((s) => ({ credits: { ...s.credits, bal: s.credits.bal + k, earned: s.credits.earned + k, log: [{ t: Date.now(), n: k, why }, ...s.credits.log].slice(0, 40) } }))
+      },
+      spendCredits: (n, why) => {
+        if (get().credits.bal < n) return false
+        set((s) => ({ credits: { ...s.credits, bal: s.credits.bal - n, spent: s.credits.spent + n, log: [{ t: Date.now(), n: -n, why }, ...s.credits.log].slice(0, 40) } }))
+        return true
+      },
+      buyItem: (id) => {
+        const it = SHOP[id]
+        const have = itemsOf(get().credits)
+        if (it.kind === 'unlock' && have.owned.includes(id)) return false
+        if (!get().spendCredits(it.price, `Bought ${it.name}`)) return false
+        set((s) => {
+          const h = itemsOf(s.credits)
+          const next: Items = { ...h }
+          if (id === 'break') next.breaks += 1
+          else if (id === 'longbreak') next.longBreaks += 1
+          else if (id === 'shield') next.shields += 1
+          else if (id === 'lifeline') next.lifelines += LIFELINES_PER_PACK
+          else if (!next.owned.includes(id)) next.owned = [...next.owned, id]
+          return { credits: { ...s.credits, items: next } }
+        })
+        return true
+      },
+      /** Seal a note to yourself. It opens, once, after your next finished session. */
+      sealCapsule: (text) => {
+        const note = text.replace(/\s+/g, ' ').trim().slice(0, CAPSULE_MAX)
+        if (!note || itemsOf(get().credits).capsule) return false
+        if (!get().spendCredits(SHOP.capsule.price, 'Bought a Time capsule')) return false
+        set((s) => ({ credits: { ...s.credits, items: { ...itemsOf(s.credits), capsule: note } } }))
+        return true
+      },
+      /** Spend a break: the session pauses, leaving the tab is not a drift, and it is recorded as a break. */
+      useBreak: (long = false) => {
+        const s = get()
+        const a = s.session
+        const have = itemsOf(s.credits)
+        if (!a || a.paused || (long ? have.longBreaks : have.breaks) < 1) return
+        const min = long ? LONG_BREAK_MIN : BREAK_MIN
+        set({ session: { ...a, paused: true, breakUntil: Date.now() + min * 60e3, breaks: (a.breaks ?? 0) + 1 }, credits: { ...s.credits, items: { ...have, breaks: have.breaks - (long ? 0 : 1), longBreaks: have.longBreaks - (long ? 1 : 0) } } })
+        get().log('session', `Took a ${min} minute break during ${a.title}`)
+      },
+      endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
+      useLifeline: () => {
+        const have = itemsOf(get().credits)
+        if (have.lifelines < 1) return false
+        set((s) => ({ credits: { ...s.credits, items: { ...have, lifelines: have.lifelines - 1 } } }))
+        return true
+      },
+      setDial: (shape) => set((s) => ({ credits: { ...s.credits, items: { ...itemsOf(s.credits), dial: shape } } })),
+      setMix: (layer, level) => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, mix: { ...h.mix, [layer]: Math.min(1, Math.max(0, level)) } } } } }),
+      addSpins: (n) => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, spins: h.spins + n } } } }),
+      clunk: () => set((s) => { const h = itemsOf(s.credits); return { credits: { ...s.credits, items: { ...h, clunks: h.clunks + 1 } } } }),
+      setBest: (game, score) => set((s) => (score > (s.credits.best[game] ?? 0) ? { credits: { ...s.credits, best: { ...s.credits.best, [game]: Math.floor(score) } } } : s)),
+
+      setLearn: (learn) => set({ learn }),
+      setMutes: (mutes) => set({ mutes: mutes.slice(0, 200) }),
+
+      toggleBook: (book) => set((s) => ({ books: s.books.some((b) => b.id === book.id) ? s.books.filter((b) => b.id !== book.id) : [book, ...s.books].slice(0, 100) })),
+
+      toggleFavorite: (item) =>
+        set((s) => ({
+          favorites: s.favorites.some((f) => f.id === item.id)
+            ? s.favorites.filter((f) => f.id !== item.id)
+            : [item, ...s.favorites].slice(0, 60),
+        })),
+
+      pushRecent: (item) =>
+        set((s) => ({ recent: [item, ...s.recent.filter((r) => r.id !== item.id)].slice(0, 14) })),
+
+      markIntroSeen: () => set({ seenIntro: true }),
+
+      setProfile: (profile) => set({ profile }),
+
+      log: (kind, text) =>
+        set((s) => ({
+          events: [{ id: uid(), t: Date.now(), kind, text, read: false }, ...s.events].slice(0, 200),
+        })),
+
+      addPage: (name, url) => {
+        const n = name.trim().slice(0, 30)
+        if (!n || !/^https?:\/\/[^\s]{1,500}$/.test(url)) return
+        set((s) => {
+          const pages = s.widgets.pages ?? []
+          return pages.length >= PAGES_MAX || pages.some((p) => p.url === url) ? s : { widgets: { ...s.widgets, pages: [...pages, { name: n, url }] } }
+        })
+      },
+      removePage: (url) => set((s) => ({ widgets: { ...s.widgets, pages: (s.widgets.pages ?? []).filter((p) => p.url !== url) } })),
+      setWidget: (id, on) => set((s) => ({ widgets: { ...s.widgets, open: on ? (s.widgets.open.includes(id) ? s.widgets.open : [...s.widgets.open, id]) : s.widgets.open.filter((x) => x !== id) } })),
+      closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [] } })),
+      setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX) } })),
+      addTodo: (text) => {
+        const t = text.trim().slice(0, 160)
+        if (!t) return
+        set((s) => (s.widgets.todos.length >= TODO_MAX ? s : { widgets: { ...s.widgets, todos: [...s.widgets.todos, { id: uid(), t, done: false }] } }))
+      },
+      toggleTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.map((x) => (x.id === id ? { ...x, done: !x.done } : x)) } })),
+      removeTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => x.id !== id) } })),
+      clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
+
+      markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),
+
+      markEventRead: (id) => set((s) => ({ events: s.events.map((e) => (e.id === id ? { ...e, read: true } : e)) })),
+
+      loadDemo: () => {
+        const demo = makeDemo()
+        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, widgets: get().widgets, learn: get().learn, credits: get().credits, seenIntro: true, demo: true })
+      },
+
+      resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
+
+      restore: (snapshot) => set({ ...snapshot, session: null }),
+    }),
+    {
+      name: 'anti-scroll:v1',
+      version: 1,
+      storage: createJSONStorage(() => debounced),
+      partialize: (s) => {
+        const out: Record<string, unknown> = {}
+        for (const k of DATA_KEYS) out[k] = s[k]
+        out.session = s.session
+        return out as unknown as AppState
+      },
+      // never trust what is on disk: validate every key, and close a session that a reload interrupted
+      merge: (persisted, current) => {
+        const { data } = sanitizeData(persisted)
+        const p = persisted as { session?: ActiveSession | null } | null
+        const a = p && isObj(p.session) ? (p.session as ActiveSession) : null
+        if (a && typeof a.elapsedSec === 'number' && a.elapsedSec >= 10 && typeof a.start === 'number') {
+          data.sessions = [{ id: a.id, start: a.start, end: Date.now(), goalMin: a.goalMin, focusSec: a.elapsedSec, urges: a.urges ?? 0, lapses: a.lapses ?? 0, source: a.source, title: a.title, completed: false }, ...data.sessions].slice(0, 300)
+          data.events = [{ id: uid(), t: Date.now(), kind: 'session' as const, text: `Interrupted ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept`, read: false }, ...data.events].slice(0, 200)
+        }
+        return { ...current, ...data, session: null }
+      },
+      migrate: (state) => state as AppState,
+    },
+  ),
+)
+
+export function snapshotData(): Data {
+  const s = useStore.getState()
+  const out = {} as Record<string, unknown>
+  for (const k of DATA_KEYS) out[k] = s[k]
+  return JSON.parse(JSON.stringify(out)) as Data
+}
+
+/* ───────── demo history so the heatmaps have something to show ───────── */
+function rng(seed: number) {
+  let t = seed >>> 0
+  return () => {
+    t += 0x6d2b79f5
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r)
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function splitSources(f: number[], rand: () => number): Record<SourceKey, number[]> {
+  const out: Record<SourceKey, number[]> = { radio: zeros(), tv: zeros(), silent: zeros() }
+  f.forEach((m, h) => {
+    if (m <= 0) return
+    const r = rand()
+    const k: SourceKey = r < 0.46 ? 'radio' : r < 0.77 ? 'tv' : 'silent'
+    out[k][h] = m
+  })
+  return out
+}
+
+function makeDemo(): Data {
+  const rand = rng(1337)
+  const d = emptyData()
+  const peaks = [9, 10, 15, 16, 21]
+  const DAYS = 150
+  for (let i = DAYS; i >= 0; i--) {
+    const day = new Date()
+    day.setDate(day.getDate() - i)
+    const key = dateKey(day)
+    const dow = (day.getDay() + 6) % 7
+    const progress = 1 - i / DAYS // habits improve over time
+    const weekend = dow >= 5
+    if (rand() < (weekend ? 0.55 : 0.8) * (0.55 + progress * 0.45)) {
+      const f = new Array(24).fill(0)
+      const u = new Array(24).fill(0)
+      for (const p of peaks) {
+        if (rand() < 0.6) {
+          const h = (p + (rand() < 0.3 ? 1 : 0)) % 24
+          f[h] += (8 + rand() * 38) * (0.5 + progress * 0.7)
+        }
+      }
+      for (let h = 7; h < 24; h++) {
+        const base = f[h] > 0 ? 1.5 : 3.2
+        u[h] = Math.round(rand() * base * (1.8 - progress) * (weekend ? 1.5 : 1))
+      }
+      for (let h = 0; h < 24; h++) f[h] = Math.min(60, Math.round(f[h] * 10) / 10)
+      d.focusLog[key] = f
+      d.sourceLog[key] = splitSources(f, rand)
+      d.urgeLog[key] = u
+      const lapses = Math.round(rand() * 3 * (1.3 - progress))
+      if (lapses) d.lapseLog[key] = lapses
+    }
+  }
+  const kinds: (MediaKind | 'silent')[] = ['radio', 'tv', 'radio', 'silent']
+  for (let i = 0; i < 18; i++) {
+    const end = Date.now() - (i + 1) * 1000 * 60 * 60 * (5 + rand() * 20)
+    const goal = [15, 25, 25, 45, 60][Math.floor(rand() * 5)]
+    const completed = rand() > 0.22
+    const focusSec = Math.round(goal * 60 * (completed ? 1 : 0.3 + rand() * 0.5))
+    const source = kinds[Math.floor(rand() * kinds.length)]
+    d.sessions.push({
+      id: `demo-${i}`,
+      start: end - focusSec * 1000,
+      end,
+      goalMin: goal,
+      focusSec,
+      urges: Math.round(rand() * 9),
+      lapses: Math.round(rand() * 2),
+      source,
+      title: source === 'tv' ? 'Documentary channel' : source === 'radio' ? 'Ambient radio' : 'Silent focus',
+      completed,
+    })
+  }
+  const total = Object.values(d.focusLog).reduce((a, r) => a + r.reduce((x, y) => x + y, 0), 0) * 60
+  d.sourceSecs = { radio: Math.round(total * 0.46), tv: Math.round(total * 0.31), silent: Math.round(total * 0.23) }
+  d.demo = true
+  return d
+}
+
+// dev-only handle so screenshots and tests can seed data
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __store: typeof useStore }).__store = useStore
+
+if (import.meta.env.DEV) (globalThis as { __store?: unknown }).__store = useStore

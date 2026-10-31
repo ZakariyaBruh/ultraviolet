@@ -1,0 +1,173 @@
+{
+  "/": {
+    "title": "Focus Timer App That Counts Every Scroll You Skip | Friction",
+    "description": "Friction is a free focus timer with internet radio, live TV and lessons. One screen, no feed, no account. Lock in, and every time you leave is counted.",
+    "h1": "Friction: a focus timer that counts every time you leave",
+    "lead": "Friction is a free focus timer for studying and deep work. Pick a length, tune in to internet radio, live TV or silence, and lock in. If you leave the tab while the timer is running, that counts as a drift, and the numbers never lie. Nothing on the screen scrolls, and there is no feed to fall into.",
+    "points": [
+      "Lock in for 10 to 90 minutes and see how many times you drift",
+      "Stay with internet radio, live TV, podcasts or songs while you work",
+      "Study windows on the focus screen: notepad, timer, calculator, to-do list, converter, scratch board and a small browser",
+      "Lessons built from Wikipedia by fixed rules, with quizzes and interactive demos",
+      "Earn credits for focused minutes and spend them on arcade games and shop extras",
+      "Focus rooms where friends lock in together and chat"
+    ],
+    "more": "There is no account. Your sessions, settings and layout are stored in your own browser, and one button erases all of it. Friction uses AI in only three clearly labelled places: demos for lessons that have no built-in one, an optional Ask AI window, and a check that helps the Browser block games and short-form social media. Lessons and their questions are never written by AI.",
+    "name": "Home"
+  },
+  "/focus": {
+    "title": "Focus Timer: Lock In and Count Every Drift | Friction",
+    "description": "Pick a length, tune in to radio or silence and lock in. Friction counts each time you leave the tab, pays credits for clean minutes and keeps it all private.",
+    "h1": "Focus timer: lock in and count every drift",
+    "lead": "The focus screen is where a session happens. Choose a length with the ruler under the clock, pick something to stay with, and press Lock in. The clock only runs while this tab is visible and in front of you. Leaving it for six seconds or more is logged as a drift, so your numbers show what you actually did.",
+    "points": [
+      "Drifts, minutes held and your streak are counted from real sessions",
+      "Credits grow by the minute: one a minute, and more the longer you stay clean",
+      "A drift resets the climb, and a bought break pauses the clock without counting as one",
+      "Open the Widgets deck for a notepad, timer, calculator, to-do list, converter or scratch board",
+      "Radio, TV and podcasts keep playing on every screen"
+    ],
+    "more": "Everything you measure stays in this browser. The Debrief screen turns your numbers into plain sentences about your best and worst hours, with no AI and no server.",
+    "name": "Focus"
+  },
+  "/radio": {
+    "title": "Internet Radio for Studying and Focus Sessions | Friction",
+    "description": "Search thousands of internet radio stations by genre or name and keep one playing while you work. Lo-fi, ambient, classical and more. Free, with no account.",
+    "h1": "Internet radio for studying and focus",
+    "lead": "Search thousands of internet radio stations from the Radio Browser directory and keep one playing while you work. Choose a genre such as lo-fi, ambient, classical, jazz or soundtrack, or type any word to search every station at once, not only the genre you are on.",
+    "points": [
+      "Stations are listed most listened first, with country, format and bitrate",
+      "Save favourites and return to recent stations",
+      "The player carries on across every screen, so you can change screen without stopping the music",
+      "Share a station with friends in a focus room"
+    ],
+    "more": "Radio needs no account. Friction only sends the words you type to the station directory, and your saved stations stay in your browser.",
+    "name": "Radio"
+  },
+  "/tv": {
+    "title": "Free Live TV Channels to Keep On While You Work | Friction",
+    "description": "Browse free live TV by category and keep a channel on while you focus. Documentaries, science and news without a feed to scroll. Press play, no account needed.",
+    "h1": "Free live TV channels to keep on while you work",
+    "lead": "Browse free live TV channels by category and keep one on while you focus. Documentaries, science, news and more are one tap away, with no feed to scroll and no account to make. Switch to theatre mode for a full screen picture, then return to your session.",
+    "points": [
+      "Channels come from the open iptv-org directory",
+      "Search looks at every category, not just the one you are viewing",
+      "Save favourites and resume your last channel",
+      "Theatre mode for a large picture, and the same player as radio"
+    ],
+    "more": "Some channels block playback outside their own country, so a channel that does not open may work for someone elsewhere. Nothing you watch is stored anywhere but your own browser.",
+    "name": "TV"
+  },
+  "/podcasts": {
+    "title": "Podcast Search and Player for Focus Sessions | Friction",
+    "description": "Search millions of podcasts, play episodes with your place remembered and share one with a friend in a room. Free and private, with no account to make.",
+    "h1": "Podcast search and player for focus sessions",
+    "lead": "Search millions of podcasts, open a show and play any episode in the same player as radio and TV. Friction remembers where you stopped, so you can come back to an episode later and carry on. Episodes can be shared with friends in a focus room, with their position.",
+    "points": [
+      "Search uses the Apple iTunes podcast directory",
+      "Episode lists are read directly from each show's own feed",
+      "Your place in every episode is saved in this browser",
+      "Share an episode with friends in a focus room, with its position"
+    ],
+    "more": "There is no account and no profile. Only the words you search for are sent to find shows.",
+    "name": "Podcasts"
+  },
+  "/music": {
+    "title": "Free Music Player for Studying: Songs and Radio | Friction",
+    "description": "Play whole free songs from Audius, Openverse and the Internet Archive, filtered to the age you choose. No account, and your searches stay in this browser.",
+    "h1": "Free music player for studying: songs and radio",
+    "lead": "Play whole free songs while you study. Friction searches three services that need no key: Audius for independent artists, Openverse for openly licensed music and the Internet Archive. Results are mixed together and shown on one screen, with a trending list when you have not searched yet.",
+    "points": [
+      "Choose an age setting the first time: everyone, teens or adults",
+      "Songs flagged explicit or mature are filtered out for the younger settings",
+      "Songs play in the same player as radio, with a queue",
+      "Auto music, a Shop item, makes calm, focus, night or retro music as it goes"
+    ],
+    "more": "None of these services rates its music, so the filter uses their own flags and a short word list and is not perfect. Only the words you type are sent, and results are cached for an hour.",
+    "name": "Music"
+  },
+  "/news": {
+    "title": "Calm News Reader With Topics You Can Mute | Friction",
+    "description": "Read headlines from many sources on one quiet screen, open the full summary, and hide any topic for a day or a week. No feed to scroll and no account needed.",
+    "h1": "A calm news reader with topics you can mute",
+    "lead": "Read headlines from many sources on one quiet screen. Open any story to see its full summary, then follow the link to the source if you want more. If a subject is wearing you out, hide it for a day or a week, and bring it back whenever you like.",
+    "points": [
+      "Headlines come from a fixed list of public feeds",
+      "Hide a topic by word, for a day or a week, always with an undo",
+      "Stories open in a panel with the full summary",
+      "Nothing is personalised, and there is no endless feed"
+    ],
+    "more": "Friction fetches the feeds through a small relay that keeps nothing. Which stories you open and which topics you hide are stored only in your browser.",
+    "name": "News"
+  },
+  "/learn": {
+    "title": "Learn Anything With Lessons Built by Rules | Friction",
+    "description": "Lessons built from Wikipedia text by fixed rules, with idea cards, questions, a timeline and an interactive demo. No AI writes the lessons. Misses get reviewed.",
+    "h1": "Learn anything with lessons built by rules",
+    "lead": "Type any subject and Friction builds a lesson from its Wikipedia article. You get idea cards, then questions in turn: fill the gap, true or false, type the missing word, estimate on a slider, put events in order, match sections and build a sentence. A timeline and an interactive demo finish it. The lesson is made by fixed rules, and no AI writes it or its questions.",
+    "points": [
+      "Built-in demos cover orbits, ciphers, natural selection, compounding, herd immunity and more",
+      "A topic without a built-in demo can get one written by an AI, clearly labelled as AI generated",
+      "Misses go into a review deck that returns later",
+      "Trivia rounds from Open Trivia DB earn credits"
+    ],
+    "more": "Finishing a lesson pays credits once a day for each lesson. Your progress and review deck stay in your browser.",
+    "name": "Learn"
+  },
+  "/books": {
+    "title": "Free Ebooks to Read Online, Without Distractions | Friction",
+    "description": "Search free public-domain ebooks and read them in a quiet page-by-page reader, with your place kept in this browser. No account, no ads and nothing to scroll.",
+    "h1": "Free ebooks to read online without distractions",
+    "lead": "Search free public-domain ebooks and read them in a quiet, page-by-page reader. There are no ads, no pop-ups and nothing to scroll. Friction remembers your place in each book and keeps a shelf of what you have started.",
+    "points": [
+      "Books come from public-domain libraries",
+      "Page-by-page reading, with no endless scroll",
+      "Your shelf and your place are saved in this browser",
+      "Read between sessions or as the thing you lock in with"
+    ],
+    "more": "Reading needs no account. Only the words you search for are sent to find books.",
+    "name": "Books"
+  },
+  "/arcade": {
+    "title": "Earn Credits by Focusing, Spend Them on Games | Friction",
+    "description": "Focused minutes earn credits, and credits buy arcade rounds and shop extras like breaks and a sound machine. Credits are never won in a game. Free and private.",
+    "h1": "Earn credits by focusing, spend them on arcade games",
+    "lead": "Focused minutes earn credits, and credits buy arcade rounds and shop extras. Credits are only earned by real work, never won in a game, and prices are fixed. The arcade has sixteen small canvas games, including Descent, a roguelite with rooms, upgrade cards and bosses.",
+    "points": [
+      "Every game plays from the keyboard and, on touch, from an on-screen pad",
+      "A round costs a few credits and is blocked while you are locked in",
+      "The Shop sells breaks, a streak shield, 50:50 lifelines, a sound machine, auto music, a break kit, a fidget spinner and a confetti cannon",
+      "There is no gambling and no random reward"
+    ],
+    "more": "Your credits, scores and purchases are kept in your browser. Erasing your data resets them.",
+    "name": "Arcade"
+  },
+  "/together": {
+    "title": "Study Together: Shared Focus Rooms and Chat | Friction",
+    "description": "Make a room with a six-character code, lock in with up to twelve friends, chat and share a radio station or show. Rooms need no account, only a name.",
+    "h1": "Study together: shared focus rooms and chat",
+    "lead": "Make a room with a six-character code and invite up to twelve friends to lock in together. You can chat, start a shared focus session, and share a radio station, TV channel or podcast episode, which pops up for friends with a Tune in button.",
+    "points": [
+      "Rooms need no account, only a name your friends will see",
+      "A room's host can connect a Discord or Slack webhook for notifications",
+      "You can be in one room at a time",
+      "Leaving removes your seat, and a room nobody is left in is deleted with its chat"
+    ],
+    "more": "Rooms are the one place Friction uses a server for more than looking things up, and it keeps only what a room needs while people are in it.",
+    "name": "Together"
+  },
+  "/leaders": {
+    "title": "Friction Leaderboard: Top Recommenders This Month | Friction",
+    "description": "See who has brought the most people to Friction. Pick a public alias, share your link and join the board when someone tunes in. Your name stays private.",
+    "h1": "The Friction leaderboard: top recommenders",
+    "lead": "The leaderboard shows the people who have brought the most others to Friction. Choose a public alias, share your link, and when someone new arrives through it and tunes in, they are counted once. Your private name is never shown on the board.",
+    "points": [
+      "Aliases are unique, so no two people share a name",
+      "The board holds a fixed number of places, and a newcomer can replace the lowest score once it is full",
+      "You can leave the board at any time by erasing your data",
+      "Your standing is checked from a private key that never leaves your browser except as a hash"
+    ],
+    "more": "This is the only public list in Friction, and it ranks recommendations, not focus time.",
+    "name": "Leaders"
+  }
+}

@@ -1,64 +1,46 @@
-<p align="center"><img src="https://raw.githubusercontent.com/titaniumnetwork-dev/Ultraviolet-Static/main/public/uv.png" height="250"></p>
+# Friction
 
-<h1 align="center">Ultraviolet</h1>
+An attention-span trainer. One screen, no feed. Lock in with **internet radio** or **live IPTV**
+while the site itself never scrolls. You get around with a tab deck, and any panel can be dragged where you like.
 
-<a href="https://www.npmjs.com/package/@titaniumnetwork-dev/ultraviolet"><img src="https://img.shields.io/npm/v/@titaniumnetwork-dev/ultraviolet.svg?maxAge=3600" alt="npm version" /></a>
+- **Focus**: a text-mode dial (spinning ASCII torus, wide clock), drifts, minutes held and streak, a now-playing panel, and the **Today listings grid** (sources against hours, drifts ticked underneath).
+- **Radio**: stations from the [Radio Browser](https://api.radio-browser.info) directory (HTTPS streams only).
+- **TV**: public channels from [iptv-org](https://github.com/iptv-org/iptv), played with hls.js; dead streams are skipped.
+- **Podcasts**: search the Apple Podcasts directory (iTunes Search API), open a show, and the episodes are read straight from its RSS feed. Seek, back 15, forward 30.
+- **News**: 90+ RSS feeds across nine categories, read in the browser (through a public CORS relay when a publisher blocks browsers). Hide any word or name for an hour, a day, a week or until you lift it; every change has an undo.
+- **Learn**: search any topic and get a short lesson from Wikipedia, with fill-the-gap and which-came-first checks written from the text itself, a trivia round from the Open Trivia Database, XP, a learning streak, and a spaced-repetition review deck. No account. Sixteen core topics have built-in interactive demos; any other lesson gets a small one written on the fly by Gemini (`api/demo.ts`, needs `GEMINI_API_KEY` on the server; only the topic title is sent; the demo runs in a sealed iframe with no network or storage and is marked AI-made; Settings can switch it off, and the lesson carries on without it whenever it does not arrive).
+- **Leaders**: recommend Friction with your own link; your first new recommend puts you on a public leaderboard (Turso, via `api/lb.ts`). When the database nears 4.5 GB the bar rises to the lowest score and the lowest person is replaced.
+- **Together**: make a room, share the code, and lock in at the same time with friends. Chat, listen or watch the same station or channel, and connect a Discord or Slack channel by webhook. Rooms close after a day of quiet.
+- **Books**: free, open-access ebooks from the Internet Archive (no key, no account), read in a custom frame with page, find and shelf controls.
+- **Insights**: attention score with its three parts, live steadiness, weekday-by-hour and daily heatmaps, trends, sessions.
+- **Debrief**: plain sentences worked out from your own numbers. No AI, nothing to type.
+- **Settings**: goal and session dials, motion (Calm / Lively / Lots), theme (Dark / Light), export / import / erase.
 
-> [!CAUTION]
-> Please note that this project isn't really maintained anymore before making issues! It has been superseded by [Scramjet](https://github.com/MercuryWorkshop/scramjet). An example application setup can be found [here](https://github.com/MercuryWorkshop/Scramjet-App).
+Nothing scrolls vertically: lists page, charts are slides. There is no scroll guard: the site just never scrolls. You move by a radio dial at the bottom of every screen. Leaving the tab mid-session is counted as a drift.
 
-Ultraviolet is a highly advanced web proxy used for evading internet censorship or accessing websites in a controlled sandbox. It is designed with security and performance in mind. Ultraviolet intercepts HTTP requests with a service worker, while adhering to the [TompHTTP specifications](https://github.com/tomphttp) and is a leader in innovative web proxy technologies.
+## Data
 
-## Features
+Everything stays in the browser. No account, no backend.
 
-Ultraviolet offers several features that set it apart from its predecessors, including CAPTCHA and hCAPTCHA support, URL encoding settings for added security, client-side configuration via service-workers, high speed compared to other web proxies, blacklist settings and more for easy hosting, leak prevention, regular updates, and improved resource usage and speed for better setups with a dedicated server instance.
+| What | Where |
+| --- | --- |
+| Settings, focus / urge logs, sessions, favorites, recents | `localStorage` (`anti-scroll:v1`) |
+| Cached radio + channel lists | IndexedDB (6 h / 12 h TTL) |
 
-## Supported Sites
+Settings → Data → *Load demo history* fills the charts with clearly-labelled made-up data.
 
-Some of the popular websites that Ultraviolet supports include:
+## Stack
 
-- [Google](https://google.com)
-- [Youtube](https://www.youtube.com)
-- [Spotify](https://spotify.com)
-- [Discord](https://discord.com)
-- [Reddit](https://reddit.com)
-- [GeForce NOW](https://play.geforcenow.com/)
-- [now.gg](https://now.gg)
+Vite · React 19 · TypeScript · Tailwind v4 · Motion · zustand · hls.js ·
+[EasyUI](https://easyui.site) components (in `src/components/ui`, installed with
+`npx shadcn@latest add Surajmaurya1/easyui/<name>`).
 
-## Used by
-
-- [Holy Unblocker LTS](https://github.com/QuiteAFancyEmerald/Holy-Unblocker)
-- [Alu](https://github.com/titaniumnetwork-dev/Alu)
-- [Incognito](https://github.com/titaniumnetwork-dev/Incognito)
-- [Nebula](https://github.com/NebulaServices/Nebula)
-- [AnuraOS](https://github.com/MercuryWorkshop/anuraOS)
-- [Terbium](https://github.com/TerbiumOS/webOS)
-- [Metallic](https://github.com/Metallic-Web/Metallic)
-
-## Upgrading
-
-A guide for updating from any version to v3 can be found [here](https://github.com/titaniumnetwork-dev/Ultraviolet/wiki/Upgrading).
-
-## Older Ultraviolet versions
-
-Starting from v3, Ultraviolet uses [bare-mux](https://github.com/MercuryWorkshop/bare-mux), a library that allows you to switch out your Bare client.
-
-If you operate using an older Ultraviolet, we encourage you to update.
-
-If you're too lazy to do either of the above, you can install an outdated and unsupported version of Ultraviolet.
+## Run
 
 ```sh
-npm install @titaniumnetwork-dev/ultraviolet@1
+npm install
+npm run dev     # http://localhost:5173
+npm run build
 ```
 
-## Changelog
-
-Changes are documented in the [changelog](./CHANGELOG.md).
-
-## Deployment
-
-This repository can be built, but it can't be deployed to any services. See [Ultraviolet-App](https://github.com/titaniumnetwork-dev/Ultraviolet-App) for a complete and customizable Ultraviolet setup that you can deploy.
-
-## Documentation
-
-Documentation can be found in the [wiki](https://github.com/titaniumnetwork-dev/Ultraviolet/wiki).
+Some IPTV streams are offline or geo-blocked; the player hops to the next channel automatically.
