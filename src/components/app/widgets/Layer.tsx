@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Eye, EyeOff, Ghost, LayoutGrid, LayoutPanelTop, Layers, Plus, X } from 'lucide-react'
+import { GripVertical, ChevronDown, ChevronUp, Eye, EyeOff, Ghost, LayoutGrid, LayoutPanelTop, Layers, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMedia } from '@/lib/hooks'
@@ -117,9 +117,9 @@ function LayerTray({ live }: { live: WidgetDef[] }) {
   const small = 'grid size-11 shrink-0 place-items-center text-ink-2 hover:bg-ink/10 hover:text-ink md:size-9'
   return (
     <div className="pointer-events-none absolute inset-0 z-[36]">
-      <div ref={box} data-no-drag className="pointer-events-auto absolute inset-x-2 bottom-2 flex justify-end sm:left-auto sm:right-2">
+      <div ref={box} data-movable="shell-layers" className="pointer-events-auto absolute bottom-2 right-2 flex max-w-[calc(100%-1rem)] justify-end">
         {panel && (
-          <div role="group" aria-label="Layers" className="scroll-y absolute bottom-full right-0 mb-2 max-h-[min(60vh,26rem)] w-[min(22rem,100%)] border border-ink/50 bg-ground p-2 shadow-[4px_4px_0_0_color-mix(in_srgb,var(--ink)_18%,transparent)]">
+          <div role="group" aria-label="Layers" className="scroll-y absolute bottom-full right-0 mb-2 max-h-[min(60vh,26rem)] w-[min(22rem,calc(100vw-1rem))] border border-ink/50 bg-ground p-2 shadow-[4px_4px_0_0_color-mix(in_srgb,var(--ink)_18%,transparent)]">
             <div className="mb-1 flex items-center justify-between gap-2">
               <p className="hud !text-[11px]">Layers · front to back</p>
               <button onClick={() => setPanel(false)} aria-label="Close the layers panel" className={small}><X className="size-4" /></button>
@@ -150,6 +150,7 @@ function LayerTray({ live }: { live: WidgetDef[] }) {
           </div>
         )}
         <div role="toolbar" aria-label="Windows" className="flex max-w-full items-center gap-1 border border-ink/40 bg-ground p-1">
+          <span title="Drag to move this bar" aria-hidden className="grid h-11 w-5 shrink-0 cursor-grab place-items-center text-ink-3 active:cursor-grabbing md:h-9"><GripVertical className="size-4" /></span>
           <div className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:thin]">
             {live.map((w) => {
               const hid = min.includes(w.id)

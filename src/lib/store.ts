@@ -463,7 +463,7 @@ export const useStore = create<AppState>()(
           focusLog: { ...s.focusLog, [key]: row },
           sourceLog: { ...s.sourceLog, [key]: { ...day, [a.source]: srcRow } },
           sourceSecs: { ...s.sourceSecs, [a.source]: s.sourceSecs[a.source] + sec },
-          session: { ...a, elapsedSec: elapsed, cleanSec: (a.cleanSec ?? 0) + sec, credit: (a.credit ?? 0) + (sec / 60) * rateAt(a.cleanSec ?? 0) },
+          session: { ...a, elapsedSec: elapsed, cleanSec: (a.cleanSec ?? 0) + sec, credit: (a.credit ?? 0) + (sec / 60) * rateAt(a.cleanSec ?? 0, a.goalMin) },
         })
         if (elapsed >= a.goalMin * 60) get().endSession(true)
       },

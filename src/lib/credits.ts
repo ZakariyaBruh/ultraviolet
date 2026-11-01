@@ -11,14 +11,33 @@ export const TIERS: { from: number; rate: number }[] = [
   { from: 60 * 60, rate: 4 },
 ]
 
-/** credits per minute after `cleanSec` seconds without a drift */
-export const rateAt = (cleanSec: number) => [...TIERS].reverse().find((t) => cleanSec >= t.from)!.rate
+/**
+ * The checkpoints follow the length chosen: the steps come at a fifth, two fifths, three fifths and four fifths of the session, or at the usual
+ * 10, 20, 35 and 60 minutes when those come sooner (a long session is never slower than before). So a 25 minute session steps up at 5, 10,
+ * 15 and 20 minutes, and every rate can be reached before it ends. At least 30 seconds apart.
+ */
+export const tiersFor = (goalMin: number): { from: number; rate: number }[] => {
+  const len = Math.max(1, goalMin) * 60
+  let prev = 0
+  return TIERS.map((t, i) => {
+    if (i === 0) return t
+    const from = Math.max(prev + 30, Math.min(t.from, Math.round((len * i) / 5 / 15) * 15))
+    prev = from
+    return { from, rate: t.rate }
+  })
+}
+
+/** credits per minute after `cleanSec` seconds without a drift, on the checkpoints for a session of `goalMin` minutes */
+export const rateAt = (cleanSec: number, goalMin = 60) => [...tiersFor(goalMin)].reverse().find((t) => cleanSec >= t.from)!.rate
 
 /** the next tier up and how long until it, or null at the top */
-export const nextTier = (cleanSec: number) => {
-  const n = TIERS.find((t) => t.from > cleanSec)
+export const nextTier = (cleanSec: number, goalMin = 60) => {
+  const n = tiersFor(goalMin).find((t) => t.from > cleanSec)
   return n ? { rate: n.rate, inSec: n.from - cleanSec } : null
 }
+
+/** a checkpoint as a label: minutes, or minutes and seconds when it is not a whole minute */
+export const tierLabel = (sec: number) => (sec % 60 === 0 ? `${sec / 60} min` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`)
 
 /** a finished session pays 5, and 5 more if you never drifted */
 export const finishBonus = (lapses: number) => 5 + (lapses === 0 ? 5 : 0)

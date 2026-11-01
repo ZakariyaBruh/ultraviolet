@@ -51,6 +51,9 @@ function lift(el: HTMLElement) {
   if (Array.from(document.querySelectorAll<HTMLElement>('[data-movable^="widget-"]')).some((w) => hits(r, w.getBoundingClientRect()))) setLayer(false)
 }
 
+/** brings a panel over the study windows and the other panels, as a tap on it would */
+export const bringToFront = (el: HTMLElement | null) => { if (el) lift(el) }
+
 const live = (el: HTMLElement): Offset => ({ x: Number(el.dataset.ox) || 0, y: Number(el.dataset.oy) || 0 })
 
 function paint(el: HTMLElement, o: Offset, rot = 0) {
@@ -76,7 +79,7 @@ function range(el: HTMLElement) {
   const o = live(el)
   const left = r.left - o.x * k
   const top = r.top - o.y * k
-  const area = el.dataset.movable?.startsWith('widget-') ? el.parentElement?.getBoundingClientRect() : undefined
+  const area = el.dataset.movable?.startsWith('widget-') || el.dataset.movable === 'shell-layers' ? el.parentElement?.getBoundingClientRect() : undefined
   const x0 = area?.left ?? 0, x1 = area?.right ?? innerWidth, y0 = area?.top ?? 0, y1 = area?.bottom ?? innerHeight
   const minX = (x0 + EDGE - left) / k
   const minY = (y0 + EDGE - top) / k
