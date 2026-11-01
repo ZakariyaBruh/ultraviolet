@@ -27,6 +27,8 @@ export type CloudControl = { go: (url: string) => Promise<void>; reload: () => P
 const SHOW_MS = 20_000
 /** a tab that has been on the real page this long is shown even if it has not finished loading (a page that never stops loading) */
 const SETTLE_MS = 2500
+/** the splash is never lifted sooner than this after the stream connects: the service shows its own logo over the first frames */
+const MIN_MS = 4500
 /** the service's own start page, a blank tab and our blocked page are not the page: only an ordinary web address that is not the service's counts */
 const real = (u?: string) => { try { const x = new URL(u ?? ''); return /^https?:$/.test(x.protocol) && !/hyperbeam/i.test(x.hostname) && x.pathname !== '/blocked.html' } catch { return false } }
 /** where a tab that reached a blocked address is sent: a page of ours (a blank tab shows the service's own start screen); a local run cannot be reached from the server's browser */
@@ -74,8 +76,9 @@ export function CloudScreen({ url, onClock, onProblem, onNote, bind, onAt }: { u
       setPhase('live')
       // the splash stays until the live tab is on the real page and has loaded (or been there SETTLE_MS), so the service's own start screen, a blank
       // tab and anything else it shows on the way are never seen; SHOW_MS is only the last resort. Events can be missed, so the tab is asked too.
-      const reveal = () => { clearInterval(watch.current.poll); clearTimeout(watch.current.cap); watch.current.show ??= setTimeout(() => { if (alive.current) setShown(true) }, 350) }
+      const reveal = () => { clearInterval(watch.current.poll); clearTimeout(watch.current.cap); watch.current.show ??= setTimeout(() => { if (alive.current) setShown(true) }, Math.max(350, MIN_MS - (Date.now() - connected))) }
       let onSite = 0
+      const connected = Date.now()
       watch.current.cap = setTimeout(reveal, SHOW_MS)
       watch.current.poll = setInterval(() => {
         void h.tabs.query({ active: true }).then((tabs) => {

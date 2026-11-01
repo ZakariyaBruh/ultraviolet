@@ -7,13 +7,17 @@ import { motion, useReducedMotion } from 'motion/react'
  * (its name and logo) is never what the person sees; the intro card still says who runs the browser.
  */
 
-/** the Friction mark, drawn on as the browser starts */
+/** the Friction mark as the trailer's last card draws it: the ring draws itself, the square lands with a small overshoot, a hold, then it clears and goes again while the browser starts */
+const LOOP = 3.4
 export function StartMark() {
   const calm = useReducedMotion()
+  const loop = { duration: LOOP, repeat: Infinity, ease: 'easeOut' as const }
   return (
     <svg width="132" height="132" viewBox="0 0 64 64" role="img" aria-label="Friction" className="text-ink">
-      <motion.circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="butt" style={{ rotate: -100, transformOrigin: '32px 32px' }} initial={{ pathLength: calm ? 1 : 0 }} animate={{ pathLength: 1 }} transition={{ duration: calm ? 0 : 1.1, ease: [0.16, 1, 0.3, 1] }} />
-      <motion.rect x="40" y="10" width="16" height="16" fill="var(--signal)" style={{ transformOrigin: '48px 18px' }} initial={{ scale: calm ? 1 : 0 }} animate={{ scale: [0, 1.25, 1] }} transition={{ delay: calm ? 0 : 0.9, duration: calm ? 0 : 0.28, ease: 'easeOut' }} />
+      <motion.g initial={{ opacity: 1 }} animate={calm ? undefined : { opacity: [1, 1, 1, 0, 0] }} transition={{ ...loop, times: [0, 0.7, 0.84, 0.94, 1], ease: 'easeIn' }}>
+        <motion.circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="butt" style={{ rotate: -100, transformOrigin: '32px 32px' }} initial={{ pathLength: calm ? 1 : 0 }} animate={calm ? undefined : { pathLength: [0, 1, 1, 1] }} transition={{ ...loop, times: [0, 0.24, 0.9, 1] }} />
+        <motion.rect x="40" y="10" width="16" height="16" fill="var(--signal)" style={{ transformOrigin: '48px 18px' }} initial={{ scale: calm ? 1 : 0 }} animate={calm ? undefined : { scale: [0, 0, 1.25, 1, 1] }} transition={{ ...loop, times: [0, 0.13, 0.25, 0.32, 1] }} />
+      </motion.g>
     </svg>
   )
 }
