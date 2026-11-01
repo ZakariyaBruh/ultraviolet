@@ -59,7 +59,7 @@ export function TvView() {
   const load = useCallback((cat: string, q: string) => (q ? searchAllTv(q) : fetchCategory(cat)), [])
   return (
     <motion.div className="h-full" initial={false}>
-      <Browser kind="tv" layout="rail" kicker="Live IPTV" title="TV" sub="Public channels from iptv-org. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="documentary" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
+      <Browser kind="tv" layout="rail" kicker="Live IPTV" title="TV" sub="Public channels from iptv-org, played straight from their broadcasters. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="documentary" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
     </motion.div>
   )
 }

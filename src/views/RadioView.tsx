@@ -57,7 +57,7 @@ export function RadioView() {
       kind="radio"
       kicker="Internet radio"
       title="Radio"
-      sub="Stations from the Radio Browser directory, most listened first."
+      sub="Stations from the Radio Browser directory, most listened first, played straight from their broadcasters."
       chips={FOCUS_TAGS}
       initialChip="lofi"
       load={load}
