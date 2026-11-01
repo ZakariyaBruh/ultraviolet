@@ -471,3 +471,13 @@ html[data-retro='5'] button { border-radius: 0 !important; }
 [data-widget-layer][data-tidy] [data-movable] { transition: translate 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @media (prefers-reduced-motion: reduce) { [data-widget-layer][data-tidy] [data-movable] { transition: none; } }
 html[data-calm] [data-widget-layer][data-tidy] [data-movable] { transition: none; }
+
+/* the Friction mark while the cloud browser starts: the ring draws, the square lands with an overshoot, a hold, it clears, again */
+.fmark-all { animation: fmark-all 3.4s ease-in infinite; }
+.fmark-ring { animation: fmark-ring 3.4s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.fmark-sq { transform-box: fill-box; transform-origin: center; animation: fmark-sq 3.4s ease-out infinite; }
+@keyframes fmark-all { 0%, 70% { opacity: 1; } 94%, 100% { opacity: 0; } }
+@keyframes fmark-ring { 0% { stroke-dashoffset: 1; } 24%, 100% { stroke-dashoffset: 0; } }
+@keyframes fmark-sq { 0%, 13% { transform: scale(0); } 25% { transform: scale(1.25); } 32%, 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .fmark-all, .fmark-ring, .fmark-sq { animation: none; } }
+html[data-calm] .fmark-all, html[data-calm] .fmark-ring, html[data-calm] .fmark-sq { animation: none; }
