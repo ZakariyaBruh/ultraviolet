@@ -81,7 +81,7 @@ type Made = { session_id?: string; embed_url?: string; admin_token?: string }
 /** starts a browser on one key; `quota` is true when Hyperbeam refused for want of allowance or payment, so that key is set aside for the month */
 async function make(t: Tier, start: string): Promise<{ made: Made | null; quota: boolean }> {
   try {
-    const r = await hb(t, '/vm', { method: 'POST', body: JSON.stringify({ start_url: start, offline_timeout: 90, ublock: true, width: 1280, height: 720 }) })
+    const r = await hb(t, '/vm', { method: 'POST', body: JSON.stringify({ start_url: start, offline_timeout: 90, ublock: true, kiosk: true, width: 1280, height: 720 }) })
     if (r.ok) return { made: (await r.json()) as Made, quota: false }
     const text = await r.text().catch(() => '')
     return { made: null, quota: r.status === 402 || r.status === 403 || (r.status === 429 && /quota|limit|credit|billing|minutes/i.test(text)) || /quota|credit|billing|exceeded|payment/i.test(text) }

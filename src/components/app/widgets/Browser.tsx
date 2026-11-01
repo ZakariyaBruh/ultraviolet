@@ -1,7 +1,7 @@
 import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, GraduationCap, Languages, Map as MapIcon, MessageCircleQuestion, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
-import { CloudScreen } from './CloudScreen'
+import { CloudScreen, type CloudControl } from './CloudScreen'
 import { RelayScreen } from './RelayScreen'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { verdict, youtubeId } from '@/lib/blocklist'
@@ -200,6 +200,9 @@ export function Browser() {
   const [empty, setEmpty] = useState(false)
   /** seconds of cloud browser time left today, reported by the cloud screen while it is up */
   const [cloudLeft, setCloudLeft] = useState<number | null>(null)
+  /** the live cloud browser's handle (its own address bar is hidden, so ours drives it) and the page it is on */
+  const cloudCtl = useRef<CloudControl | null>(null)
+  const [cloudAt, setCloudAt] = useState({ url: '', depth: 0 })
   const saved = useStore((s) => s.widgets.pages ?? NONE)
   const addPage = useStore((s) => s.addPage)
   const removePage = useStore((s) => s.removePage)
@@ -210,7 +213,7 @@ export function Browser() {
   const loads = useRef(0)
   const engineName = ENGINE[engine] ?? 'Google'
 
-  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setCloudLeft(null); setView(v) }
+  const show = (v: View, push = true) => { if (push) setStack((s) => [...s.slice(-20), view]); setNote(''); setIssues(false); setLeave(null); setEmpty(false); loads.current = 0; setCloudLeft(null); setCloudAt({ url: '', depth: 0 }); setBusy(false); setView(v) }
 
   /** sites the person chose to try in the Browser itself, although a version made here exists */
   const skipAlt = useRef(new Set<string>())
@@ -321,6 +324,14 @@ export function Browser() {
   const go = (input: string, yt = view.kind === 'youtube') => {
     const t = input.trim()
     if (!t) return
+    // in the live cloud browser the address bar steers the stream itself; words are a Bing search there, and the list still applies
+    if (view.kind === 'cloud' && !view.backup && cloudCtl.current) {
+      const target = /^https?:\/\//i.test(t) ? t : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(t) ? `https://${t}` : `https://www.bing.com/search?q=${encodeURIComponent(t)}`
+      const v = verdict(target)
+      if (!v.ok) return setNote(`That page is on the blocked list (${v.why}).`)
+      setNote('')
+      return void cloudCtl.current.go(v.url.toString()).catch(() => setNote('The cloud browser did not take that address. Try again in a moment.'))
+    }
     if (/^https?:\/\//i.test(t)) void open(t)
     else if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(t)) void open(`https://${t}`)
     else if (yt) void ytSearch(t)
@@ -375,19 +386,21 @@ export function Browser() {
   const pageUrl = view.kind === 'page' || view.kind === 'error' || view.kind === 'cloud' || view.kind === 'cloudnote' ? view.url : undefined
   const wrap = pageUrl ? wrapFor(pageUrl) : null
   const mmss = (n: number) => `${n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, '0')}` : Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  const reload = () => { if (view.kind === 'cloud') show({ kind: 'cloud', url: view.url, n: Date.now() }, false); else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
+  const reload = () => { if (view.kind === 'cloud') { if (cloudCtl.current && !view.backup) void cloudCtl.current.reload().catch(() => {}); else show({ kind: 'cloud', url: view.url, n: Date.now(), backup: view.backup }, false) } else if (view.kind === 'page' || view.kind === 'error') { if (view.url) void open(view.url, 'auto', false) } }
 
-  const back = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
+  const leaveBack = () => { const prev = stack[stack.length - 1]; if (prev) { setStack((s) => s.slice(0, -1)); setNote(''); setView(prev) } }
+  /** in the live cloud browser Back goes back a page in the stream first (it has no button of its own); at its first page it leaves, as before */
+  const back = () => { if (view.kind === 'cloud' && !view.backup && cloudCtl.current && cloudAt.depth > 0) void cloudCtl.current.back().then((ok) => { if (!ok) leaveBack() }); else leaveBack() }
   const bar = view.kind !== 'search' && view.kind !== 'add' && view.kind !== 'alt' && !(view.kind === 'youtube' && !view.q)
 
   return (
     <div className="grid gap-2">
       {bar && <form onSubmit={(e) => { e.preventDefault(); go(text); setText('') }} className="flex gap-2">
-        <button type="button" onClick={back} disabled={!stack.length} aria-label="Back" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" /></button>
+        <button type="button" onClick={back} disabled={!stack.length && !(view.kind === 'cloud' && cloudAt.depth > 0)} aria-label="Back" className="grid size-11 shrink-0 place-items-center border border-ink/30 hover:bg-ink/10 disabled:opacity-40"><ArrowLeft className="size-4" /></button>
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">{view.kind === 'youtube' ? 'Search YouTube' : 'Search the web or type an address'}</span>
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'page' || view.kind === 'video' || view.kind === 'cloud' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={view.kind === 'cloud' ? (cloudAt.url || view.url) : view.kind === 'page' || view.kind === 'video' ? view.url : view.kind === 'youtube' ? 'Search YouTube' : `Search with ${engineName} or type an address`} autoComplete="off" spellCheck={false} enterKeyHint="go" className={`${field} w-full pl-9`} data-no-drag />
         </label>
         {view.kind === 'cloud' && cloudLeft !== null && (
           <span role="timer" title="Cloud browser time left today (experimental). It runs on a server; blocked sites are closed if you reach them." aria-label={`${mmss(cloudLeft)} of cloud browser time left today`} className="inline-flex h-11 shrink-0 items-center gap-1.5 border border-ink/30 px-2.5 text-[13px] text-ink-2"><Cloud className="size-4 text-signal" aria-hidden /><span className="fig text-ink">{mmss(cloudLeft)}</span></span>
@@ -522,7 +535,7 @@ export function Browser() {
             <div className="relative min-h-0 flex-1">
             {view.backup
               ? <RelayScreen key={view.n} url={view.url} onClock={setCloudLeft} onProblem={(why) => show({ kind: 'cloudnote', why, url: view.url }, false)} />
-              : <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} onProblem={(why) => {
+              : <CloudScreen key={view.n} url={view.url} onClock={setCloudLeft} onNote={setNote} bind={(c) => { cloudCtl.current = c }} onAt={(url, depth) => setCloudAt({ url, depth })} onProblem={(why) => {
                 // no good server is free (or none answers): the backup takes the page, and the window says so
                 if (why === 'down' || why === 'busy') { show({ kind: 'cloud', url: view.url, n: Date.now(), backup: true }, false); setNote(why === 'busy' ? 'The high-quality servers are busy right now, so this older backup browser is being used. There may be some issues: it can be slow, show blank pages or drop out.' : 'The high-quality servers are not answering, so this older backup browser is being used. There may be some issues: it can be slow, show blank pages or drop out.'); return }
                 show({ kind: 'cloudnote', why, url: view.url }, false)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '@/lib/store'
-import { LoadingBlock } from '@/components/app/LoadingBlock'
+import { CloudOverlay, StartCard } from './CloudStart'
 
 /**
  * The BACKUP cloud browser: Scramjet 2 (alpha) in the separate friction-relay project, used only when the main one (Hyperbeam, CloudScreen) is
@@ -93,7 +93,7 @@ export function RelayScreen({ url, onClock, onProblem }: { url: string; onClock:
 
   return (
     <div className="relative size-full bg-ground">
-      {!ready && <div className="absolute inset-0 z-10 grid place-items-center bg-ground"><LoadingBlock label="Starting the backup browser" size={56} /></div>}
+      <CloudOverlay gone={ready || away}><StartCard backup /></CloudOverlay>
       {away
         ? <div className="grid size-full place-items-center bg-ground p-4 text-center"><p className="max-w-[28ch] text-sm text-ink-2" role="status">The cloud browser is off while you are away, so it is not using your time. It starts again when you come back.</p></div>
         : src && <iframe ref={frame} key={src} title={`Backup cloud browser page: ${url}`} src={src} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-storage-access-by-user-activation" allow="clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access" referrerPolicy="no-referrer" onLoad={() => { if (++loads.current > 1) setReady(true) }} className="size-full border-0 bg-white" />}
