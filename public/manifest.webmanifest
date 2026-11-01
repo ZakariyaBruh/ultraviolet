@@ -3,7 +3,7 @@
   "short_name": "Friction",
   "description": "Put the friction back. One screen, no feed, every scroll you skip counted.",
   "id": "/focus",
-  "start_url": "/focus",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
