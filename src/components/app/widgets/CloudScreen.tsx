@@ -23,8 +23,14 @@ const post = (body: unknown, keepalive = false) =>
 /** what the window's address bar and buttons can ask of the live browser; `depth` is how many pages back there are */
 export type CloudControl = { go: (url: string) => Promise<void>; reload: () => Promise<void>; back: () => Promise<boolean> }
 
-/** the page is shown once a tab reports it has loaded, or after this long, whichever is first */
-const SHOW_MS = 7000
+/** the stream is shown once the live tab is on the real page (see `real`), and at the latest after this long, so a page that never settles is still seen */
+const SHOW_MS = 20_000
+/** a tab that has been on the real page this long is shown even if it has not finished loading (a page that never stops loading) */
+const SETTLE_MS = 2500
+/** the service's own start page, a blank tab and our blocked page are not the page: only an ordinary web address that is not the service's counts */
+const real = (u?: string) => { try { const x = new URL(u ?? ''); return /^https?:$/.test(x.protocol) && !/hyperbeam/i.test(x.hostname) && x.pathname !== '/blocked.html' } catch { return false } }
+/** where a tab that reached a blocked address is sent: a page of ours (a blank tab shows the service's own start screen); a local run cannot be reached from the server's browser */
+const blockedPage = () => (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'about:blank' : `${location.origin}/blocked.html`)
 
 export function CloudScreen({ url, onClock, onProblem, onNote, bind, onAt }: { url: string; onClock: (left: number | null) => void; onProblem: (why: Problem) => void; onNote: (t: string) => void; bind: (c: CloudControl | null) => void; onAt: (url: string, depth: number) => void }) {
   const box = useRef<HTMLDivElement>(null)
@@ -36,6 +42,8 @@ export function CloudScreen({ url, onClock, onProblem, onNote, bind, onAt }: { u
   const [phase, setPhase] = useState<'starting' | 'live' | 'away'>('starting')
   const [shown, setShown] = useState(false)
   const depth = useRef(0)
+  const watch = useRef<{ poll?: ReturnType<typeof setInterval>; cap?: ReturnType<typeof setTimeout>; show?: ReturnType<typeof setTimeout> }>({})
+  const clearWatch = () => { clearInterval(watch.current.poll); clearTimeout(watch.current.cap); clearTimeout(watch.current.show); watch.current = {} }
   const lastAt = useRef('')
 
   /** ends the session at our end and at Hyperbeam's, and takes the picture down */
@@ -44,6 +52,7 @@ export function CloudScreen({ url, onClock, onProblem, onNote, bind, onAt }: { u
     sess.current = null
     try { hb.current?.destroy() } catch { /* already gone */ }
     hb.current = null
+    clearWatch()
     bind(null)
     if (s) void post({ a: 'end', sid: s.sid, ticket: s.ticket }, keepalive).catch(() => {})
     onClock(null)
@@ -63,23 +72,34 @@ export function CloudScreen({ url, onClock, onProblem, onNote, bind, onAt }: { u
       if (!alive.current || !sess.current) { try { h.destroy() } catch { /* gone */ } return }
       hb.current = h
       setPhase('live')
-      // the splash stays until a page has loaded on the stream (or SHOW_MS has gone), so the service's own start screen is never seen
-      const reveal = setTimeout(() => { if (alive.current) setShown(true) }, SHOW_MS)
+      // the splash stays until the live tab is on the real page and has loaded (or been there SETTLE_MS), so the service's own start screen, a blank
+      // tab and anything else it shows on the way are never seen; SHOW_MS is only the last resort. Events can be missed, so the tab is asked too.
+      const reveal = () => { clearInterval(watch.current.poll); clearTimeout(watch.current.cap); watch.current.show ??= setTimeout(() => { if (alive.current) setShown(true) }, 350) }
+      let onSite = 0
+      watch.current.cap = setTimeout(reveal, SHOW_MS)
+      watch.current.poll = setInterval(() => {
+        void h.tabs.query({ active: true }).then((tabs) => {
+          const t = tabs?.[0]
+          if (!t || !real(t.url)) { onSite = 0; return }
+          onSite ||= Date.now()
+          if (t.status === 'complete' || Date.now() - onSite > SETTLE_MS) reveal()
+        }).catch(() => {})
+      }, 400)
       // the window's address bar and buttons drive the one live tab (the stream has no bar of its own)
       bind({
         go: async (u) => { await h.tabs.update({ url: u }) },
         reload: async () => { await h.tabs.reload() },
         back: async () => { if (depth.current < 1) return false; try { await h.tabs.goBack(); depth.current = Math.max(0, depth.current - 1); onAt(lastAt.current, depth.current); return true } catch { return false } },
       })
-      // the blocklist cannot see inside a streamed browser, so the tabs are watched: a tab that goes to a blocked address is sent to a blank page
+      // the blocklist cannot see inside a streamed browser, so the tabs are watched: a tab that goes to a blocked address is sent to our own blocked page
       const guard = (id: number | undefined, u: string | undefined) => {
-        if (!u || id == null || /^(about|chrome|chrome-extension):/i.test(u)) return
+        if (!u || id == null || /^(about|chrome|chrome-extension):/i.test(u) || (u.startsWith(location.origin) && u.endsWith('/blocked.html'))) return
         nowUrl.current = u
         if (u !== lastAt.current) { if (lastAt.current) depth.current++; lastAt.current = u; onAt(u, depth.current) }
         const v = verdict(u)
-        if (!v.ok) { void h.tabs.update(id, { url: 'about:blank' }).catch(() => {}); onNote(`That page is on the blocked list (${v.why}), so it was closed.`) }
+        if (!v.ok) { void h.tabs.update(id, { url: blockedPage() }).catch(() => {}); onNote(`That page is on the blocked list (${v.why}), so it was closed.`) }
       }
-      void h.tabs.onUpdated.addListener((id, info, tab) => { guard(id, info.url ?? tab.url); if (info.status === 'complete' && alive.current) { clearTimeout(reveal); setShown(true) } }).catch(() => {})
+      void h.tabs.onUpdated.addListener((id, info, tab) => guard(id, info.url ?? tab.url)).catch(() => {})
       void h.tabs.onCreated.addListener((tab) => guard(tab.id, tab.pendingUrl ?? tab.url)).catch(() => {})
     } catch (e) {
       if (alive.current) onProblem('down')
