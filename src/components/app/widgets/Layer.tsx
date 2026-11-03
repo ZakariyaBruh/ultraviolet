@@ -1,5 +1,5 @@
 import { GripVertical, ChevronDown, ChevronUp, Eye, EyeOff, Ghost, LayoutGrid, LayoutPanelTop, Layers, Plus, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMedia } from '@/lib/hooks'
 import { useLayout } from '@/lib/layout'
@@ -23,7 +23,7 @@ export function WidgetLayer() {
     <>
       <div data-widget-layer className="pointer-events-none absolute inset-0 z-[35] [container-type:size]">
         {live.map((w, i) => (
-          <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide} large={w.large}><w.Body /></WidgetWindow>
+          <WidgetWindow key={w.id} id={w.id} title={w.name} index={i} wide={wide} large={w.large}><Suspense fallback={<p className="hud p-3">Opening</p>}><w.Body /></Suspense></WidgetWindow>
         ))}
       </div>
       <LayerTray live={live} />

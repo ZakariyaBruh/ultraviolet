@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 function Cover({ b }: { b: Pick<BookRef, 'thumb' | 'title'> }) {
   const [bad, setBad] = useState(false)
   return b.thumb && !bad ? (
-    <img src={b.thumb} alt="" loading="lazy" onError={() => setBad(true)} className="h-full w-full object-cover" />
+    <img src={b.thumb} alt="" width={64} height={92} loading="lazy" onError={() => setBad(true)} className="h-full w-full object-cover" />
   ) : (
     <span className="grid size-full place-items-center bg-raised p-1 text-center font-[family-name:var(--font-cond)] text-[11px] font-semibold uppercase leading-3 text-ink-3">{b.title.slice(0, 24)}</span>
   )

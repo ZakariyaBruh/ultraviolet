@@ -1,6 +1,7 @@
-// After `vite build`: write one copy of index.html for each public screen with that screen's own <head> (title, description, canonical,
-// Open Graph, Twitter card, JSON-LD), so crawlers and link previews that do not run JavaScript see the right page. The body is untouched:
-// the app starts and takes over as usual. Titles must be 50-60 characters and descriptions 140-160, or the build stops.
+// After `vite build`: write one copy of index.html for each public screen with that screen's own <head>
+// (title, description, canonical, Open Graph, Twitter card, JSON-LD). The body stays the app shell.
+// Nothing is clipped to 1px or otherwise hidden for crawlers. Titles must be 50-60 characters and
+// descriptions 140-160, or the build stops. Unknown addresses are dist/404.html.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://frictionx.vercel.app'
@@ -14,36 +15,35 @@ for (const [route, m] of Object.entries(seo)) {
   if (m.description.length < 140 || m.description.length > 160) throw new Error(`seo.json ${route}: description is ${m.description.length} characters, it should be 140-160`)
 }
 
+const appNode = (description) => ({
+  '@type': ['WebApplication', 'SoftwareApplication'],
+  '@id': `${SITE}/#app`,
+  name: 'Friction',
+  url: `${SITE}/`,
+  description,
+  applicationCategory: 'ProductivityApplication',
+  operatingSystem: 'Web',
+  browserRequirements: 'Requires JavaScript',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  image: `${SITE}/og.png`,
+})
+
 const ld = (route, m) => {
-  const url = SITE + route
+  const url = SITE + (route === '/' ? '/' : route)
   const graph = route === '/'
     ? [
         { '@type': 'WebSite', '@id': `${SITE}/#site`, name: 'Friction', url: `${SITE}/`, inLanguage: 'en' },
-        { '@type': 'WebApplication', '@id': `${SITE}/#app`, name: 'Friction', url: `${SITE}/`, description: m.description, applicationCategory: 'ProductivityApplication', operatingSystem: 'Any', browserRequirements: 'Requires JavaScript', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, image: `${SITE}/og.png` },
+        appNode(m.description),
       ]
     : [{ '@type': 'WebPage', '@id': `${url}#page`, name: m.title, description: m.description, url, isPartOf: { '@id': `${SITE}/#site` }, about: { '@id': `${SITE}/#app` }, inLanguage: 'en' }]
-  return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}</script>`
+  return `<script id="friction-ld" type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}</script>`
 }
 
-/** the readable text of a screen, as plain HTML a crawler can read without running the app (the app replaces it as soon as it starts) */
-const ABOUT = 'Friction is a free focus timer. There is no account, and everything you make stays in your own browser. It uses AI in only three labelled places: demos for lessons without a built-in one, an optional Ask AI window, and a check that helps the Browser block games and short-form social media.'
-const about = JSON.parse(readFileSync(new URL('../src/lib/about.json', import.meta.url), 'utf8'))
-const whyHtml = `<h2>${esc(about.heading)}</h2><p>${esc(about.intro)}</p>${about.items.map((i) => `<h3>${esc(i.title)}</h3><p>${esc(i.text)}</p>`).join('')}`
-const body = (route, m) => {
-  const links = Object.entries(seo).filter(([r]) => r !== route).map(([r, x]) => `<li><a href="${r}">${esc(x.name)}</a>: ${esc(x.description.split('. ')[0].replace(/\.$/, ''))}.</li>`).join('')
-  return `<main class="seo"><p class="k">Friction</p><h1>${esc(m.h1)}</h1><p>${esc(m.lead)}</p><h2>What you can do here</h2><ul>${m.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul><p>${esc(m.more)}</p><h2>About Friction</h2><p>${esc(ABOUT)}</p>${whyHtml}<h2>Explore Friction</h2><ul>${links}</ul></main>`
-}
-const SEO_STYLE = '<style>.seo{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.seo{box-sizing:border-box;max-width:42rem;margin:0 auto;padding:3rem 1.25rem 4rem;color:#f3f1ea;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}.seo .k{margin:0 0 .5rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#ffd23f;font-size:.8rem}.seo h1{margin:0 0 1rem;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1}.seo h3{margin:1.25rem 0 .25rem;font-size:1rem}.seo h2{margin:2rem 0 .5rem;font-size:1.15rem}.seo a{color:#ffd23f}.seo li{margin:.35rem 0}body{background:#05070c}</style>'
-
-let n = 0
-for (const [route, m] of Object.entries(seo)) {
+const headFor = (route, m, robots) => {
   const url = SITE + (route === '/' ? '/' : route)
-  let out = html
-    .replace(/<title>.*?<\/title>/, `<title>${esc(m.title)}</title>`)
-    .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(m.description)}" />`)
-    .replace(/<link rel="canonical"[^>]*>\s*/g, '')
-    .replace(/<meta property="og:[^>]*>\s*/g, '').replace(/<meta name="twitter:[^>]*>\s*/g, '')
-  const head = [
+  const lines = [
+    robots ? `<meta name="robots" content="${robots}" />` : `<meta name="robots" content="index, follow" />`,
     `<link rel="canonical" href="${url}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Friction" />`,
@@ -53,20 +53,60 @@ for (const [route, m] of Object.entries(seo)) {
     `<meta property="og:image" content="${SITE}/og.png" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="Friction: one screen, no scrolling, every time you leave is counted." />`,
+    `<meta property="og:image:alt" content="Friction, the free focus timer that counts every drift." />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(m.title)}" />`,
     `<meta name="twitter:description" content="${esc(m.description)}" />`,
     `<meta name="twitter:image" content="${SITE}/og.png" />`,
     ld(route, m),
-  ].map((l) => `    ${l}`).join('\n')
-  out = out.replace('</head>', `${head}\n    ${SEO_STYLE}\n  </head>`).replace('<div id="root"></div>', `<div id="root">${body(route, m)}</div>`)
+  ]
+  return lines.map((l) => `    ${l}`).join('\n')
+}
+
+const page = (source, title, description, extraHead) => source
+  .replace(/<title>.*?<\/title>/, `<title>${esc(title)}</title>`)
+  .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(description)}" />`)
+  .replace(/<link rel="canonical"[^>]*>\s*/g, '')
+  .replace(/<meta name="robots"[^>]*>\s*/g, '')
+  .replace(/<meta property="og:[^>]*>\s*/g, '')
+  .replace(/<meta name="twitter:[^>]*>\s*/g, '')
+  .replace(/<script id="friction-ld"[\s\S]*?<\/script>\s*/g, '')
+  .replace('</head>', `${extraHead}\n  </head>`)
+
+let n = 0
+for (const [route, m] of Object.entries(seo)) {
+  const out = page(html, m.title, m.description, headFor(route, m))
   if (route === '/') writeFileSync('dist/index.html', out)
   else { mkdirSync(`dist${route}`, { recursive: true }); writeFileSync(`dist${route}/index.html`, out) }
   n++
 }
-// the sitemap comes from the same list, so a screen cannot be in one and not the other
+
+// screens that only ever show your own numbers: real files, so a refresh works, and noindex
+const privateRoutes = {
+  '/settings': 'Settings · Friction',
+  '/insights': 'Insights · Friction',
+  '/debrief': 'Debrief · Friction',
+}
+for (const [route, title] of Object.entries(privateRoutes)) {
+  const description = 'Your own numbers, stored in this browser.'
+  const extra = [
+    `<meta name="robots" content="noindex, nofollow" />`,
+    `<link rel="canonical" href="${SITE}${route}" />`,
+  ].map((l) => `    ${l}`).join('\n')
+  mkdirSync(`dist${route}`, { recursive: true })
+  writeFileSync(`dist${route}/index.html`, page(html, title, description, extra))
+}
+
+const missing = page(
+  html,
+  'Page not found | Friction',
+  'That address is not a page on Friction.',
+  '    <meta name="robots" content="noindex, nofollow" />',
+)
+writeFileSync('dist/404.html', missing)
+
 const day = new Date().toISOString().slice(0, 10)
-const rank = (r) => (r === '/' ? '1.0' : r === '/focus' ? '0.9' : ['/radio', '/tv', '/learn'].includes(r) ? '0.8' : ['/podcasts', '/music', '/news'].includes(r) ? '0.7' : '0.6')
-writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Object.keys(seo).map((r) => `  <url>\n    <loc>${SITE}${r}</loc>\n    <lastmod>${day}</lastmod>\n    <changefreq>${r === '/' ? 'weekly' : 'monthly'}</changefreq>\n    <priority>${rank(r)}</priority>\n  </url>`).join('\n')}\n</urlset>\n`)
+const rank = (r) => (r === '/' ? '1.0' : r === '/focus' ? '0.9' : r === '/privacy' ? '0.3' : ['/radio', '/tv', '/learn'].includes(r) ? '0.8' : ['/podcasts', '/music', '/news'].includes(r) ? '0.7' : '0.6')
+const urls = Object.keys(seo)
+writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((r) => `  <url>\n    <loc>${SITE}${r === '/' ? '/' : r}</loc>\n    <lastmod>${day}</lastmod>\n    <changefreq>${r === '/' ? 'weekly' : 'monthly'}</changefreq>\n    <priority>${rank(r)}</priority>\n  </url>`).join('\n')}\n</urlset>\n`)
 console.log(`prerendered the head of ${n} screens`)
