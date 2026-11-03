@@ -1,6 +1,6 @@
 {
   "/": {
-    "title": "Focus Timer App That Counts Every Scroll You Skip | Friction",
+    "title": "Friction: the free focus timer that counts every drift",
     "description": "Friction is a free focus timer with internet radio, live TV and lessons. One screen, no feed, no account. Lock in, and every time you leave is counted.",
     "h1": "Friction: a focus timer that counts every time you leave",
     "lead": "Friction is a free focus timer for studying and deep work. Pick a length, tune in to internet radio, live TV or silence, and lock in. If you leave the tab while the timer is running, that counts as a drift, and the numbers never lie. Nothing on the screen scrolls, and there is no feed to fall into.",
@@ -169,5 +169,18 @@
     ],
     "more": "This is the only public list in Friction, and it ranks recommendations, not focus time.",
     "name": "Leaders"
+  },
+  "/privacy": {
+    "title": "What Friction stores and when page visits are counted",
+    "description": "Sessions and settings stay in this browser. Together rooms and the leaderboard use a server. Google Analytics counts page visits only after you allow it.",
+    "h1": "Privacy",
+    "lead": "Friction has no account. The timer, your sessions and your settings stay in this browser, except for the few things named on this page.",
+    "points": [
+      "Sessions, settings, notes, layout and credits are stored on this device",
+      "A Together room and the leaderboard are the parts that use a server",
+      "Google Analytics is off until you allow it, and it records the page address only"
+    ],
+    "more": "You can refuse page-visit counting, and you can turn it off later from this page. Erase everything is in Settings, under Data.",
+    "name": "Privacy"
   }
 }

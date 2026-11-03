@@ -1,13 +1,15 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { FitView } from '@/components/app/FitView'
-import { ArcadeView } from '@/views/ArcadeView'
 import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
-import seo from '@/lib/seo.json'
 import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
+import { applyHead } from '@/lib/head'
+import { bootAnalytics, trackPage } from '@/lib/analytics'
+import { Consent, NotFoundPage, PrivacyPage } from '@/components/app/EdgePages'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { WidgetsPicker } from '@/components/app/widgets/Layer'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { SpotlightSearch } from '@/components/ui/spotlight-search'
@@ -25,8 +27,6 @@ import { FocusView } from '@/views/FocusView'
 import { DebriefView } from '@/views/DebriefView'
 import { SettingsView } from '@/views/SettingsView'
 import { InsightsView } from '@/views/InsightsView'
-import { RadioView } from '@/views/RadioView'
-import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
 import { Celebration } from '@/components/app/Celebration'
@@ -44,24 +44,10 @@ import { LeadersView } from '@/views/LeadersView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
 import { MusicView } from '@/views/MusicView'
-import about from '@/lib/about.json'
 
-/** The same plain text the built page carries (scripts/prerender.mjs), for screen readers and for anything that reads the page after it has started: the screen itself is controls and pictures. */
-function AboutScreen({ route }: { route: Route }) {
-  const m = (seo as Record<string, { h1: string; lead: string; points: string[]; more: string }>)[hrefFor(route)]
-  if (!m) return null
-  return (
-    <section className="sr-only" aria-label="About this screen">
-      <h2>{m.h1}</h2>
-      <p>{m.lead}</p>
-      <ul>{m.points.map((p) => <li key={p}>{p}</li>)}</ul>
-      <p>{m.more}</p>
-      <h2>{about.heading}</h2>
-      <p>{about.intro}</p>
-      {about.items.map((i) => <div key={i.title}><h3>{i.title}</h3><p>{i.text}</p></div>)}
-    </section>
-  )
-}
+const RadioView = lazy(() => import('@/views/RadioView').then((m) => ({ default: m.RadioView })))
+const TvView = lazy(() => import('@/views/TvView').then((m) => ({ default: m.TvView })))
+const ArcadeView = lazy(() => import('@/views/ArcadeView').then((m) => ({ default: m.ArcadeView })))
 
 function Placeholder({ name }: { name: string }) {
   return <div className="grid h-full place-items-center text-ink-2">{name} is being rebuilt.</div>
@@ -69,7 +55,8 @@ function Placeholder({ name }: { name: string }) {
 
 export default function App() {
   const [route, setRoute] = useState<Route>(routeFromLocation)
-  const view = (route === 'home' ? 'focus' : route) as View
+  const inApp = (VIEWS as readonly string[]).includes(route)
+  const view = (inApp ? route : 'focus') as View
   const prev = useRef(0)
   const dir = useRef(1)
   const reduced = !!useReducedMotion()
@@ -115,18 +102,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // the built page already carries this (scripts/prerender.mjs); this keeps it right when you move around inside the app
-    const meta = (seo as Record<string, { title: string; description: string }>)[hrefFor(route)]
-    document.title = meta?.title ?? (route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`)
-    if (meta) document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
-    // screens that only ever show your own numbers are kept out of search results
-    let r = document.querySelector<HTMLMetaElement>('meta[name="robots"]')
-    if (!r) { r = document.createElement('meta'); r.name = 'robots'; document.head.appendChild(r) }
-    r.content = ['settings', 'insights', 'debrief'].includes(route) ? 'noindex, nofollow' : 'index, follow'
-    // each screen says which address it is, so search results point at the right one
-    let c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-    if (!c) { c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c) }
-    c.href = `https://frictionx.vercel.app${hrefFor(route)}`
+    applyHead(route)
+    trackPage(route === 'missing' ? location.pathname : hrefFor(route))
+    bootAnalytics()
   }, [route])
 
   // ⌘K / Ctrl K opens search from anywhere
@@ -154,7 +132,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
+      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : route === 'privacy' ? <PrivacyPage /> : route === 'missing' ? <NotFoundPage /> : (<>
       <Backdrop reduced={reduced} />
       {level >= 1 && <motion.div key={`cut-${view}`} aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-signal" initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ scaleX: { duration: 0.34, ease: [0.2, 0, 0, 1] }, opacity: { duration: 0.2, delay: 0.3 } }} />}
       <Shell view={view} onChange={change} onHome={() => go('home')}>
@@ -162,6 +140,7 @@ export default function App() {
           <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 36 * d, y: 6, scale: 0.975 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }} exit={{ opacity: 0, x: -18 * d, scale: 0.99, transition: { duration: 0.11, ease: [0.4, 0, 1, 1] } }} transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.8, opacity: { duration: 0.16, ease: 'easeOut' } }}>
             <FitView watch={view}>
             {level >= 1 && <StaticBurst />}
+            <Suspense fallback={<LoadingBlock label="Opening" />}>
             {view === 'focus' && <FocusView go={change} />}
             {view === 'radio' && <RadioView />}
             {view === 'tv' && <TvView />}
@@ -177,6 +156,7 @@ export default function App() {
             {view === 'debrief' && <DebriefView />}
             {view === 'settings' && <SettingsView />}
             {!['focus', 'radio', 'tv', 'podcasts', 'music', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            </Suspense>
             </FitView>
           </motion.div>
         </AnimatePresence>
@@ -243,13 +223,13 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
-      <AboutScreen route={route} />
+      <Consent route={route} />
       <FirstLaunch />
       <Onboarding />
       <InstallPrompt route={route} />
-      {route !== 'home' && <Tour view={view} go={change} />}
-      {route !== 'home' && <ItemTour view={view} go={change} />}
-      {route !== 'home' && <BrowserTour view={view} go={change} />}
+      {inApp && <Tour view={view} go={change} />}
+      {inApp && <ItemTour view={view} go={change} />}
+      {inApp && <BrowserTour view={view} go={change} />}
       <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
       <Celebration />
       <UndoToast

@@ -5,6 +5,7 @@ import { Mark } from '@/components/app/Mark'
 import { hasData } from '@/lib/transfer'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
+import { VIEWS } from '@/lib/route'
 import { cn } from '@/lib/utils'
 
 type Platform = 'ios' | 'android' | null
@@ -115,7 +116,7 @@ export function InstallPrompt({ route }: { route: string }) {
   const [fresh, setFresh] = useState(false)
   const tablet = ipad() || /iPad/.test(ua())
 
-  const should = !!plat && !standalone() && !installed && ready && toured && !running && !busy && route !== 'home' && !seen()
+  const should = !!plat && !standalone() && !installed && ready && toured && !running && !busy && (VIEWS as readonly string[]).includes(route) && !seen()
   useEffect(() => {
     if (!should) { if (!busy) setOpen(false); return }
     const t = setTimeout(() => { setFresh(hasData()); setOpen(true) }, 2800)

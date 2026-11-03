@@ -506,7 +506,7 @@ export function Browser() {
                 <li key={v.id} className="border-b border-ink/10">
                   <button onClick={() => show({ kind: 'video', id: v.id, url: `https://www.youtube.com/watch?v=${v.id}` })} className="flex min-h-11 w-full gap-3 py-2 text-left hover:bg-ink/[0.06]">
                     <span className="relative aspect-video w-32 shrink-0 bg-ink/10 sm:w-40">
-                      <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
+                      <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
                       <span className="fig absolute bottom-1 right-1 bg-black/80 px-1 text-[11px] leading-4 text-white">{v.length}</span>
                     </span>
                     <span className="min-w-0">

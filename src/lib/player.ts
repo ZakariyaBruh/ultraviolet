@@ -1,4 +1,3 @@
-import Hls from 'hls.js'
 import { create } from 'zustand'
 import type { MediaItem } from './store'
 import { useStore } from './store'
@@ -27,7 +26,9 @@ const set = usePlayer.setState
 
 const audio = typeof Audio !== 'undefined' ? new Audio() : (null as unknown as HTMLAudioElement)
 export const video = typeof document !== 'undefined' ? document.createElement('video') : (null as unknown as HTMLVideoElement)
-let hls: Hls | null = null
+type HlsPlayer = { destroy(): void }
+let hls: HlsPlayer | null = null
+let playGen = 0
 let watchdog: ReturnType<typeof setTimeout> | undefined
 
 if (audio) {
@@ -58,6 +59,7 @@ function barsPoster(): string {
 const active = () => (usePlayer.getState().current?.kind === 'tv' ? video : audio)
 
 function teardown() {
+  playGen += 1
   clearTimeout(watchdog)
   hls?.destroy()
   hls = null
@@ -118,18 +120,32 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
   else audio.crossOrigin = 'anonymous'
   const isHls = /\.m3u8(\?|$)/i.test(item.url)
   arm()
-  if (isHls && Hls.isSupported()) {
-    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 20 })
-    hls.on(Hls.Events.ERROR, (_e, d) => d.fatal && fail('Stream unavailable'))
-    hls.loadSource(item.url)
-    hls.attachMedia(el)
-    hls.on(Hls.Events.MANIFEST_PARSED, () => void el.play().catch(() => set({ status: 'paused' })))
+  if (isHls) {
+    const token = playGen
+    void attachHls(el, item.url, token)
   } else {
     el.src = item.url
     void el.play().catch((e: unknown) => {
       if ((e as Error)?.name === 'NotAllowedError') set({ status: 'paused' })
     })
   }
+}
+
+async function attachHls(el: HTMLMediaElement, url: string, token: number) {
+  const { default: Hls } = await import('hls.js')
+  if (token !== playGen) return
+  if (!Hls.isSupported()) {
+    el.src = url
+    void el.play().catch((e: unknown) => { if ((e as Error)?.name === 'NotAllowedError') set({ status: 'paused' }) })
+    return
+  }
+  const next = new Hls({ lowLatencyMode: true, maxBufferLength: 20 })
+  if (token !== playGen) { next.destroy(); return }
+  hls = next
+  next.on(Hls.Events.ERROR, (_e, d) => { if (d.fatal && token === playGen) fail('Stream unavailable') })
+  next.loadSource(url)
+  next.attachMedia(el)
+  next.on(Hls.Events.MANIFEST_PARSED, () => { if (token === playGen) void el.play().catch(() => set({ status: 'paused' })) })
 }
 
 export function toggle() {

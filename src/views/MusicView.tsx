@@ -33,7 +33,7 @@ function Row({ song, list, i }: { song: Song; list: Song[]; i: number }) {
   return (
     <motion.li initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1], delay: Math.min(i, 8) * 0.02 }} className={cn('flex items-stretch border-b border-ink/10', here && 'bg-signal/10')}>
       <button onClick={go} aria-label={`${live ? 'Pause' : 'Play'} ${song.item.name} by ${song.item.meta}`} className="flex h-16 min-w-0 flex-1 items-center gap-3 px-2 text-left transition-colors hover:bg-ink/[0.06]">
-        {song.item.logo ? <img src={song.item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-11 shrink-0 bg-ink/10 object-cover" /> : <span className="size-11 shrink-0 bg-ink/10" aria-hidden />}
+        {song.item.logo ? <img src={song.item.logo} alt="" width={44} height={44} loading="lazy" referrerPolicy="no-referrer" className="size-11 shrink-0 bg-ink/10 object-cover" /> : <span className="size-11 shrink-0 bg-ink/10" aria-hidden />}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold leading-[1.25]">{song.item.name}</span>
           <span className="block truncate text-[13px] leading-[1.3] text-ink-2">{song.item.meta} · {song.seconds > 0 && `${clock(song.seconds)} · `}<span className="text-ink-3">{SOURCE_NAME[song.source]}</span></span>
