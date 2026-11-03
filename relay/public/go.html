@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Friction cloud browser</title>
+<style>html,body{height:100%;margin:0;background:#0b0e13;color:#e8eaf0;font:15px/1.45 system-ui,sans-serif}#m{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:16px}#m.e{color:#ffb4a8}iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}</style></head>
+<body><p id="m">Starting the cloud browser…</p>
+<script>
+/*
+ * Scramjet 2. This page is the controller: it rewrites what the site asks for and speaks to the relay over one Wisp socket (libcurl.js does the
+ * TLS in WebAssembly, so the relay only moves encrypted bytes). The service worker only forwards the frame's requests here.
+ * Order matters: the scripts, then the worker, then the transport, then the controller, then the frame.
+ */
+(async () => {
+  const m = document.getElementById('m')
+  const fail = (t) => { m.className = 'e'; m.textContent = t }
+  const load = (src) => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('could not load ' + src)); document.head.appendChild(s) })
+  try {
+    const q = new URLSearchParams(location.search)
+    const u = q.get('u') || ''
+    const t = q.get('t') || ''
+    if (!/^https?:\/\//i.test(u) || !/^\d{10}\.[\w-]{32}$/.test(t)) return fail('This page is only opened from inside Friction.')
+    if (!('serviceWorker' in navigator)) {
+      // some browsers (Safari with cross-site tracking prevention) give no service workers to a page inside another site
+      fail('This browser will not run the cloud browser inside Friction. ')
+      if (window.top !== window) { const a = document.createElement('a'); a.href = location.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open it in its own tab (this leaves Friction)'; a.style.color = '#ffd84a'; m.append(a) }
+      return
+    }
+    // one after another: the controller reads Scramjet the moment it loads
+    for (const src of ['/scram/scramjet.js', '/controller/controller.api.js', '/scram/scramjet-utils.js', '/libcurl/index.js']) await load(src)
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/', type: 'classic', updateViaCache: 'none' })
+    await navigator.serviceWorker.ready
+    const sw = reg.active || reg.waiting || reg.installing
+    if (sw.state !== 'activated') await new Promise((done) => sw.addEventListener('statechange', () => { if (sw.state === 'activated') done() }))
+    // the pass rides in the socket's address; a new pass is swapped in before the old one runs out (see the message handler below)
+    const wisp = (pass) => (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/' + pass + '/'
+    const client = (pass) => new LibcurlTransport.LibcurlClient({ wisp: wisp(pass) })
+    const { Controller, config } = $scramjetController
+    config.injectPath = '/controller/controller.inject.js'
+    config.wasmPath = '/scram/scramjet.wasm'
+    config.scramjetPath = '/scram/scramjet.js'
+    // lighter rewriting (no source maps, no try/catch around every script) so heavy sites use less memory and time on a slow device; ?heavy=1 keeps the defaults
+    const scramjetConfig = q.get('heavy') === '1' ? {} : { flags: { sourcemaps: false, captureErrors: false } }
+    const controller = new Controller({ serviceworker: sw, transport: client(t), scramjetConfig })
+    await controller.wait()
+    const frame = controller.createFrame()
+    // let a site open a window, ask for a download and use its own storage, which logins and captchas depend on
+    frame.element.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; publickey-credentials-get; storage-access')
+    m.remove()
+    document.body.appendChild(frame.element)
+    frame.go(u)
+    // Friction hands over a new pass before the old one runs out (a lease is a few minutes); new connections use it, and the relay closes the old socket shortly after its lease ends
+    addEventListener('message', (e) => {
+      const p = e.data && e.data.frictionPass
+      if (e.source !== window.parent || typeof p !== 'string' || !/^\d{10}\.[\w-]{32}$/.test(p)) return
+      try { controller.setTransport(client(p)) } catch (_) { /* the old one keeps working until its lease ends */ }
+    })
+  } catch (e) { fail('The cloud browser could not start: ' + (e && e.message ? e.message : e)) }
+})()
+</script></body></html>
