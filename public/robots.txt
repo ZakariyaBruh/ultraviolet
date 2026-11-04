@@ -3,3 +3,4 @@ Allow: /
 Disallow: /api/
 
 Sitemap: https://frictionx.vercel.app/sitemap.xml
+Sitemap: https://frictionx.vercel.app/blogs/sitemap.xml
