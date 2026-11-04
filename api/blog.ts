@@ -141,9 +141,9 @@ export default {
       const today = dayOf()
       const n = Number((await c.execute({ sql: 'SELECT COUNT(*) AS n FROM posts WHERE day = ?', args: [today] })).rows[0]?.n ?? 0)
       if (n >= MAX_PER_DAY) return json({ error: 'enough for today' }, 429)
-      let slug = slugOf(title) || `post-${today}`
+      const slug = slugOf(title) || `post-${today}`
       const taken = await c.execute({ sql: 'SELECT 1 FROM posts WHERE slug = ?', args: [slug] })
-      if (taken.rows.length) slug = `${slug.slice(0, 60)}-${today}`
+      if (taken.rows.length) return json({ error: 'that title is already used' }, 409)
       try { await c.execute({ sql: 'INSERT INTO posts (slug, title, description, body, day, created) VALUES (?, ?, ?, ?, ?, ?)', args: [slug, title, description.slice(0, 200), body, today, Date.now()] }) } catch { return json({ error: 'that title is already used' }, 409) }
       return json({ slug, url: `${SITE}/blogs/${slug}` }, 201)
     }
