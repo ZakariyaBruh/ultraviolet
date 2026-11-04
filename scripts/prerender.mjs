@@ -16,7 +16,7 @@ for (const [route, m] of Object.entries(seo)) {
 }
 
 const appNode = (description) => ({
-  '@type': ['WebApplication', 'SoftwareApplication'],
+  '@type': 'WebApplication',
   '@id': `${SITE}/#app`,
   name: 'Friction',
   url: `${SITE}/`,
@@ -73,9 +73,28 @@ const page = (source, title, description, extraHead) => source
   .replace(/<script id="friction-ld"[\s\S]*?<\/script>\s*/g, '')
   .replace('</head>', `${extraHead}\n  </head>`)
 
+// Plain readable HTML for each public screen, put inside #root. React replaces it the moment the app
+// starts (createRoot.render), and the inline `js` class keeps it from showing in the meantime, so people
+// with scripts see the app exactly as before. It is the same thing a <noscript> block would show, in a
+// form every crawler reads: a real h1 and a few short, true paragraphs. Nothing is clipped to 1px.
+const HOW = [
+  ['How does it work?', 'Pick a focus block between 10 and 90 minutes and press Lock in. The clock runs while the tab is in front of you. Each time you switch to another tab, Friction counts it as a drift.'],
+  ['What can I keep on while I work?', 'Internet radio and live TV are built in. There is also a calculator, a unit converter and a scratch board you can open on the focus screen.'],
+  ['Can I focus with friends?', 'Yes. Make a focus room, share the code, and lock in together.'],
+  ['Does it cost anything?', 'No. Friction is free and there is no account to make.'],
+  ['Where is my data kept?', 'In your own browser. Your sessions and settings stay on your device, and one button erases all of it.'],
+]
+const body = (route, m) => {
+  const links = Object.entries(seo).filter(([r]) => r !== route).map(([r, x]) => `<li><a href="${r}">${esc(x.name)}</a></li>`).join('')
+  const faq = route === '/' ? `<h2>Timer that counts how often you leave your work.</h2>${HOW.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : ''
+  return `<main class="pre"><h1>${esc(m.h1)}</h1><p>${esc(m.lead)}</p><ul>${m.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>${faq}<p>${esc(m.more)}</p><nav aria-label="Pages"><ul>${links}</ul></nav></main>`
+}
+const PRE_HEAD = `<script>document.documentElement.classList.add('js')</script>\n    <style>.js .pre{display:none}.pre{max-width:42rem;margin:0 auto;padding:3rem 1.25rem;color:#f3f1ea;font:16px/1.6 system-ui,sans-serif}.pre a{color:#ffd23f}</style>`
+
 let n = 0
 for (const [route, m] of Object.entries(seo)) {
-  const out = page(html, m.title, m.description, headFor(route, m))
+  const out = page(html, m.title, m.description, `${headFor(route, m)}\n    ${PRE_HEAD}`)
+    .replace('<div id="root"></div>', `<div id="root">${body(route, m)}</div>`)
   if (route === '/') writeFileSync('dist/index.html', out)
   else { mkdirSync(`dist${route}`, { recursive: true }); writeFileSync(`dist${route}/index.html`, out) }
   n++

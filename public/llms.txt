@@ -1,0 +1,25 @@
+# Friction
+
+> Timer that counts how often you leave your work. Friction is a free focus timer in the browser. No account, and your data stays in your browser.
+
+Pick a focus block of 10 to 90 minutes. Friction counts how many times you drifted to another tab. Radio and live TV are built in, plus a calculator, a converter and a scratch board. There is a focus room for working with friends.
+
+## Pages
+
+- [Home](https://frictionx.vercel.app/): Friction is a free focus timer with internet radio, live TV and lessons. One screen, no feed, no account. Lock in, and every time you leave is counted.
+- [Focus](https://frictionx.vercel.app/focus): Pick a length, tune in to radio or silence and lock in. Friction counts each time you leave the tab, pays credits for clean minutes and keeps it all private.
+- [Radio](https://frictionx.vercel.app/radio): Search thousands of internet radio stations by genre or name and keep one playing while you work. Lo-fi, ambient, classical and more. Free, with no account.
+- [TV](https://frictionx.vercel.app/tv): Browse free live TV by category and keep a channel on while you focus. Documentaries, science and news without a feed to scroll. Press play, no account needed.
+- [Podcasts](https://frictionx.vercel.app/podcasts): Search millions of podcasts, play episodes with your place remembered and share one with a friend in a room. Free and private, with no account to make.
+- [Music](https://frictionx.vercel.app/music): Play whole free songs from Audius, Openverse, Wikimedia Commons, the Library of Congress and the Internet Archive, filtered to your age. No account.
+- [News](https://frictionx.vercel.app/news): Read headlines from many sources on one quiet screen, open the full summary, and hide any topic for a day or a week. No feed to scroll and no account needed.
+- [Learn](https://frictionx.vercel.app/learn): Lessons built from Wikipedia text by fixed rules, with idea cards, questions, a timeline and an interactive demo. No AI writes the lessons. Misses get reviewed.
+- [Books](https://frictionx.vercel.app/books): Search free public-domain ebooks and read them in a quiet page-by-page reader, with your place kept in this browser. No account, no ads and nothing to scroll.
+- [Arcade](https://frictionx.vercel.app/arcade): Focused minutes earn credits, and credits buy arcade rounds and shop extras like breaks and a sound machine. Credits are never won in a game. Free and private.
+- [Together](https://frictionx.vercel.app/together): Make a room with a six-character code, lock in with up to twelve friends, chat and share a radio station or show. Rooms need no account, only a name.
+- [Leaders](https://frictionx.vercel.app/leaders): See who has brought the most people to Friction. Pick a public alias, share your link and join the board when someone tunes in. Your name stays private.
+- [Privacy](https://frictionx.vercel.app/privacy): Sessions and settings stay in this browser. Together rooms and the leaderboard use a server. Google Analytics counts page visits only after you allow it.
+
+## Other
+
+- [Sitemap](https://frictionx.vercel.app/sitemap.xml)
