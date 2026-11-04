@@ -65,8 +65,10 @@ for (const [route, m] of Object.entries(seo)) {
   else { mkdirSync(`dist${route}`, { recursive: true }); writeFileSync(`dist${route}/index.html`, out) }
   n++
 }
+// pages that live outside the app (plain files in public/) and still belong in the sitemap
+const STATIC = ['/blogs']
 // the sitemap comes from the same list, so a screen cannot be in one and not the other
 const day = new Date().toISOString().slice(0, 10)
 const rank = (r) => (r === '/' ? '1.0' : r === '/focus' ? '0.9' : ['/radio', '/tv', '/learn'].includes(r) ? '0.8' : ['/podcasts', '/music', '/news'].includes(r) ? '0.7' : '0.6')
-writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Object.keys(seo).map((r) => `  <url>\n    <loc>${SITE}${r}</loc>\n    <lastmod>${day}</lastmod>\n    <changefreq>${r === '/' ? 'weekly' : 'monthly'}</changefreq>\n    <priority>${rank(r)}</priority>\n  </url>`).join('\n')}\n</urlset>\n`)
+writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...Object.keys(seo), ...STATIC].map((r) => `  <url>\n    <loc>${SITE}${r}</loc>\n    <lastmod>${day}</lastmod>\n    <changefreq>${r === '/' ? 'weekly' : 'monthly'}</changefreq>\n    <priority>${rank(r)}</priority>\n  </url>`).join('\n')}\n</urlset>\n`)
 console.log(`prerendered the head of ${n} screens`)

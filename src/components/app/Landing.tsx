@@ -110,6 +110,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             {VIEWS.map((v) => (
               <a key={v} href={hrefFor(v)} onClick={(e) => { e.preventDefault(); onGo(v) }} className="inline-flex min-h-8 items-center hover:text-signal">{SHORT[v]}</a>
             ))}
+            <a href="/blogs" className="inline-flex min-h-8 items-center hover:text-signal">Blog</a>
           </nav>
         </div>
       </div>
