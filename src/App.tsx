@@ -59,6 +59,7 @@ function AboutScreen({ route }: { route: Route }) {
       <h2>{about.heading}</h2>
       <p>{about.intro}</p>
       {about.items.map((i) => <div key={i.title}><h3>{i.title}</h3><p>{i.text}</p></div>)}
+      <p><a href="/blogs">Read the Friction blog</a>: notes on focus, study and attention.</p>
     </section>
   )
 }
