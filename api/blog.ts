@@ -8,9 +8,10 @@ import { json } from './_page.js'
  *
  *   POST /api/blog   Authorization: Bearer <BLOG_SECRET>   { title, description, body }   -> { slug }
  *                    body is plain text: blank-line paragraphs, `## ` headings, `- ` list items and **bold**; everything else is escaped.
- *   GET  /api/blog?titles=1                                  -> the latest titles, so the writer can avoid repeating one
+ *   POST /api/blog?from=groq                                 -> the same, but the body is Groq's whole chat reply (the article is the JSON in its first choice)
+ *   GET  /api/blog?titles=1[&format=text]                    -> the latest titles (JSON, or one line of plain text), so the writer can avoid repeating one
  *
- * Every page says the article was written with AI and published automatically. Env: `BLOG_SECRET`, `TURSO_URL`, `TURSO_TOKEN` (Vercel only).
+ * Every page says the article was written with AI and published automatically. Env: `BLOG_SECRET` (or `BLOGS_SECRET`), `TURSO_URL`, `TURSO_TOKEN` (Vercel only).
  */
 const SITE = 'https://frictionx.vercel.app'
 const MAX_PER_DAY = 3
@@ -145,10 +146,15 @@ export default {
 
     // the writer posts a finished article
     if (request.method === 'POST') {
-      const secret = process.env.BLOG_SECRET
+      const secret = process.env.BLOG_SECRET || process.env.BLOGS_SECRET
       const given = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
       if (!secret || secret.length < 24 || !same(given, secret)) return json({ error: 'no' }, 401)
-      const d = (await request.json().catch(() => null)) as { title?: unknown; description?: unknown; body?: unknown } | null
+      let d = (await request.json().catch(() => null)) as { title?: unknown; description?: unknown; body?: unknown; choices?: { message?: { content?: unknown } }[] } | null
+      // the Make scenario sends Groq's whole reply as it came; the article is the JSON text inside its first choice
+      if (url.searchParams.get('from') === 'groq') {
+        const raw = d?.choices?.[0]?.message?.content
+        try { d = typeof raw === 'string' ? JSON.parse(raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, '')) : null } catch { return json({ error: 'the reply was not valid JSON' }, 422) }
+      }
       const title = typeof d?.title === 'string' ? d.title.trim().replace(/\s+/g, ' ') : ''
       const description = typeof d?.description === 'string' ? d.description.trim().replace(/\s+/g, ' ') : ''
       const body = typeof d?.body === 'string' ? d.body.trim() : ''
@@ -169,6 +175,7 @@ export default {
     // the latest titles (public, so the writer does not repeat itself)
     if (url.searchParams.get('titles') === '1') {
       const r = await c.execute('SELECT title FROM posts ORDER BY created DESC LIMIT 40')
+      if (url.searchParams.get('format') === 'text') return new Response(r.rows.map((x) => String(x.title).replace(/["\\]/g, "'")).join('; '), { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, s-maxage=60' } })
       return json({ titles: r.rows.map((x) => String(x.title)) }, 200, 'public, s-maxage=60')
     }
 
