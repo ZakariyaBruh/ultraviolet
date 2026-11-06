@@ -13,7 +13,7 @@ import { json } from './_page.js'
  *
  * Every page says the article was written with AI and published automatically. Env: `BLOG_SECRET` (or `BLOGS_SECRET`), `TURSO_URL`, `TURSO_TOKEN` (Vercel only).
  */
-const SITE = 'https://frictionx.vercel.app'
+const SITE = 'https://www.frictionx.app'
 const MAX_PER_DAY = 3
 let db: Client | null = null
 const client = () => (db ??= createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_TOKEN! }))

@@ -2,5 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://frictionx.vercel.app/sitemap.xml
-Sitemap: https://frictionx.vercel.app/blogs/sitemap.xml
+Sitemap: https://www.frictionx.app/sitemap.xml
+Sitemap: https://www.frictionx.app/blogs/sitemap.xml

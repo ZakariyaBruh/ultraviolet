@@ -2,7 +2,7 @@
  * What the two page endpoints share: the address checks, the clean-up that turns a page into something safe to show in a sealed frame,
  * and the measure of whether a page has anything to read. Files starting with an underscore are not routes.
  */
-export const UA = 'Mozilla/5.0 (compatible; FrictionBrowser/1.0; +https://frictionx.vercel.app)'
+export const UA = 'Mozilla/5.0 (compatible; FrictionBrowser/1.0; +https://www.frictionx.app)'
 /** the raw page we will read (most of a heavy page is scripts, which are removed), and the most we send back (a function reply holds 4.5 MB) */
 export const RAW = 8_000_000
 export const MAX = 3_300_000

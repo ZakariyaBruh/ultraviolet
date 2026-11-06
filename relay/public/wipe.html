@@ -9,6 +9,6 @@
     if (indexedDB.databases) for (const d of await indexedDB.databases()) if (d.name) await new Promise((ok) => { const q = indexedDB.deleteDatabase(d.name); q.onsuccess = q.onerror = q.onblocked = () => ok() })
     for (const k of await caches.keys()) await caches.delete(k)
   } catch (e) { /* nothing more to do */ }
-  parent.postMessage({ frictionWiped: 1 }, 'https://frictionx.vercel.app')
+  for (const o of ['https://www.frictionx.app', 'https://frictionx.app', 'https://frictionx.vercel.app']) parent.postMessage({ frictionWiped: 1 }, o)
 })()
 </script>

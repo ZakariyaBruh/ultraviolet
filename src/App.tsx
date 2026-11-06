@@ -127,7 +127,7 @@ export default function App() {
     // each screen says which address it is, so search results point at the right one
     let c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
     if (!c) { c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c) }
-    c.href = `https://frictionx.vercel.app${hrefFor(route)}`
+    c.href = `https://www.frictionx.app${hrefFor(route)}`
   }, [route])
 
   // ⌘K / Ctrl K opens search from anywhere

@@ -3,7 +3,7 @@
 // the app starts and takes over as usual. Titles must be 50-60 characters and descriptions 140-160, or the build stops.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
-const SITE = 'https://frictionx.vercel.app'
+const SITE = 'https://www.frictionx.app'
 const seo = JSON.parse(readFileSync('src/lib/seo.json', 'utf8'))
 const html = readFileSync('dist/index.html', 'utf8')
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
