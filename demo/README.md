@@ -1,6 +1,6 @@
 # Friction interactive demo
 
-A click-through of the real app, built from screenshots of it. Published as an Artifact; the page is `index.html`, the data it reads is `data.js`.
+A click-through of the real app, built from screenshots of it, shown on a tablet frame in the site colours (`.device` in `index.html`). Published as an Artifact; the page is `index.html`, the data it reads is `data.js`.
 
 How it is made (nothing here is drawn by hand):
 

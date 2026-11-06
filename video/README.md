@@ -112,3 +112,10 @@ same black glass. The close says what Friction lacks.
 
 Every line is true of the app: free, no account, no feed, data in the browser; a drift is six seconds away from the
 tab; credits come from focus, lessons and trivia; sixteen games; five looks. No numbers or proof are invented.
+
+## v9: the app on a tablet, and a ring of tablets in the middle
+
+- The app footage sits in a tablet (`src/v6/Device.tsx`: blue-black body, hairline rim, yellow standby dot) that drifts a little in 3D while the camera is wide; the camera zoom is capped (`ZMAX` 1.15 in `App.tsx`) so the bezel stays in shot.
+- `src/v6/Ring.tsx` is the third 3D piece: six tablets (the app's Focus, Radio, TV, Learn, Arcade and Focus screens) turn on a CSS-3D ring and the first comes back to fill the frame. It is cut in at `RING_AT` (28.0 s) after the ASCII world, and the app scene resumes after it (`Trailer6.tsx`, `T.appEnd`, `T.lockEnd` and everything after move later by `RING_S`).
+- `public/v6/score.wav` is the old score with 4 s (bars 24 to 28) repeated at 28.0 s so the beat grid holds; it is not in git (ignored), so redo the splice if the file is lost: `atrim=0:28` + `atrim=24:28` + `atrim=28`.
+- Capture: `node scripts/capture6.cjs take` needs vite on port 5174; do not edit `src/` while it runs. Render: `npx remotion render src/index.ts V6 out/trailer6.mp4 --codec=h264 --crf=16 --color-space=bt709`.
