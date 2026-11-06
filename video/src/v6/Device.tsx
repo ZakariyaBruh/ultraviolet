@@ -16,9 +16,6 @@ export const Body = ({ shade = 1 }: { shade?: number }) => (
   <div style={{ position: 'absolute', left: -BZ, top: -BZ, width: SW + BZ * 2, height: SH + BZ * 2, borderRadius: R_OUT, background: '#0b0c0f', boxShadow: `0 0 0 3px rgba(196,200,208,${0.5 * shade}), 0 0 0 4px #040507, 0 40px 80px rgba(0,0,0,0.55)` }}>
     {/* the front camera, in the middle of the top bezel */}
     <div style={{ position: 'absolute', left: '50%', top: BZ / 2 - 4, width: 8, height: 8, marginLeft: -4, borderRadius: 4, background: '#030405', boxShadow: 'inset 0 0 0 1.5px #1a1c22' }} />
-    {/* the side buttons */}
-    <div style={{ position: 'absolute', right: -6, top: 150, width: 6, height: 96, borderRadius: '0 4px 4px 0', background: '#16181d', boxShadow: '0 0 0 1px #040507' }} />
-    <div style={{ position: 'absolute', right: -6, top: 270, width: 6, height: 52, borderRadius: '0 4px 4px 0', background: '#16181d', boxShadow: '0 0 0 1px #040507' }} />
   </div>
 )
 

@@ -13,9 +13,9 @@ export const PRESETS: { label: string; kind: 'radio' | 'tv'; tag: string }[] = [
   { label: 'Lo-fi', kind: 'radio', tag: 'lofi' },
   { label: 'Ambient', kind: 'radio', tag: 'ambient' },
   { label: 'Classical', kind: 'radio', tag: 'classical' },
-  { label: 'Documentaries', kind: 'tv', tag: 'documentary' },
-  { label: 'Science', kind: 'tv', tag: 'science' },
-  { label: 'Relax', kind: 'tv', tag: 'relax' },
+  { label: 'News', kind: 'tv', tag: 'news' },
+  { label: 'Public TV', kind: 'tv', tag: 'general' },
+  { label: 'Learning', kind: 'tv', tag: 'education' },
 ]
 
 /** Everything ⌘K can reach: screens, actions, tuning presets, and saved and recent listings. */

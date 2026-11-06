@@ -6,7 +6,7 @@ import type { MediaItem } from './store'
  * these are plain links that open the source's page in a new tab.
  *
  * Removal and copyright requests are deliberately NOT one tap here: anyone could file false ones to harm a stream or the site. They are made
- * on the legal pages (scripts/legal.mjs), by the rights holder, and each source runs its own checks.
+ * on the legal pages (scripts/legal.mjs), by the rights holder, and are verified.
  */
 export interface ReportLink { label: string; href: string; note?: string }
 export interface ReportInfo { who: string; whoUrl: string; links: ReportLink[] }
@@ -26,10 +26,9 @@ export function reportFor(item: MediaItem): ReportInfo {
   const id = item.id
   if (id.startsWith('tv:')) {
     return {
-      who: 'iptv-org', whoUrl: `${GH}/iptv-org/iptv`,
+      who: 'the broadcaster', whoUrl: 'https://iptv-org.github.io',
       links: [
-        { label: 'Report a broken stream', href: `${GH}/iptv-org/iptv/issues/new?assignees=&labels=streams:remove&projects=&template=3_streams_report.yml&title=${enc(`Broken: ${item.name}`)}`, note: 'Needs a free GitHub account. They ask you to check it is broken for everyone, not just blocked where you are.' },
-        { label: 'Wrong name, logo or country', href: `${GH}/iptv-org/database/issues` },
+        { label: 'Look up this channel on iptv-org', href: `https://iptv-org.github.io/?q=${enc(item.name)}`, note: 'Its site lists the channel\'s official website and details, where you can contact the broadcaster.' },
       ],
     }
   }

@@ -1,14 +1,14 @@
-import { cached } from './cache'
+import curated from './curated-radio.json'
 import type { MediaItem } from './store'
 
-/** Community radio directory: https://api.radio-browser.info */
-const MIRRORS = [
-  'https://de1.api.radio-browser.info',
-  'https://de2.api.radio-browser.info',
-  'https://all.api.radio-browser.info',
-  'https://fi1.api.radio-browser.info',
-  'https://at1.api.radio-browser.info',
-]
+/**
+ * Radio is a curated list: public-service and well-known listener-supported stations whose own servers carry the stream (BBC-style
+ * broadcasters such as France Inter, Deutschlandfunk, NRK, SR, NPO, RAI and ABC, public stations such as WQXR, WNYC and WFMT, and
+ * independents that publish free streams for anyone to play, such as SomaFM and Radio Paradise), found through the community directory
+ * https://www.radio-browser.info and kept only where the stream checks out. Played straight from them; we never re-broadcast.
+ * `scripts/curate-radio.py` rebuilds the list. The directory is still told when a station is played (`registerClick`).
+ */
+const MIRRORS = ['https://de1.api.radio-browser.info', 'https://de2.api.radio-browser.info', 'https://all.api.radio-browser.info']
 
 export interface RadioStation {
   stationuuid: string
@@ -25,43 +25,21 @@ export interface RadioStation {
   hls: number
 }
 
-let preferred = 0
-
-async function rb<T>(path: string): Promise<T> {
+async function rb(path: string): Promise<unknown> {
   let last: unknown
-  for (let i = 0; i < MIRRORS.length; i++) {
-    const base = MIRRORS[(preferred + i) % MIRRORS.length]
-    const ctl = new AbortController()
-    const t = setTimeout(() => ctl.abort(), 7000)
-    try {
-      const res = await fetch(base + path, { signal: ctl.signal })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      preferred = (preferred + i) % MIRRORS.length
-      return (await res.json()) as T
-    } catch (err) {
-      last = err
-    } finally {
-      clearTimeout(t)
-    }
+  for (const base of MIRRORS) {
+    try { const res = await fetch(base + path, { signal: AbortSignal.timeout(7000) }); if (res.ok) return await res.json() } catch (err) { last = err }
   }
   throw last instanceof Error ? last : new Error('Radio directory unreachable')
 }
 
-export const FOCUS_TAGS = [
-  'lofi',
-  'ambient',
-  'classical',
-  'jazz',
-  'piano',
-  'chillout',
-  'meditation',
-  'nature',
-  'instrumental',
-  'soundtrack',
-  'deep house',
-  'news',
-  'talk',
-] as const
+interface Row { uuid: string; name: string; url: string; logo: string | null; cc: string; country: string; codec: string; bitrate: number; tags: string[] }
+const ROWS = curated as Row[]
+const asStation = (r: Row, i: number): RadioStation => ({ stationuuid: r.uuid, name: r.name, url_resolved: r.url, favicon: r.logo ?? '', tags: r.tags.join(','), country: r.country, countrycode: r.cc, codec: r.codec, bitrate: r.bitrate, votes: 0, clickcount: ROWS.length - i, hls: 0 })
+
+const WANT = ['lofi', 'ambient', 'classical', 'jazz', 'piano', 'chillout', 'meditation', 'nature', 'instrumental', 'soundtrack', 'deep house', 'news', 'talk'] as const
+/** the chips: only the ones the list has stations for */
+export const FOCUS_TAGS = WANT.filter((t) => ROWS.some((r) => r.tags.includes(t)))
 
 export interface RadioQuery {
   tag?: string
@@ -69,24 +47,12 @@ export interface RadioQuery {
 }
 
 export async function searchStations({ tag, name }: RadioQuery): Promise<RadioStation[]> {
-  const p = new URLSearchParams({
-    order: 'clickcount',
-    reverse: 'true',
-    hidebroken: 'true',
-    limit: '120',
-    is_https: 'true',
-  })
-  if (tag) p.set('tag', tag)
-  if (name) p.set('name', name)
-  if (!tag && !name) p.set('tag', 'ambient')
-  const path = `/json/stations/search?${p}`
-  const list = await cached(`rb:${path}`, 6 * 3600e3, () => rb<RadioStation[]>(path))
-  const seen = new Set<string>()
-  return list.filter((s) => {
-    const key = s.name.trim().toLowerCase()
-    if (!s.url_resolved?.startsWith('https://') || seen.has(key)) return false
-    seen.add(key)
-    return true
+  const t = (tag ?? '').trim().toLowerCase()
+  const n = (name ?? '').trim().toLowerCase()
+  const want = !t && !n ? 'ambient' : t
+  return ROWS.map(asStation).filter((_, i) => {
+    const r = ROWS[i]
+    return (!want || r.tags.includes(want)) && (!n || r.name.toLowerCase().includes(n) || r.country.toLowerCase().includes(n))
   })
 }
 

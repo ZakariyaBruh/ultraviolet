@@ -1,89 +1,49 @@
-import { cached } from './cache'
+import curated from './curated-tv.json'
 import type { MediaItem } from './store'
 
-/** Public playlists from https://github.com/iptv-org/iptv — only attention-friendly categories. */
-export const TV_CATEGORIES = [
-  'documentary',
-  'science',
-  'education',
-  'relax',
-  'nature',
-  'travel',
-  'culture',
-  'classic',
-  'music',
-  'news',
-  'weather',
-  'outdoor',
-] as const
+/**
+ * Live TV is a curated list, not the open internet: public-service and international broadcasters whose own servers carry the stream
+ * (ARD, ORF, RTVE, RAI, ERR, DR, Euronews, DW, France 24, NHK, ABC, CBC, PBS Kids, parliaments, and so on), found through the public
+ * iptv-org playlists and kept only where the address is the broadcaster's own, not a re-host. Played straight from them; we never
+ * copy or re-broadcast. `scripts/curate-tv.py` rebuilds the list and checks every stream is alive; run it now and then, streams move.
+ * Anyone can ask for a channel to be hidden (see the Disclaimer page); what the broadcasters publish stays theirs.
+ */
+interface Row { id: string; name: string; url: string; logo: string | null; cc: string; cats: string[] }
+const ROWS = curated as Row[]
 
+/** the chips, each a way of grouping the list */
+export const TV_CATEGORIES = ['news', 'general', 'education', 'culture', 'kids', 'parliament', 'sports', 'music'] as const
 export type TvCategory = (typeof TV_CATEGORIES)[number]
-
-/** Every category iptv-org publishes, for searching beyond the attention-friendly ones shown as chips. */
-const ALL_CATEGORIES = ['animation', 'auto', 'business', 'classic', 'comedy', 'cooking', 'culture', 'documentary', 'education', 'entertainment', 'family', 'general', 'interactive', 'kids', 'legislative', 'lifestyle', 'movies', 'music', 'news', 'outdoor', 'public', 'relax', 'religious', 'science', 'series', 'shop', 'sports', 'travel', 'weather', 'undefined']
-
-export function parseM3U(text: string): MediaItem[] {
-  const out: MediaItem[] = []
-  const lines = text.split(/\r?\n/)
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    if (!line.startsWith('#EXTINF')) continue
-    const attrs: Record<string, string> = {}
-    for (const m of line.matchAll(/([\w-]+)="([^"]*)"/g)) attrs[m[1]] = m[2]
-    const name = line.slice(line.lastIndexOf(',') + 1).trim()
-    let url = ''
-    for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-      const l = lines[j].trim()
-      if (l && !l.startsWith('#')) {
-        url = l
-        break
-      }
-    }
-    if (!name || !url.startsWith('https://')) continue
-    if (/geo-?blocked|not 24\/7/i.test(name)) continue
-    const quality = name.match(/\((\d{3,4}p)\)/)?.[1]
-    out.push({
-      id: `tv:${attrs['tvg-id'] || name}:${url.length}`,
-      kind: 'tv',
-      name: name.replace(/\s*\(\d{3,4}p\)\s*/g, ' ').replace(/\s*\[.*?\]\s*/g, ' ').trim(),
-      url,
-      logo: attrs['tvg-logo']?.startsWith('https://') ? attrs['tvg-logo'] : undefined,
-      meta: [attrs['group-title']?.split(';')[0], quality].filter(Boolean).join(' · '),
-    })
-  }
-  const seen = new Set<string>()
-  return out.filter((c) => {
-    const k = c.name.toLowerCase()
-    if (seen.has(k)) return false
-    seen.add(k)
-    return true
-  })
+const GROUP: Record<TvCategory, string[]> = {
+  news: ['news'],
+  general: ['general', 'public', 'entertainment', 'series', 'movies', 'lifestyle', 'undefined'],
+  education: ['education', 'documentary', 'science', 'outdoor'],
+  culture: ['culture'],
+  kids: ['kids'],
+  parliament: ['legislative'],
+  sports: ['sports'],
+  music: ['music'],
 }
 
+const COUNTRY = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }) } catch { return null } })()
+const place = (cc: string) => { try { return COUNTRY?.of(cc === 'UK' ? 'GB' : cc) ?? cc } catch { return cc } }
+
+const item = (r: Row): MediaItem => ({ id: `tv:${r.id}`, kind: 'tv', name: r.name, url: r.url, logo: r.logo ?? undefined, meta: place(r.cc) })
+const inGroup = (r: Row, g: TvCategory) => (r.cats.length ? r.cats : ['undefined']).some((c) => GROUP[g].includes(c))
+
+/** one chip's channels (the list lives in the app, so this is instant) */
 export async function fetchCategory(cat: string): Promise<MediaItem[]> {
-  const url = `https://iptv-org.github.io/iptv/categories/${cat}.m3u`
-  return cached(`iptv:${cat}`, 12 * 3600e3, async () => {
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return parseM3U(await res.text())
-  })
+  const g = (TV_CATEGORIES as readonly string[]).includes(cat) ? (cat as TvCategory) : 'news'
+  return ROWS.filter((r) => inGroup(r, g)).map(item)
 }
 
-/** Search every channel in every category by name (or group), a few files at a time. Each file is cached, so a second search is instant. */
+/** search every channel by name or country */
 export async function searchAllTv(q: string): Promise<MediaItem[]> {
   const needle = q.trim().toLowerCase()
   if (!needle) return []
-  const queue = ALL_CATEGORIES.slice()
-  const found = new Map<string, MediaItem>()
-  const worker = async () => {
-    for (let c = queue.shift(); c; c = queue.shift()) {
-      try {
-        for (const ch of await fetchCategory(c)) {
-          if ((ch.name.toLowerCase().includes(needle) || (ch.meta ?? '').toLowerCase().includes(needle)) && !found.has(ch.name.toLowerCase())) found.set(ch.name.toLowerCase(), ch)
-        }
-      } catch { /* one list down: the others still answer */ }
-    }
-  }
-  await Promise.all(Array.from({ length: 6 }, worker))
-  return Array.from(found.values()).sort((a, b) => Number(b.name.toLowerCase().startsWith(needle)) - Number(a.name.toLowerCase().startsWith(needle))).slice(0, 200)
+  return ROWS.filter((r) => r.name.toLowerCase().includes(needle) || place(r.cc).toLowerCase().includes(needle) || r.cc.toLowerCase() === needle)
+    .sort((a, b) => Number(b.name.toLowerCase().startsWith(needle)) - Number(a.name.toLowerCase().startsWith(needle)))
+    .map(item)
 }
+
+export const TV_COUNT = ROWS.length
