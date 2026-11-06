@@ -118,7 +118,7 @@ export const AppScene = () => {
       <Contours t={now * 2 + 30} opacity={0.55 * (1 - 0.6 * plunge)} cx={960 - c.vx * 0.02} cy={540} />
       <Fill style={{ perspective: 2600, perspectiveOrigin: '960px 540px' }}>
         <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${raw / FPS < 1.4 ? arrive : 1}) rotateY(${ry.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg)`, transformOrigin: '960px 540px' }}>
-          <Fill style={{ filter: `${blurOn ? 'url(#camblur) ' : ''}contrast(1.07) saturate(1.1)` }}>
+          <Fill style={{ filter: blurOn ? 'url(#camblur)' : 'none' }}>
             <div style={{ position: 'absolute', left: 0, top: 0, width: SW, height: SH, transformOrigin: '0 0', transform: `translate(${960 + bxp}px, ${540 + byp}px) scale(${sc}) translate(${-c.cx}px, ${-c.cy}px)` }}>
               <Body />
               <Screen>
