@@ -48,33 +48,49 @@ function render(body: string) {
   return out.join('\n')
 }
 
+const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const STYLE = `<style>
-  :root { --ground: #05070c; --ink: #e9eef7; --ink-2: #aab4c6; --ink-3: #7d889b; --signal: #ffd23f; --rule: #243044; }
+  @font-face { font-family: "Hanken Grotesk"; src: url(/blog-fonts/hanken-grotesk-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "Unbounded"; src: url(/blog-fonts/unbounded-latin-wght-normal.woff2) format("woff2"); font-weight: 200 900; font-display: swap; }
+  @font-face { font-family: "Barlow Condensed"; src: url(/blog-fonts/barlow-condensed-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+  @font-face { font-family: "Barlow Condensed"; src: url(/blog-fonts/barlow-condensed-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+  :root { --ground: #05070c; --ink: #f3f1ea; --ink-2: #c3c2bb; --ink-3: #9d9d97; --signal: #ffd23f; --rule: rgba(243,241,234,.16); --ice: #7fd3ff; --cond: "Barlow Condensed", "Arial Narrow", sans-serif; --disp: "Unbounded", "Hanken Grotesk", system-ui, sans-serif; }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { min-height: 100vh; background: var(--ground); color: var(--ink); font: 18px/1.65 "Hanken Grotesk", system-ui, sans-serif; }
-  header, main, footer { max-width: 46rem; margin: 0 auto; padding: 0 20px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 24px; padding-bottom: 24px; border-bottom: 2px solid var(--rule); }
-  .mark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-  nav a { color: var(--ink-2); text-decoration: none; margin-left: 16px; font-size: 15px; }
-  nav a:hover, nav a:focus-visible { color: var(--signal); }
-  main { padding-top: 48px; padding-bottom: 56px; }
-  .kicker { margin: 0 0 12px; color: var(--signal); font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-  h1 { margin: 0 0 16px; font-size: clamp(30px, 6vw, 46px); line-height: 1.1; letter-spacing: -.02em; }
-  h2 { margin: 40px 0 12px; font-size: 26px; line-height: 1.2; }
-  p, ul { margin: 0 0 18px; } ul { padding-left: 22px; } li { margin-bottom: 6px; }
-  .lead { color: var(--ink-2); max-width: 36rem; }
-  .meta { color: var(--ink-3); font-size: 14px; margin: 0 0 28px; }
-  .ai { border-left: 3px solid var(--signal); padding: 8px 14px; color: var(--ink-3); font-size: 14px; margin: 32px 0 0; }
-  .list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-  .list li { margin: 0; } .list a { display: block; padding: 16px 18px; border: 2px solid var(--rule); color: var(--ink); text-decoration: none; }
-  .list a:hover, .list a:focus-visible { border-color: var(--signal); }
-  .list strong { display: block; font-size: 20px; line-height: 1.25; } .list span { display: block; color: var(--ink-2); font-size: 15px; margin-top: 4px; } .list small { color: var(--ink-3); }
-  .empty { border: 2px solid var(--rule); padding: 20px; color: var(--ink-2); }
-  .cta { display: inline-block; margin-top: 32px; padding: 12px 20px; background: var(--signal); color: #05070c; font-weight: 700; text-decoration: none; }
+  body { min-height: 100vh; display: flex; flex-direction: column; background: var(--ground); color: var(--ink); font: 19px/1.7 "Hanken Grotesk", system-ui, sans-serif; }
+  .bars { display: flex; height: 10px; } .bars i { flex: 1; }
+  .wrap { width: 100%; max-width: 62rem; margin: 0 auto; padding: 0 24px; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; padding-bottom: 22px; }
+  .mark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-family: var(--disp); font-weight: 800; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; }
+  nav { display: flex; gap: 20px; } nav a { color: var(--ink-2); text-decoration: none; font: 600 16px/1 var(--cond); letter-spacing: .12em; text-transform: uppercase; padding: 10px 0; }
+  nav a:hover, nav a:focus-visible, nav a[aria-current] { color: var(--signal); }
+  main { flex: 1; }
+  .head { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .head .wrap { padding-top: 56px; padding-bottom: 48px; }
+  .kicker { margin: 0 0 18px; color: var(--signal); font: 700 15px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; }
+  .kicker a { color: inherit; text-decoration: none; }
+  h1 { margin: 0; font: 800 clamp(30px, 5.6vw, 58px)/1.06 var(--disp); letter-spacing: -.035em; text-wrap: balance; }
+  .lead { margin: 22px 0 0; max-width: 40rem; color: var(--ink-2); font-size: 20px; }
+  .meta { margin: 22px 0 0; color: var(--ink-3); font: 600 15px/1 var(--cond); letter-spacing: .16em; text-transform: uppercase; }
+  .body { padding-top: 48px; padding-bottom: 64px; }
+  .article { max-width: 40rem; }
+  .article h2 { margin: 48px 0 14px; font: 700 clamp(22px, 3.4vw, 30px)/1.15 var(--disp); letter-spacing: -.025em; }
+  .article p, .article ul { margin: 0 0 20px; } .article ul { padding-left: 22px; } .article li { margin-bottom: 8px; }
+  .article strong { color: var(--ink); font-weight: 700; } .article p, .article li { color: var(--ink-2); }
+  .ai { max-width: 40rem; margin: 48px 0 0; padding: 14px 18px; border: 1px solid var(--rule); border-left: 4px solid var(--signal); color: var(--ink-3); font-size: 15px; line-height: 1.5; }
+  .list { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+  .list li { margin: 0; border-bottom: 1px solid var(--rule); }
+  .list a { display: grid; grid-template-columns: 9rem 1fr; gap: 6px 28px; padding: 26px 0; color: var(--ink); text-decoration: none; }
+  .list a:hover strong, .list a:focus-visible strong { color: var(--signal); }
+  .list small { grid-row: 1 / span 2; padding-top: 6px; color: var(--ink-3); font: 600 15px/1.3 var(--cond); letter-spacing: .16em; text-transform: uppercase; }
+  .list strong { font: 700 clamp(20px, 2.8vw, 26px)/1.2 var(--disp); letter-spacing: -.02em; } .list span { color: var(--ink-2); font-size: 17px; line-height: 1.55; }
+  .empty { max-width: 40rem; padding: 26px 28px; border: 1px solid var(--rule); border-left: 4px solid var(--signal); color: var(--ink-2); } .empty strong { display: block; color: var(--ink); font: 700 22px/1.2 var(--disp); letter-spacing: -.02em; margin-bottom: 8px; }
+  .cta { display: inline-block; margin-top: 40px; min-height: 48px; padding: 14px 26px 12px; background: var(--signal); color: #000; font: 700 18px/1.2 var(--cond); letter-spacing: .12em; text-transform: uppercase; text-decoration: none; }
+  .cta:hover { background: var(--ink); }
   a:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-  main a:not(.cta) { color: var(--signal); }
-  footer { padding-top: 24px; padding-bottom: 40px; border-top: 2px solid var(--rule); color: var(--ink-3); font-size: 14px; } footer a { color: var(--ink-2); }
+  footer { border-top: 1px solid var(--rule); } footer .wrap { padding-top: 28px; padding-bottom: 36px; display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: space-between; color: var(--ink-3); font-size: 15px; line-height: 1.5; }
+  footer p { margin: 0; max-width: 34rem; } footer a { color: var(--ink-2); }
+  @media (max-width: 640px) { body { font-size: 18px; } .wrap { padding: 0 18px; } .head .wrap { padding-top: 36px; padding-bottom: 32px; } .list a { grid-template-columns: 1fr; } .list small { grid-row: auto; padding-top: 0; } nav { gap: 14px; } }
 </style>`
 
 const MARK = '<svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="5" transform="rotate(-100 32 32)" stroke-dasharray="1 1" pathLength="1"/><rect x="40" y="10" width="16" height="16" fill="#ffd23f"/></svg>'
@@ -102,14 +118,15 @@ function page(o: { title: string; description: string; path: string; type: 'webs
 ${STYLE}
 </head>
 <body>
-<header>
+<div class="bars" aria-hidden="true">${BARS.map((c) => `<i style="background:${c}"></i>`).join('')}</div>
+<header><div class="wrap">
   <a class="mark" href="/" aria-label="Friction home">${MARK} Friction</a>
-  <nav aria-label="Main"><a href="/blogs">Blog</a><a href="/focus">Focus</a><a href="/learn">Learn</a><a href="/radio">Radio</a></nav>
-</header>
+  <nav aria-label="Main"><a href="/blogs"${o.path === '/blogs' ? ' aria-current="page"' : ''}>Blog</a><a href="/focus">Focus</a><a href="/learn">Learn</a><a href="/radio">Radio</a></nav>
+</div></header>
 <main>
 ${o.main}
 </main>
-<footer><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. <a href="/">Back to the front page</a>.</p></footer>
+<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. Your data stays in your browser.</p><p><a href="/">Front page</a> · <a href="/focus">Focus timer</a> · <a href="/blogs">Blog</a></p></div></footer>
 </body>
 </html>`
 }
@@ -165,14 +182,14 @@ export default {
 
     const slug = (url.searchParams.get('slug') ?? '').toLowerCase()
     if (slug) {
-      if (!/^[a-z0-9-]{1,90}$/.test(slug)) return html(page({ title: 'Not found | Friction Blog', description: 'That post does not exist.', path: '/blogs', type: 'website', ld: {}, main: '<h1>Not found</h1><p>That post does not exist. <a href="/blogs">See all posts</a>.</p>' }), 404, 'public, s-maxage=60')
+      if (!/^[a-z0-9-]{1,90}$/.test(slug)) return html(page({ title: 'Not found | Friction Blog', description: 'That post does not exist.', path: '/blogs', type: 'website', ld: {}, main: '<div class="wrap body"><h1>Not found</h1><p>That post does not exist. <a href="/blogs">See all posts</a>.</p></div>' }), 404, 'public, s-maxage=60')
       const r = (await c.execute({ sql: 'SELECT slug, title, description, body, day FROM posts WHERE slug = ?', args: [slug] })).rows[0] as unknown as Row | undefined
-      if (!r) return html(page({ title: 'Not found | Friction Blog', description: 'That post does not exist.', path: '/blogs', type: 'website', ld: {}, main: '<h1>Not found</h1><p>That post does not exist. <a href="/blogs">See all posts</a>.</p>' }), 404, 'public, s-maxage=60')
+      if (!r) return html(page({ title: 'Not found | Friction Blog', description: 'That post does not exist.', path: '/blogs', type: 'website', ld: {}, main: '<div class="wrap body"><h1>Not found</h1><p>That post does not exist. <a href="/blogs">See all posts</a>.</p></div>' }), 404, 'public, s-maxage=60')
       const path = `/blogs/${r.slug}`
       return html(page({
         title: `${r.title} | Friction Blog`.slice(0, 120), description: r.description, path, type: 'article',
         ld: { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: r.title, description: r.description, datePublished: r.day, dateModified: r.day, mainEntityOfPage: `${SITE}${path}`, author: { '@type': 'Organization', name: 'Friction' }, publisher: { '@type': 'Organization', name: 'Friction', url: `${SITE}/` } },
-        main: `<p class="kicker"><a href="/blogs" style="color:inherit;text-decoration:none">Blog</a></p>\n<h1>${esc(r.title)}</h1>\n<p class="meta">${nice(r.day)}</p>\n${render(r.body)}\n<p class="ai">This article was written with AI and published automatically. It may contain mistakes, so check anything that matters.</p>\n<a class="cta" href="/focus">Try the focus timer</a>`,
+        main: `<div class="head"><div class="wrap"><p class="kicker"><a href="/blogs">Blog</a></p>\n<h1>${esc(r.title)}</h1>\n<p class="meta">${nice(r.day)}</p></div></div>\n<div class="wrap body"><article class="article">\n${render(r.body)}\n</article>\n<p class="ai">This article was written with AI and published automatically. It may contain mistakes, so check anything that matters.</p>\n<a class="cta" href="/focus">Try the focus timer</a></div>`,
       }))
     }
 
@@ -183,7 +200,7 @@ export default {
     return html(page({
       title: 'Friction Blog: Notes on Focus, Study and Attention', description: 'The Friction blog: notes on focus, studying, deep work and getting your attention back from the feed. A new post most days.',
       path: '/blogs', type: 'website', ld: { '@context': 'https://schema.org', '@type': 'Blog', name: 'Friction Blog', url: `${SITE}/blogs`, description: 'Notes on focus, studying, deep work and getting your attention back from the feed.', publisher: { '@type': 'Organization', name: 'Friction', url: `${SITE}/` } },
-      main: `<p class="kicker">Blog</p>\n<h1>Notes on focus, study and attention</h1>\n<p class="lead">Short, plain writing on getting your attention back from the feed: how to study, how to hold a long session, and what the numbers say. Written with AI and published automatically.</p>\n${list}\n<a class="cta" href="/focus">Open the focus timer</a>`,
+      main: `<div class="head"><div class="wrap"><p class="kicker">Blog</p>\n<h1>Notes on focus, study and attention</h1>\n<p class="lead">Short, plain writing on getting your attention back from the feed: how to study, how to hold a long session, and what the numbers say. Written with AI and published automatically.</p></div></div>\n<div class="wrap body">${list}\n<a class="cta" href="/focus">Open the focus timer</a></div>`,
     }), 200, rows.length ? 'public, s-maxage=300, stale-while-revalidate=86400' : 'public, s-maxage=60')
   },
 }
