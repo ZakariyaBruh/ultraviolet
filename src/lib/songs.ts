@@ -16,7 +16,7 @@ import type { MediaItem } from './store'
  */
 export type SongSource = 'audius' | 'openverse' | 'archive' | 'musopen' | 'fma' | 'live' | 'commons' | 'loc'
 export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive', musopen: 'Musopen', fma: 'Free Music Archive', live: 'Live Music Archive', commons: 'Wikimedia Commons', loc: 'Library of Congress' }
-export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2 }
+export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2; /** the licence the source gives it, when it says (CC BY 4.0, public domain) */ license?: string }
 
 /** artists the owner wants offered to adults only, whatever their genre says */
 const ADULT_ONLY = /la goony|miss bashful|mrs\.? bashful/i
@@ -72,13 +72,14 @@ function fromAudius(t: AudiusTrack): Song | null {
   }
 }
 
-interface OvTrack { category?: string | null; genres?: string[]; id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
+interface OvTrack { license?: string; license_version?: string; category?: string | null; genres?: string[]; id?: string; title?: string; creator?: string; duration?: number; thumbnail?: string; url?: string; foreign_landing_url?: string; mature?: boolean; tags?: { name?: string }[] }
 function fromOpenverse(t: OvTrack): Song | null {
   const url = https(t.url)
   if (!t.id || !t.title || !url || t.category === 'sound_effect' || /^(sound_effect|pronunciation)$/.test(t.category ?? '')) return null
   const hay = `${t.title} ${(t.tags ?? []).map((x) => x.name).join(' ')}`
   return {
     source: 'openverse', rating: rate(!!t.mature, hay, (t.genres ?? []).join(' ')),
+    license: t.license ? `CC ${t.license.toUpperCase()}${t.license_version ? ` ${t.license_version}` : ''}`.replace('CC PDM', 'Public domain').replace('CC CC0', 'CC0') : undefined,
     seconds: Math.round((Number(t.duration) || 0) / 1000),
     link: https(t.foreign_landing_url) ?? 'https://openverse.org',
     item: { id: `song:openverse:${t.id}`, kind: 'radio', page: https(t.foreign_landing_url), name: txt(t.title, 90), meta: txt(t.creator, 60) || 'Openverse', url, logo: https(t.thumbnail) },
@@ -158,7 +159,7 @@ function fromCommons(p: CommonsPage): Song | null {
   const hay = `${name} ${plain(m.Categories?.value?.replace(/\|/g, ' '), 200)} ${plain(m.ImageDescription?.value, 200)}`
   if (!name || NOT_MUSIC.test(hay)) return null
   return {
-    source: 'commons', rating: rate(false, hay), seconds,
+    source: 'commons', rating: rate(false, hay), seconds, license: plain(m.LicenseShortName?.value, 30) || undefined,
     link: https(i.descriptionurl) ?? 'https://commons.wikimedia.org',
     item: { id: `song:commons:${encodeURIComponent(name).slice(0, 80)}`, kind: 'radio', page: https(i.descriptionurl), name, meta: plain(m.Artist?.value, 120).split(';')[0].replace(/\s*\([^)]*\)/g, '').trim().slice(0, 60) || 'Wikimedia Commons', url: raw.split('?')[0] },
   }

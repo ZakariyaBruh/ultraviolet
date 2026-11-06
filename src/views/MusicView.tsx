@@ -36,7 +36,7 @@ function Row({ song, list, i }: { song: Song; list: Song[]; i: number }) {
         {song.item.logo ? <img src={song.item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-11 shrink-0 bg-ink/10 object-cover" /> : <span className="size-11 shrink-0 bg-ink/10" aria-hidden />}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold leading-[1.25]">{song.item.name}</span>
-          <span className="block truncate text-[13px] leading-[1.3] text-ink-2">{song.item.meta} · {song.seconds > 0 && `${clock(song.seconds)} · `}<span className="text-ink-3">{SOURCE_NAME[song.source]}</span></span>
+          <span className="block truncate text-[13px] leading-[1.3] text-ink-2">{song.item.meta} · {song.seconds > 0 && `${clock(song.seconds)} · `}<span className="text-ink-3">{SOURCE_NAME[song.source]}{song.license ? ` · ${song.license}` : ''}</span></span>
         </span>
         <span className="grid size-10 shrink-0 place-items-center bg-signal text-on-signal" aria-hidden>{live ? <Pause className="size-4" /> : <Play className="size-4" />}</span>
       </button>

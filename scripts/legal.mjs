@@ -23,7 +23,7 @@ const SOURCES = `<p>Friction does not own, host, produce or control any radio st
 <li><strong>Podcasts:</strong> found with the ${ext('https://performance-partners.apple.com/search-api', 'iTunes Search API')} and played from each podcast's own feed and host.</li>
 <li><strong>Songs:</strong> ${ext('https://audius.co', 'Audius')}, ${ext('https://openverse.org', 'Openverse')}, the ${ext('https://archive.org', 'Internet Archive')} (including its Free Music Archive, Musopen and Live Music Archive collections), ${ext('https://commons.wikimedia.org', 'Wikimedia Commons')} and the ${ext('https://www.loc.gov/collections/national-jukebox/', 'Library of Congress National Jukebox')}.</li>
 <li><strong>News:</strong> the public feeds of each publisher, linked to the publisher's own page.</li>
-<li><strong>Lessons:</strong> text from ${ext('https://www.wikipedia.org', 'Wikipedia')}, available under its open licence.</li>
+<li><strong>Lessons:</strong> text from ${ext('https://www.wikipedia.org', 'Wikipedia')}, shortened and rearranged into lessons and questions, used under the ${ext('https://creativecommons.org/licenses/by-sa/4.0/', 'Creative Commons Attribution-ShareAlike 4.0 licence')} (each lesson links to its article and its history). Each song shows the licence its source gives it where there is one.</li>
 </ul>
 <p>If you have an issue with a particular stream or recording, such as copyright, a takedown request, offensive or unlawful content, or a stream that is wrong or broken, please contact the source that publishes it: the broadcaster, channel owner, podcast host, or the service listed above. They control the content and can fix or remove it.</p>
 <h3>Requests from rights holders</h3>
@@ -96,7 +96,7 @@ const PAGES = {
 </ul>
 <h2>Third-party services</h2>
 <ul>
-<li><strong>Google (Tag Manager, analytics, AdSense).</strong> The site loads Google Tag Manager, which measures how screens are used, and may show Google AdSense advertising on public pages. Google and its partners may use cookies and similar technologies, including to show personalised or non-personalised ads. Google's use of advertising cookies lets it and its partners serve ads based on visits to this and other sites. You can manage personalised advertising at <a href="https://adssettings.google.com">adssettings.google.com</a> and learn how Google uses data at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. Where the law requires it, a consent choice is shown before such cookies are set.</li>
+<li><strong>Google (Tag Manager, analytics, AdSense).</strong> The site loads Google Tag Manager, which measures how screens are used, and may show Google AdSense advertising on public pages. Google and its partners may use cookies and similar technologies, including to show personalised or non-personalised ads. Google's use of advertising cookies lets it and its partners serve ads based on visits to this and other sites. You can manage personalised advertising at <a href="https://adssettings.google.com">adssettings.google.com</a> and learn how Google uses data at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. Nothing from Google loads until you press Accept on the cookie notice. Reject (or not answering) loads nothing, and you can change your choice at any time under Settings, then Help, then Cookie choice.</li>
 <li><strong>Hyperbeam and relay servers (cloud browser).</strong> If you open the cloud browser, a real browser runs on a third party's servers and that party can see what you do in it. A card says so before it starts. No cookies or profile are saved.</li>
 <li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
@@ -129,12 +129,13 @@ const PAGES = {
 </tbody></table>
 <h2>Cookies from partners</h2>
 <ul>
-<li><strong>Google Tag Manager and analytics.</strong> Measure how pages and features are used so they can be improved.</li>
+<li><strong>Google Tag Manager and analytics.</strong> Measure how pages and features are used so they can be improved. Loaded only after you press Accept on the cookie notice.</li>
 <li><strong>Google AdSense and its partners.</strong> If advertising is shown, Google and its partners may set or read cookies to show ads, limit how often you see one, and measure results. These may be personalised.</li>
 </ul>
 <h2>How to control them</h2>
 <ul>
 <li>Use your browser's settings to block or delete cookies for this site. Friction still works, though ads may be less relevant.</li>
+<li>Change your choice on Friction at any time: Settings, then Help, then Cookie choice.</li>
 <li>Manage Google's personalised ads at <a href="https://adssettings.google.com">adssettings.google.com</a>, or opt out of many third-party vendors at <a href="https://www.aboutads.info">aboutads.info</a>.</li>
 <li>Erase everything in Settings, then Data, removes what Friction itself stores.</li>
 </ul>

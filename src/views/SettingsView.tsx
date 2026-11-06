@@ -10,6 +10,7 @@ import { EnterCode, MakeCode } from '@/components/app/Handoff'
 import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
+import { useConsent } from '@/lib/consent'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -266,6 +267,7 @@ function Help() {
         {[['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/cookies', 'Cookies'], ['/terms', 'Terms'], ['/disclaimer', 'Disclaimer']].map(([h, t]) => (
           <a key={h} href={h} target="_blank" rel="noopener" className="inline-flex min-h-8 items-center underline-offset-2 hover:text-signal hover:underline">{t}</a>
         ))}
+        <button type="button" onClick={() => useConsent.getState().reopen()} className="inline-flex min-h-8 items-center underline-offset-2 hover:text-signal hover:underline">Cookie choice</button>
       </p>
     </Panel>
   )

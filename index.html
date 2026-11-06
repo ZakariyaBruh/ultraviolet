@@ -1,14 +1,19 @@
 <!doctype html>
 <html lang="en" class="dark" style="color-scheme: dark">
   <head>
-    <!-- Google Tag Manager -->
-    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-5XVMFD4M"></script>
+    <!-- Google Tag Manager: loaded only after the visitor accepts (consent mode starts everything denied). The choice is kept in localStorage 'friction:consent'. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      // what the standard Tag Manager loader pushes first, so the container starts
-      dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+      gtag('consent', 'default', { ad_storage: 'denied', analytics_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      window.__gtm = function () {
+        if (window.__gtmOn) return; window.__gtmOn = true;
+        gtag('consent', 'update', { ad_storage: 'granted', analytics_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted' });
+        gtag('js', new Date());
+        dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-5XVMFD4M'; document.head.appendChild(s);
+      };
+      try { if (localStorage.getItem('friction:consent') === 'granted') window.__gtm(); } catch (e) {}
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

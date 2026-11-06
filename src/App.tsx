@@ -36,6 +36,7 @@ import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
 import { ReportSheet } from '@/components/app/Report'
+import { ConsentBanner } from '@/components/app/ConsentBanner'
 import { FirstLaunch, InstallPrompt } from '@/components/app/Install'
 import { BrowserTour, ItemTour, Tour } from '@/components/app/Tour'
 import { useMusicSync } from '@/lib/music'
@@ -198,6 +199,7 @@ export default function App() {
         </SheetContent>
       </Sheet>
       <ReportSheet />
+      <ConsentBanner />
       <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
         <SheetContent side="bottom">
           <SheetHeader>

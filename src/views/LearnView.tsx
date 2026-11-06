@@ -172,6 +172,7 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
                 <div className="flex flex-wrap items-center gap-2">
                   <button onClick={keep} aria-pressed={!!saved} className="inline-flex h-11 items-center gap-2 border border-ink/30 px-3 text-sm hover:bg-ink/10">{saved ? <BookmarkCheck className="size-4 text-signal" /> : <Bookmark className="size-4" />}{saved ? 'In your review deck' : 'Keep for review'}</button>
                   <a href={lesson.url} target="_blank" rel="noopener noreferrer" className="hud inline-flex min-h-11 items-center gap-1.5 hover:text-ink">Full article <ExternalLink className="size-3.5" /></a>
+                  <span className="text-[12px] leading-[1.3] text-ink-3">Text adapted from <a href={lesson.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">Wikipedia</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">CC BY-SA 4.0</a>)</span>
                 </div>
               </>
             )}
