@@ -66,7 +66,7 @@ for (const [route, m] of Object.entries(seo)) {
   n++
 }
 // pages that live outside the app (plain files in public/) and still belong in the sitemap
-const STATIC = ['/blogs']
+const STATIC = ['/blogs', '/about', '/contact', '/privacy', '/cookies', '/terms', '/disclaimer']
 // the sitemap comes from the same list, so a screen cannot be in one and not the other
 const day = new Date().toISOString().slice(0, 10)
 const rank = (r) => (r === '/' ? '1.0' : r === '/focus' ? '0.9' : ['/radio', '/tv', '/learn'].includes(r) ? '0.8' : ['/podcasts', '/music', '/news'].includes(r) ? '0.7' : '0.6')

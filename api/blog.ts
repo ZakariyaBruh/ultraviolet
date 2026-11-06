@@ -127,7 +127,7 @@ ${STYLE}
 <main>
 ${o.main}
 </main>
-<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. Your data stays in your browser.</p><p><a href="/">Front page</a> · <a href="/focus">Focus timer</a> · <a href="/blogs">Blog</a></p></div></footer>
+<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. Your data stays in your browser.</p><p><a href="/">Front page</a> · <a href="/focus">Focus timer</a> · <a href="/blogs">Blog</a> · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a> · <a href="/terms">Terms</a></p></div></footer>
 </body>
 </html>`
 }

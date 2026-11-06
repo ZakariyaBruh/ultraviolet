@@ -60,6 +60,7 @@ function AboutScreen({ route }: { route: Route }) {
       <p>{about.intro}</p>
       {about.items.map((i) => <div key={i.title}><h3>{i.title}</h3><p>{i.text}</p></div>)}
       <p><a href="/blogs">Read the Friction blog</a>: notes on focus, study and attention.</p>
+      <p><a href="/about">About</a>, <a href="/contact">Contact</a>, <a href="/privacy">Privacy Policy</a>, <a href="/cookies">Cookie Policy</a>, <a href="/terms">Terms of Use</a> and <a href="/disclaimer">Disclaimer</a>.</p>
     </section>
   )
 }
@@ -246,7 +247,7 @@ export default function App() {
 
       <AboutScreen route={route} />
       <FirstLaunch />
-      <Onboarding />
+      {route !== 'home' && <Onboarding />}
       <InstallPrompt route={route} />
       {route !== 'home' && <Tour view={view} go={change} />}
       {route !== 'home' && <ItemTour view={view} go={change} />}

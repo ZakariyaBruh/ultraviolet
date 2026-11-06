@@ -95,6 +95,11 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             ))}
             <a href="/blogs" className="inline-flex min-h-8 items-center hover:text-signal">Blog</a>
           </nav>
+          <nav aria-label="About this site" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-3">
+            {[['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/cookies', 'Cookies'], ['/terms', 'Terms']].map(([h, t]) => (
+              <a key={h} href={h} className="inline-flex min-h-8 items-center hover:text-signal">{t}</a>
+            ))}
+          </nav>
         </div>
       </div>
     </div>

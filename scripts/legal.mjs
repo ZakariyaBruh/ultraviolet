@@ -1,0 +1,225 @@
+// The pages Google AdSense (and any visitor) expects: About, Contact, Privacy Policy, Cookie Policy, Terms of Use and a Disclaimer.
+// Plain HTML outside the app, written into dist/<name>/index.html in the postbuild step (Vercel serves a file before the SPA rewrite),
+// in the same station look as the blog: the stylesheet is lifted from api/blog.ts so the two cannot drift apart.
+// Edit the words here; CONTACT is the one address the site publishes.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+
+const SITE = 'https://www.frictionx.app'
+const CONTACT = 'hello@frictionx.app'
+const UPDATED = '6 November 2026'
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
+const STYLE = blog.slice(blog.indexOf('<style>'), blog.indexOf('</style>') + 8)
+const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
+const MARK = '<svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="5" transform="rotate(-100 32 32)" stroke-dasharray="1 1" pathLength="1"/><rect x="40" y="10" width="16" height="16" fill="#ffd23f"/></svg>'
+const mail = `<a href="mailto:${CONTACT}">${CONTACT}</a>`
+
+const PAGES = {
+  '/about': {
+    title: 'About Friction: a free focus timer with no feed',
+    description: 'Friction is a free focus timer with radio, live TV, lessons and a small arcade. No account, no feed. Who makes it, why, and what it costs.',
+    h1: 'About Friction',
+    lead: 'A focus timer that makes leaving the tab the one thing that costs you, with radio, live TV and lessons to stay with instead of a feed.',
+    body: `
+<h2>What it is</h2>
+<p>Friction is a free web app for studying and working without being pulled away. You choose how long to focus and lock in. While you are locked in, the clock runs only while this tab is in front of you. Leave it and the session records a drift, the one unit Friction measures.</p>
+<p>Around the timer there is a station to stay with: internet radio, live TV channels, podcasts, news, lessons built from Wikipedia text by fixed rules, a small arcade you pay for with credits you earn by focusing, study windows such as a notepad and a calculator, and Together rooms for studying with friends.</p>
+<h2>Why it exists</h2>
+<p>Most focus tools block things or scold you. Friction does the opposite: it gives you something good to do inside the tab, and keeps an honest count of how often you left. It does not invent proof, it does not send you notifications to come back, and it has no feed.</p>
+<h2>Who makes it</h2>
+<p>Friction is made and run by one independent developer. It has no investors and no sales team. If you have a question, a bug or an idea, write to ${mail}.</p>
+<h2>How it is paid for</h2>
+<p>Friction is free to use. The hosting, the database and the cloud browser cost real money, so the site may show advertising from Google AdSense on its public pages, such as the blog. Ads never change the timer, the lessons or your data. How ads and cookies work is explained in the <a href="/privacy">Privacy Policy</a> and the <a href="/cookies">Cookie Policy</a>.</p>
+<h2>Where AI is used, and where it is not</h2>
+<p>Lessons, their questions and the Debrief are plain rules and computed text, never AI. AI appears in only three labelled places: demos for lesson topics without a built-in one, an optional Ask AI window you open and type into, and a check that helps the Browser window block games and short-form social media. The articles on the <a href="/blogs">blog</a> are written with AI and published automatically, and each one says so.</p>
+<h2>Your data</h2>
+<p>Everything you make (sessions, notes, settings, credits) is kept in your own browser. There is no account. See the <a href="/privacy">Privacy Policy</a> for the few things that do leave your browser, and how to erase them.</p>`,
+  },
+  '/contact': {
+    title: 'Contact Friction: questions, bugs, privacy requests',
+    description: 'How to reach the person who runs Friction: questions, bug reports, privacy and data requests, advertising and press. One address, read by a human.',
+    h1: 'Contact',
+    lead: 'One address, read by the person who builds Friction.',
+    body: `
+<h2>Email</h2>
+<p><strong>${mail}</strong></p>
+<p>Write about anything below. A reply usually takes a few days; there is no support team, so a clear message with what you were doing, the screen you were on, and your device and browser helps most.</p>
+<h2>What to write about</h2>
+<ul>
+<li><strong>A bug or something that looks wrong.</strong> Say what you expected and what happened.</li>
+<li><strong>A site that does not work in the Browser window.</strong> The Browser reads pages only, and the cloud browser is experimental; some sites will not work.</li>
+<li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, write here.</li>
+<li><strong>Advertising, press and partnerships.</strong> Send a short note about what you have in mind.</li>
+<li><strong>Takedown or copyright.</strong> Friction links to radio stations, TV streams, podcasts and songs that other people publish and does not host them. If something should not be listed, send the address and who you are.</li>
+</ul>
+<h2>Before you write</h2>
+<p>The <a href="/about">About</a> page says what Friction is. The <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms of Use</a> answer most questions about data and rules.</p>`,
+  },
+  '/privacy': {
+    title: 'Privacy Policy: what Friction keeps and what leaves',
+    description: 'What Friction stores in your browser, the few things sent to servers, how Google advertising and analytics cookies work, and how to erase everything.',
+    h1: 'Privacy Policy',
+    lead: `Friction has no accounts and keeps what you make in your own browser. This page lists the exceptions. Last updated ${UPDATED}.`,
+    body: `
+<h2>In short</h2>
+<ul>
+<li>There is no account. Your sessions, notes, settings and credits are saved in your browser, not on our servers.</li>
+<li>You can erase everything in Settings, then Data, then Erase everything.</li>
+<li>Third parties, listed below, receive some data when you use a feature that needs them, and Google may set cookies for analytics and advertising.</li>
+</ul>
+<h2>Who is responsible</h2>
+<p>Friction is run by an independent developer. For privacy questions or requests write to ${mail}.</p>
+<h2>What stays in your browser</h2>
+<p>Your profile name, settings, sessions, drifts, credits, lessons, notes, to-do lists, layout and shop items are stored in your browser (localStorage and IndexedDB). We cannot see them, and clearing site data or using Erase everything removes them. Your private identity key is a random value that also stays in your browser; only a hash of it is ever sent anywhere.</p>
+<h2>What is sent to our servers</h2>
+<ul>
+<li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, and your score. Erase everything deletes your row.</li>
+<li><strong>Together rooms (optional).</strong> A room stores the names members chose, chat messages, what is being shared and an optional Discord or Slack webhook address the host sets. A room with nobody left is deleted. Erase everything removes your seat.</li>
+<li><strong>Moving your data.</strong> If you use Move my data, your data is encrypted in your browser with a code only you see, kept for ten minutes, and deleted when read. We never see the code or the contents.</li>
+<li><strong>The Browser window and cloud browser allowance.</strong> Pages are fetched by our server on your behalf and are not stored. The daily time allowance for the cloud browser is counted against a hash of your network address, which is kept for the day.</li>
+<li><strong>Technical logs.</strong> Our host, Vercel, processes requests and keeps standard server logs such as address, time and page requested.</li>
+</ul>
+<h2>Third-party services</h2>
+<ul>
+<li><strong>Google (Tag Manager, analytics, AdSense).</strong> The site loads Google Tag Manager, which measures how screens are used, and may show Google AdSense advertising on public pages. Google and its partners may use cookies and similar technologies, including to show personalised or non-personalised ads. Google's use of advertising cookies lets it and its partners serve ads based on visits to this and other sites. You can manage personalised advertising at <a href="https://adssettings.google.com">adssettings.google.com</a> and learn how Google uses data at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. Where the law requires it, a consent choice is shown before such cookies are set.</li>
+<li><strong>Hyperbeam and relay servers (cloud browser).</strong> If you open the cloud browser, a real browser runs on a third party's servers and that party can see what you do in it. A card says so before it starts. No cookies or profile are saved.</li>
+<li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
+<li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
+<li><strong>Video and audio embeds.</strong> YouTube videos open in the privacy-friendly embed.</li>
+</ul>
+<h2>Cookies and local storage</h2>
+<p>See the <a href="/cookies">Cookie Policy</a>.</p>
+<h2>Children</h2>
+<p>Friction is a general study tool and is not aimed at children under 13. We do not knowingly collect personal data from them. If you think a child has given us data, write to ${mail}.</p>
+<h2>Your rights</h2>
+<p>Because almost everything is in your browser, you can see and delete it yourself. For data on our servers (a leaderboard row, a room seat), Erase everything deletes it. You may also ask us to access, correct or delete data, or object to its use, by writing to ${mail}. If you are in the EEA, UK or California you have additional rights under local law, and you may complain to your data-protection authority.</p>
+<h2>Security</h2>
+<p>Pages are served over HTTPS. Keys and secrets live only on the server and never in the client. No system is perfectly secure, so do not put anything highly sensitive into any web page, including this one.</p>
+<h2>Changes</h2>
+<p>When this policy changes we update the date at the top. Material changes are also noted on the front page.</p>`,
+  },
+  '/cookies': {
+    title: 'Cookie Policy: cookies and storage Friction uses',
+    description: 'The cookies, local storage and similar technologies Friction and its advertising and analytics partners use, what each is for, and how to control them.',
+    h1: 'Cookie Policy',
+    lead: `What is stored on your device when you use Friction, and how to control it. Last updated ${UPDATED}.`,
+    body: `
+<h2>What we store ourselves</h2>
+<p>Friction uses your browser's local storage and IndexedDB, not cookies, to remember your settings, sessions, notes and layout, plus small flags such as whether you have seen the tour. These are needed for the app to work and are never sent to advertisers.</p>
+<table>
+<thead><tr><th>Name</th><th>Purpose</th><th>Kept</th></tr></thead>
+<tbody>
+<tr><td>friction:*</td><td>Your data, settings, layout, private identity key and small flags</td><td>Until you erase it</td></tr>
+<tr><td>learn:demo:*</td><td>A cached lesson demo so it is written once</td><td>Until you erase it</td></tr>
+</tbody></table>
+<h2>Cookies from partners</h2>
+<ul>
+<li><strong>Google Tag Manager and analytics.</strong> Measure how pages and features are used so they can be improved.</li>
+<li><strong>Google AdSense and its partners.</strong> If advertising is shown, Google and its partners may set or read cookies to show ads, limit how often you see one, and measure results. These may be personalised.</li>
+</ul>
+<h2>How to control them</h2>
+<ul>
+<li>Use your browser's settings to block or delete cookies for this site. Friction still works, though ads may be less relevant.</li>
+<li>Manage Google's personalised ads at <a href="https://adssettings.google.com">adssettings.google.com</a>, or opt out of many third-party vendors at <a href="https://www.aboutads.info">aboutads.info</a>.</li>
+<li>Erase everything in Settings, then Data, removes what Friction itself stores.</li>
+</ul>
+<p>More on how Google uses information from sites that use its services is at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. For the rest of what we handle, see the <a href="/privacy">Privacy Policy</a>.</p>`,
+  },
+  '/terms': {
+    title: 'Terms of Use: the rules for using Friction',
+    description: 'The terms for using Friction: what the service is, acceptable use, third-party content, the Browser and cloud browser limits, credits, and liability.',
+    h1: 'Terms of Use',
+    lead: `Plain rules for using Friction. By using the site you agree to them. Last updated ${UPDATED}.`,
+    body: `
+<h2>The service</h2>
+<p>Friction is a free web app provided as it is. Parts of it (the Browser window, the cloud browser, some AI features) are experimental and may be slow, wrong or unavailable at any time.</p>
+<h2>Using it</h2>
+<ul>
+<li>You may use Friction for personal, non-commercial study and work.</li>
+<li>Do not try to break, overload or probe the service, scrape it at scale, get around its limits (such as the cloud browser's daily time or the Browser's blocklist), or use it to do anything unlawful.</li>
+<li>Do not use Together rooms or the leaderboard to harass anyone or to post unlawful, hateful or sexual content. Aliases and room names may be removed.</li>
+<li>The Browser is built to block games and short-form social media. Do not try to avoid that.</li>
+</ul>
+<h2>Third-party content</h2>
+<p>Friction lists and links to radio stations, TV streams, podcasts, news, songs and pages published by others. We do not host or control them, are not responsible for what they say, and do not guarantee they are available or lawful where you are. Their own terms apply.</p>
+<h2>Credits and the shop</h2>
+<p>Credits are earned only by focusing and finishing lessons. They have no cash value, cannot be bought with money or won in games, and are stored in your browser. Clearing your data removes them.</p>
+<h2>AI features</h2>
+<p>AI output can contain mistakes. Check it against a reliable source. Do not rely on it for medical, legal or financial decisions.</p>
+<h2>Advertising</h2>
+<p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
+<h2>Ownership</h2>
+<p>Friction's design, code and text belong to its maker. Content you write (notes, chat, aliases) remains yours; you let us store and show it as needed to run the feature you used.</p>
+<h2>No warranty and limit of liability</h2>
+<p>To the fullest extent the law allows, Friction is provided without warranties of any kind, and we are not liable for any loss arising from using it, including lost data, missed deadlines or results from a study tool. Nothing here limits rights you have by law that cannot be limited.</p>
+<h2>Changes and ending</h2>
+<p>We may change the service or these terms, and may end or limit access for misuse. The date above shows the latest version.</p>
+<h2>Contact</h2>
+<p>${mail}</p>`,
+  },
+  '/disclaimer': {
+    title: 'Disclaimer: study help, not professional advice',
+    description: 'Friction is a study and focus tool. Lessons come from Wikipedia text, AI output can be wrong, and nothing here is professional advice. Read this first.',
+    h1: 'Disclaimer',
+    lead: 'Friction helps you focus and learn. It is not a substitute for professional advice or a primary source.',
+    body: `
+<h2>Education only</h2>
+<p>Lessons are built by fixed rules from Wikipedia text and may be incomplete or out of date. Demos written by AI can contain mistakes and say so. Check anything important against the source.</p>
+<h2>No professional advice</h2>
+<p>Nothing on Friction is medical, legal, financial or mental-health advice. If you are struggling, speak to a qualified person.</p>
+<h2>External content</h2>
+<p>Radio, TV, podcasts, news, songs and web pages come from third parties. We do not control or endorse them, and their availability can change without notice.</p>
+<h2>Advertising</h2>
+<p>Where ads appear they are placed by Google AdSense and are not endorsements by Friction.</p>
+<p>See also the <a href="/terms">Terms of Use</a> and the <a href="/privacy">Privacy Policy</a>.</p>`,
+  },
+}
+
+const NAV = [['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms']]
+const FOOT = '<a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a> · <a href="/blogs">Blog</a>'
+const EXTRA = '<style>table{width:100%;border-collapse:collapse;margin:0 0 20px}th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16px;color:var(--ink-2)}th{color:var(--ink-3);font:600 15px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}.article a{color:var(--signal)}</style>'
+
+for (const [path, p] of Object.entries(PAGES)) {
+  const url = SITE + path
+  const ld = { '@context': 'https://schema.org', '@type': path === '/about' ? 'AboutPage' : path === '/contact' ? 'ContactPage' : 'WebPage', name: p.title, description: p.description, url, isPartOf: { '@type': 'WebSite', name: 'Friction', url: SITE + '/' }, inLanguage: 'en' }
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(p.title)}</title>
+<meta name="description" content="${esc(p.description)}">
+<link rel="canonical" href="${url}">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#05070c">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Friction">
+<meta property="og:title" content="${esc(p.title)}">
+<meta property="og:description" content="${esc(p.description)}">
+<meta property="og:url" content="${url}">
+<meta property="og:image" content="${SITE}/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>
+${STYLE}
+${EXTRA}
+</head>
+<body>
+<div class="bars" aria-hidden="true">${BARS.map((c) => `<i style="background:${c}"></i>`).join('')}</div>
+<header><div class="wrap">
+  <a class="mark" href="/" aria-label="Friction home">${MARK} Friction</a>
+  <nav aria-label="Main">${NAV.map(([h, t]) => `<a href="${h}"${h === path ? ' aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
+</div></header>
+<main>
+<div class="head"><div class="wrap"><p class="kicker"><a href="/">Friction</a></p><h1>${esc(p.h1)}</h1><p class="lead">${p.lead}</p></div></div>
+<div class="wrap body"><div class="article">${p.body}</div></div>
+</main>
+<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. Your data stays in your browser.</p><p>${FOOT}</p></div></footer>
+</body>
+</html>
+`
+  mkdirSync(`dist${path}`, { recursive: true })
+  writeFileSync(`dist${path}/index.html`, html)
+}
+console.log('legal pages:', Object.keys(PAGES).join(' '))
+export const LEGAL_PATHS = Object.keys(PAGES)

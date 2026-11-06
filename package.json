@@ -7,7 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/sync-api.mjs",
     "build": "tsc -b && vite build",
-    "postbuild": "node scripts/prerender.mjs",
+    "postbuild": "node scripts/prerender.mjs && node scripts/legal.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
