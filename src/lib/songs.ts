@@ -98,11 +98,11 @@ const searchAudius = (q: string) => cached(`songs:audius:v4:${q.toLowerCase()}`,
  * Openverse is slow or unreachable from some countries, so our own relay (`api/openverse.ts`, which reads it from a server and
  * caches it) is asked first, and Openverse itself directly in case the relay is down. The first answer wins.
  */
-const searchOpenverse = (q: string) => cached(`songs:ov:v5:${q.toLowerCase()}`, HOUR, async () => {
+const searchOpenverse = (q: string) => cached(`songs:ov:v6:${q.toLowerCase()}`, HOUR, async () => {
   const term = encodeURIComponent(q || 'music')
   const parse = (d: unknown) => ((d as { results?: OvTrack[] }).results ?? []).map(fromOpenverse).filter((s): s is Song => !!s)
   const relay = async () => { const l = parse(await getJson(`/api/openverse?q=${term}`, 20000)); if (!l.length) throw new Error('empty'); return l }
-  const direct = async (delay: number, size: number) => { await new Promise((r) => setTimeout(r, delay)); return parse(await getJson(`https://api.openverse.org/v1/audio/?q=${term}&page_size=${size}`, 14000)) }
+  const direct = async (delay: number, size: number) => { await new Promise((r) => setTimeout(r, delay)); return parse(await getJson(`https://api.openverse.org/v1/audio/?q=${term}&page_size=${size}&license_type=commercial`, 14000)) }
   return Promise.any([relay(), direct(2000, 12), direct(6000, 8)])
 })
 
@@ -112,7 +112,7 @@ interface ArchiveMeta { d1?: string; dir?: string; files?: { name?: string; leng
  * The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. One search serves four lanes
  * (the general one and three named collections); with no words typed a lane lists its most downloaded recordings.
  */
-const archiveLane = (source: SongSource, q: string, where: string, plain = false) => cached(`songs:ia:${source}:v5:${q.toLowerCase()}`, HOUR, async () => {
+const archiveLane = (source: SongSource, q: string, where: string, plain = false) => cached(`songs:ia:${source}:v6:${q.toLowerCase()}`, HOUR, async () => {
   const term = q.replace(/["\\:()[\]{}]/g, ' ').trim()
   const words = term ? `(title:(${term}) OR creator:(${term})) AND ` : ''
   const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`${words}${where}`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=${plain ? 8 : 10}&output=json`
@@ -132,10 +132,10 @@ const archiveLane = (source: SongSource, q: string, where: string, plain = false
   }))
   return got.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
 })
-const searchArchive = (q: string) => archiveLane('archive', q || 'music', 'mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)')
+const searchArchive = (q: string) => archiveLane('archive', q || 'music', 'mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm) AND NOT licenseurl:*nc*')
 const searchMusopen = (q: string) => archiveLane('musopen', q, 'mediatype:audio AND collection:musopen', true)
-const searchFma = (q: string) => archiveLane('fma', q, 'mediatype:audio AND collection:freemusicarchive', true)
-const searchLive = (q: string) => archiveLane('live', q, 'mediatype:etree AND collection:etree', true)
+const searchFma = (q: string) => archiveLane('fma', q, 'mediatype:audio AND collection:freemusicarchive AND NOT licenseurl:*nc*', true)
+const searchLive = (q: string) => archiveLane('live', q, 'mediatype:etree AND collection:etree AND NOT licenseurl:*nc*', true)
 
 /* ---------------------------------------------------------------------------------------------- Wikimedia Commons */
 interface CommonsInfo { url?: string; descriptionurl?: string; mime?: string; mediatype?: string; duration?: number; extmetadata?: Record<string, { value?: string } | undefined> }

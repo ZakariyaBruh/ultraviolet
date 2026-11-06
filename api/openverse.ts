@@ -7,7 +7,7 @@ const reply = (body: string, status = 200, cache = 'no-store') => new Response(b
 
 async function ask(q: string, size: number, delay: number): Promise<string> {
   await new Promise((r) => setTimeout(r, delay))
-  const r = await fetch(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q)}&page_size=${size}`, { headers: { accept: 'application/json', 'user-agent': 'friction-music/1.0 (focus app)' }, signal: AbortSignal.timeout(12000) })
+  const r = await fetch(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q)}&page_size=${size}&license_type=commercial`, { headers: { accept: 'application/json', 'user-agent': 'friction-music/1.0 (focus app)' }, signal: AbortSignal.timeout(12000) })
   if (!r.ok) throw new Error(String(r.status))
   const t = await r.text()
   if (!t.startsWith('{')) throw new Error('shape')
