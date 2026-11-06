@@ -1,5 +1,7 @@
 import { Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
 import { E, FPS, Fill, Grain, Kicker, P, Ticks, Vignette, clamp, shake, spr } from './kit'
+import { Body, Screen, Sheen } from './Device'
+import { Contours } from './Contours'
 
 /** The real app, one take, filmed frame by frame (scripts/capture6.cjs) and played back through a virtual camera that is a spring:
  *  it carries its speed from one target to the next, so every move eases out of the last one instead of cutting between fixed crops. */
@@ -101,17 +103,25 @@ export const AppScene = () => {
   // a breath in the frame so no shot is ever a still: a hundredth of zoom and a few pixels
   const bz = 1 + 0.006 * Math.sin(now * 0.8), bxp = Math.sin(now * 0.55) * 3, byp = Math.cos(now * 0.43) * 2
   const plunge = interpolate(now, [23.2, 24.0], [0, 1], { ...clamp, easing: E.in })
-  const sc = OUT * c.z * bz * (1 + 5 * plunge)
+  // the tablet: the screen fills the frame as the doughnut's hole opens on it, then the camera pulls back to show the device it is on and settles
+  const fit = 1 - 0.22 * spr(raw / FPS - 0.55, 0.95, 0.88)
+  const sc = OUT * c.z * bz * fit * (1 + 5 * plunge)
+  // a slow 3D drift of the whole device while the camera is wide; it eases out as the camera closes in on the screen
+  const wide = Math.max(0, Math.min(1, (1.75 - c.z) / 0.75)) * (1 - plunge)
+  const ry = 7 * Math.sin(now * 0.52 + 0.4) * wide, rx = 3.2 * Math.sin(now * 0.37 + 1.1) * wide
   const s = shake(now, 8.0, 6)
   // arrival: the screen opens out of the middle of the dial, with rings leaving it
   const arrive = 0.74 + 0.26 * spr(raw / FPS, 0.6, 0.84)
   return (
     <Fill style={{ background: P.deep }}>
       <svg width="0" height="0" style={{ position: 'absolute' }}><defs><filter id="camblur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation={`${bx.toFixed(2)} ${by.toFixed(2)}`} /></filter></defs></svg>
-      <Fill>
-        <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${raw / FPS < 1.4 ? arrive : 1})`, transformOrigin: '960px 540px' }}>
+      <Contours t={now * 2 + 30} opacity={0.55 * (1 - 0.6 * plunge)} cx={960 - c.vx * 0.02} cy={540} />
+      <Fill style={{ perspective: 2600, perspectiveOrigin: '960px 540px' }}>
+        <Fill style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${raw / FPS < 1.4 ? arrive : 1}) rotateY(${ry.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg)`, transformOrigin: '960px 540px' }}>
           <Fill style={{ filter: `${blurOn ? 'url(#camblur) ' : ''}contrast(1.07) saturate(1.1)` }}>
             <div style={{ position: 'absolute', left: 0, top: 0, width: SW, height: SH, transformOrigin: '0 0', transform: `translate(${960 + bxp}px, ${540 + byp}px) scale(${sc}) translate(${-c.cx}px, ${-c.cy}px)` }}>
+              <Body />
+              <Screen>
               <Sequence from={0} durationInFrames={PRE} layout="none">
                 <Freeze frame={0}><OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={4} muted style={{ width: SW, height: SH }} /></Freeze>
               </Sequence>
@@ -127,6 +137,8 @@ export const AppScene = () => {
               <Sequence from={PRE + Math.round(14.4 * FPS)} durationInFrames={Math.round(11.6 * FPS) + 4} layout="none">
                 <OffthreadVideo src={staticFile('v6/take.mp4')} startFrom={364} muted style={{ width: SW, height: SH }} />
               </Sequence>
+              </Screen>
+              <Sheen />
             </div>
           </Fill>
         </Fill>

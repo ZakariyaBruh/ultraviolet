@@ -82,7 +82,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   }
   const shoot = async () => {
     // device pixels (3840 x 2160 for the 1280 x 720 page), so a camera zoom of 2x is still one-to-one
-    const buf = await p.screenshot({ type: 'jpeg', quality: 92, scale: 'device', animations: 'allow', caret: 'initial' })
+    let buf
+    for (let k = 0; k < 4 && !buf; k++) { try { buf = await p.screenshot({ type: 'jpeg', quality: 92, scale: 'device', animations: 'allow', caret: 'initial', timeout: 60000 }) } catch (e) { console.log('retry shot', frame, k); await sleep(500) } }
+    if (!buf) throw new Error('screenshot failed at ' + frame)
     fs.writeFileSync(`${OUT}/f${String(frame).padStart(5, '0')}.jpg`, buf)
     frame++
   }

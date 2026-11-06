@@ -63,7 +63,12 @@ a { color: inherit; }
 
 /* ---------- the room and the stage ---------- */
 .room { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-.stage { position: relative; width: var(--sw, 100%); height: var(--sh, 56%); flex: none; background: var(--stage-ground); outline: 1px solid var(--rule); overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.device { position: relative; flex: none; padding: var(--b, 12px); border-radius: calc(var(--b, 12px) * 2.3); background: #0a0f19; box-shadow: 0 0 0 1px rgba(243, 241, 234, 0.14), 0 0 0 3px #03050a, 0 40px 90px rgba(0, 0, 0, 0.6); }
+.device::before { content: ""; position: absolute; left: 50%; top: calc(var(--b, 12px) / 2 - 3px); width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #04060c; box-shadow: inset 0 0 0 1.5px #121a28; }
+.device::after { content: ""; position: absolute; left: 50%; top: calc(var(--b, 12px) / 2 - 1.5px); width: 3px; height: 3px; margin-left: 14px; border-radius: 50%; background: var(--signal); opacity: 0.85; }
+.device.slim::before, .device.slim::after { display: none; }
+.device > .stage { border-radius: calc(var(--b, 12px) * 1.15); box-shadow: 0 0 0 1px rgba(127, 211, 255, 0.14); }
+.stage { position: relative; width: var(--sw, 100%); height: var(--sh, 56%); flex: none; background: var(--stage-ground); overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .ticks { position: relative; flex: none; }
 .cam { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 0.5s var(--ease); }
 .layer, .hits { position: absolute; inset: 0; }
@@ -178,12 +183,14 @@ a { color: inherit; }
   </header>
 
   <main class="room" id="room">
+    <div class="device" id="device">
     <div class="stage" id="stage">
       <div class="cam" id="cam">
         <div class="layer" id="layer"></div>
         <div class="hits" id="hits"></div>
       </div>
       <div id="float"></div>
+    </div>
     </div>
     <div id="dock"></div>
   </main>
@@ -258,7 +265,7 @@ a { color: inherit; }
   var state = 'landing', step = 0, showAll = false, finished = false, freeRoam = false, zoomOn = true;
   var tok = 0, misses = 0, seen = {}, tipTimer = 0, toastTimer = 0;
 
-  var stage = $('stage'), cam = $('cam'), layer = $('layer'), hits = $('hits'), floatEl = $('float'), dock = $('dock');
+  var device = $('device'), stage = $('stage'), cam = $('cam'), layer = $('layer'), hits = $('hits'), floatEl = $('float'), dock = $('dock');
   var room = $('room'), atEl = $('at'), bars = $('bars');
   var SW = 800, SH = 450, compact = false;
 
@@ -298,7 +305,11 @@ a { color: inherit; }
   function size() {
     var rw = room.clientWidth, rh = room.clientHeight;
     compact = rw < 640;
-    var w = compact ? rw : Math.min(rw, Math.max(rh, 120) * 16 / 9);
+    // the app is shown on a tablet: a bezel round the screen (thin on a phone), taken out of the room before the screen is fitted
+    var b = compact ? 5 : Math.max(10, Math.round(Math.min(rw, Math.max(rh, 120) * 16 / 9) * 0.022));
+    device.style.setProperty('--b', b + 'px'); device.classList.toggle('slim', b < 14);
+    var iw = rw - 2 * b, ih = Math.max(rh, 120) - 2 * b;
+    var w = compact ? iw : Math.min(iw, ih * 16 / 9);
     SW = Math.floor(w); SH = Math.floor(w * 9 / 16);
     stage.style.setProperty('--sw', SW + 'px'); stage.style.setProperty('--sh', SH + 'px');
     room.classList.toggle('compact', compact);
