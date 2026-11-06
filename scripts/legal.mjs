@@ -19,7 +19,7 @@ const ext = (h, t) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`
 const SOURCES = `<p>Friction does not own, host, produce or control any radio station, TV channel, podcast, song, news story or web page you can open from it. They are published by other people and are publicly available from the sources below. Friction lists them and plays them straight from their own servers; it does not copy, re-broadcast or store them.</p>
 <ul>
 <li><strong>Radio stations:</strong> a hand-picked list of about 70 public-service and independent stations (for example France Inter, Deutschlandfunk, NRK, SR, NPO, RAI, ABC-style public broadcasters, WQXR, WNYC, SomaFM and Radio Paradise), found through the community directory ${ext('https://www.radio-browser.info', 'Radio Browser')}. Each station is run by its own broadcaster and played from its own server.</li>
-<li><strong>Live TV channels:</strong> a hand-picked list of about 100 public-service and international broadcasters (for example ARD, ORF, RTVE, RAI, ERR, DR, Euronews, DW, France 24, NHK World, ABC and CBC channels, PBS Kids and parliament channels), found through the public playlists of ${ext('https://github.com/iptv-org/iptv', 'iptv-org')} and kept only where the stream address belongs to the broadcaster itself. It is played from the broadcaster's own server.</li>
+<li><strong>Live TV channels:</strong> a hand-picked list of about 100 public-service and international broadcasters (for example ARD, ORF, RTVE, RAI, ERR, DR, Euronews, DW, France 24, NHK World, ABC and CBC channels and PBS Kids), found through the public playlists of ${ext('https://github.com/iptv-org/iptv', 'iptv-org')} and kept only where the stream address belongs to the broadcaster itself. It is played from the broadcaster's own server.</li>
 <li><strong>Podcasts:</strong> found with the ${ext('https://performance-partners.apple.com/search-api', 'iTunes Search API')} and played from each podcast's own feed and host.</li>
 <li><strong>Songs:</strong> ${ext('https://audius.co', 'Audius')}, ${ext('https://openverse.org', 'Openverse')}, the ${ext('https://archive.org', 'Internet Archive')} (including its Free Music Archive, Musopen and Live Music Archive collections), ${ext('https://commons.wikimedia.org', 'Wikimedia Commons')} and the ${ext('https://www.loc.gov/collections/national-jukebox/', 'Library of Congress National Jukebox')}.</li>
 <li><strong>News:</strong> the public feeds of each publisher, linked to the publisher's own page.</li>
@@ -210,6 +210,7 @@ for (const [path, p] of Object.entries(PAGES)) {
 <link rel="canonical" href="${url}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#05070c">
+<meta name="google-adsense-account" content="ca-pub-4954107433114846">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Friction">
 <meta property="og:title" content="${esc(p.title)}">

@@ -3,7 +3,7 @@ import type { MediaItem } from './store'
 
 /**
  * Live TV is a curated list, not the open internet: public-service and international broadcasters whose own servers carry the stream
- * (ARD, ORF, RTVE, RAI, ERR, DR, Euronews, DW, France 24, NHK, ABC, CBC, PBS Kids, parliaments, and so on), found through the public
+ * (ARD, ORF, RTVE, RAI, ERR, DR, Euronews, DW, France 24, NHK, ABC, CBC, PBS Kids and so on), found through the public
  * iptv-org playlists and kept only where the address is the broadcaster's own, not a re-host. Played straight from them; we never
  * copy or re-broadcast. `scripts/curate-tv.py` rebuilds the list and checks every stream is alive; run it now and then, streams move.
  * Anyone can ask for a channel to be hidden (see the Disclaimer page); what the broadcasters publish stays theirs.
@@ -12,7 +12,7 @@ interface Row { id: string; name: string; url: string; logo: string | null; cc: 
 const ROWS = curated as Row[]
 
 /** the chips, each a way of grouping the list */
-export const TV_CATEGORIES = ['news', 'general', 'education', 'culture', 'kids', 'parliament', 'sports', 'music'] as const
+export const TV_CATEGORIES = ['news', 'general', 'education', 'culture', 'kids', 'sports', 'music'] as const
 export type TvCategory = (typeof TV_CATEGORIES)[number]
 const GROUP: Record<TvCategory, string[]> = {
   news: ['news'],
@@ -20,7 +20,6 @@ const GROUP: Record<TvCategory, string[]> = {
   education: ['education', 'documentary', 'science', 'outdoor'],
   culture: ['culture'],
   kids: ['kids'],
-  parliament: ['legislative'],
   sports: ['sports'],
   music: ['music'],
 }

@@ -95,6 +95,7 @@ function ShowPage({ show, onBack }: { show: Show; onBack: () => void }) {
         <div className="min-w-0">
           <h2 className="line-clamp-2 text-[18px] font-semibold leading-6">{show.name}</h2>
           <p className="truncate text-[13px] text-ink-2">{show.artist}{show.genre ? ` · ${show.genre}` : ''}</p>
+          <a href={`https://podcasts.apple.com/podcast/id${show.id}`} target="_blank" rel="noopener noreferrer" className="text-[12px] text-ink-3 underline underline-offset-2 hover:text-ink">View on Apple Podcasts</a>
         </div>
         {here && <div className="max-lg:col-span-2"><Seek /></div>}
       </Panel>
@@ -161,7 +162,7 @@ export function PodcastsView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Podcasts" title="Podcasts" sources sub="Any show in the Apple Podcasts directory. Episodes stream straight from the publisher." />
+      <PageHeader kicker="Podcasts" title="Podcasts" sources sub="Search the Apple Podcasts directory (not affiliated with Apple). Episodes stream straight from each publisher." />
       {open ? (
         <div className="min-h-0 flex-1"><ShowPage show={open} onBack={() => setOpen(null)} /></div>
       ) : (

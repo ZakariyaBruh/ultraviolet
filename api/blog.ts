@@ -108,6 +108,7 @@ function page(o: { title: string; description: string; path: string; type: 'webs
 <link rel="canonical" href="${url}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#05070c">
+<meta name="google-adsense-account" content="ca-pub-4954107433114846">
 <meta property="og:type" content="${o.type}">
 <meta property="og:site_name" content="Friction">
 <meta property="og:title" content="${esc(o.title)}">
