@@ -5,6 +5,8 @@ import type { SessionRec } from './store'
 interface UI {
   theatre: boolean
   tuneOpen: boolean
+  /** the report-a-problem sheet for what is playing */
+  reportOpen: boolean
   soundOpen: boolean
   widgetsOpen: boolean
   searchOpen: boolean
@@ -33,6 +35,7 @@ interface UI {
 export const useUI = create<UI>((set) => ({
   theatre: false,
   tuneOpen: false,
+  reportOpen: false,
   soundOpen: false,
   widgetsOpen: false,
   searchOpen: false,

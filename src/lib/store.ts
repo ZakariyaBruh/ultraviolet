@@ -40,6 +40,8 @@ export interface MediaItem {
   meta?: string
   tags?: string[]
   uuid?: string
+  /** the page of the source this came from (songs), so a problem can be reported there */
+  page?: string
 }
 
 import type { BookRef } from './books'

@@ -68,7 +68,7 @@ function fromAudius(t: AudiusTrack): Song | null {
     source: 'audius', rating: rate(!!t.parental_warning_type, `${t.title} ${t.tags ?? ''}`, txt(t.genre, 40) || 'unknown'),
     seconds: Math.max(0, Math.round(Number(t.duration) || 0)),
     link: `https://audius.co${/^\/[\w\-./]+$/.test(t.permalink ?? '') ? t.permalink : ''}`,
-    item: { id: `song:audius:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.user?.name, 60) || 'Audius', url: `${AUDIUS}/tracks/${encodeURIComponent(t.id)}/stream?app_name=${APP}`, logo: art },
+    item: { id: `song:audius:${t.id}`, kind: 'radio', page: `https://audius.co${/^\/[\w\-./]+$/.test(t.permalink ?? '') ? t.permalink : ''}`, name: txt(t.title, 90), meta: txt(t.user?.name, 60) || 'Audius', url: `${AUDIUS}/tracks/${encodeURIComponent(t.id)}/stream?app_name=${APP}`, logo: art },
   }
 }
 
@@ -81,7 +81,7 @@ function fromOpenverse(t: OvTrack): Song | null {
     source: 'openverse', rating: rate(!!t.mature, hay, (t.genres ?? []).join(' ')),
     seconds: Math.round((Number(t.duration) || 0) / 1000),
     link: https(t.foreign_landing_url) ?? 'https://openverse.org',
-    item: { id: `song:openverse:${t.id}`, kind: 'radio', name: txt(t.title, 90), meta: txt(t.creator, 60) || 'Openverse', url, logo: https(t.thumbnail) },
+    item: { id: `song:openverse:${t.id}`, kind: 'radio', page: https(t.foreign_landing_url), name: txt(t.title, 90), meta: txt(t.creator, 60) || 'Openverse', url, logo: https(t.thumbnail) },
   }
 }
 
@@ -126,7 +126,7 @@ const archiveLane = (source: SongSource, q: string, where: string, plain = false
     return {
       source, rating: rate(false, hay), seconds: Math.round(Number(f.length) || 0),
       link: `https://archive.org/details/${x.identifier}`,
-      item: { id: `song:${source}:${x.identifier}`, kind: 'radio', name: txt(x.title, 90) || f.name, meta: txt(by, 60) || SOURCE_NAME[source], url: `https://archive.org/download/${x.identifier}/${encodeURIComponent(f.name).replace(/%2F/g, '/')}`, logo: `https://archive.org/services/img/${x.identifier}` },
+      item: { id: `song:${source}:${x.identifier}`, kind: 'radio', page: `https://archive.org/details/${x.identifier}`, name: txt(x.title, 90) || f.name, meta: txt(by, 60) || SOURCE_NAME[source], url: `https://archive.org/download/${x.identifier}/${encodeURIComponent(f.name).replace(/%2F/g, '/')}`, logo: `https://archive.org/services/img/${x.identifier}` },
     }
   }))
   return got.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
@@ -160,7 +160,7 @@ function fromCommons(p: CommonsPage): Song | null {
   return {
     source: 'commons', rating: rate(false, hay), seconds,
     link: https(i.descriptionurl) ?? 'https://commons.wikimedia.org',
-    item: { id: `song:commons:${encodeURIComponent(name).slice(0, 80)}`, kind: 'radio', name, meta: plain(m.Artist?.value, 120).split(';')[0].replace(/\s*\([^)]*\)/g, '').trim().slice(0, 60) || 'Wikimedia Commons', url: raw.split('?')[0] },
+    item: { id: `song:commons:${encodeURIComponent(name).slice(0, 80)}`, kind: 'radio', page: https(i.descriptionurl), name, meta: plain(m.Artist?.value, 120).split(';')[0].replace(/\s*\([^)]*\)/g, '').trim().slice(0, 60) || 'Wikimedia Commons', url: raw.split('?')[0] },
   }
 }
 /** a different starting point each day, so the trending list is not the same every visit (and still cacheable) */
@@ -190,7 +190,7 @@ function fromLoc(t: LocItem): Song | null {
   return {
     source: 'loc', rating: rate(false, hay), seconds: 0,
     link: https(t.url) ?? 'https://www.loc.gov/collections/national-jukebox/',
-    item: { id: `song:loc:${id}`, kind: 'radio', name: upFirst(txt(t.title, 90)), meta: [titleCase(txt(by, 50)), year].filter(Boolean).join(', ') || 'National Jukebox', url: media, logo: art },
+    item: { id: `song:loc:${id}`, kind: 'radio', page: https(t.url), name: upFirst(txt(t.title, 90)), meta: [titleCase(txt(by, 50)), year].filter(Boolean).join(', ') || 'National Jukebox', url: media, logo: art },
   }
 }
 const searchLoc = (q: string) => cached(`songs:loc:v1:${q.toLowerCase()}`, HOUR, async () => {

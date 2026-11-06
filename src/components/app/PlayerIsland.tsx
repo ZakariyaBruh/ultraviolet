@@ -1,4 +1,4 @@
-import { Maximize2, Radio, Volume2 } from 'lucide-react'
+import { Flag, Maximize2, Radio, Volume2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Eq, Logo, Transport } from '@/components/app/shared'
@@ -43,6 +43,11 @@ export function PlayerIsland() {
           </button>
         )}
         <Transport compact />
+        {current && (
+          <button type="button" onClick={() => set({ reportOpen: true })} aria-label="Report a problem with this stream" title="Report a problem or find who publishes this" className="grid size-11 place-items-center text-ink-3 hover:bg-ink/10 hover:text-ink md:size-9">
+            <Flag className="size-4" />
+          </button>
+        )}
         {current?.kind === 'tv' && (
           <button type="button" onClick={() => set({ theatre: true })} aria-label="Theatre mode" className="grid size-11 place-items-center md:size-9 text-ink hover:bg-ink/10">
             <Maximize2 className="size-4" />
