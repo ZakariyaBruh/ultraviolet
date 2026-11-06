@@ -9,7 +9,7 @@ type Rect = [number, number, number, number]
 type Key = { t: number; r: Rect }
 const SW = 1280, SH = 720          // the page's own size in css pixels
 const OUT = 1.5                    // 1920 / 1280
-const ZMAX = 1.15                  // capped so the tablet frame stays in shot (the take has 3 pixels per css pixel, so this is always sharp)
+const ZMAX = 1.06                  // capped so the tablet frame stays in shot (the take has 3 pixels per css pixel, so this is always sharp)
 
 // seconds from the start of this scene (the master clock minus 13.0)
 const FULL: Rect = [0, 0, 1280, 720]
@@ -104,11 +104,11 @@ export const AppScene = () => {
   const bz = 1 + 0.006 * Math.sin(now * 0.8), bxp = Math.sin(now * 0.55) * 3, byp = Math.cos(now * 0.43) * 2
   const plunge = interpolate(now, [23.2, 24.0], [0, 1], { ...clamp, easing: E.in })
   // the tablet: the screen fills the frame as the doughnut's hole opens on it, then the camera pulls back to show the device it is on and settles
-  const fit = 1 - 0.30 * spr(raw / FPS - 0.55, 0.95, 0.88)
+  const fit = 1 - 0.15 * spr(raw / FPS - 0.55, 0.95, 0.88)
   const sc = OUT * c.z * bz * fit * (1 + 5 * plunge)
   // a slow 3D drift of the whole device while the camera is wide; it eases out as the camera closes in on the screen
-  const wide = Math.max(0, Math.min(1, (1.75 - c.z) / 0.75)) * (1 - plunge)
-  const ry = 7 * Math.sin(now * 0.52 + 0.4) * wide, rx = 3.2 * Math.sin(now * 0.37 + 1.1) * wide
+  const wide = 1 - plunge
+  const ry = 1.6 * Math.sin(now * 0.52 + 0.4) * wide, rx = 0.8 * Math.sin(now * 0.37 + 1.1) * wide
   const s = shake(now, 8.0, 6)
   // arrival: the screen opens out of the middle of the dial, with rings leaving it
   const arrive = 0.74 + 0.26 * spr(raw / FPS, 0.6, 0.84)

@@ -13,14 +13,15 @@ fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive:
 const CURSOR = `(() => {
   const mk = () => {
     const c = document.createElement('div'); c.id = 'fx-cursor'
-    c.style.cssText = 'position:fixed;left:0;top:0;width:44px;height:44px;pointer-events:none;z-index:2147483647;transform:translate(-100px,-100px);transform-origin:5px 3px'
-    c.innerHTML = '<svg width="44" height="44" viewBox="0 0 34 34"><path d="M4 2 L4 26 L10 20 L15 31 L19 29 L14 18 L23 18 Z" fill="#fff" stroke="#05070c" stroke-width="2" stroke-linejoin="round"/></svg>'
+    c.style.cssText = 'position:fixed;left:0;top:0;width:60px;height:60px;pointer-events:none;z-index:2147483647;transform:translate(-100px,-100px);transform-origin:30px 30px;opacity:0'
+    // a finger, not a mouse pointer: a tablet has none. A soft disc that appears only while the screen is pressed and shrinks a little as it lands.
+    c.innerHTML = '<svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="25" fill="rgba(255,255,255,0.26)" stroke="rgba(255,255,255,0.62)" stroke-width="2"/></svg>'
     document.documentElement.appendChild(c)
     const r = document.createElement('div'); r.id = 'fx-ripple'
     r.style.cssText = 'position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;background:#ffd23f;border-radius:50%;pointer-events:none;z-index:2147483646;opacity:0'
     document.documentElement.appendChild(r)
     window.__fx = (x, y, s, rx, ry, rs, ro) => {
-      c.style.transform = 'translate(' + (x - 5) + 'px,' + (y - 3) + 'px) scale(' + s + ')'
+      c.style.transform = 'translate(' + (x - 30) + 'px,' + (y - 30) + 'px) scale(' + (0.7 + 0.3 * s) + ')'; c.style.opacity = Math.min(1, Math.max(0, (1 - s) / 0.12))
       r.style.transform = 'translate(' + rx + 'px,' + ry + 'px) scale(' + rs + ')'; r.style.opacity = ro
     }
   }
