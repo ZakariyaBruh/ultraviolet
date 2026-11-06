@@ -78,13 +78,17 @@ function HeadSolids({ name }: { name: string }) {
   )
 }
 
-export function PageHeader({ title, sub, kicker, children }: { title: string; sub?: ReactNode; kicker?: string; children?: ReactNode }) {
+/** where the notice that the streams are not ours lives (scripts/legal.mjs writes the page; its Streams heading has this id) */
+export const SOURCES_HREF = '/disclaimer#sources'
+
+export function PageHeader({ title, sub, kicker, sources, children }: { title: string; sub?: ReactNode; kicker?: string; sources?: boolean; children?: ReactNode }) {
   return (
     <header className="relative flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         {kicker && <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{kicker}</div>}
         <h1 className="dot text-[clamp(1.6rem,3.4vw,2.4rem)] font-bold uppercase text-ink">{title}</h1>
         {sub && <p className="mt-0.5 max-w-[60ch] text-sm text-ink-2">{sub}</p>}
+        {sources && <p className="mt-0.5 max-w-[60ch] text-[12px] leading-[1.35] text-ink-3">Not our streams: they are public and belong to their sources. <a href={SOURCES_HREF} target="_blank" rel="noopener" className="text-ink-2 underline underline-offset-2 hover:text-signal">Sources and who to contact</a></p>}
       </div>
       <HeadSolids name={kicker ?? title} />
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}

@@ -80,7 +80,7 @@ export function MusicView() {
   const swipe = useSwipe(() => setPage(Math.max(1, safe - 1)), () => setPage(Math.min(pages, safe + 1)))
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Music" title="Music" sub="Whole songs from Audius, Openverse, Wikimedia Commons, the Library of Congress and the Internet Archive. Free, no account, and only your search words are sent." />
+      <PageHeader kicker="Music" title="Music" sources sub="Whole songs from eight free sources, including Audius, Openverse, the Free Music Archive and Musopen. No account, and only your search words are sent." />
       {age < 0 ? <AgeGate /> : (
         <>
           <div className="flex shrink-0 flex-wrap items-center gap-2">

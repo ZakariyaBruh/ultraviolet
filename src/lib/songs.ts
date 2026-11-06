@@ -5,15 +5,17 @@ import type { MediaItem } from './store'
  * Songs, from services that ask for no key and let a browser call them:
  *  - Audius: independent artists, whole tracks.
  *  - Openverse: openly licensed music from Jamendo and others, whole tracks.
- *  - Internet Archive: public domain and openly licensed recordings, whole tracks.
+ *  - Internet Archive: public domain and openly licensed recordings, whole tracks. Three of its collections are their own lanes, so
+ *    they can be named: Musopen (public domain classical), the Free Music Archive (a mirror of its Creative Commons tracks) and the Live
+ *    Music Archive (concert recordings that the bands allow to be shared).
  *  - Wikimedia Commons: freely licensed and public domain recordings (a lot of classical), whole tracks.
  *  - Library of Congress (National Jukebox): early records, 1900 to 1925, whole tracks.
  * Only the words you type are sent. A song plays in the same player as a radio station (`song:` ids), so the controls, the queue
  * and room sharing all work, and the music made in the browser steps aside while one plays. None of these sources rates its
  * music, so the age setting works from the flags they do give (explicit, mature) and a short list of words.
  */
-export type SongSource = 'audius' | 'openverse' | 'archive' | 'commons' | 'loc'
-export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive', commons: 'Wikimedia Commons', loc: 'Library of Congress' }
+export type SongSource = 'audius' | 'openverse' | 'archive' | 'musopen' | 'fma' | 'live' | 'commons' | 'loc'
+export const SOURCE_NAME: Record<SongSource, string> = { audius: 'Audius', openverse: 'Openverse', archive: 'Internet Archive', musopen: 'Musopen', fma: 'Free Music Archive', live: 'Live Music Archive', commons: 'Wikimedia Commons', loc: 'Library of Congress' }
 export interface Song { item: MediaItem; source: SongSource; seconds: number; link: string; rating: 0 | 1 | 2 }
 
 /** artists the owner wants offered to adults only, whatever their genre says */
@@ -105,10 +107,14 @@ const searchOpenverse = (q: string) => cached(`songs:ov:v5:${q.toLowerCase()}`, 
 
 interface ArchiveDoc { identifier?: string; title?: string; creator?: string | string[] }
 interface ArchiveMeta { d1?: string; dir?: string; files?: { name?: string; length?: string; format?: string }[] }
-/** The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. */
-const searchArchive = (q: string) => cached(`songs:ia:v4:${q.toLowerCase()}`, HOUR, async () => {
-  const term = q.replace(/["\\:()[\]{}]/g, ' ').trim() || 'music'
-  const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`(title:(${term}) OR creator:(${term})) AND mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=10&output=json`
+/**
+ * The Archive lists recordings and their files separately, so each hit is looked up for its first MP3. One search serves four lanes
+ * (the general one and three named collections); with no words typed a lane lists its most downloaded recordings.
+ */
+const archiveLane = (source: SongSource, q: string, where: string, plain = false) => cached(`songs:ia:${source}:v5:${q.toLowerCase()}`, HOUR, async () => {
+  const term = q.replace(/["\\:()[\]{}]/g, ' ').trim()
+  const words = term ? `(title:(${term}) OR creator:(${term})) AND ` : ''
+  const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`${words}${where}`)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&sort%5B%5D=downloads+desc&rows=${plain ? 8 : 10}&output=json`
   const d = (await getJson(url)) as { response?: { docs?: ArchiveDoc[] } }
   const docs = (d.response?.docs ?? []).filter((x) => x.identifier && /^[\w.\-]+$/.test(x.identifier))
   const got = await Promise.allSettled(docs.map(async (x): Promise<Song | null> => {
@@ -118,13 +124,17 @@ const searchArchive = (q: string) => cached(`songs:ia:v4:${q.toLowerCase()}`, HO
     const by = Array.isArray(x.creator) ? x.creator[0] : x.creator
     const hay = `${x.title ?? ''}`
     return {
-      source: 'archive', rating: rate(false, hay), seconds: Math.round(Number(f.length) || 0),
+      source, rating: rate(false, hay), seconds: Math.round(Number(f.length) || 0),
       link: `https://archive.org/details/${x.identifier}`,
-      item: { id: `song:archive:${x.identifier}`, kind: 'radio', name: txt(x.title, 90) || f.name, meta: txt(by, 60) || 'Internet Archive', url: `https://archive.org/download/${x.identifier}/${encodeURIComponent(f.name).replace(/%2F/g, '/')}`, logo: `https://archive.org/services/img/${x.identifier}` },
+      item: { id: `song:${source}:${x.identifier}`, kind: 'radio', name: txt(x.title, 90) || f.name, meta: txt(by, 60) || SOURCE_NAME[source], url: `https://archive.org/download/${x.identifier}/${encodeURIComponent(f.name).replace(/%2F/g, '/')}`, logo: `https://archive.org/services/img/${x.identifier}` },
     }
   }))
   return got.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
 })
+const searchArchive = (q: string) => archiveLane('archive', q || 'music', 'mediatype:audio AND collection:(opensource_audio OR netlabels OR 78rpm)')
+const searchMusopen = (q: string) => archiveLane('musopen', q, 'mediatype:audio AND collection:musopen', true)
+const searchFma = (q: string) => archiveLane('fma', q, 'mediatype:audio AND collection:freemusicarchive', true)
+const searchLive = (q: string) => archiveLane('live', q, 'mediatype:etree AND collection:etree', true)
 
 /* ---------------------------------------------------------------------------------------------- Wikimedia Commons */
 interface CommonsInfo { url?: string; descriptionurl?: string; mime?: string; mediatype?: string; duration?: number; extmetadata?: Record<string, { value?: string } | undefined> }
@@ -200,8 +210,8 @@ export const allowed = (s: Song, age: number) => s.rating <= age && (age >= 2 ||
 export async function findSongs(q: string, age: number, onPartial?: (r: { list: Song[]; failed: SongSource[] }) => void): Promise<{ list: Song[]; failed: SongSource[] }> {
   const term = q.trim()
   const jobs: [SongSource, Promise<Song[]>][] = term.length < 2
-    ? [['audius', trendingAudius()], ['openverse', searchOpenverse('')], ['commons', searchCommons('')], ['loc', searchLoc('')]]
-    : [['audius', searchAudius(term)], ['openverse', searchOpenverse(term)], ['archive', searchArchive(term)], ['commons', searchCommons(term)], ['loc', searchLoc(term)]]
+    ? [['audius', trendingAudius()], ['openverse', searchOpenverse('')], ['musopen', searchMusopen('')], ['fma', searchFma('')], ['commons', searchCommons('')], ['loc', searchLoc('')]]
+    : [['audius', searchAudius(term)], ['openverse', searchOpenverse(term)], ['archive', searchArchive(term)], ['musopen', searchMusopen(term)], ['fma', searchFma(term)], ['live', searchLive(term)], ['commons', searchCommons(term)], ['loc', searchLoc(term)]]
   const lanes = new Map<SongSource, Song[]>()
   const failed: SongSource[] = []
   const mix = () => {

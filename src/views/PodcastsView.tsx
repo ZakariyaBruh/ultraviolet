@@ -161,7 +161,7 @@ export function PodcastsView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Podcasts" title="Podcasts" sub="Any show in the Apple Podcasts directory. Episodes stream straight from the publisher." />
+      <PageHeader kicker="Podcasts" title="Podcasts" sources sub="Any show in the Apple Podcasts directory. Episodes stream straight from the publisher." />
       {open ? (
         <div className="min-h-0 flex-1"><ShowPage show={open} onBack={() => setOpen(null)} /></div>
       ) : (

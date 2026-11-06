@@ -137,7 +137,7 @@ export function NewsView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="News" title="News" sub={`${FEEDS.length} sources, read straight from their RSS feeds. Nothing is ranked for you.`}>
+      <PageHeader kicker="News" title="News" sources sub={`${FEEDS.length} sources, read straight from their RSS feeds. Nothing is ranked for you.`}>
         {!wide && (
           <button onClick={() => setPanel((p) => !p)} aria-pressed={panel} className={cn('inline-flex h-11 items-center gap-2 border border-ink/30 px-3 text-sm', panel ? 'bg-ink text-ground' : 'hover:bg-ink/10')}>
             {panel ? <Newspaper className="size-4" /> : <EyeOff className="size-4" />}{panel ? 'Stories' : `Hidden topics${activeMutes ? ` · ${activeMutes}` : ''}`}

@@ -21,7 +21,7 @@ const SOURCES = `<p>Friction does not own, host, produce or control any radio st
 <li><strong>Radio stations:</strong> the community directory ${ext('https://www.radio-browser.info', 'Radio Browser')}. Each station is run by its own broadcaster.</li>
 <li><strong>Live TV channels:</strong> the public playlists of ${ext('https://github.com/iptv-org/iptv', 'iptv-org')}, which links to streams their owners make freely available.</li>
 <li><strong>Podcasts:</strong> found with the ${ext('https://performance-partners.apple.com/search-api', 'iTunes Search API')} and played from each podcast's own feed and host.</li>
-<li><strong>Songs:</strong> ${ext('https://audius.co', 'Audius')}, ${ext('https://openverse.org', 'Openverse')}, the ${ext('https://archive.org', 'Internet Archive')}, ${ext('https://commons.wikimedia.org', 'Wikimedia Commons')} and the ${ext('https://www.loc.gov/collections/national-jukebox/', 'Library of Congress National Jukebox')}.</li>
+<li><strong>Songs:</strong> ${ext('https://audius.co', 'Audius')}, ${ext('https://openverse.org', 'Openverse')}, the ${ext('https://archive.org', 'Internet Archive')} (including its Free Music Archive, Musopen and Live Music Archive collections), ${ext('https://commons.wikimedia.org', 'Wikimedia Commons')} and the ${ext('https://www.loc.gov/collections/national-jukebox/', 'Library of Congress National Jukebox')}.</li>
 <li><strong>News:</strong> the public feeds of each publisher, linked to the publisher's own page.</li>
 <li><strong>Lessons:</strong> text from ${ext('https://www.wikipedia.org', 'Wikipedia')}, available under its open licence.</li>
 </ul>
@@ -153,7 +153,7 @@ const PAGES = {
 <li>Do not use Together rooms or the leaderboard to harass anyone or to post unlawful, hateful or sexual content. Aliases and room names may be removed.</li>
 <li>The Browser is built to block games and short-form social media. Do not try to avoid that.</li>
 </ul>
-<h2>Streams and third-party content</h2>
+<h2 id="sources">Streams and third-party content</h2>
 ${SOURCES}
 <p>We are not responsible for what they say, and we do not guarantee that they are available or lawful where you are. Their own terms apply.</p>
 <h2>Credits and the shop</h2>
@@ -181,7 +181,7 @@ ${SOURCES}
 <p>Lessons are built by fixed rules from Wikipedia text and may be incomplete or out of date. Demos written by AI can contain mistakes and say so. Check anything important against the source.</p>
 <h2>No professional advice</h2>
 <p>Nothing on Friction is medical, legal, financial or mental-health advice. If you are struggling, speak to a qualified person.</p>
-<h2>Streams and external content</h2>
+<h2 id="sources">Streams and external content</h2>
 ${SOURCES}
 <p>We do not control or endorse them, and their availability can change without notice.</p>
 <h2>Advertising</h2>

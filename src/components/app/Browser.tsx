@@ -96,7 +96,7 @@ export function Browser({ kind, kicker, title, sub, chips, initialChip, load, re
   return (
     <section className={cn('grid h-full min-h-0 gap-6', layout === 'rail' ? 'lg:grid-cols-[minmax(380px,470px)_1fr]' : aside ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : '')}>
       <div className="flex min-h-0 min-w-0 flex-col gap-3">
-        <PageHeader kicker={kicker} title={title} sub={sub}>
+        <PageHeader kicker={kicker} title={title} sub={sub} sources>
           <Seg id={`tabs-${kind}`} value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'saved', label: 'Saved', badge: favorites.length || undefined }, { id: 'recent', label: 'Recent' }]} />
         </PageHeader>
 

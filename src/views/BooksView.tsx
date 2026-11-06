@@ -56,7 +56,7 @@ export function BooksView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Free ebooks" title="Books" sub="Free and public-domain titles from the Internet Archive. Read them here, with the dial still under your thumb.">
+      <PageHeader kicker="Free ebooks" title="Books" sources sub="Free and public-domain titles from the Internet Archive. Read them here, with the dial still under your thumb.">
         <Seg id="tabs-books" value={tab} onChange={(id) => setTab(id as typeof tab)} tabs={[{ id: 'discover', label: 'Discover' }, { id: 'shelf', label: 'Shelf', badge: shelf.length || undefined }]} />
       </PageHeader>
 
