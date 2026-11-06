@@ -4,6 +4,9 @@ import type { MediaItem } from './store'
  * Where to take a problem with something that is playing. Friction does not own or host any of it (see /disclaimer#sources), so the report
  * goes to the source that publishes it, with the item's name filled in where the source's own form allows it. Nothing is sent from here:
  * these are plain links that open the source's page in a new tab.
+ *
+ * Removal and copyright requests are deliberately NOT one tap here: anyone could file false ones to harm a stream or the site. They are made
+ * on the legal pages (scripts/legal.mjs), by the rights holder, and each source runs its own checks.
  */
 export interface ReportLink { label: string; href: string; note?: string }
 export interface ReportInfo { who: string; whoUrl: string; links: ReportLink[] }
@@ -26,7 +29,6 @@ export function reportFor(item: MediaItem): ReportInfo {
       who: 'iptv-org', whoUrl: `${GH}/iptv-org/iptv`,
       links: [
         { label: 'Report a broken stream', href: `${GH}/iptv-org/iptv/issues/new?assignees=&labels=streams:remove&projects=&template=3_streams_report.yml&title=${enc(`Broken: ${item.name}`)}`, note: 'Needs a free GitHub account. They ask you to check it is broken for everyone, not just blocked where you are.' },
-        { label: 'Request removal or report a copyright concern', href: `${GH}/iptv-org/iptv/issues/new?assignees=&labels=removal+request&projects=&template=6_copyright-claim.yml&title=${enc(`Remove: ${item.name}`)}` },
         { label: 'Wrong name, logo or country', href: `${GH}/iptv-org/database/issues` },
       ],
     }

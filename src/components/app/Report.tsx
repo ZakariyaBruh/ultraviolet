@@ -32,7 +32,7 @@ export function ReportSheet() {
               <ul>
                 {info.links.map((l) => <Row key={l.label} {...l} />)}
                 <Row href="/disclaimer#sources" label="Who owns what, and every source" note="Friction lists public streams and does not host them." />
-                <Row href="/contact" label="Tell Friction" note="To have it taken out of Friction's lists, or for a problem with Friction itself." />
+                <Row href="/contact" label="Tell Friction" note="A problem with Friction itself. Rights holders: see how to ask for something to be hidden." />
               </ul>
               <p className="mt-3 text-[13px] leading-[1.4] text-ink-3">These open in a new tab. While you are locked in, leaving the tab counts as a drift.</p>
             </>

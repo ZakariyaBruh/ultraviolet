@@ -25,7 +25,9 @@ const SOURCES = `<p>Friction does not own, host, produce or control any radio st
 <li><strong>News:</strong> the public feeds of each publisher, linked to the publisher's own page.</li>
 <li><strong>Lessons:</strong> text from ${ext('https://www.wikipedia.org', 'Wikipedia')}, available under its open licence.</li>
 </ul>
-<p>If you have an issue with a particular stream or recording, such as copyright, a takedown request, offensive or unlawful content, or a stream that is wrong or broken, please contact the source that publishes it: the broadcaster, channel owner, podcast host, or the service listed above. They control the content and can fix or remove it. For a listing in Friction itself, write to ${mail} with the address of the item and we will look at removing it from our lists.</p>`
+<p>If you have an issue with a particular stream or recording, such as copyright, a takedown request, offensive or unlawful content, or a stream that is wrong or broken, please contact the source that publishes it: the broadcaster, channel owner, podcast host, or the service listed above. They control the content and can fix or remove it.</p>
+<h3>Requests from rights holders</h3>
+<p>Friction keeps no copy and no list of any stream: everything is read live from the sources above, so the real fix is always at the source. If you are the rights holder, or authorised to act for them, and you also want something hidden inside Friction, write to ${mail} with the address of the item, who you are, and why you are entitled to ask. We check every request and we act only on those that come from the rights holder or someone authorised for them. Anonymous, bulk or repeated requests, and requests that look meant to harass a stream, a publisher or this site, are ignored. Knowingly sending a false claim can have legal consequences for the sender.</p>`
 
 const PAGES = {
   '/about': {
@@ -63,7 +65,7 @@ const PAGES = {
 <li><strong>A site that does not work in the Browser window.</strong> The Browser reads pages only, and the cloud browser is experimental; some sites will not work.</li>
 <li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, write here.</li>
 <li><strong>Advertising, press and partnerships.</strong> Send a short note about what you have in mind.</li>
-<li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. To have something removed from Friction's lists, send the address and who you are.</li>
+<li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. Rights holders who want something hidden in Friction can write here, as described under Requests from rights holders on the Disclaimer page; we verify who is asking and do not act on anonymous or bulk requests.</li>
 </ul>
 <h2>Before you write</h2>
 <p>The <a href="/about">About</a> page says what Friction is. The <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms of Use</a> answer most questions about data and rules.</p>`,
