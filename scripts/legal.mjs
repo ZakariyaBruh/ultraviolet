@@ -14,6 +14,18 @@ const STYLE = blog.slice(blog.indexOf('<style>'), blog.indexOf('</style>') + 8)
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const MARK = '<svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="5" transform="rotate(-100 32 32)" stroke-dasharray="1 1" pathLength="1"/><rect x="40" y="10" width="16" height="16" fill="#ffd23f"/></svg>'
 const mail = `<a href="mailto:${CONTACT}">${CONTACT}</a>`
+const ext = (h, t) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`
+/** the streams and sources notice, shared by Terms, Disclaimer and Contact: Friction lists public content and owns none of it */
+const SOURCES = `<p>Friction does not own, host, produce or control any radio station, TV channel, podcast, song, news story or web page you can open from it. They are published by other people and are publicly available from the sources below. Friction lists them and plays them straight from their own servers; it does not copy, re-broadcast or store them.</p>
+<ul>
+<li><strong>Radio stations:</strong> the community directory ${ext('https://www.radio-browser.info', 'Radio Browser')}. Each station is run by its own broadcaster.</li>
+<li><strong>Live TV channels:</strong> the public playlists of ${ext('https://github.com/iptv-org/iptv', 'iptv-org')}, which links to streams their owners make freely available.</li>
+<li><strong>Podcasts:</strong> found with the ${ext('https://performance-partners.apple.com/search-api', 'iTunes Search API')} and played from each podcast's own feed and host.</li>
+<li><strong>Songs:</strong> ${ext('https://audius.co', 'Audius')}, ${ext('https://openverse.org', 'Openverse')}, the ${ext('https://archive.org', 'Internet Archive')}, ${ext('https://commons.wikimedia.org', 'Wikimedia Commons')} and the ${ext('https://www.loc.gov/collections/national-jukebox/', 'Library of Congress National Jukebox')}.</li>
+<li><strong>News:</strong> the public feeds of each publisher, linked to the publisher's own page.</li>
+<li><strong>Lessons:</strong> text from ${ext('https://www.wikipedia.org', 'Wikipedia')}, available under its open licence.</li>
+</ul>
+<p>If you have an issue with a particular stream or recording, such as copyright, a takedown request, offensive or unlawful content, or a stream that is wrong or broken, please contact the source that publishes it: the broadcaster, channel owner, podcast host, or the service listed above. They control the content and can fix or remove it. For a listing in Friction itself, write to ${mail} with the address of the item and we will look at removing it from our lists.</p>`
 
 const PAGES = {
   '/about': {
@@ -51,7 +63,7 @@ const PAGES = {
 <li><strong>A site that does not work in the Browser window.</strong> The Browser reads pages only, and the cloud browser is experimental; some sites will not work.</li>
 <li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, write here.</li>
 <li><strong>Advertising, press and partnerships.</strong> Send a short note about what you have in mind.</li>
-<li><strong>Takedown or copyright.</strong> Friction links to radio stations, TV streams, podcasts and songs that other people publish and does not host them. If something should not be listed, send the address and who you are.</li>
+<li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. To have something removed from Friction's lists, send the address and who you are.</li>
 </ul>
 <h2>Before you write</h2>
 <p>The <a href="/about">About</a> page says what Friction is. The <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms of Use</a> answer most questions about data and rules.</p>`,
@@ -141,8 +153,9 @@ const PAGES = {
 <li>Do not use Together rooms or the leaderboard to harass anyone or to post unlawful, hateful or sexual content. Aliases and room names may be removed.</li>
 <li>The Browser is built to block games and short-form social media. Do not try to avoid that.</li>
 </ul>
-<h2>Third-party content</h2>
-<p>Friction lists and links to radio stations, TV streams, podcasts, news, songs and pages published by others. We do not host or control them, are not responsible for what they say, and do not guarantee they are available or lawful where you are. Their own terms apply.</p>
+<h2>Streams and third-party content</h2>
+${SOURCES}
+<p>We are not responsible for what they say, and we do not guarantee that they are available or lawful where you are. Their own terms apply.</p>
 <h2>Credits and the shop</h2>
 <p>Credits are earned only by focusing and finishing lessons. They have no cash value, cannot be bought with money or won in games, and are stored in your browser. Clearing your data removes them.</p>
 <h2>AI features</h2>
@@ -168,8 +181,9 @@ const PAGES = {
 <p>Lessons are built by fixed rules from Wikipedia text and may be incomplete or out of date. Demos written by AI can contain mistakes and say so. Check anything important against the source.</p>
 <h2>No professional advice</h2>
 <p>Nothing on Friction is medical, legal, financial or mental-health advice. If you are struggling, speak to a qualified person.</p>
-<h2>External content</h2>
-<p>Radio, TV, podcasts, news, songs and web pages come from third parties. We do not control or endorse them, and their availability can change without notice.</p>
+<h2>Streams and external content</h2>
+${SOURCES}
+<p>We do not control or endorse them, and their availability can change without notice.</p>
 <h2>Advertising</h2>
 <p>Where ads appear they are placed by Google AdSense and are not endorsements by Friction.</p>
 <p>See also the <a href="/terms">Terms of Use</a> and the <a href="/privacy">Privacy Policy</a>.</p>`,
