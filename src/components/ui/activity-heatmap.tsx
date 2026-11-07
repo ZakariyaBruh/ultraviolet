@@ -44,6 +44,8 @@ export interface ActivityHeatmapProps {
   color?: string;
   /** Plural noun used in the tooltip / summary */
   unit?: string;
+  /** The line above the grid, in the caller's own words (otherwise it is worked out from the data) */
+  summaryText?: string;
   /** Smallest cell size in px before weeks are dropped (default 11) */
   minCell?: number;
   animated?: boolean;
@@ -82,6 +84,7 @@ export function ActivityHeatmap({
   weekStart = 0,
   color = "#34d399",
   unit = "contributions",
+  summaryText,
   minCell = 11,
   animated = true,
   ariaLabel,
@@ -208,9 +211,9 @@ export function ActivityHeatmap({
 
   const cur = active ? byKey.get(`${active.c}:${active.r}`) : null;
   const total = model.total;
-  const summary = hours
-    ? `${fullFmt.format(total)} ${unit} per week`
-    : `${fullFmt.format(total)} ${unit} in the last ${cols >= 52 ? "year" : cols >= 8 ? `${Math.round(cols / 4.345)} months` : `${cols} weeks`}`;
+  const summary = summaryText ?? (hours
+    ? `${fullFmt.format(total)} ${unit}`
+    : `${fullFmt.format(total)} ${unit} in the last ${cols >= 52 ? "year" : cols >= 8 ? `${Math.round(cols / 4.345)} months` : `${cols} weeks`}`);
   const lvlFill = (l: number): CSSProperties =>
     l === 0 ? {} : { fill: `color-mix(in srgb, ${color} ${LEVEL_MIX[l]}%, transparent)` };
 

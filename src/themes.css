@@ -156,7 +156,7 @@ html[data-theme='mono'] .kicker > span { background: var(--ink); height: 3px; wi
 html[data-theme='mono'] ::selection { background: var(--ink); color: var(--ground); }
 html[data-theme='mono'] [data-bars] { filter: grayscale(1); }
 /* the few colours that components bring with them (the red unread badge and dot) become ink and ground */
-html[data-theme='mono'] .bg-rose-500 { background-color: var(--ink); color: var(--ground); border-color: var(--ground); }
+html[data-theme='mono'] :is(.bg-rose-500, .bg-rose-700) { background-color: var(--ink); color: var(--ground); border-color: var(--ground); }
 html[data-theme='mono'] [class*='bg-rose-500/'] { background-color: var(--signal-soft); }
 html[data-theme='mono'] [class*='text-rose'] { color: var(--ink); }
 html[data-theme='mono'] [class*='border-rose'] { border-color: var(--control); }

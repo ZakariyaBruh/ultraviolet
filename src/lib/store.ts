@@ -59,7 +59,7 @@ export interface SessionRec {
   title: string
   completed: boolean
   breaks?: number
-  /** a label the person gave it (supporters): where the hours went */
+  /** a label the person gave it: where the hours went */
   project?: string
   /** seconds into the session at each drift, kept from now on so the coach can say when you tend to drift */
   lapseAt?: number[]
@@ -560,7 +560,7 @@ export const useStore = create<AppState>()(
         if (completed) useUI.getState().set({ celebrate: { title: note ? 'A note from past you' : 'Session complete', detail: `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
         // a finished session gets the celebration card instead of a toast
         if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
-        get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} blocked`)
+        get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} drift${a.urges === 1 ? '' : 's'}`)
       },
 
       earnCredits: (n, why) => {

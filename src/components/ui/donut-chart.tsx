@@ -37,6 +37,8 @@ export interface DonutChartProps {
   thickness?: number;
   /** Text above the total in the centre */
   centerLabel?: string;
+  /** Text in the centre instead of the total (for a ring whose total is not the number worth showing, such as held against a goal) */
+  centerValue?: string;
   formatValue?: (n: number) => string;
   showLegend?: boolean;
   animated?: boolean;
@@ -129,6 +131,7 @@ function Arc({
         onPointerEnter={onEnter}
         onPointerLeave={onLeave}
         onClick={onClick}
+        role="img"
         aria-label={label}
       />
     </g>
@@ -141,6 +144,7 @@ export function DonutChart({
   size = 240,
   thickness = 16,
   centerLabel = "Total",
+  centerValue,
   formatValue = defaultFormat,
   showLegend = true,
   animated = true,
@@ -238,7 +242,7 @@ export function DonutChart({
             >
               <p className={`truncate text-[12px] ${muted}`}>{act ? act.label : centerLabel}</p>
               <p className="font-semibold leading-tight tracking-[-0.03em] tabular-nums text-neutral-900 dark:text-neutral-50" style={{ fontSize: valueSize }}>
-                {act ? formatValue(act.value) : <AnimatedNumber value={total} format={formatValue} fromZero={anim} />}
+                {act ? formatValue(act.value) : centerValue !== undefined ? centerValue : <AnimatedNumber value={total} format={formatValue} fromZero={anim} />}
               </p>
               {act && <p className={`text-[12px] tabular-nums ${muted}`}>{Math.round(act.f * 100)}%</p>}
             </motion.div>

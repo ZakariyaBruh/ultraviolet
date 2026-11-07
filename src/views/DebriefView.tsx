@@ -2,7 +2,8 @@ import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { PageHeader, Panel } from '@/components/app/shared'
 import { dateKey } from '@/lib/dates'
-import { attentionScore, blockedPerHour, dayTotal, streak, totals } from '@/lib/stats'
+import { scoreView } from '@/lib/insights'
+import { blockedPerHour, dayTotal, streak, totals } from '@/lib/stats'
 import { useStore } from '@/lib/store'
 
 const hr = (h: number) => `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`
@@ -54,7 +55,7 @@ export function DebriefView() {
   const run = streak(s.focusLog)
   const per = blockedPerHour(focus, blocked)
   const left = Math.max(0, Math.ceil(s.settings.dailyGoalMin - focus - 1e-9))
-  const score = attentionScore(s)
+  const score = scoreView(s, s.settings.dailyGoalMin).score
   const shown = useCount(score, still)
 
   // today's sessions and credits, from the same saved numbers

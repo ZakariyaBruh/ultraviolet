@@ -9,6 +9,9 @@ const SKIP = 'input, textarea, select, [role="slider"], [data-no-drag], canvas, 
 const EDGE = 6 // px a panel keeps from the screen edge
 const GAP = 14 // px of air left when a panel is nudged clear of another
 const REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+/** panels inside a page that scrolls (Insights) stay where the page puts them: a finger that lands on a panel that can be carried off cannot scroll */
+const FLOW = '[data-flow]'
+const inFlow = (el: Element) => !!el.closest(FLOW)
 
 /** Chrome (player, nav) keeps one position everywhere; panels are remembered per screen. */
 const scopeOf = (id: string, scope: string) => (id.startsWith('shell-') ? 'shell' : scope)
@@ -125,7 +128,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       if (!area) return
       const shells = all.filter(({ el, id }) => id.startsWith('shell-') && el.dataset.moved && !el.dataset.dragging && !el.dataset.gliding)
       // only free-standing panels are eased aside; page text and lists stay where the layout put them
-      const cands = all.filter(({ id }) => !id.startsWith('shell-') && !offsets?.[id])
+      const cands = all.filter(({ el, id }) => !id.startsWith('shell-') && !offsets?.[id] && !inFlow(el))
       for (const { el, id } of cands) {
         if (el.dataset.dragging || el.dataset.gliding) continue
         const k = scaleOf(el)
@@ -155,6 +158,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     const apply = () => {
       for (const { el, id } of scan()) {
         if (el.dataset.dragging || el.dataset.gliding) continue
+        if (inFlow(el)) { if (el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
         const o = (id.startsWith('shell-') ? shell : offsets)?.[id]
         if (!o) { if (id.startsWith('shell-') && el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
         const r = range(el)
@@ -210,7 +214,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       if (e.button !== 0 || !e.isPrimary || d) return
       const t = e.target as Element
       const el = t.closest<HTMLElement>(SEL)
-      if (!el || t.closest(SKIP)) return
+      if (!el || t.closest(SKIP) || inFlow(el)) return
       const hit = scan().find((p) => p.el === el)
       if (!hit) return
       delete el.dataset.gliding
@@ -262,7 +266,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     const key = (e: KeyboardEvent) => {
       if (!e.altKey) return
       const el = (document.activeElement as Element | null)?.closest<HTMLElement>(SEL)
-      if (!el) return
+      if (!el || inFlow(el)) return
       const s = e.shiftKey ? 48 : 12
       const v = { ArrowLeft: [-s, 0], ArrowRight: [s, 0], ArrowUp: [0, -s], ArrowDown: [0, s] }[e.key]
       const hit = scan().find((p) => p.el === el)

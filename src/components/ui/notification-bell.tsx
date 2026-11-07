@@ -119,7 +119,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
               exit={{ scale: 0, opacity: 0 }}
               transition={motionTransitions.springSnappy}
               className={cn(
-                'absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-rose-500 text-white font-mono font-bold border-2 border-[#0E0E0E]',
+                'absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-rose-700 text-white font-mono font-bold border-2 border-[#0E0E0E]',
                 showCount
                   ? 'min-w-[18px] h-[18px] px-1 text-[9px]'
                   : 'w-2.5 h-2.5'

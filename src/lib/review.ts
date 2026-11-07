@@ -3,6 +3,7 @@
  * is estimated or invented. A finding says how much data it rests on, and says what is missing when there is not enough yet.
  */
 import { dateKey, daysAgo, fmtMinutes, weekdayMon } from './dates'
+import { weekdayAverages } from './insights'
 import { dayTotal, sum } from './stats'
 import type { SessionRec } from './store'
 
@@ -154,6 +155,7 @@ const BUCKETS = [
 ]
 const hh = (h: number) => `${String(h).padStart(2, '0')}:00`
 const per = (x: number) => (Math.round(x * 10) / 10).toString()
+const drifts = (x: number) => `${per(x)} drift${per(x) === '1' ? '' : 's'}`
 
 const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : 0 }
 const snap = (m: number) => Math.min(90, Math.max(10, Math.round(m / 5) * 5))
@@ -202,30 +204,26 @@ export function coach(d: ReviewData, today: Date = new Date()): Finding[] {
     } else if (busy.rate - calm.rate < 0.5) {
       out.push({ id: 'hours', title: 'You drift at a steady rate all day', body: `About ${per(calm.rate)} to ${per(busy.rate)} drifts an hour, whatever the time. The hour is not what pulls you away.`, evidence: `${hours} focused hours, last 90 days`, ready: true })
     } else {
-      out.push({ id: 'hours', title: `You are calmest from ${hh(calm.h)} to ${hh(calm.h + 2)}`, body: `There you drift ${per(calm.rate)} times an hour. From ${hh(busy.h)} to ${hh(busy.h + 2)} it is ${per(busy.rate)}. Put the work that needs you in the first slot.`, evidence: `${hours} focused hours, last 90 days`, ready: true })
+      out.push({ id: 'hours', title: `You are calmest from ${hh(calm.h)} to ${hh(calm.h + 2)}`, body: `There you drift ${per(calm.rate)} time${per(calm.rate) === '1' ? '' : 's'} an hour. From ${hh(busy.h)} to ${hh(busy.h + 2)} it is ${per(busy.rate)}. Put the work that needs you in the first slot.`, evidence: `${hours} focused hours, last 90 days`, ready: true })
     }
   }
 
   /* 3. the weekday you hold most */
   {
-    const tot = new Array<number>(7).fill(0)
-    const cnt = new Array<number>(7).fill(0)
+    // average over the complete days since the first one with focus (never today, never days before the person started)
+    const wd = weekdayAverages(d.focusLog, today, 12)
     let active = 0
-    for (let i = 0; i < 84; i++) {
-      const date = daysAgo(i, today)
-      const r = weekdayMon(date)
-      const m = dayTotal(d.focusLog, dateKey(date))
-      tot[r] += m; cnt[r]++; if (m >= 10) active++
-    }
-    const avg = tot.map((t, r) => (cnt[r] ? t / cnt[r] : 0))
-    const hi = avg.indexOf(Math.max(...avg))
-    const lo = avg.indexOf(Math.min(...avg))
-    if (active < 10 || avg[hi] < 5) {
-      out.push({ id: 'weekday', title: 'Your strongest day', body: 'It needs about ten days with at least ten minutes of focus, spread over a few weeks.', evidence: `${active} such day${active === 1 ? '' : 's'} in the last 12 weeks`, ready: false })
-    } else if (avg[hi] < avg[lo] * 1.3 + 1) {
-      out.push({ id: 'weekday', title: 'Every day of the week looks alike', body: `You hold ${fmtMinutes(avg[lo])} to ${fmtMinutes(avg[hi])} on an average day, whichever day it is.`, evidence: `${active} days with focus, last 12 weeks`, ready: true })
+    for (let i = 0; i < 84; i++) if (dayTotal(d.focusLog, dateKey(daysAgo(i, today))) >= 10) active++
+    const seen = wd.avg.map((v, r) => ({ v, r })).filter((x) => wd.days[x.r] > 0)
+    const hiRow = seen.length ? seen.reduce((m, x) => (x.v > m.v ? x : m)) : null
+    const loRow = seen.length ? seen.reduce((m, x) => (x.v < m.v ? x : m)) : null
+    const span = wd.weeks >= 12 ? 'over the last 12 weeks' : `over the ${wd.weeks} week${wd.weeks === 1 ? '' : 's'} since ${wd.since ? wd.since.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'you started'}`
+    if (!hiRow || !loRow || seen.length < 7 || active < 10 || hiRow.v < 5) {
+      out.push({ id: 'weekday', title: 'Your strongest day', body: 'It needs about ten days with at least ten minutes of focus, spread over every day of the week.', evidence: `${active} such day${active === 1 ? '' : 's'} in the last 12 weeks`, ready: false })
+    } else if (hiRow.v < loRow.v * 1.3 + 1) {
+      out.push({ id: 'weekday', title: 'Every day of the week looks alike', body: `You hold ${fmtMinutes(loRow.v)} to ${fmtMinutes(hiRow.v)} on an average day, whichever day it is.`, evidence: `${active} days with focus, last 12 weeks`, ready: true })
     } else {
-      out.push({ id: 'weekday', title: `${DAY_NAMES[hi]}s are your strongest day`, body: `You average ${fmtMinutes(avg[hi])} on ${DAY_NAMES[hi]}s over the last 12 weeks, against ${fmtMinutes(avg[lo])} on ${DAY_NAMES[lo]}s. Plan the hard thing for ${DAY_NAMES[hi]}.`, evidence: `${active} days with focus, last 12 weeks`, ready: true })
+      out.push({ id: 'weekday', title: `${DAY_NAMES[hiRow.r]}s are your strongest day`, body: `You average ${fmtMinutes(hiRow.v)} on ${DAY_NAMES[hiRow.r]}s ${span}, against ${fmtMinutes(loRow.v)} on ${DAY_NAMES[loRow.r]}s. Plan the hard thing for ${DAY_NAMES[hiRow.r]}.`, evidence: `${active} days with focus, last 12 weeks`, ready: true })
     }
   }
 
@@ -240,7 +238,7 @@ export function coach(d: ReviewData, today: Date = new Date()): Finding[] {
     } else {
       const a = rows[0]
       const b = rows[rows.length - 1]
-      out.push({ id: 'source', title: per(a.rate) === per(b.rate) ? 'Nothing you play changes how you drift' : `You drift least with ${NAME[a.k] ?? a.k}`, body: `${per(a.rate)} drifts an hour with ${NAME[a.k] ?? a.k}, ${per(b.rate)} with ${NAME[b.k] ?? b.k}. This is what the numbers show so far, not proof that it is the cause.`, evidence: rows.map((r) => `${per(r.h)} h of ${NAME[r.k] ?? r.k}`).join(', '), ready: true })
+      out.push({ id: 'source', title: per(a.rate) === per(b.rate) ? 'Nothing you play changes how you drift' : `You drift least with ${NAME[a.k] ?? a.k}`, body: `${drifts(a.rate)} an hour with ${NAME[a.k] ?? a.k}, ${per(b.rate)} with ${NAME[b.k] ?? b.k}. This is what the numbers show so far, not proof that it is the cause.`, evidence: rows.map((r) => `${per(r.h)} h of ${NAME[r.k] ?? r.k}`).join(', '), ready: true })
     }
   }
 
