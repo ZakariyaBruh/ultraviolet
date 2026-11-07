@@ -221,7 +221,22 @@ ${SOURCES}
 </ul>
 <p>The shop is not part of this: credits are never sold, and nothing in the shop is given away, so what you earn stays earned. Nothing is needed to use Friction, and everything free stays free.</p>
 <h2>Support, $2 a month</h2>
-<p><a class="cta" href="https://whop.com/checkout/plan_iP58mTsDntqwy/?redirect_url=https%3A%2F%2Fwww.frictionx.app%2Fthanks" rel="noopener">Open it on Whop</a></p>
+<div id="whop" style="max-width:520px;min-height:480px"></div>
+<p><small>Checkout not loading? <a href="https://whop.com/checkout/plan_iP58mTsDntqwy/?redirect_url=https%3A%2F%2Fwww.frictionx.app%2Fthanks" rel="noopener">Pay on Whop instead</a>.</small></p>
+<script src="https://cdn.whop.com/elements/amber/elements.js" data-whop-elements></script>
+<script>
+addEventListener('load', function () {
+  try {
+    var c = window.WhopElements().checkout.create({
+      plan: 'plan_iP58mTsDntqwy',
+      returnUrl: 'https://www.frictionx.app/thanks',
+      appearance: { theme: { appearance: 'dark', accentColor: 'yellow' } },
+      onComplete: function (r) { if (r && r.paymentId) location.href = '/thanks?status=succeeded&payment=' + encodeURIComponent(r.paymentId) }
+    })
+    c.create('checkout').mount('#whop')
+  } catch (e) {}
+})
+</script>
 <h2>How it works</h2>
 <ul>
 <li>The payment is handled by <a href="https://whop.com" target="_blank" rel="noopener">Whop</a>, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid.</li>
