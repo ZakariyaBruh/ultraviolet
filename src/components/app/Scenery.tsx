@@ -29,20 +29,20 @@ export function Scenery({ theme, level }: { theme: ThemeId; level: 0 | 1 | 2 }) 
 /* ───────── Library: a lattice wall and, at the foot, the shelf the nav stands on ───────── */
 
 const TILE_W = 1200
-const SHELF_H = 88
+const SHELF_H = 72
 const BOARD = 8
 
 function Library() {
   const books = useMemo(() => {
     // tonal leather, never bright: the wall's own colour lifted a little, some warmer and some cooler, so that the shelf reads as books and not as colour
-    const spines = [mixc('var(--signal)', 88, 'var(--ink)'), mixc('var(--ok)', 80, 'var(--ink)'), mixc('var(--ice)', 80, 'var(--ink)'), mixc('var(--hot)', 85, 'var(--ink)'), mixc('var(--brass)', 70, 'var(--ink)'), mixc('var(--ink-2)', 90, 'var(--ink)')]
+    const spines = [mixc('var(--signal)', 78, 'var(--ink)'), mixc('var(--ok)', 66, 'var(--ink)'), mixc('var(--ice)', 66, 'var(--ink)'), mixc('var(--hot)', 70, 'var(--ink)'), mixc('var(--brass)', 70, 'var(--ink)'), mixc('var(--ink-2)', 90, 'var(--ink)')]
     const out: { x: number; y: number; w: number; h: number; fill: string; band: number; plate: boolean }[] = []
     const r = rng(31)
     let x = 0
     while (x < TILE_W) {
       let w = 13 + Math.floor(r() * 18)
       if (TILE_W - x - w < 13) w = TILE_W - x
-      const h = 40 + Math.floor(r() * 36)
+      const h = 34 + Math.floor(r() * 28)
       out.push({ x, y: SHELF_H - BOARD - h, w, h, fill: spines[Math.floor(r() * spines.length)], band: Math.floor(r() * 3), plate: r() < 0.5 })
       x += w
     }
@@ -54,8 +54,8 @@ function Library() {
       <svg className="absolute inset-0 size-full" aria-hidden focusable="false">
         <defs>
           <pattern id="lib-lattice" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M24 0 48 24 24 48 0 24Z" fill="none" style={{ stroke: 'var(--ink)', strokeOpacity: 0.07 }} />
-            <path d="M24 20 28 24 24 28 20 24Z" style={{ fill: 'var(--signal)', fillOpacity: 0.12 }} />
+            <path d="M24 0 48 24 24 48 0 24Z" fill="none" style={{ stroke: 'var(--ink)', strokeOpacity: 0.045 }} />
+            <path d="M24 20 28 24 24 28 20 24Z" style={{ fill: 'var(--signal)', fillOpacity: 0.05 }} />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#lib-lattice)" />
