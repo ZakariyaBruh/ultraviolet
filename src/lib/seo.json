@@ -172,12 +172,12 @@
   },
   "/support": {
     "title": "Support Friction: Keep It Free for $2 a Month | Friction",
-    "description": "Friction is free and stays free. Support it for $2 a month and get a Year view of your focus, a CSV export of your sessions and a supporter mark.",
+    "description": "Friction is free and stays free. Support it for $2 a month: a Year view, Records, 3,000 sessions of history, a CSV export and a supporter mark.",
     "h1": "Support Friction",
     "lead": "Friction is free, has no account and no feed, and stays that way. Supporting it costs $2 a month and pays for the domain, the hosting and the time. Nothing in the app is locked behind it.",
     "points": [
-      "A Year view in Insights: every day of the last 52 weeks in one grid",
-      "A CSV export of your own sessions, made in your browser",
+      "A Year view and a Records page in Insights, built from your own saved numbers",
+      "Your last 3,000 sessions kept instead of 300, and a CSV export of them made in your browser",
       "A supporter mark next to your name",
       "Credits are never sold and the shop is never given away, so what you earn stays earned"
     ],

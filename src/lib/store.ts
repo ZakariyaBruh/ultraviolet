@@ -298,6 +298,9 @@ export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Accept only what has the right shape; anything else falls back to the default for that key. */
+/** how many finished sessions are kept: 300, or 3,000 for a supporter (read from the flag directly: supporter.ts imports this file) */
+const sessionCap = () => { try { return localStorage.getItem('friction:supporter') === '1' ? 3000 : 300 } catch { return 300 } }
+
 export function sanitizeData(raw: unknown): { data: Data; matched: number } {
   const base = emptyData()
   const out: Record<string, unknown> = { ...base }
@@ -508,7 +511,7 @@ export const useStore = create<AppState>()(
         }
         set({
           session: null,
-          sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, 300) : s.sessions,
+          sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, sessionCap()) : s.sessions,
         })
         const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses) : 0)
         if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
@@ -657,7 +660,7 @@ export const useStore = create<AppState>()(
         const p = persisted as { session?: ActiveSession | null } | null
         const a = p && isObj(p.session) ? (p.session as ActiveSession) : null
         if (a && typeof a.elapsedSec === 'number' && a.elapsedSec >= 10 && typeof a.start === 'number') {
-          data.sessions = [{ id: a.id, start: a.start, end: Date.now(), goalMin: a.goalMin, focusSec: a.elapsedSec, urges: a.urges ?? 0, lapses: a.lapses ?? 0, source: a.source, title: a.title, completed: false }, ...data.sessions].slice(0, 300)
+          data.sessions = [{ id: a.id, start: a.start, end: Date.now(), goalMin: a.goalMin, focusSec: a.elapsedSec, urges: a.urges ?? 0, lapses: a.lapses ?? 0, source: a.source, title: a.title, completed: false }, ...data.sessions].slice(0, sessionCap())
           data.events = [{ id: uid(), t: Date.now(), kind: 'session' as const, text: `Interrupted ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept`, read: false }, ...data.events].slice(0, 200)
         }
         return { ...current, ...data, session: null }

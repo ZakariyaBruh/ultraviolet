@@ -196,7 +196,7 @@ ${SOURCES}
 <h2>Advertising</h2>
 <p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
 <h2>Supporting Friction</h2>
-<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (a Year view in Insights, a CSV export of your sessions and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
+<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (a Year view and Records in Insights, a longer session history, a CSV export of your sessions and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
 <h2>Ownership</h2>
 <p>Friction's design, code and text belong to its maker. Content you write (notes, chat, aliases) remains yours; you let us store and show it as needed to run the feature you used.</p>
 <h2>No warranty and limit of liability</h2>
@@ -213,7 +213,7 @@ ${SOURCES}
     h1: 'Thank you',
     lead: 'You are keeping Friction free for everyone. That means a lot.',
     body: `
-<div id="ok" hidden><h2>Your extras are on</h2><p>The Year view in Insights and the CSV export in Settings are yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
+<div id="ok" hidden><h2>Your extras are on</h2><p>The Year view and Records in Insights and the CSV export in Settings are yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
 <div id="no" hidden><h2>That link did not work</h2><p>If you paid and see this, use <a href="/contact">the contact form</a> with your Whop receipt details and I will sort it out.</p></div>
 <script>
 (async function () {

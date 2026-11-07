@@ -20,10 +20,12 @@ function load(): Promise<void> {
 }
 
 const PERKS: [string, string][] = [
-  ['Year view', 'Every day of the last 52 weeks in one grid in Insights, brighter the more you held.'],
-  ['Export your sessions', 'A CSV file of your own sessions from Settings, Data. Made in your browser, sent nowhere.'],
-  ['A supporter mark', 'A small square on your avatar.'],
-  ['Friction stays free', 'Credits are never sold and the shop is never given away, so what you earn stays earned.'],
+  ['Year view', 'Every day of the last 52 weeks in one grid in Insights, brighter the more you held, with your totals.'],
+  ['Records', 'A page in Insights with your best day, longest run of days, longest session, clean finishes and the hour you hold the most.'],
+  ['Long history', 'Friction keeps your last 3,000 sessions instead of 300, so Sessions and the export reach back for years.'],
+  ['Export your sessions', 'A CSV file of every session you have kept, from Settings, Data. Made in your browser, sent nowhere.'],
+  ['A supporter mark', 'A small square on your avatar, and the knowledge that you pay for the domain and the hosting.'],
+  ['Everything free stays free', 'Credits are never sold and the shop is never given away, so what you earn stays earned.'],
 ]
 
 /** The embedded Whop checkout. Whop takes the payment; Friction never sees card details and keeps no record of who paid. */
@@ -60,13 +62,17 @@ export function SupportView() {
   const on = done || isSupporter()
 
   const perks = (
-    <Panel className="grid content-start gap-3 p-5">
-      <p className="hud">What you get</p>
-      <ul className="grid gap-3">
+    <Panel className="flex min-h-0 flex-col gap-3 p-5">
+      <p className="hud">What you get for $2 a month</p>
+      <ul className="scroll-y grid min-h-0 flex-1 content-start gap-3 sm:grid-cols-2" data-no-drag>
         {PERKS.map(([t, d]) => (
-          <li key={t} className="flex gap-3"><Check className="mt-0.5 size-4 shrink-0 text-signal" aria-hidden /><span className="text-[14px] leading-[1.4]"><b className="font-semibold text-ink">{t}.</b> <span className="text-ink-2">{d}</span></span></li>
+          <li key={t} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
+            <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{t}</b></span>
+            <span className="text-[14px] leading-[1.45] text-ink-2">{d}</span>
+          </li>
         ))}
       </ul>
+      {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
       <p className="text-[13px] leading-[1.4] text-ink-3">Whop is the seller: it takes the card details and handles receipts, taxes and refunds. Friction keeps no record of who paid. Cancel any time and what you unlocked stays. See the <a className="underline" href="/terms" target="_blank" rel="noopener">Terms</a> and <a className="underline" href="/privacy" target="_blank" rel="noopener">Privacy</a> pages.</p>
     </Panel>
   )
@@ -77,7 +83,7 @@ export function SupportView() {
         <div className="grid content-start gap-2 p-2">
           <Heart className="size-6 text-signal" aria-hidden />
           <h2 className="text-lg font-semibold">Thank you. You are keeping Friction free.</h2>
-          <p className="text-[14px] text-ink-2">The Year view is in Insights, the CSV export is in Settings, Data, and your avatar has its mark. Manage or cancel from your Whop receipt.</p>
+          <p className="text-[14px] text-ink-2">The Year view and Records are in Insights, the CSV export is in Settings, Data, and your avatar has its mark. Manage or cancel from your Whop receipt.</p>
         </div>
       ) : (
         <div className="scroll-y min-h-0 flex-1" data-no-drag><Checkout onDone={() => setDone(true)} /></div>
