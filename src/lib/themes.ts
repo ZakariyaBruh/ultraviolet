@@ -21,7 +21,7 @@ export const THEMES: ThemeDef[] = [
   { id: 'blueprint', name: 'Blueprint', note: 'White linework on drawing blue', light: false, ground: '#0a2557', signal: '#7ff0ff', ink: '#eaf3ff', ice: '#ffffff' },
   { id: 'sunset', name: 'Sunset', note: 'Plum night, hot pink, peach', light: false, ground: '#140a24', signal: '#ff4fa3', ink: '#fff1f7', ice: '#ffb86b' },
   // supporter themes: each one changes the structure (frames, type, the picture behind the panels), not only the colours
-  { id: 'library', name: 'Library', note: 'Oxblood leather, panels bound like books, a serif', light: false, ground: '#140a0d', signal: '#d6b05a', ink: '#f3e9d2', ice: '#8fc1b5', premium: true },
+  { id: 'library', name: 'Library', note: 'Vellum pages, oxblood leather, a serif', light: true, ground: '#e8dcc2', signal: '#7a1d2a', ink: '#2b1a12', ice: '#1d5a58', premium: true },
   { id: 'observatory', name: 'Observatory', note: 'Star chart, indigo night, instrument ticks', light: false, ground: '#0a0c1c', signal: '#f4d98a', ink: '#e9e8f5', ice: '#8fb4ff', premium: true },
   { id: 'mono', name: 'Mono', note: 'Black, white and nothing else', light: false, ground: '#000000', signal: '#ffffff', ink: '#ffffff', ice: '#c8c8c8', premium: true },
   { id: 'receipt', name: 'Receipt', note: 'Thermal paper, torn edges, highlighter', light: true, ground: '#d8d4c6', signal: '#141414', ink: '#141414', ice: '#254f72', premium: true },

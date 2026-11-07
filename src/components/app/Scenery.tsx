@@ -35,7 +35,7 @@ const BOARD = 8
 function Library() {
   const books = useMemo(() => {
     // tonal leather, never bright: the wall's own colour lifted a little, some warmer and some cooler, so that the shelf reads as books and not as colour
-    const spines = [mixc('var(--hot)', 15), mixc('var(--hot)', 10), mixc('var(--signal)', 12), mixc('var(--ink)', 9), mixc('var(--ok)', 9), mixc('var(--ice)', 9)]
+    const spines = [mixc('var(--signal)', 88, 'var(--ink)'), mixc('var(--ok)', 80, 'var(--ink)'), mixc('var(--ice)', 80, 'var(--ink)'), mixc('var(--hot)', 85, 'var(--ink)'), mixc('var(--brass)', 70, 'var(--ink)'), mixc('var(--ink-2)', 90, 'var(--ink)')]
     const out: { x: number; y: number; w: number; h: number; fill: string; band: number; plate: boolean }[] = []
     const r = rng(31)
     let x = 0
@@ -54,8 +54,8 @@ function Library() {
       <svg className="absolute inset-0 size-full" aria-hidden focusable="false">
         <defs>
           <pattern id="lib-lattice" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M24 0 48 24 24 48 0 24Z" fill="none" style={{ stroke: 'var(--brass)', strokeOpacity: 0.07 }} />
-            <path d="M24 20 28 24 24 28 20 24Z" style={{ fill: 'var(--brass)', fillOpacity: 0.1 }} />
+            <path d="M24 0 48 24 24 48 0 24Z" fill="none" style={{ stroke: 'var(--ink)', strokeOpacity: 0.07 }} />
+            <path d="M24 20 28 24 24 28 20 24Z" style={{ fill: 'var(--signal)', fillOpacity: 0.12 }} />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#lib-lattice)" />
@@ -67,16 +67,16 @@ function Library() {
             {books.map((b) => (
               <g key={b.x}>
                 <rect x={b.x} y={b.y} width={b.w} height={b.h} style={{ fill: b.fill }} />
-                <rect x={b.x} y={b.y} width={1.5} height={b.h} style={{ fill: 'var(--ink)', opacity: 0.07 }} />
-                <rect x={b.x + b.w - 1} y={b.y} width={1} height={b.h} style={{ fill: 'var(--ground)', opacity: 0.6 }} />
-                {b.band > 0 && <rect x={b.x} y={b.y + 8} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.42 }} />}
-                {b.band === 2 && <rect x={b.x} y={b.y + 13} width={b.w} height={1} style={{ fill: 'var(--brass)', opacity: 0.28 }} />}
+                <rect x={b.x} y={b.y} width={1.5} height={b.h} style={{ fill: 'white', opacity: 0.14 }} />
+                <rect x={b.x + b.w - 1} y={b.y} width={1} height={b.h} style={{ fill: 'black', opacity: 0.35 }} />
+                {b.band > 0 && <rect x={b.x} y={b.y + 8} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.85 }} />}
+                {b.band === 2 && <rect x={b.x} y={b.y + 13} width={b.w} height={1} style={{ fill: 'var(--brass)', opacity: 0.6 }} />}
                 {b.plate && <rect x={b.x + b.w * 0.22} y={b.y + b.h * 0.36} width={b.w * 0.56} height={Math.min(26, b.h * 0.28)} style={{ fill: 'var(--brass)', opacity: 0.2 }} />}
-                {b.band > 0 && <rect x={b.x} y={b.y + b.h - 10} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.36 }} />}
+                {b.band > 0 && <rect x={b.x} y={b.y + b.h - 10} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.8 }} />}
               </g>
             ))}
-            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={BOARD} style={{ fill: 'var(--ground)' }} />
-            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={2} style={{ fill: 'var(--brass)', opacity: 0.45 }} />
+            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={BOARD} style={{ fill: 'var(--leather)' }} />
+            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={2} style={{ fill: 'var(--brass)', opacity: 0.8 }} />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#lib-books)" />
