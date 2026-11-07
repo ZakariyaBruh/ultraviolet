@@ -208,24 +208,28 @@ ${SOURCES}
   },
   '/support': {
     title: 'Support Friction: keep it free and get a few goodies',
-    description: 'Friction is free and stays free. If you like it, you can support it for $5 once or $2 a month and unlock every shop item and a supporter mark.',
+    description: 'Friction is free and stays free. If you like it, you can support it for $2 a month: every shop unlock, a free Break and Streak shield each week, a CSV export and a supporter mark.',
     h1: 'Support Friction',
     lead: 'Friction is free, has no account and no feed, and stays that way. Supporting it is optional and pays for the domain, the hosting and the time.',
     body: `
 <h2>What you get</h2>
 <ul>
 <li><strong>Every unlock in the credit shop, free:</strong> Sound machine, Auto music, Break kit, Solids pack, Fidget spinner and Confetti cannon. Normally you earn credits for them by focusing.</li>
+<li><strong>A free Break and a free Streak shield every week</strong> (you can hold up to three of each), so a long session is easier to protect.</li>
+<li><strong>Export your sessions</strong> as a CSV file from Settings, Data. It is made in your browser and sent nowhere.</li>
 <li><strong>A supporter mark</strong> next to your name in the app.</li>
 <li><strong>A good feeling,</strong> and one small thing less for the person who builds it to worry about.</li>
 </ul>
 <p>Credits are never sold, and nothing is needed to use Friction. Everything free stays free.</p>
-<h2>Choose</h2>
-<p><a class="cta" href="https://whop.com/checkout/ch_Hh0666T0uv2kvZq/" target="_blank" rel="noopener">$5, once</a> &nbsp; <a class="cta" href="https://whop.com/checkout/ch_p0r3GYyFXF8jqKR/" target="_blank" rel="noopener">$2 a month</a></p>
+<h2>Support, $2 a month</h2>
+<div id="whop" data-whop-checkout-plan-id="plan_Tatq22hQ61z5b" data-whop-checkout-return-url="https://www.frictionx.app/thanks" data-whop-checkout-theme="dark" data-whop-checkout-theme-accent-color="yellow" data-whop-checkout-hide-price="false" style="max-width:520px;min-height:420px"></div>
+<noscript><p><a class="cta" href="https://whop.com/checkout/ch_p0r3GYyFXF8jqKR/" rel="noopener">Support on Whop</a></p></noscript>
+<script async defer src="https://js.whop.com/static/checkout/loader.js"></script>
 <h2>How it works</h2>
 <ul>
 <li>The payment is handled by <a href="https://whop.com" target="_blank" rel="noopener">Whop</a>, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid.</li>
 <li>After paying you are sent back to Friction with a one-time link that switches on your goodies in that browser. Keep that link (or your receipt): opening it again on another device or after clearing your data switches them back on.</li>
-<li>If you cancel a monthly payment, what you already unlocked stays unlocked.</li>
+<li>Cancel any time from your Whop receipt; what you already unlocked stays unlocked.</li>
 <li>Refunds and receipts are Whop's, under its terms. If something goes wrong, use <a href="/contact">the contact form</a> with your receipt details and I will help.</li>
 </ul>
 <p>See also the <a href="/terms">Terms of Use</a> and <a href="/privacy">Privacy Policy</a>.</p>`,
@@ -241,10 +245,10 @@ ${SOURCES}
 <div id="no" hidden><h2>That link did not work</h2><p>If you paid and see this, use <a href="/contact">the contact form</a> with your Whop receipt details and I will sort it out.</p></div>
 <script>
 (async function () {
-  var k = new URLSearchParams(location.search).get('k') || '', ok = false
+  var q = new URLSearchParams(location.search), k = q.get('k') || '', st = q.get('status'), ok = false
   try {
     var h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)))).map(function (b) { return b.toString(16).padStart(2, '0') }).join('')
-    ok = h === '3189dd4a169dc6520bb6dfc6cdbfc840635079bd2aa472ed81cdd7822e349a40'
+    ok = (st === 'succeeded' && /^pay_/.test(q.get('payment') || '')) || ((!st || st === 'succeeded') && h === '3189dd4a169dc6520bb6dfc6cdbfc840635079bd2aa472ed81cdd7822e349a40')
   } catch (e) {}
   if (ok) { try { localStorage.setItem('friction:supporter', '1') } catch (e) {} }
   document.getElementById(ok ? 'ok' : 'no').hidden = false

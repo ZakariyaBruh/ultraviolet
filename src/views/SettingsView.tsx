@@ -11,7 +11,7 @@ import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
-import { isSupporter, SUPPORT_MONTHLY, SUPPORT_ONCE } from '@/lib/supporter'
+import { isSupporter, SUPPORT_PAGE, sessionsCsv } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -231,6 +231,12 @@ function Data() {
           <EnterCode />
         </div>
       </Panel>
+      {isSupporter() && (
+        <Panel className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">Supporter: download your own sessions as a CSV file. It is built in this browser and sent nowhere.</p>
+          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={() => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([sessionsCsv()], { type: 'text/csv' })); a.download = 'friction-sessions.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) }}>Download sessions (CSV)</button>
+        </Panel>
+      )}
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
         <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. No file can be imported, so nothing uploaded can take someone else's place. Moving your data to your own other browser takes a one-time code you make yourself." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
@@ -265,11 +271,10 @@ function Help() {
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
       <div className="mt-3 border-t border-ink/10 pt-3">
-        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Every shop unlock is yours, and your avatar has a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it: every shop unlock is yours, free, and your avatar gets a supporter mark.'}</p>
+        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Every shop unlock is yours, you get a free Break and Streak shield each week, and your avatar has a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: every shop unlock free, a free Break and Streak shield each week, a CSV export of your sessions and a supporter mark.'}</p>
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
-            <a href={SUPPORT_ONCE} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">Support, $5 once</a>
-            <a href={SUPPORT_MONTHLY} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center border border-ink/30 px-3 text-sm text-ink hover:bg-ink/10">$2 a month</a>
+            <a href={SUPPORT_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">Support, $2 a month</a>
             <a href="/support" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center px-1 text-[13px] text-ink-2 underline underline-offset-2 hover:text-signal">What you get</a>
           </div>
         )}
