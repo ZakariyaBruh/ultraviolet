@@ -1,11 +1,10 @@
 // The pages Google AdSense (and any visitor) expects: About, Contact, Privacy Policy, Cookie Policy, Terms of Use and a Disclaimer.
 // Plain HTML outside the app, written into dist/<name>/index.html in the postbuild step (Vercel serves a file before the SPA rewrite),
 // in the same station look as the blog: the stylesheet is lifted from api/blog.ts so the two cannot drift apart.
-// Edit the words here; CONTACT is the one address the site publishes.
+// Edit the words here. There is no public email address: the Contact page is a form (api/contact.ts) and `mail` links to it.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
-const CONTACT = 'hello@frictionx.app'
 const UPDATED = '6 November 2026'
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -13,7 +12,7 @@ const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
 const STYLE = blog.slice(blog.indexOf('<style>'), blog.indexOf('</style>') + 8)
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
 const MARK = '<svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="5" transform="rotate(-100 32 32)" stroke-dasharray="1 1" pathLength="1"/><rect x="40" y="10" width="16" height="16" fill="#ffd23f"/></svg>'
-const mail = `<a href="mailto:${CONTACT}">${CONTACT}</a>`
+const mail = '<a href="/contact">the contact form</a>'
 const ext = (h, t) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`
 /** the streams and sources notice, shared by Terms, Disclaimer and Contact: Friction lists public content and owns none of it */
 const SOURCES = `<p>Friction does not own, host, produce or control any radio station, TV channel, podcast, song, news story or web page you can open from it. They are published by other people and are publicly available from the sources below. Friction lists them and plays them straight from their own servers; it does not copy, re-broadcast or store them.</p>
@@ -27,7 +26,7 @@ const SOURCES = `<p>Friction does not own, host, produce or control any radio st
 </ul>
 <p>If you have an issue with a particular stream or recording, such as copyright, a takedown request, offensive or unlawful content, or a stream that is wrong or broken, please contact the source that publishes it: the broadcaster, channel owner, podcast host, or the service listed above. They control the content and can fix or remove it.</p>
 <h3>Requests from rights holders</h3>
-<p>Friction keeps no copy of any stream. Our radio and TV lists are short hand-picked lists of addresses, so removing something from them is easy once a request is verified, but the real fix for content that should not be on the web is always at the source. If you are the rights holder, or authorised to act for them, and you also want something hidden inside Friction, write to ${mail} with the address of the item, who you are, and why you are entitled to ask. We check every request and we act only on those that come from the rights holder or someone authorised for them. Anonymous, bulk or repeated requests, and requests that look meant to harass a stream, a publisher or this site, are ignored. Knowingly sending a false claim can have legal consequences for the sender.</p>`
+<p>Friction keeps no copy of any stream. Our radio and TV lists are short hand-picked lists of addresses, so removing something from them is easy once a request is verified, but the real fix for content that should not be on the web is always at the source. If you are the rights holder, or authorised to act for them, and you also want something hidden inside Friction, use ${mail} with the address of the item, who you are, and why you are entitled to ask. We check every request and we act only on those that come from the rights holder or someone authorised for them. Anonymous, bulk or repeated requests, and requests that look meant to harass a stream, a publisher or this site, are ignored. Knowingly sending a false claim can have legal consequences for the sender.</p>`
 
 const PAGES = {
   '/about': {
@@ -42,7 +41,7 @@ const PAGES = {
 <h2>Why it exists</h2>
 <p>Most focus tools block things or scold you. Friction does the opposite: it gives you something good to do inside the tab, and keeps an honest count of how often you left. It does not invent proof, it does not send you notifications to come back, and it has no feed.</p>
 <h2>Who makes it</h2>
-<p>Friction is made and run by one independent developer. It has no investors and no sales team. If you have a question, a bug or an idea, write to ${mail}.</p>
+<p>Friction is made and run by one independent developer. It has no investors and no sales team. If you have a question, a bug or an idea, use ${mail}.</p>
 <h2>How it is paid for</h2>
 <p>Friction is free to use. The hosting, the database and the cloud browser cost real money, so the site may show advertising from Google AdSense on its public pages, such as the blog. Ads never change the timer, the lessons or your data. How ads and cookies work is explained in the <a href="/privacy">Privacy Policy</a> and the <a href="/cookies">Cookie Policy</a>.</p>
 <h2>Where AI is used, and where it is not</h2>
@@ -52,20 +51,48 @@ const PAGES = {
   },
   '/contact': {
     title: 'Contact Friction: questions, bugs, privacy requests',
-    description: 'How to reach the person who runs Friction: questions, bug reports, privacy and data requests, advertising and press. One address, read by a human.',
+    description: 'How to reach the person who runs Friction: questions, bug reports, privacy and data requests, advertising and press. One form, read by a human.',
     h1: 'Contact',
-    lead: 'One address, read by the person who builds Friction.',
+    lead: 'A message form, read by the person who builds Friction.',
     body: `
-<h2>Email</h2>
-<p><strong>${mail}</strong></p>
-<p>Write about anything below. A reply usually takes a few days; there is no support team, so a clear message with what you were doing, the screen you were on, and your device and browser helps most.</p>
+<h2>Send a message</h2>
+<p>There is no public email address: messages go through this form straight to the person who runs Friction. Leave a way to reach you if you want an answer (an email address or a link); without one the message is still read but cannot be answered. A reply usually takes a few days, and there is no support team, so a clear message with what you were doing, the screen you were on, and your device and browser helps most.</p>
+<form id="cf" class="cf" novalidate>
+<label for="cf-topic">What is it about?</label>
+<select id="cf-topic" name="topic"><option value="bug">A bug or something that looks wrong</option><option value="site">A site that does not work in the Browser window</option><option value="privacy">Privacy or my data</option><option value="rights">I am a rights holder asking for something to be hidden</option><option value="ads">Advertising, press or partnerships</option><option value="other">Something else</option></select>
+<label for="cf-message">Your message</label>
+<textarea id="cf-message" name="message" rows="7" maxlength="2000" required></textarea>
+<label for="cf-name">Your name (optional)</label>
+<input id="cf-name" name="name" maxlength="60" autocomplete="name">
+<label for="cf-reply">How to reach you (optional, needed for a reply)</label>
+<input id="cf-reply" name="reply" maxlength="120" autocomplete="email" placeholder="you@example.com">
+<div class="cf-hp" aria-hidden="true"><label>Leave this empty <input name="site" tabindex="-1" autocomplete="off"></label></div>
+<button class="cta" type="submit" id="cf-go">Send</button>
+<p id="cf-status" role="status" aria-live="polite"></p>
+</form>
+<script>
+(function () {
+  var t0 = Date.now(), f = document.getElementById('cf'), st = document.getElementById('cf-status'), go = document.getElementById('cf-go')
+  f.addEventListener('submit', function (e) {
+    e.preventDefault()
+    var d = { topic: f.topic.value, message: f.message.value, name: f.name.value, reply: f.reply.value, site: f.site.value, ms: Date.now() - t0 }
+    if (d.message.trim().length < 10) { st.textContent = 'Please write a little more (at least 10 characters).'; return }
+    go.disabled = true; st.textContent = 'Sending...'
+    fetch('/api/contact', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j } }) })
+      .then(function (x) { if (x.ok) { f.reset(); st.textContent = 'Thank you. Your message was sent.' } else { st.textContent = (x.j && x.j.error) || 'Sorry, that did not go through.'; go.disabled = false } })
+      .catch(function () { st.textContent = 'Sorry, that did not go through. Please try again in a moment.'; go.disabled = false })
+      .then(function () { setTimeout(function () { go.disabled = false }, 4000) })
+  })
+})()
+</script>
 <h2>What to write about</h2>
 <ul>
 <li><strong>A bug or something that looks wrong.</strong> Say what you expected and what happened.</li>
 <li><strong>A site that does not work in the Browser window.</strong> The Browser reads pages only, and the cloud browser is experimental; some sites will not work.</li>
-<li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, write here.</li>
-<li><strong>Advertising, press and partnerships.</strong> Send a short note about what you have in mind.</li>
-<li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. Rights holders who want something hidden in Friction can write here, as described under Requests from rights holders on the Disclaimer page; we verify who is asking and do not act on anonymous or bulk requests.</li>
+<li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, use the form.</li>
+<li><strong>Advertising, press and partnerships.</strong> Pick that topic in the form and say what you have in mind.</li>
+<li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. Rights holders who want something hidden in Friction can use the form, as described under Requests from rights holders on the Disclaimer page; we verify who is asking and do not act on anonymous or bulk requests.</li>
 </ul>
 <h2>Before you write</h2>
 <p>The <a href="/about">About</a> page says what Friction is. The <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms of Use</a> answer most questions about data and rules.</p>`,
@@ -83,13 +110,14 @@ const PAGES = {
 <li>Third parties, listed below, receive some data when you use a feature that needs them, and Google may set cookies for analytics and advertising.</li>
 </ul>
 <h2>Who is responsible</h2>
-<p>Friction is run by an independent developer. For privacy questions or requests write to ${mail}.</p>
+<p>Friction is run by an independent developer. For privacy questions or requests use ${mail}.</p>
 <h2>What stays in your browser</h2>
 <p>Your profile name, settings, sessions, drifts, credits, lessons, notes, to-do lists, layout and shop items are stored in your browser (localStorage and IndexedDB). We cannot see them, and clearing site data or using Erase everything removes them. Your private identity key is a random value that also stays in your browser; only a hash of it is ever sent anywhere.</p>
 <h2>What is sent to our servers</h2>
 <ul>
 <li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, and your score. Erase everything deletes your row.</li>
 <li><strong>Together rooms (optional).</strong> A room stores the names members chose, chat messages, what is being shared and an optional Discord or Slack webhook address the host sets. A room with nobody left is deleted. Erase everything removes your seat.</li>
+<li><strong>The contact form.</strong> A message you send is stored with the topic you chose and, only if you give them, your name and a way to reach you. Your network address is kept only as a one-way hash, to stop spam (three messages a day). Messages are deleted after 180 days. Please do not put anything sensitive in a message.</li>
 <li><strong>Moving your data.</strong> If you use Move my data, your data is encrypted in your browser with a code only you see, kept for ten minutes, and deleted when read. We never see the code or the contents.</li>
 <li><strong>The Browser window and cloud browser allowance.</strong> Pages are fetched by our server on your behalf and are not stored. The daily time allowance for the cloud browser is counted against a hash of your network address, which is kept for the day.</li>
 <li><strong>Technical logs.</strong> Our host, Vercel, processes requests and keeps standard server logs such as address, time and page requested.</li>
@@ -106,7 +134,7 @@ const PAGES = {
 <h2>Cookies and local storage</h2>
 <p>See the <a href="/cookies">Cookie Policy</a>.</p>
 <h2>Children</h2>
-<p>Friction is a general study tool and is not aimed at children under 13. We do not knowingly collect personal data from them. If you think a child has given us data, write to ${mail}.</p>
+<p>Friction is a general study tool and is not aimed at children under 13. We do not knowingly collect personal data from them. If you think a child has given us data, use ${mail}.</p>
 <h2>Your rights</h2>
 <p>Because almost everything is in your browser, you can see and delete it yourself. For data on our servers (a leaderboard row, a room seat), Erase everything deletes it. You may also ask us to access, correct or delete data, or object to its use, by writing to ${mail}. If you are in the EEA, UK or California you have additional rights under local law, and you may complain to your data-protection authority.</p>
 <h2>Security</h2>
@@ -196,7 +224,7 @@ ${SOURCES}
 
 const NAV = [['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms']]
 const FOOT = '<a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a> · <a href="/blogs">Blog</a>'
-const EXTRA = '<style>table{width:100%;border-collapse:collapse;margin:0 0 20px}th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16px;color:var(--ink-2)}th{color:var(--ink-3);font:600 15px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}.article a{color:var(--signal)}</style>'
+const EXTRA = '<style>table{width:100%;border-collapse:collapse;margin:0 0 20px}th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16px;color:var(--ink-2)}th{color:var(--ink-3);font:600 15px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}.article a{color:var(--signal)}.cf{display:grid;gap:8px;max-width:36rem;margin:0 0 28px}.cf label{color:var(--ink-3);font:600 15px/1.2 var(--cond);letter-spacing:.14em;text-transform:uppercase;margin-top:10px}.cf input,.cf select,.cf textarea{width:100%;min-height:48px;padding:10px 12px;background:transparent;color:var(--ink);border:1px solid var(--rule);font:inherit;font-size:17px;border-radius:0}.cf textarea{resize:vertical}.cf input:focus,.cf select:focus,.cf textarea:focus{outline:3px solid var(--ink);outline-offset:2px}.cf option{background:#05070c}.cf-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.cf button{border:0;cursor:pointer;margin-top:18px}.cf button:disabled{opacity:.6;cursor:default}#cf-status{min-height:1.5em;margin:6px 0 0;color:var(--ink-2)}</style>'
 
 for (const [path, p] of Object.entries(PAGES)) {
   const url = SITE + path
