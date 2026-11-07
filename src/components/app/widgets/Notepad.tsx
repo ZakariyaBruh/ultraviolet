@@ -25,7 +25,7 @@ export function Notepad() {
   }
   return (
     <div className="grid gap-2">
-      <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={NOTE_MAX} aria-label="Notes" placeholder="Write anything. It stays here." spellCheck className="h-44 w-full resize-none border border-ink/25 bg-transparent p-2 text-[15px] leading-[1.45] text-ink placeholder:text-ink-3 focus:border-signal" />
+      <textarea data-fill style={{ '--fill': '7.25rem' } as React.CSSProperties} value={note} onChange={(e) => setNote(e.target.value)} maxLength={NOTE_MAX} aria-label="Notes" placeholder="Write anything. It stays here." spellCheck className="h-44 w-full resize-none border border-ink/25 bg-transparent p-2 text-[15px] leading-[1.45] text-ink placeholder:text-ink-3 focus:border-signal" />
       <div className="flex items-center justify-between gap-2">
         <p className="fig text-[12px] text-ink-2" aria-live="off">{words} {words === 1 ? 'word' : 'words'} · {note.length.toLocaleString('en-US')} characters</p>
         <div className="flex gap-1">

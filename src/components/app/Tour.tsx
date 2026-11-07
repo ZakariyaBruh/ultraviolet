@@ -47,7 +47,7 @@ export function Tour({ view, go }: { view: View; go: (v: View) => void }) {
     { id: 'pay', target: '[data-tour="ladder"]', place: 'right', title: 'Longer pays more', body: 'Clean minutes pay 1 credit a minute, then more at each checkpoint: 1.5, 2, 3 and 4. The checkpoints follow the length you pick, so a 25 minute session reaches 4 a minute at 20. A drift starts the climb over.' },
     { id: 'deck', target: '[data-tour="widgets"] button', place: 'bottom', title: 'Study windows', body: 'A deck of tools: notepad, timer, calculator and more.', task: 'Tap the deck', done: () => !!document.querySelector('[role="group"][aria-label="Widgets"]') },
     { id: 'card', target: '[role="group"][aria-label="Widgets"] [aria-label^="Timer"]', scope: '[role="group"][aria-label="Widgets"]', place: 'left', title: 'Open one', body: 'Each card is a window.', task: 'Press the Timer card', setup: (c) => c.onClose(() => { useStore.getState().setWidget('timer', false); useStore.getState().closeWidgets?.() }), done: () => useStore.getState().widgets.open.includes('timer') },
-    { id: 'window', target: '[data-movable="widget-timer"]', place: 'bottom', title: 'It floats', body: 'Grab it by the title bar or a bare edge and move it. It stays where you leave it.', task: 'Drag the window',
+    { id: 'window', target: '[data-movable="widget-timer"]', place: 'bottom', title: 'It floats', body: 'Grab it by the title bar and move it. Drag a corner to make it bigger. It stays where you leave it.', task: 'Drag the window',
       // a drag is a press inside the window followed by it actually moving, so a window that settles on its own does not count
       setup: (c) => {
         const at = cornerOf('[data-movable="widget-timer"]')

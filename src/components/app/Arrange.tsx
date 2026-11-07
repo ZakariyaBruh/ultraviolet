@@ -1,6 +1,7 @@
 import { RotateCcw } from 'lucide-react'
-import { useEffect } from 'react'
-import { useLayout, type Offset } from '@/lib/layout'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { useLayout, type Offset, type Size } from '@/lib/layout'
 import { useStore } from '@/lib/store'
 import { raiseWidget } from '@/components/app/widgets/Window'
 
@@ -94,6 +95,322 @@ function range(el: HTMLElement) {
 }
 const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
+/* ───────── size ─────────
+ * A panel the person has resized gets `data-sized` and four custom properties (`--rz-w`, `--rz-h` and the two margins that give back the room
+ * it used to take); the rule for them is in index.css. Nothing else in the layout moves: like a moved panel, a resized one floats over the page.
+ * Sizes are in the panel's own px (before any FitView scale) and are fitted to the room there is each time they are applied, so a window made
+ * smaller later still holds them without losing what was chosen. */
+const NOSIZE = new Set(['timer'])
+/** the player, the nav and the layer tray keep one shape; so does the dial. A page that scrolls (Insights) lays its panels out itself. */
+const canSize = (el: HTMLElement) => { const id = el.dataset.movable ?? ''; return !id.startsWith('shell-') && !NOSIZE.has(id) && !inFlow(el) }
+/** study windows keep one size on every screen; panels are remembered per screen */
+const sizeScopeOf = (id: string, scope: string) => (id.startsWith('shell-') || id.startsWith('widget-') ? 'shell' : scope)
+const isWindow = (el: HTMLElement) => !!el.dataset.movable?.startsWith('widget-')
+const minOf = (el: HTMLElement): Size => (isWindow(el) ? { w: 220, h: 130 } : { w: 150, h: 90 })
+/** the room a panel may grow into: the page area, or the layer a study window floats in */
+function areaOf(el: HTMLElement): DOMRect {
+  if (isWindow(el) && el.parentElement) {
+    // a window keeps the same small margin from the layer's edge that moving it does (range)
+    const r = el.parentElement.getBoundingClientRect()
+    return new DOMRect(r.x + EDGE, r.y + EDGE, Math.max(0, r.width - 2 * EDGE), Math.max(0, r.height - 2 * EDGE))
+  }
+  return (document.querySelector('#canvas > div') ?? document.body).getBoundingClientRect()
+}
+/** what the layout gives a panel when nobody has resized it (measured with the size taken off, then cached until the window changes shape) */
+let gen = 0
+const NAT = new WeakMap<HTMLElement, Size & { g: number }>()
+function naturalOf(el: HTMLElement, fresh = false): Size {
+  const hit = NAT.get(el)
+  if (hit && hit.g === gen && !fresh) return hit
+  const on = el.hasAttribute('data-sized')
+  if (on) el.removeAttribute('data-sized')
+  const n = { w: el.offsetWidth, h: el.offsetHeight, g: gen }
+  if (on) el.setAttribute('data-sized', '')
+  NAT.set(el, n)
+  return n
+}
+function setSize(el: HTMLElement, s: Size, nat: Size = naturalOf(el)) {
+  const st = el.style
+  st.setProperty('--rz-w', `${s.w}px`)
+  st.setProperty('--rz-h', `${s.h}px`)
+  st.setProperty('--rz-mr', `${nat.w - s.w}px`)
+  st.setProperty('--rz-mb', `${nat.h - s.h}px`)
+  if (!el.hasAttribute('data-sized')) el.setAttribute('data-sized', '')
+}
+/** a panel that has been made small scrolls; one with nothing to press in it is given the keyboard focus so that it can still be scrolled without a mouse */
+function reachable(el: HTMLElement) {
+  const box = (isWindow(el) && el.querySelector<HTMLElement>('[data-win-body]')) || el
+  const sized = el.hasAttribute('data-sized')
+  const scrolls = box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1
+  const holds = !!box.querySelector('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')
+  if (sized && scrolls && !holds && !box.hasAttribute('tabindex')) {
+    box.tabIndex = 0
+    box.setAttribute('role', 'region')
+    box.setAttribute('aria-label', el.querySelector('h1,h2,h3')?.textContent?.trim() || 'Panel')
+    box.dataset.rzTab = ''
+  } else if (box.dataset.rzTab !== undefined && !(sized && scrolls && !holds)) {
+    box.removeAttribute('tabindex')
+    box.removeAttribute('role')
+    box.removeAttribute('aria-label')
+    delete box.dataset.rzTab
+  }
+}
+function clearSize(el: HTMLElement) {
+  for (const p of ['--rz-w', '--rz-h', '--rz-mr', '--rz-mb']) el.style.removeProperty(p)
+  el.removeAttribute('data-sized')
+  NAT.delete(el)
+  reachable(el)
+}
+/** a saved size, held to the room there is now and to the smallest a panel may be */
+function fitSize(el: HTMLElement, s: Size) {
+  const k = scaleOf(el)
+  const a = areaOf(el)
+  const m = minOf(el)
+  setSize(el, { w: Math.round(clampTo(s.w, m.w, Math.max(m.w, a.width / k))), h: Math.round(clampTo(s.h, m.h, Math.max(m.h, a.height / k))) })
+}
+
+/**
+ * A size that was chosen in a taller or wider window must not push the panel off the page in a smaller one (which would start the small-window
+ * scroll): where the panel's own layout size would have fitted, what it is given is cut to the room that is left below and to the right of it.
+ * The size that was chosen stays saved, so the panel opens out again when the window does.
+ */
+function contain(el: HTMLElement) {
+  const a = areaOf(el)
+  const r = el.getBoundingClientRect()
+  const k = scaleOf(el)
+  const nat = naturalOf(el)
+  const m = minOf(el)
+  let w = el.offsetWidth
+  let h = el.offsetHeight
+  if (r.right > a.right + 1 && r.left + nat.w * k <= a.right + 1) w = Math.max(m.w, (a.right - r.left) / k)
+  if (r.bottom > a.bottom + 1 && r.top + nat.h * k <= a.bottom + 1) h = Math.max(m.h, (a.bottom - r.top) / k)
+  if (Math.abs(w - el.offsetWidth) > 0.5 || Math.abs(h - el.offsetHeight) > 0.5) setSize(el, { w: Math.round(w), h: Math.round(h) }, nat)
+}
+
+/** Whatever the dropped panel now overlaps was put there on purpose: remember it, and forget pairs it has left. */
+function rememberAt(scope: string, el: HTMLElement, id: string) {
+  const mine = el.getBoundingClientRect()
+  const old = (useLayout.getState().keep[scope] ?? []).filter((p) => !p.split('|').includes(id))
+  const now = scan().filter((o) => o.el !== el && hits(mine, o.el.getBoundingClientRect())).map((o) => [id, o.id].sort().join('|'))
+  useLayout.getState().setKeep(scope, Array.from(new Set([...old, ...now])))
+}
+
+/** keep a size (or, when it is the layout's own, forget it) and the place the panel ended up in */
+function commit(scope: string, el: HTMLElement, id: string, size: Size, was: Offset) {
+  const L = useLayout.getState()
+  const nat = naturalOf(el)
+  const s = sizeScopeOf(id, scope)
+  if (Math.abs(size.w - nat.w) < 3 && Math.abs(size.h - nat.h) < 3) { clearSize(el); L.unsize(s, id) } else L.resize(s, id, size)
+  const o = live(el)
+  paint(el, { x: Math.round(o.x), y: Math.round(o.y) })
+  if (Math.round(o.x) !== was.x || Math.round(o.y) !== was.y) L.move(scopeOf(id, scope), id, live(el))
+  rememberAt(scope, el, id)
+  reachable(el)
+}
+
+type Dir = 'n' | 'e' | 's' | 'w' | 'nw' | 'ne' | 'sw' | 'se'
+const DIRS: Dir[] = ['n', 'e', 's', 'w', 'nw', 'ne', 'sw', 'se']
+type Grab = { el: HTMLElement; id: string; dir: Dir; pid: number; x0: number; y0: number; k: number; r0: DOMRect; s0: Size; end: Size; nat: Size; area: DOMRect; prev?: Size; o0: Offset }
+
+/**
+ * The handles for resizing. They are drawn over the panel under the pointer, in a layer of their own, and not inside the panel: a panel that
+ * has been made small scrolls its content, and handles inside it would scroll away with the text. A mouse sees them on hover (edges and
+ * corners, with a grip in the bottom right); a finger sees the corner grip on the panel it last touched, with a target that reaches mostly
+ * outwards so it never covers a button inside. Drag to resize, double-click to put the size back, Escape while dragging to cancel, and
+ * Ctrl + Alt + arrow keys from the keyboard (Shift for bigger steps).
+ */
+function Resizers({ scope }: { scope: string }) {
+  const frame = useRef<HTMLDivElement>(null)
+  const tip = useRef<HTMLDivElement>(null)
+  const grab = useRef<Grab | null>(null)
+  const [target, setTarget] = useState<HTMLElement | null>(null)
+  const [coarse, setCoarse] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  // which panel the handles belong to: the one under the mouse, the one a finger last touched, the one with the keyboard focus
+  useEffect(() => {
+    let raf = 0
+    let px = 0
+    let py = 0
+    const ok = (p: HTMLElement | null): p is HTMLElement => !!p && canSize(p) && !p.dataset.ghost && !p.dataset.min && !p.hasAttribute('inert')
+    const pick = () => {
+      raf = 0
+      if (grab.current || document.documentElement.dataset.dragging) return
+      const top = document.elementsFromPoint(px, py)[0]
+      if (!top || top.closest('[data-rz-overlay]')) return // on a handle: keep the panel it belongs to
+      const p = top.closest<HTMLElement>(SEL) ?? null
+      setTarget(ok(p) ? p : null)
+    }
+    const move = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
+      setCoarse(false)
+      px = e.clientX
+      py = e.clientY
+      if (!raf) raf = requestAnimationFrame(pick)
+    }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      setCoarse(true)
+      const t = e.target as Element
+      if (t.closest('[data-rz-overlay]')) return
+      const p = t.closest<HTMLElement>(SEL) ?? null
+      setTarget(ok(p) ? p : null)
+    }
+    const focus = (e: FocusEvent) => {
+      if (grab.current) return
+      const p = (e.target as Element | null)?.closest?.<HTMLElement>(SEL) ?? null
+      if (ok(p)) setTarget(p)
+    }
+    document.addEventListener('pointermove', move, { capture: true, passive: true })
+    document.addEventListener('pointerdown', down, true)
+    document.addEventListener('focusin', focus)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('pointermove', move, true)
+      document.removeEventListener('pointerdown', down, true)
+      document.removeEventListener('focusin', focus)
+    }
+  }, [])
+
+  // the frame follows its panel (which may be rising in, being thrown or sitting on a page that scrolls)
+  useEffect(() => {
+    const f = frame.current
+    if (!target || !f) return
+    let raf = 0
+    let last = ''
+    const track = () => {
+      if (!target.isConnected) { setTarget(null); return }
+      const r = target.getBoundingClientRect()
+      const hide = !!target.dataset.dragging || !!target.dataset.gliding || r.width < 2 || r.height < 2
+      const now = `${hide}|${r.left}|${r.top}|${r.width}|${r.height}`
+      if (now !== last) {
+        last = now
+        f.style.visibility = hide ? 'hidden' : 'visible'
+        f.style.transform = `translate(${r.left}px, ${r.top}px)`
+        f.style.width = `${r.width}px`
+        f.style.height = `${r.height}px`
+      }
+      raf = requestAnimationFrame(track)
+    }
+    track()
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+
+  // Escape while dragging puts everything back as it was
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => {
+      const g = grab.current
+      if (e.key !== 'Escape' || !g) return
+      e.preventDefault()
+      e.stopPropagation()
+      grab.current = null
+      delete g.el.dataset.resizing
+      delete document.documentElement.dataset.dragging
+      if (g.prev) fitSize(g.el, g.prev); else clearSize(g.el)
+      paint(g.el, g.o0)
+      setBusy(false)
+    }
+    document.addEventListener('keydown', esc, true)
+    return () => document.removeEventListener('keydown', esc, true)
+  }, [])
+
+  // from the keyboard: Ctrl + Alt + arrows grow and shrink the panel that has the focus (right and down grow; Shift takes bigger steps)
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.altKey || e.metaKey) return
+      const v = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[] | undefined>)[e.key]
+      const el = (document.activeElement as Element | null)?.closest?.<HTMLElement>(SEL)
+      const hit = el && canSize(el) ? scan().find((p) => p.el === el) : undefined
+      if (!v || !el || !hit) return
+      e.preventDefault()
+      const step = e.shiftKey ? 64 : 16
+      const m = minOf(el)
+      const a = areaOf(el)
+      const k = scaleOf(el)
+      const r = el.getBoundingClientRect()
+      const was = live(el)
+      const w = clampTo(el.offsetWidth + v[0] * step, m.w, Math.max(m.w, (Math.max(a.right, r.right) - r.left) / k))
+      const h = clampTo(el.offsetHeight + v[1] * step, m.h, Math.max(m.h, (Math.max(a.bottom, r.bottom) - r.top) / k))
+      setSize(el, { w, h })
+      commit(scope, el, hit.id, { w, h }, was)
+    }
+    document.addEventListener('keydown', key)
+    return () => document.removeEventListener('keydown', key)
+  }, [scope])
+
+  const begin = (dir: Dir) => (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = target
+    const hit = el ? scan().find((p) => p.el === el) : undefined
+    if (!el || !hit || e.button !== 0 || !e.isPrimary || grab.current) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    lift(el)
+    const nat = naturalOf(el, true)
+    const s0 = { w: el.offsetWidth, h: el.offsetHeight }
+    grab.current = { el, id: hit.id, dir, pid: e.pointerId, x0: e.clientX, y0: e.clientY, k: scaleOf(el), r0: el.getBoundingClientRect(), s0, end: s0, nat, area: areaOf(el), prev: useLayout.getState().sizes[sizeScopeOf(hit.id, scope)]?.[hit.id], o0: live(el) }
+    el.dataset.resizing = 'true'
+    document.documentElement.dataset.dragging = 'true'
+    setBusy(true)
+  }
+  const drag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const g = grab.current
+    if (!g || e.pointerId !== g.pid) return
+    const dx = (e.clientX - g.x0) / g.k
+    const dy = (e.clientY - g.y0) / g.k
+    const m = minOf(g.el)
+    const d = g.dir
+    // each edge may travel out to the edge of the room there is, and never less than where it already is
+    const east = (Math.max(g.area.right, g.r0.right) - g.r0.left) / g.k
+    const west = (g.r0.right - Math.min(g.area.left, g.r0.left)) / g.k
+    const south = (Math.max(g.area.bottom, g.r0.bottom) - g.r0.top) / g.k
+    const north = (g.r0.bottom - Math.min(g.area.top, g.r0.top)) / g.k
+    let { w, h } = g.s0
+    if (d.includes('e')) w = clampTo(g.s0.w + dx, m.w, Math.max(m.w, east))
+    if (d.includes('w')) w = clampTo(g.s0.w - dx, m.w, Math.max(m.w, west))
+    if (d.includes('s')) h = clampTo(g.s0.h + dy, m.h, Math.max(m.h, south))
+    if (d.includes('n')) h = clampTo(g.s0.h - dy, m.h, Math.max(m.h, north))
+    setSize(g.el, { w, h }, g.nat)
+    // the panel grows out of the edge that was not grabbed: that edge stays where it was on the screen
+    const r = g.el.getBoundingClientRect()
+    const o = live(g.el)
+    const wantL = d.includes('w') ? g.r0.right - r.width : g.r0.left
+    const wantT = d.includes('n') ? g.r0.bottom - r.height : g.r0.top
+    paint(g.el, { x: o.x + (wantL - r.left) / g.k, y: o.y + (wantT - r.top) / g.k })
+    g.end = { w, h }
+    if (tip.current) tip.current.textContent = `${Math.round(w)} × ${Math.round(h)}`
+  }
+  const finish = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const g = grab.current
+    if (!g || e.pointerId !== g.pid) return
+    grab.current = null
+    delete g.el.dataset.resizing
+    delete document.documentElement.dataset.dragging
+    setBusy(false)
+    commit(scope, g.el, g.id, g.end, g.o0)
+  }
+  const reset = () => {
+    const el = target
+    const hit = el ? scan().find((p) => p.el === el) : undefined
+    if (!el || !hit) return
+    clearSize(el)
+    useLayout.getState().unsize(sizeScopeOf(hit.id, scope), hit.id)
+  }
+
+  return createPortal(
+    target ? (
+      <div ref={frame} data-rz-overlay data-coarse={coarse || undefined} data-active={busy || undefined} className="rz-frame" aria-hidden>
+        {DIRS.map((d) => (
+          <div key={d} data-rz={d} className={`rz rz-${d}`} title={d === 'se' ? 'Drag to resize. Double-click to put it back.' : undefined} onPointerDown={begin(d)} onPointerMove={drag} onPointerUp={finish} onPointerCancel={finish} onDoubleClick={reset} />
+        ))}
+        <svg className="rz-glyph" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square"><path d="M11 1 1 11M11 6 6 11" /></svg>
+        {busy && <div ref={tip} className="rz-tip hud" />}
+      </div>
+    ) : null,
+    document.body,
+  )
+}
+
 /**
  * Every [data-movable] panel can be picked up anywhere that is not a control and thrown: it follows the pointer,
  * leans into the motion, glides on after release and settles. Positions persist per screen.
@@ -110,8 +427,10 @@ export function ArrangeLayer({ scope }: { scope: string }) {
   }, [])
   const offsets = useLayout((s) => s.offsets[scope])
   const shell = useLayout((s) => s.offsets.shell)
+  const sizes = useLayout((s) => s.sizes[scope])
+  const shellSizes = useLayout((s) => s.sizes.shell)
 
-  // apply saved offsets whenever panels mount or change, then tidy anything the player or nav now sits on
+  // apply saved sizes and offsets whenever panels mount or change, then tidy anything the player or nav now sits on
   useEffect(() => {
     let raf = 0
     let t1: ReturnType<typeof setTimeout> | undefined
@@ -130,7 +449,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       // only free-standing panels are eased aside; page text and lists stay where the layout put them
       const cands = all.filter(({ el, id }) => !id.startsWith('shell-') && !offsets?.[id] && !inFlow(el))
       for (const { el, id } of cands) {
-        if (el.dataset.dragging || el.dataset.gliding) continue
+        if (el.dataset.dragging || el.dataset.gliding || el.dataset.resizing) continue
         const k = scaleOf(el)
         const cur = live(el)
         const r = el.getBoundingClientRect()
@@ -157,12 +476,17 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     }
     const apply = () => {
       for (const { el, id } of scan()) {
-        if (el.dataset.dragging || el.dataset.gliding) continue
+        if (el.dataset.dragging || el.dataset.gliding || el.dataset.resizing) continue
         if (inFlow(el)) { if (el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
+        // the size first, so that the limits for the offset below are those of the panel as it is now
+        const z = (sizeScopeOf(id, scope) === 'shell' ? shellSizes : sizes)?.[id]
+        if (z && canSize(el)) { fitSize(el, z); reachable(el) }
+        else if (el.hasAttribute('data-sized')) clearSize(el)
         const o = (id.startsWith('shell-') ? shell : offsets)?.[id]
-        if (!o) { if (id.startsWith('shell-') && el.dataset.moved) paint(el, { x: 0, y: 0 }); continue }
+        if (!o) { if (id.startsWith('shell-') && el.dataset.moved) paint(el, { x: 0, y: 0 }); if (el.hasAttribute('data-sized')) contain(el); continue }
         const r = range(el)
         paint(el, { x: Math.round(clampTo(o.x, r.minX, r.maxX)), y: Math.round(clampTo(o.y, r.minY, r.maxY)) })
+        if (el.hasAttribute('data-sized')) contain(el)
       }
       tidy()
     }
@@ -170,9 +494,11 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     queue()
     const mo = new MutationObserver(queue)
     mo.observe(document.body, { childList: true, subtree: true })
-    addEventListener('resize', queue)
-    return () => { mo.disconnect(); removeEventListener('resize', queue); cancelAnimationFrame(raf); clearTimeout(t1) }
-  }, [offsets, shell, scope])
+    // a window that changes shape changes what the layout gives each panel, so what was measured is measured again
+    const reshaped = () => { gen++; queue() }
+    addEventListener('resize', reshaped)
+    return () => { mo.disconnect(); removeEventListener('resize', reshaped); cancelAnimationFrame(raf); clearTimeout(t1) }
+  }, [offsets, shell, sizes, shellSizes, scope])
 
   useEffect(() => {
     type Drag = { el: HTMLElement; id: string; pid: number; x0: number; y0: number; o0: Offset; k: number; r: ReturnType<typeof range>; began: boolean; lx: number; ly: number; lt: number; vx: number; vy: number; rot: number }
@@ -180,15 +506,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     let swallow = false
     const flair = () => !REDUCED() && useStore.getState().settings.motion > 0
 
-    const hits = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-    /** Whatever the dropped panel now overlaps was put there on purpose: remember it, and forget pairs it has left. */
-    const remember = (el: HTMLElement, id: string) => {
-      const mine = el.getBoundingClientRect()
-      const old = (useLayout.getState().keep[scope] ?? []).filter((p) => !p.split('|').includes(id))
-      const now = scan().filter((o) => o.el !== el && hits(mine, o.el.getBoundingClientRect())).map((o) => [id, o.id].sort().join('|'))
-      useLayout.getState().setKeep(scope, Array.from(new Set([...old, ...now])))
-    }
-    const save = (el: HTMLElement, id: string) => { useLayout.getState().move(scopeOf(id, scope), id, live(el)); remember(el, id) }
+    const save = (el: HTMLElement, id: string) => { useLayout.getState().move(scopeOf(id, scope), id, live(el)); rememberAt(scope, el, id) }
 
     const glide = (el: HTMLElement, id: string, vx: number, vy: number, rot: number, r: ReturnType<typeof range>) => {
       vx = clampTo(vx, -2.5, 2.5)
@@ -264,7 +582,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     }
     const click = (e: Event) => { if (swallow) { e.preventDefault(); e.stopPropagation() } }
     const key = (e: KeyboardEvent) => {
-      if (!e.altKey) return
+      if (!e.altKey || e.ctrlKey || e.metaKey) return // Ctrl + Alt + arrows resize (Resizers)
       const el = (document.activeElement as Element | null)?.closest<HTMLElement>(SEL)
       if (!el || inFlow(el)) return
       const s = e.shiftKey ? 48 : 12
@@ -293,16 +611,16 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     }
   }, [scope])
 
-  return null
+  return <Resizers scope={scope} />
 }
 
-/** Shows only once something has been moved: one press puts this screen's panels back. */
+/** Shows only once something has been moved or resized: one press puts this screen's panels (and the study windows) back. */
 export function ArrangeButtons({ scope }: { scope: string }) {
   const reset = useLayout((s) => s.reset)
-  const moved = useLayout((s) => Object.keys(s.offsets[scope] ?? {}).length + Object.keys(s.offsets.shell ?? {}).length > 0)
+  const moved = useLayout((s) => Object.keys(s.offsets[scope] ?? {}).length + Object.keys(s.offsets.shell ?? {}).length + Object.keys(s.sizes[scope] ?? {}).length + Object.keys(s.sizes.shell ?? {}).length > 0)
   if (!moved) return null
   return (
-    <button onClick={() => { reset(scope); reset('shell') }} aria-label="Put the panels back where they started" className="grid size-11 place-items-center text-ink-2 hover:bg-ink/10 hover:text-ink md:size-10">
+    <button onClick={() => { reset(scope); reset('shell') }} aria-label="Put the panels back where they started, at their own size" className="grid size-11 place-items-center text-ink-2 hover:bg-ink/10 hover:text-ink md:size-10">
       <RotateCcw className="size-4" />
     </button>
   )

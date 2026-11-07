@@ -31,7 +31,7 @@ export function Ask() {
   return (
     <div className="grid gap-2">
       <p className="hud !text-[11px] leading-[14px]"><span className="border border-signal px-1 text-signal">AI generated</span> can be wrong · free services · nothing saved</p>
-      <div className="scroll-y h-[15rem] border border-ink/15 bg-ink/[0.03] p-2" data-no-drag role="log" aria-live="polite" aria-label="Conversation">
+      <div data-fill style={{ '--fill': '9.75rem' } as React.CSSProperties} className="scroll-y h-[15rem] border border-ink/15 bg-ink/[0.03] p-2" data-no-drag role="log" aria-live="polite" aria-label="Conversation">
         {!msgs.length && <p className="text-[13px] leading-[1.45] text-ink-2">Ask it to explain something, quiz you, or check your understanding. It does not know you or your notes, and it is not part of any lesson, so check anything important.</p>}
         {msgs.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'mb-2 ml-6 bg-signal/15 p-2 text-[14px] leading-[1.4]' : 'mb-2 mr-4 border-l-2 border-ink/25 pl-2 text-[14px] leading-[1.45] text-ink'}>

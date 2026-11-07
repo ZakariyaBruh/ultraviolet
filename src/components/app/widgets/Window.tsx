@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 /**
- * One study window on the Focus screen. It is a panel like any other (grab the title bar or any bare edge and move it),
+ * One study window on the Focus screen. It is a panel like any other (grab the title bar or any bare part and move it, drag an edge or a corner to resize it),
  * stacked from the top right so a new one never lands exactly on the last. Three controls keep it out of the way without losing it:
  * See-through (it fades and clicks go to what is behind it; only its title bar still answers), Hide (it goes to the layer tray and
  * keeps running, so a half-written note or an open page is still there when it comes back) and Close.
@@ -69,7 +69,8 @@ export function WidgetWindow({ id, title, index, wide, large, children }: { id: 
           <button onClick={() => setWidget(id, false)} aria-label={`Close ${title}`} title="Close" className={btn}><X className="size-4" /></button>
         </div>
       </div>
-      <div className="p-3">{children}</div>
+      {/* when the window is resized the body scrolls and the title bar stays put */}
+      <div data-win-body className="min-h-0 flex-1 overflow-auto p-3">{children}</div>
     </Glass>
   )
 }

@@ -355,6 +355,30 @@ canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: no
 #canvas[data-scroll] [data-flow] .scroll-y { overscroll-behavior: auto; }
 [data-movable][data-dragging] { cursor: grabbing; z-index: 30; scale: 1.03; transition: none; user-select: none; }
 [data-movable][data-moved] { z-index: 6; }
+/* ───────── resizing (Arrange.tsx) ─────────
+   A panel somebody has resized takes the size they chose, and gives back the room it used to take with two margins, so nothing else on the page moves:
+   it floats like a moved panel. Content that no longer fits scrolls inside it; a study window keeps its title bar still and scrolls its body instead. */
+[data-sized] { width: var(--rz-w) !important; height: var(--rz-h) !important; min-width: 0 !important; min-height: 0 !important; max-width: none !important; max-height: none !important; flex: none !important; margin-right: var(--rz-mr, 0px); margin-bottom: var(--rz-mb, 0px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+[data-sized][data-movable^="widget-"] { overflow: hidden; }
+/* a study window that has been resized lets its main surface (the text, the page, the conversation) take the room: the window's height less what is around it (--fill) */
+[data-sized] [data-fill] { height: calc(var(--rz-h) - var(--fill, 7.25rem)) !important; min-height: 5rem !important; max-height: none !important; }
+/* The handles live in a layer of their own over the panel under the pointer, never inside it (a panel that scrolls would carry them away). */
+.rz-frame { position: fixed; left: 0; top: 0; z-index: 37; pointer-events: none; visibility: hidden; }
+.rz { position: absolute; pointer-events: auto; touch-action: none; }
+.rz-n, .rz-s { left: 14px; right: 14px; height: 10px; cursor: ns-resize; }
+.rz-n { top: -5px; } .rz-s { bottom: -5px; }
+.rz-e, .rz-w { top: 14px; bottom: 14px; width: 10px; cursor: ew-resize; }
+.rz-e { right: -5px; } .rz-w { left: -5px; }
+.rz-nw, .rz-ne, .rz-sw, .rz-se { width: 18px; height: 18px; }
+.rz-nw { left: -6px; top: -6px; cursor: nwse-resize; } .rz-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+.rz-ne { right: -6px; top: -6px; cursor: nesw-resize; } .rz-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.rz-glyph { position: absolute; right: 3px; bottom: 3px; width: 12px; height: 12px; color: var(--ink-3); pointer-events: none; }
+.rz-frame[data-active] .rz-glyph, .rz-se:hover ~ .rz-glyph { color: var(--signal); }
+.rz-frame[data-active] { outline: 1px dashed var(--signal); }
+.rz-tip { position: absolute; right: 0; bottom: calc(100% + 6px); padding: 3px 7px; background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--signal); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* a finger gets the corner only: a 44px target that reaches mostly outwards, so it never sits on a button inside the panel */
+.rz-frame[data-coarse] .rz:not(.rz-se) { display: none; }
+.rz-frame[data-coarse] .rz-se { width: 44px; height: 44px; right: -32px; bottom: -32px; }
 html[data-dragging] * { cursor: grabbing !important; user-select: none; }
 @media (prefers-reduced-motion: reduce) { [data-movable] { transition: none; } [data-movable][data-dragging] { scale: 1; } }
 

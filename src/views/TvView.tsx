@@ -19,7 +19,7 @@ function Stage() {
   const idx = tv ? queue.findIndex((q) => q.id === tv.id) : -1
   const next = idx >= 0 ? queue.slice(idx + 1, idx + 4) : []
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div data-movable="tv-stage" className="flex h-full min-h-0 flex-col gap-3">
       <div className="relative aspect-video w-full shrink-0 overflow-hidden border border-ink/30 bg-black">
         {tv && !theatre ? <VideoSlot className="size-full" /> : (
           <div className="grid size-full place-items-center text-center">
