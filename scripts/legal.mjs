@@ -221,7 +221,7 @@ ${SOURCES}
 </ul>
 <p>The shop is not part of this: credits are never sold, and nothing in the shop is given away, so what you earn stays earned. Nothing is needed to use Friction, and everything free stays free.</p>
 <h2>Support, $2 a month</h2>
-<div id="whop" data-whop-checkout-plan-id="plan_Tatq22hQ61z5b" data-whop-checkout-return-url="https://www.frictionx.app/thanks" data-whop-checkout-theme="dark" data-whop-checkout-theme-accent-color="yellow" data-whop-checkout-hide-price="false" style="max-width:520px;min-height:420px"></div>
+<div id="whop" data-whop-checkout-plan-id="plan_iP58mTsDntqwy" data-whop-checkout-return-url="https://www.frictionx.app/thanks" data-whop-checkout-theme="dark" data-whop-checkout-theme-accent-color="yellow" data-whop-checkout-hide-price="false" style="max-width:520px;min-height:420px"></div>
 <noscript><p><a class="cta" href="https://whop.com/checkout/ch_p0r3GYyFXF8jqKR/" rel="noopener">Support on Whop</a></p></noscript>
 <script async defer src="https://js.whop.com/static/checkout/loader.js"></script>
 <h2>How it works</h2>
