@@ -128,6 +128,7 @@ const PAGES = {
 <li><strong>Hyperbeam and relay servers (cloud browser).</strong> If you open the cloud browser, a real browser runs on a third party's servers and that party can see what you do in it. A card says so before it starts. No cookies or profile are saved.</li>
 <li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
+<li><strong>Whop (supporters).</strong> If you choose to support Friction, the payment is made on Whop's own pages. Whop collects your payment details and email as the seller; Friction never receives them. When you return, a single flag in your browser records that you are a supporter.</li>
 <li><strong>Product Hunt badge.</strong> The front page shows a badge image served by Product Hunt, which therefore sees your network address and browser, as any website that loads an image does.</li>
 <li><strong>Video and audio embeds.</strong> YouTube videos open in the privacy-friendly embed.</li>
 </ul>
@@ -194,6 +195,8 @@ ${SOURCES}
 <p>AI output can contain mistakes. Check it against a reliable source. Do not rely on it for medical, legal or financial decisions.</p>
 <h2>Advertising</h2>
 <p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
+<h2>Supporting Friction</h2>
+<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that unlocks a few extras in the app (the credit shop's unlockable items and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
 <h2>Ownership</h2>
 <p>Friction's design, code and text belong to its maker. Content you write (notes, chat, aliases) remains yours; you let us store and show it as needed to run the feature you used.</p>
 <h2>No warranty and limit of liability</h2>
@@ -202,6 +205,51 @@ ${SOURCES}
 <p>We may change the service or these terms, and may end or limit access for misuse. The date above shows the latest version.</p>
 <h2>Contact</h2>
 <p>${mail}</p>`,
+  },
+  '/support': {
+    title: 'Support Friction: keep it free and get a few goodies',
+    description: 'Friction is free and stays free. If you like it, you can support it for $5 once or $2 a month and unlock every shop item and a supporter mark.',
+    h1: 'Support Friction',
+    lead: 'Friction is free, has no account and no feed, and stays that way. Supporting it is optional and pays for the domain, the hosting and the time.',
+    body: `
+<h2>What you get</h2>
+<ul>
+<li><strong>Every unlock in the credit shop, free:</strong> Sound machine, Auto music, Break kit, Solids pack, Fidget spinner and Confetti cannon. Normally you earn credits for them by focusing.</li>
+<li><strong>A supporter mark</strong> next to your name in the app.</li>
+<li><strong>A good feeling,</strong> and one small thing less for the person who builds it to worry about.</li>
+</ul>
+<p>Credits are never sold, and nothing is needed to use Friction. Everything free stays free.</p>
+<h2>Choose</h2>
+<p><a class="cta" href="https://whop.com/checkout/ch_Hh0666T0uv2kvZq/" target="_blank" rel="noopener">$5, once</a> &nbsp; <a class="cta" href="https://whop.com/checkout/ch_p0r3GYyFXF8jqKR/" target="_blank" rel="noopener">$2 a month</a></p>
+<h2>How it works</h2>
+<ul>
+<li>The payment is handled by <a href="https://whop.com" target="_blank" rel="noopener">Whop</a>, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid.</li>
+<li>After paying you are sent back to Friction with a one-time link that switches on your goodies in that browser. Keep that link (or your receipt): opening it again on another device or after clearing your data switches them back on.</li>
+<li>If you cancel a monthly payment, what you already unlocked stays unlocked.</li>
+<li>Refunds and receipts are Whop's, under its terms. If something goes wrong, use <a href="/contact">the contact form</a> with your receipt details and I will help.</li>
+</ul>
+<p>See also the <a href="/terms">Terms of Use</a> and <a href="/privacy">Privacy Policy</a>.</p>`,
+  },
+  '/thanks': {
+    noindex: true,
+    title: 'Thank you for supporting Friction',
+    description: 'Thank you for supporting Friction. Your goodies are switched on in this browser.',
+    h1: 'Thank you',
+    lead: 'You are keeping Friction free for everyone. That means a lot.',
+    body: `
+<div id="ok" hidden><h2>Your goodies are on</h2><p>Every unlock in the credit shop is yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
+<div id="no" hidden><h2>That link did not work</h2><p>If you paid and see this, use <a href="/contact">the contact form</a> with your Whop receipt details and I will sort it out.</p></div>
+<script>
+(async function () {
+  var k = new URLSearchParams(location.search).get('k') || '', ok = false
+  try {
+    var h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)))).map(function (b) { return b.toString(16).padStart(2, '0') }).join('')
+    ok = h === '3189dd4a169dc6520bb6dfc6cdbfc840635079bd2aa472ed81cdd7822e349a40'
+  } catch (e) {}
+  if (ok) { try { localStorage.setItem('friction:supporter', '1') } catch (e) {} }
+  document.getElementById(ok ? 'ok' : 'no').hidden = false
+})()
+</script>`,
   },
   '/disclaimer': {
     title: 'Disclaimer: study help, not professional advice',
@@ -223,7 +271,7 @@ ${SOURCES}
 }
 
 const NAV = [['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms']]
-const FOOT = '<a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a> · <a href="/blogs">Blog</a>'
+const FOOT = '<a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a> · <a href="/support">Support</a> · <a href="/blogs">Blog</a>'
 const EXTRA = '<style>table{width:100%;border-collapse:collapse;margin:0 0 20px}th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16px;color:var(--ink-2)}th{color:var(--ink-3);font:600 15px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase}.article a{color:var(--signal)}.cf{display:grid;gap:8px;max-width:36rem;margin:0 0 28px}.cf label{color:var(--ink-3);font:600 15px/1.2 var(--cond);letter-spacing:.14em;text-transform:uppercase;margin-top:10px}.cf input,.cf select,.cf textarea{width:100%;min-height:48px;padding:10px 12px;background:transparent;color:var(--ink);border:1px solid var(--rule);font:inherit;font-size:17px;border-radius:0}.cf textarea{resize:vertical}.cf input:focus,.cf select:focus,.cf textarea:focus{outline:3px solid var(--ink);outline-offset:2px}.cf option{background:#05070c}.cf-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.cf button{border:0;cursor:pointer;margin-top:18px}.cf button:disabled{opacity:.6;cursor:default}#cf-status{min-height:1.5em;margin:6px 0 0;color:var(--ink-2)}</style>'
 
 for (const [path, p] of Object.entries(PAGES)) {
@@ -239,7 +287,7 @@ for (const [path, p] of Object.entries(PAGES)) {
 <link rel="canonical" href="${url}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#05070c">
-<meta name="google-adsense-account" content="ca-pub-4954107433114846">
+${p.noindex ? '<meta name="robots" content="noindex">\n' : ''}<meta name="google-adsense-account" content="ca-pub-4954107433114846">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Friction">
 <meta property="og:title" content="${esc(p.title)}">

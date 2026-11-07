@@ -1,6 +1,7 @@
 import { clear } from 'idb-keyval'
 import { useLayout } from './layout'
 import { eraseMe } from './leaders'
+import { forgetSupporter } from './supporter'
 import { leaveRoom } from './together'
 
 /**
@@ -26,6 +27,7 @@ function wipeRelay(): Promise<void> {
 export async function eraseTheRest(): Promise<boolean> {
   let relayed = false
   try { relayed = localStorage.getItem('friction:relay') === '1' } catch { /* storage blocked */ }
+  forgetSupporter()
   if (relayed) await wipeRelay()
   await leaveRoom().catch(() => undefined)
   const server = await eraseMe()

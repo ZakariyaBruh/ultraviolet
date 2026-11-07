@@ -11,6 +11,7 @@ import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
+import { isSupporter, SUPPORT_MONTHLY, SUPPORT_ONCE } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -262,6 +263,16 @@ function Help() {
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ tourOpen: true })}>Take the tour</button>
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ onboardOpen: true })}>Run the welcome again</button>
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
+      </div>
+      <div className="mt-3 border-t border-ink/10 pt-3">
+        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Every shop unlock is yours, and your avatar has a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it: every shop unlock is yours, free, and your avatar gets a supporter mark.'}</p>
+        {!isSupporter() && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a href={SUPPORT_ONCE} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">Support, $5 once</a>
+            <a href={SUPPORT_MONTHLY} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center border border-ink/30 px-3 text-sm text-ink hover:bg-ink/10">$2 a month</a>
+            <a href="/support" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center px-1 text-[13px] text-ink-2 underline underline-offset-2 hover:text-signal">What you get</a>
+          </div>
+        )}
       </div>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-3">
         {[['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/cookies', 'Cookies'], ['/terms', 'Terms'], ['/disclaimer', 'Disclaimer']].map(([h, t]) => (

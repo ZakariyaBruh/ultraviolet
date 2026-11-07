@@ -1,4 +1,5 @@
 import { Palette, Search, X } from 'lucide-react'
+import { isSupporter } from '@/lib/supporter'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Mark } from '@/components/app/Mark'
@@ -51,8 +52,9 @@ export function BarTools({ scope = 'home' }: { scope?: string }) {
         <Palette className={ic} />
       </button>
       <NotificationBell notifications={notifications} onMarkAsRead={mark} onMarkAllAsRead={markAll} />
-      <button onClick={() => set({ profileOpen: true })} aria-label="Profile" className="grid size-11 place-items-center bg-signal md:size-9 text-sm font-semibold text-on-signal">
+      <button onClick={() => set({ profileOpen: true })} aria-label={isSupporter() ? 'Profile (Friction supporter)' : 'Profile'} className="relative grid size-11 place-items-center bg-signal md:size-9 text-sm font-semibold text-on-signal">
         {(name ?? 'You')[0].toUpperCase()}
+        {isSupporter() && <span aria-hidden className="absolute -right-1 -top-1 size-3 border-2 border-ground bg-ice" title="Friction supporter" />}
       </button>
     </div>
   )
