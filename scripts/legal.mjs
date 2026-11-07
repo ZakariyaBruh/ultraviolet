@@ -221,9 +221,7 @@ ${SOURCES}
 </ul>
 <p>The shop is not part of this: credits are never sold, and nothing in the shop is given away, so what you earn stays earned. Nothing is needed to use Friction, and everything free stays free.</p>
 <h2>Support, $2 a month</h2>
-<div id="whop" data-whop-checkout-plan-id="plan_iP58mTsDntqwy" data-whop-checkout-return-url="https://www.frictionx.app/thanks" data-whop-checkout-theme="dark" data-whop-checkout-theme-accent-color="yellow" data-whop-checkout-hide-price="false" style="max-width:520px;min-height:420px"></div>
-<p>Checkout not showing? <a class="cta" href="https://whop.com/checkout/plan_iP58mTsDntqwy/?redirect_url=https%3A%2F%2Fwww.frictionx.app%2Fthanks" rel="noopener">Open it on Whop</a></p>
-<script async defer src="https://js.whop.com/static/checkout/loader.js"></script>
+<p><a class="cta" href="https://whop.com/checkout/plan_iP58mTsDntqwy/?redirect_url=https%3A%2F%2Fwww.frictionx.app%2Fthanks" rel="noopener">Open it on Whop</a></p>
 <h2>How it works</h2>
 <ul>
 <li>The payment is handled by <a href="https://whop.com" target="_blank" rel="noopener">Whop</a>, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid.</li>
