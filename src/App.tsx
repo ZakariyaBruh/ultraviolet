@@ -33,6 +33,7 @@ import { Celebration } from '@/components/app/Celebration'
 import { captureRef } from '@/lib/leaders'
 import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
+import { startBackupWatch } from '@/lib/backup'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
 import { ReportSheet } from '@/components/app/Report'
@@ -86,6 +87,7 @@ export default function App() {
   useSessionEngine()
   useMilestones()
   useBoardWatch()
+  useEffect(() => startBackupWatch(), [])
   useMusicSync()
   useTogether()
   // a drift: the whole screen gives a small, soft zoom, like it took the hit

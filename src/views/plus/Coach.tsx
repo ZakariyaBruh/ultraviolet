@@ -37,12 +37,12 @@ export function Coach() {
   const list = useMemo(() => coach({ focusLog, urgeLog, sessions }), [focusLog, urgeLog, sessions])
   const sorted = [...list.filter((f) => f.ready), ...list.filter((f) => !f.ready)]
   return (
-    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <Panel className="flex h-full min-h-[20rem] flex-col gap-3 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="hud">What your own numbers say</p>
         <p className="text-[13px] text-ink-3">Rules and arithmetic on this device, no AI. {sessions.length} session{sessions.length === 1 ? '' : 's'} kept.</p>
       </div>
-      <ul className="scroll-y grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(260px,1fr))] content-start gap-3" data-no-drag>
+      <ul className="scroll-y grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(260px,1fr))] content-start gap-3" data-no-drag tabIndex={0} aria-label="Findings">
         {sorted.map((f) => <Card key={f.id} f={f} />)}
       </ul>
     </Panel>

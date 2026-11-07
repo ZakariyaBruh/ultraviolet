@@ -5,7 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
-const UPDATED = '6 November 2026'
+const UPDATED = '7 November 2026'
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
@@ -115,7 +115,7 @@ const PAGES = {
 <p>Your profile name, settings, sessions, drifts, credits, lessons, notes, to-do lists, layout and shop items are stored in your browser (localStorage and IndexedDB). We cannot see them, and clearing site data or using Erase everything removes them. Your private identity key is a random value that also stays in your browser; only a hash of it is ever sent anywhere.</p>
 <h2>What is sent to our servers</h2>
 <ul>
-<li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, and the minutes you have focused since joining (with two numbers used to check them). Erase everything deletes your row.</li>
+<li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, the minutes you have focused since joining (with two numbers used to check them) and, if you are a supporter, a flag that shows a star by your alias. Erase everything deletes your row.</li>
 <li><strong>Together rooms (optional).</strong> A room stores the names members chose, chat messages, what is being shared and an optional Discord or Slack webhook address the host sets. A room with nobody left is deleted. Erase everything removes your seat.</li>
 <li><strong>The contact form.</strong> A message you send is stored with the topic you chose and, only if you give them, your name and a way to reach you. Your network address is kept only as a one-way hash, to stop spam (three messages a day). Messages are deleted after 180 days. Please do not put anything sensitive in a message.</li>
 <li><strong>Moving your data.</strong> If you use Move my data, your data is encrypted in your browser with a code only you see, kept for ten minutes, and deleted when read. We never see the code or the contents.</li>
@@ -128,6 +128,7 @@ const PAGES = {
 <li><strong>Hyperbeam and relay servers (cloud browser).</strong> If you open the cloud browser, a real browser runs on a third party's servers and that party can see what you do in it. A card says so before it starts. No cookies or profile are saved.</li>
 <li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
+<li><strong>Cloud backup (supporters, optional).</strong> If you turn it on, your browser seals a copy of its data with a backup key that never leaves your devices, and we store the sealed copy: one row with an identifier made from the key, a hash of a second value that proves you hold it, the sealed data and the time. We cannot read it. It is deleted when you turn backup off or erase everything, and after about 400 days without a save. If you lose the key, nobody can open the copy.</li>
 <li><strong>Whop (supporters).</strong> If you choose to support Friction, the payment is made on Whop's own pages. Whop collects your payment details and email as the seller; Friction never receives them. When you return, a single flag in your browser records that you are a supporter.</li>
 <li><strong>Product Hunt badge.</strong> The front page shows a badge image served by Product Hunt, which therefore sees your network address and browser, as any website that loads an image does.</li>
 <li><strong>Video and audio embeds.</strong> YouTube videos open in the privacy-friendly embed.</li>
@@ -196,7 +197,7 @@ ${SOURCES}
 <h2>Advertising</h2>
 <p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
 <h2>Supporting Friction</h2>
-<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (a Year view and Records in Insights, a longer session history, a CSV export of your sessions and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
+<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (weekly reviews, projects, a coach and a Year view and Records in Insights, an encrypted cloud backup, a longer session history, CSV and calendar exports, and a star and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
 <h2>Ownership</h2>
 <p>Friction's design, code and text belong to its maker. Content you write (notes, chat, aliases) remains yours; you let us store and show it as needed to run the feature you used.</p>
 <h2>No warranty and limit of liability</h2>
@@ -213,7 +214,7 @@ ${SOURCES}
     h1: 'Thank you',
     lead: 'You are keeping Friction free for everyone. That means a lot.',
     body: `
-<div id="ok" hidden><h2>Your extras are on</h2><p>The Year view and Records in Insights and the CSV export in Settings are yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
+<div id="ok" hidden><h2>Your extras are on</h2><p>The Plus tools in Insights, project labels on the Focus screen, and the cloud backup and exports in Settings are yours, and your alias has a star. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
 <div id="no" hidden><h2>That link did not work</h2><p>If you paid and see this, use <a href="/contact">the contact form</a> with your Whop receipt details and I will sort it out.</p></div>
 <script>
 (async function () {

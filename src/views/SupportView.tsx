@@ -2,7 +2,7 @@ import { Check, Heart } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { useMedia } from '@/lib/hooks'
-import { isSupporter, markSupporter, SUPPORT_PLAN } from '@/lib/supporter'
+import { goTo, isSupporter, markSupporter, openPlus, SUPPORT_PLAN } from '@/lib/supporter'
 
 const SRC = 'https://cdn.whop.com/elements/amber/elements.js'
 interface Handle { create: (kind: string) => { mount: (el: HTMLElement | string) => void; destroy?: () => void }; destroy?: () => void }
@@ -19,13 +19,16 @@ function load(): Promise<void> {
   })
 }
 
-const PERKS: [string, string][] = [
-  ['Year view', 'Every day of the last 52 weeks in one grid in Insights, brighter the more you held, with your totals.'],
-  ['Records', 'A page in Insights with your best day, longest run of days, longest session, clean finishes and the hour you hold the most.'],
-  ['Long history', 'Friction keeps your last 3,000 sessions instead of 300, so Sessions and the export reach back for years.'],
-  ['Export your sessions', 'A CSV file of every session you have kept, from Settings, Data. Made in your browser, sent nowhere.'],
-  ['A supporter mark', 'A small square on your avatar, and the knowledge that you pay for the domain and the hosting.'],
-  ['Everything free stays free', 'Credits are never sold and the shop is never given away, so what you earn stays earned.'],
+interface Perk { title: string; text: string; open?: { label: string; go: () => void } }
+const PERKS: Perk[] = [
+  { title: 'Week review', text: 'Each week against the one before, a weekly goal with a streak, and a picture of your week to keep or share.', open: { label: 'Open', go: () => openPlus('week') } },
+  { title: 'Projects', text: 'Label a session (Maths, Thesis, a client) and see where your hours went, by week, month or all time.', open: { label: 'Open', go: () => openPlus('projects') } },
+  { title: 'Coach', text: 'What your own numbers say: the length you finish most, your calmest hours, your strongest day, when in a session you drift.', open: { label: 'Open', go: () => openPlus('coach') } },
+  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes. Lose a phone, restore in a minute. Only you hold the key.', open: { label: 'Open', go: () => goTo('/settings') } },
+  { title: 'Year view and Records', text: 'Every day of the last 52 weeks in one grid, and your best day, longest run, longest session and best hour.', open: { label: 'Open', go: () => openPlus('year') } },
+  { title: 'Long history and exports', text: 'The last 3,000 sessions are kept, not 300. Take them out as a CSV file or a calendar file (.ics) for Google, Apple or Outlook.' },
+  { title: 'A star on the board', text: 'A star by your alias on the leaderboard, and a small mark on your avatar.' },
+  { title: 'Everything free stays free', text: 'Credits are never sold and the shop is never given away, so what you earn stays earned.' },
 ]
 
 /** The embedded Whop checkout. Whop takes the payment; Friction never sees card details and keeps no record of who paid. */
@@ -62,13 +65,14 @@ export function SupportView() {
   const on = done || isSupporter()
 
   const perks = (
-    <Panel className="flex min-h-0 flex-col gap-3 p-5">
+    <Panel className="flex min-h-[20rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
-      <ul className="scroll-y grid min-h-0 flex-1 content-start gap-3 sm:grid-cols-2" data-no-drag>
-        {PERKS.map(([t, d]) => (
-          <li key={t} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
-            <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{t}</b></span>
-            <span className="text-[14px] leading-[1.45] text-ink-2">{d}</span>
+      <ul className="scroll-y grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(250px,1fr))] content-start gap-3" data-no-drag tabIndex={0} aria-label="What you get">
+        {PERKS.map((p) => (
+          <li key={p.title} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
+            <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{p.title}</b></span>
+            <span className="text-[14px] leading-[1.45] text-ink-2">{p.text}</span>
+            {on && p.open && <button className="mt-1 h-11 justify-self-start border border-signal/60 px-4 text-sm font-semibold text-ink hover:bg-signal/10" onClick={p.open.go}>{p.open.label}</button>}
           </li>
         ))}
       </ul>
@@ -77,13 +81,13 @@ export function SupportView() {
     </Panel>
   )
   const pay = (
-    <Panel className="flex min-h-0 flex-col gap-2 p-4">
+    <Panel className="flex min-h-[24rem] flex-col gap-2 p-4">
       <p className="hud">$2 a month</p>
       {on ? (
         <div className="grid content-start gap-2 p-2">
           <Heart className="size-6 text-signal" aria-hidden />
           <h2 className="text-lg font-semibold">Thank you. You are keeping Friction free.</h2>
-          <p className="text-[14px] text-ink-2">The Year view and Records are in Insights, the CSV export is in Settings, Data, and your avatar has its mark. Manage or cancel from your Whop receipt.</p>
+          <p className="text-[14px] text-ink-2">Everything on the left is open to you: use the buttons on each card. Your avatar has its mark, and your alias has a star. Manage or cancel from your Whop receipt.</p>
         </div>
       ) : (
         <div className="scroll-y min-h-0 flex-1" data-no-drag><Checkout onDone={() => setDone(true)} /></div>

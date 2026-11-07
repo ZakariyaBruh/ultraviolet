@@ -30,9 +30,9 @@ export function Records() {
     ['Best hour', bestHour < 0 ? 'none yet' : `${String(bestHour).padStart(2, '0')}:00`, 'when you hold the most'],
   ]
   return (
-    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <Panel className="flex h-full min-h-[16rem] flex-col gap-3 p-4">
       <p className="hud">Your records</p>
-      <div className="scroll-y grid min-h-0 flex-1 content-start gap-3 sm:grid-cols-2 lg:grid-cols-3" data-no-drag>
+      <div className="scroll-y grid min-h-0 flex-1 content-start gap-3 sm:grid-cols-2 lg:grid-cols-3" data-no-drag tabIndex={0} role="region" aria-label="Your records">
         {figs.map(([k, v, note]) => (
           <div key={k} className="grid content-start gap-1 border border-ink/15 bg-ink/[0.03] p-4">
             <p className="hud">{k}</p>

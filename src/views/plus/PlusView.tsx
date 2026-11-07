@@ -31,13 +31,13 @@ export function PlusView() {
   useEffect(() => { if (useUI.getState().plusTab) useUI.getState().set({ plusTab: null }) }, [])
   if (!supporter) {
     return (
-      <Panel className="grid h-full min-h-0 content-start gap-4 p-5">
+      <Panel className="grid h-full min-h-[18rem] content-start gap-4 p-5">
         <Lock className="size-6 text-signal" aria-hidden />
         <div>
           <h2 className="text-lg font-semibold">Plus is for supporters</h2>
           <p className="mt-1 max-w-[60ch] text-[14px] leading-[1.5] text-ink-2">Friction stays free. For $2 a month you also get these tools, all worked out from your own saved numbers on this device.</p>
         </div>
-        <ul className="scroll-y grid min-h-0 gap-2 sm:grid-cols-2" data-no-drag>
+        <ul className="scroll-y grid min-h-0 gap-2 sm:grid-cols-2" data-no-drag tabIndex={0} aria-label="What Plus includes">
           {ABOUT.map(([t, d]) => (
             <li key={t} className="grid content-start gap-1 border border-ink/15 bg-ink/[0.03] p-3"><b className="text-[15px] font-semibold">{t}</b><span className="text-[13px] leading-[1.45] text-ink-2">{d}</span></li>
           ))}

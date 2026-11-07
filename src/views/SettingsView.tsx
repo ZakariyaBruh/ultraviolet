@@ -11,6 +11,7 @@ import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
+import { BackupPanel, RestoreBackup } from '@/components/app/BackupPanel'
 import { downloadCsv, downloadIcs, isSupporter, openSupport } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
@@ -218,8 +219,8 @@ function Sound() {
 function Data() {
   const [confirmed, setConfirmed] = useState(false)
   return (
-    <div className="grid min-h-0 gap-4">
-      <Panel className="grid gap-3 p-4 md:grid-cols-2 md:gap-6">
+    <div className="grid min-h-0 content-start gap-4 lg:grid-cols-2">
+      <Panel className="grid gap-3 p-4 md:grid-cols-2 md:gap-6 lg:col-span-2">
         <div className="grid content-start gap-2">
           <p className="hud">Move my data</p>
           <p className="text-[13px] leading-[1.4] text-ink-2">Use Friction somewhere else, like the Home Screen app on an iPhone or iPad, which keeps its data apart from Safari. Make a code here and type it there. It works once, for ten minutes, and the data is sealed on the way: the server cannot read it.</p>
@@ -229,18 +230,21 @@ function Data() {
           <p className="hud">Bring data here</p>
           <p className="text-[13px] leading-[1.4] text-ink-2">Type a code made in another browser. This replaces what is saved in this one, so use it on a fresh install.</p>
           <EnterCode />
+          <div className="mt-2 border-t border-ink/10 pt-3"><RestoreBackup /></div>
         </div>
       </Panel>
+      {isSupporter() && <BackupPanel />}
       {isSupporter() && (
-        <Panel className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center md:gap-6">
-          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">Supporter: take your own sessions with you. A CSV file for a spreadsheet, or a calendar file for Google, Apple or Outlook Calendar. Both are built in this browser and sent nowhere.</p>
+        <Panel className="grid content-start gap-3 p-4">
+          <p className="hud">Take your sessions with you · supporter</p>
+          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">A CSV file for a spreadsheet, or a calendar file for Google, Apple or Outlook Calendar. Both are built in this browser and sent nowhere.</p>
           <div className="flex flex-wrap gap-2">
             <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadCsv}>Download CSV</button>
             <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadIcs}>Download calendar (.ics)</button>
           </div>
         </Panel>
       )}
-      <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">
+      <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4 lg:col-span-2">
         <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. No file can be imported, so nothing uploaded can take someone else's place. Moving your data to your own other browser takes a one-time code you make yourself." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
       </Panel>
@@ -254,7 +258,7 @@ function Help() {
         { id: 'a0', question: about.heading, answer: about.intro },
         ...about.items.map((i, n) => ({ id: `a${n + 1}`, question: i.title, answer: i.text })),
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
-        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and the minutes you have focused since joining the board.' },
+        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account. The site counts page visits with Google Analytics, only if you accept cookies; that records visits, never your sessions or what you hide. On a server there is only the leaderboard (a random code, a name you choose and the minutes you have focused since joining), any Together room you join (chat is kept for a day) and, if you are a supporter and turn it on, an encrypted backup that only your key can open.' },
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
         { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. Two optional things use AI, and both say so. A lesson’s demo is AI generated when there is no built-in demo for that topic (only the topic title is sent). And the Ask AI window, which only runs when you open it and type, sends your questions to free AI services (Pollinations, with LLM7 as a backup) through Friction’s server; nothing is saved, and it can be wrong. Everything else in the app, including the Debrief, is plain code.' },
@@ -274,7 +278,7 @@ function Help() {
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
       <div className="mt-3 border-t border-ink/10 pt-3">
-        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. You have the Year view and Records in Insights, 3,000 sessions of history, the CSV export in Settings > Data, and a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: a Year view and Records in Insights, 3,000 sessions of history, a CSV export and a supporter mark. Nothing in the shop is given away.'}</p>
+        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Plus in Insights (week review, projects, coach), project labels on Focus, the cloud backup and exports in Settings, and a star by your alias are yours.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: a weekly review, projects, a coach, an encrypted cloud backup and more. Nothing in the shop is given away.'}</p>
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
             <button onClick={openSupport} className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">See Support, $2 a month</button>

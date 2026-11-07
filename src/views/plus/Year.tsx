@@ -14,7 +14,7 @@ export function Year() {
   const active = mins.filter((m) => m > 0).length
   const today = dateKey()
   return (
-    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <Panel className="flex h-full min-h-[14rem] flex-col gap-3 p-4">
       <p className="hud">The last 52 weeks</p>
       <div className="grid min-h-0 flex-1 content-center">
         <div className="grid grid-flow-col gap-[3px]" style={{ gridTemplateRows: 'repeat(7, 1fr)', aspectRatio: '53 / 7' }} role="img" aria-label={`${active} days with focus in the last 52 weeks, ${fmtMinutes(total)} in all`}>

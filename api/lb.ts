@@ -16,6 +16,10 @@ const BOARD_SIZE = 25
 const XFER_MS = 10 * 60_000
 /** a sealed hand-off is at most this many characters (about 500 KB): a person's data is compressed first and is a fraction of this */
 const XFER_MAX = 700_000
+/** a cloud backup is at most this many characters of sealed data, one row per person, and untouched ones go after about 400 days */
+const BACKUP_MAX = 700_000
+const BACKUP_ROWS = 4000
+const BACKUP_KEEP_MS = 400 * 86400e3
 let swept = 0
 
 let db: Client | undefined
@@ -31,6 +35,8 @@ const init = () =>
       // a hand-off of someone's own data to another browser: the page encrypts it with a code only they see, the server holds one
       // sealed row per person for ten minutes and gives it up once
       'CREATE TABLE IF NOT EXISTS xfer (owner TEXT PRIMARY KEY, id TEXT NOT NULL UNIQUE, blob TEXT NOT NULL, t INTEGER NOT NULL)',
+      // a supporter's cloud backup: one sealed blob (the server cannot read it), found by an id and changed only with the matching secret (kept as a hash)
+      'CREATE TABLE IF NOT EXISTS backup (id TEXT PRIMARY KEY, ah TEXT NOT NULL, blob TEXT NOT NULL, t INTEGER NOT NULL)',
     ])
     // names are unique: `nkey` is the name folded to lowercase letters and digits, so "Zak", "zak" and "Z.a.k" are one name
     const cols = await c.execute('PRAGMA table_info(board)')
@@ -44,6 +50,8 @@ const init = () =>
       await c.execute('ALTER TABLE board ADD COLUMN base INTEGER NOT NULL DEFAULT -1')
       await c.execute('UPDATE board SET n = 0')
     }
+    // a supporter shows a star by their alias. The browser says so with each report; it is a mark, not a privilege, so it is not checked
+    if (!cols.rows.some((r) => r.name === 'sup')) await c.execute('ALTER TABLE board ADD COLUMN sup INTEGER NOT NULL DEFAULT 0')
   })())
 
 const json = (body: unknown, status = 200, cache = 'no-store') => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': cache } })
@@ -53,6 +61,11 @@ const KEY = /^[a-f0-9]{32}$/
 async function sha(key: string) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key))
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 10)
+}
+
+async function shaFull(text: string) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /** The id this person has in Together rooms. Made from the same secret key, but it is a different, longer value that is never shown or shared, so the public code in a share link cannot be used to act as them. */
@@ -89,13 +102,13 @@ const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g
 
 async function mine(code: string) {
   const c = client()
-  const b = await c.execute({ sql: 'SELECT name, n FROM board WHERE code = ?', args: [code] })
+  const b = await c.execute({ sql: 'SELECT name, n, sup FROM board WHERE code = ?', args: [code] })
   if (b.rows[0]) {
     const n = Number(b.rows[0].n)
     const r = await c.execute({ sql: 'SELECT COUNT(*) AS k FROM board WHERE n > ?', args: [n] })
-    return { listed: n > 0, n, name: (b.rows[0].name as string | null) ?? '', rank: Number(r.rows[0].k) + 1 }
+    return { listed: n > 0, n, name: (b.rows[0].name as string | null) ?? '', rank: Number(r.rows[0].k) + 1, star: Number(b.rows[0].sup) === 1 }
   }
-  return { listed: false, n: 0, name: '', rank: 0 }
+  return { listed: false, n: 0, name: '', rank: 0, star: false }
 }
 
 export default {
@@ -110,8 +123,8 @@ export default {
       if (request.method === 'GET') {
         const a = url.searchParams.get('a')
         if (a === 'board') {
-          const r = await c.execute({ sql: 'SELECT code, name, n FROM board WHERE n > 0 ORDER BY n DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
-          const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`, n: Number(x.n) }))
+          const r = await c.execute({ sql: 'SELECT code, name, n, sup FROM board WHERE n > 0 ORDER BY n DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
+          const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`, n: Number(x.n), star: Number(x.sup) === 1 }))
           return json({ min: 0, rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
         }
         if (a === 'check') {
@@ -126,7 +139,7 @@ export default {
 
       if (request.method === 'POST') {
         // sealed hand-offs that nobody picked up are removed here, at most once a minute for each instance, on any request, so they never sit in the database
-        if (Date.now() - swept > 60_000) { swept = Date.now(); await c.execute({ sql: 'DELETE FROM xfer WHERE t < ?', args: [Date.now() - XFER_MS] }) }
+        if (Date.now() - swept > 60_000) { swept = Date.now(); await c.execute({ sql: 'DELETE FROM xfer WHERE t < ?', args: [Date.now() - XFER_MS] }); await c.execute({ sql: 'DELETE FROM backup WHERE t < ?', args: [Date.now() - BACKUP_KEEP_MS] }) }
         const body = (await request.json().catch(() => ({}))) as { a?: string; code?: string; key?: string; name?: string }
 
         // your own standing: the secret key travels in the body, never in an address that a log could keep
@@ -181,6 +194,43 @@ export default {
           return json({ blob: String(r.rows[0].blob) })
         }
 
+        // Cloud backup. The browser seals its data under a key made from a backup key that never leaves it, and finds its row by an id made from
+        // the same key; `auth` is a second value from the same key, kept here only as a hash, so only the holder can read, replace or delete the row.
+        // `prev` is the time of the last copy this browser saw: if another device has saved since, the save is refused (409) and nothing is overwritten.
+        if (body.a === 'bput' || body.a === 'bget' || body.a === 'bdel') {
+          const b = body as { id?: string; auth?: string; blob?: string; prev?: number; head?: boolean }
+          const id = String(b.id)
+          const auth = String(b.auth)
+          if (!/^[a-f0-9]{32}$/.test(id) || !/^[a-f0-9]{32}$/.test(auth)) return json({ error: 'bad backup' }, 400)
+          if (limited(`bk:${ip}`, 90)) return json({ error: 'slow down' }, 429)
+          const ah = await shaFull(`backup-auth:${auth}`)
+          const row = (await c.execute({ sql: 'SELECT ah, t FROM backup WHERE id = ?', args: [id] })).rows[0]
+          if (row && row.ah !== ah) return json({ error: 'no' }, 403)
+          if (body.a === 'bget') {
+            if (!row) return json({ error: 'none' }, 404)
+            if (b.head) return json({ t: Number(row.t) })
+            const r = (await c.execute({ sql: 'SELECT blob, t FROM backup WHERE id = ?', args: [id] })).rows[0]
+            return json({ blob: String(r.blob), t: Number(r.t) })
+          }
+          if (body.a === 'bdel') {
+            if (row) await c.execute({ sql: 'DELETE FROM backup WHERE id = ?', args: [id] })
+            return json({ ok: true })
+          }
+          if (typeof b.blob !== 'string' || b.blob.length < 40 || b.blob.length > BACKUP_MAX) return json({ error: 'bad backup' }, 400)
+          const t = Date.now()
+          if (row) {
+            if (Number(b.prev) !== Number(row.t)) return json({ error: 'newer', t: Number(row.t) }, 409)
+            const up = await c.execute({ sql: 'UPDATE backup SET blob = ?, t = ? WHERE id = ? AND t = ?', args: [b.blob, t, id, Number(row.t)] })
+            if (!up.rowsAffected) return json({ error: 'newer' }, 409)
+          } else {
+            // a browser that has saved before (prev > 0) and finds no row was deleted from somewhere else (turned off, erased, or expired): it must not bring the copy back
+            if (Number(b.prev) > 0) return json({ error: 'gone' }, 404)
+            if (Number((await c.execute('SELECT COUNT(*) AS k FROM backup')).rows[0].k) >= BACKUP_ROWS) return json({ error: 'full' }, 507)
+            await c.execute({ sql: 'INSERT INTO backup (id, ah, blob, t) VALUES (?, ?, ?, ?)', args: [id, ah, b.blob, t] })
+          }
+          return json({ ok: true, t })
+        }
+
         // old share links still call this: nothing is counted any more
         if (body.a === 'recommend') return json({ ok: true })
 
@@ -188,6 +238,7 @@ export default {
         if (body.a === 'report') {
           const key = String(body.key ?? '')
           const total = Math.floor(Number((body as { total?: number }).total))
+          const star = (body as { s?: number }).s === 1 ? 1 : 0
           if (!KEY.test(key) || !Number.isFinite(total) || total < 0 || total > 10_000_000) return json({ error: 'bad report' }, 400)
           if (limited(`rep:${ip}`, 60)) return json({ error: 'slow down' }, 429)
           const code = await sha(key)
@@ -205,7 +256,7 @@ export default {
             credit = Math.min(total - base, room, 600)
             nb = base + credit
           }
-          await c.execute({ sql: 'UPDATE board SET n = n + ?, base = ?, t = ? WHERE code = ?', args: [credit, nb, now, code] })
+          await c.execute({ sql: 'UPDATE board SET n = n + ?, base = ?, t = ?, sup = ? WHERE code = ?', args: [credit, nb, now, star, code] })
           return json({ ok: true, n: n + credit })
         }
 

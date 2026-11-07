@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { EnterCode, MakeCode } from '@/components/app/Handoff'
+import { RestoreBackup } from '@/components/app/BackupPanel'
 import { Mark } from '@/components/app/Mark'
 import { hasData } from '@/lib/transfer'
 import { useStore } from '@/lib/store'
@@ -240,6 +241,7 @@ export function FirstLaunch() {
             <h2 className="dot text-[1.5rem] font-bold leading-[1.1]">Already use Friction in Safari?</h2>
             <p className="text-[14px] leading-[1.45] text-ink-2">The Home Screen app keeps its own storage, so it starts empty. In Safari open <strong className="text-ink">Settings → Data → Move my data</strong> and make a code, then type it here. If this is your first time, start fresh.</p>
             <EnterCode autoFocus />
+            <div className="border-t border-ink/10 pt-3"><RestoreBackup /></div>
             <button onClick={skip} className="h-11 text-sm text-ink-2 hover:text-ink">Start fresh</button>
           </motion.div>
         </motion.div>

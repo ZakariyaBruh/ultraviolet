@@ -1,4 +1,4 @@
-import { Trophy } from 'lucide-react'
+import { Star, Trophy } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
@@ -92,10 +92,10 @@ export function LeadersView() {
       ) : (
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:grid-rows-[minmax(0,1fr)]">
           <Panel className="flex min-h-0 flex-col gap-3 p-5">
-            <div className="flex items-end gap-4">
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
               <div>
                 <p className="hud">Your time on the board</p>
-                <div className="dot text-[clamp(2rem,5vw,3rem)] font-bold leading-none">{fmtMinutes(n)}</div>
+                <div className="dot whitespace-nowrap text-[clamp(1.6rem,3.4vw,2.4rem)] font-bold leading-none">{fmtMinutes(n)}</div>
               </div>
               <p className="pb-1 text-sm text-ink-2">{st?.listed ? `You are number ${st.rank} on the board.` : 'Focus for a minute and you are on the board.'}</p>
             </div>
@@ -115,7 +115,7 @@ export function LeadersView() {
                   {slice.map((r, i) => (
                     <motion.li key={r.rank} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1], delay: Math.min(i, 8) * 0.025 }} className={cn('flex h-[52px] items-center gap-3 border px-3', st?.listed && st.rank === r.rank ? 'border-signal bg-signal/10' : 'border-ink/15 bg-ink/[0.03]')}>
                       <span className={cn('grid size-8 shrink-0 place-items-center text-[14px] font-bold', medal(r.rank))}>{r.rank === 1 ? <Trophy className="size-4" aria-label="First" /> : r.rank}</span>
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{r.name}{st?.listed && st.rank === r.rank && <span className="hud ml-2">You</span>}</span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{r.name}{r.star && <Star className="ml-1.5 inline size-3.5 -translate-y-px fill-signal text-signal" aria-label="Friction supporter" />}{st?.listed && st.rank === r.rank && <span className="hud ml-2">You</span>}</span>
                       <span className="fig text-[15px]">{fmtMinutes(r.n)}</span>
                     </motion.li>
                   ))}

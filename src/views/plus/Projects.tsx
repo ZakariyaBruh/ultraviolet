@@ -20,7 +20,7 @@ export function Projects() {
   const total = sum(rows.map((r) => r.min))
   const top = Math.max(1, ...rows.map((r) => r.min))
   return (
-    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <Panel className="flex h-full min-h-[15rem] flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="hud">Time by project</p>
         <Seg id="proj" value={range} onChange={setRange} tabs={RANGES} />
@@ -33,7 +33,7 @@ export function Projects() {
           <button className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => goTo('/focus')}>Go to Focus</button>
         </div>
       ) : (
-        <ul className="scroll-y grid min-h-0 flex-1 content-start gap-3" data-no-drag>
+        <ul className="scroll-y grid min-h-0 flex-1 content-start gap-3" data-no-drag tabIndex={0} aria-label="Time by project">
           {rows.map((r) => (
             <li key={r.name} className="grid gap-1.5">
               <div className="flex items-baseline justify-between gap-3">

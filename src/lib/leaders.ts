@@ -9,14 +9,15 @@
  */
 import { useStore } from './store'
 import { dayTotalAll } from './focusTotal'
+import { isSupporter } from './supporter'
 const ME = 'friction:me'
 const FROM = 'friction:from'
 const COUNTED = 'friction:counted'
 const ERASE = 'friction:erase'
 
 export interface Me { key: string; code: string; name: string }
-export interface Row { rank: number; name: string; n: number }
-export interface Standing { min: number; listed: boolean; n: number; name: string; rank: number }
+export interface Row { rank: number; name: string; n: number; star?: boolean }
+export interface Standing { min: number; listed: boolean; n: number; name: string; rank: number; star?: boolean }
 
 const ls = {
   get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } },
@@ -149,6 +150,6 @@ export async function reportFocus(me: Me): Promise<void> {
   const st = useStore.getState()
   if (st.demo) return
   try {
-    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)) }) })
+    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)), s: isSupporter() ? 1 : 0 }) })
   } catch { /* offline: it is reported next time */ }
 }

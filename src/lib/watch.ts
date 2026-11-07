@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { hasIdentity, identity, loadStanding, reportFocus, retryErase, saveName, sendName } from './leaders'
 import { notify } from './notify'
 import { fx_say } from './actions'
+import { retryBackupDelete } from './backup'
 
 const KEY = 'friction:board-seen'
 interface Seen { n: number; listed: boolean; rank: number }
@@ -10,6 +11,7 @@ const read = (): Seen | null => { try { return JSON.parse(localStorage.getItem(K
 /** Compares where you stand on the leaderboard with the last time you looked, and says what changed. */
 export async function checkBoard() {
   void retryErase() // an erase that could not reach the server is repeated now
+  void retryBackupDelete()
   if (!hasIdentity()) return
   const me = await identity()
   await reportFocus(me)

@@ -70,7 +70,7 @@ export function Week() {
   }
 
   return (
-    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <Panel className="flex h-full min-h-[24rem] flex-col gap-3 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-1">
           <button className={step} aria-label="The week before" onClick={() => setOff(Math.min(52, off + 1))}><ChevronLeft className="size-4" /></button>
@@ -79,7 +79,7 @@ export function Week() {
         <p className="hud text-right">{name} · {fmtRange(start)}</p>
       </div>
 
-      <div className="scroll-y grid min-h-0 flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" data-no-drag>
+      <div className="scroll-y grid min-h-0 flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" data-no-drag tabIndex={0} role="region" aria-label="This week in detail">
         <div className="grid content-start gap-4">
           <div>
             <p className="hud">Held</p>

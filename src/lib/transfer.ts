@@ -1,5 +1,6 @@
 import { identity, roomId } from './leaders'
 import { sanitizeData, snapshotData, useStore } from './store'
+import { isSupporter, markSupporter } from './supporter'
 
 /**
  * Moving your data to another browser, for example from Safari to the Home Screen app (iOS keeps the two apart; Android and desktop do not).
@@ -13,23 +14,23 @@ const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O, 1/I
 const LENGTH = 8
 export const HANDOFF_MIN = 10
 
-const bytes = (b: ArrayBuffer | Uint8Array) => (b instanceof Uint8Array ? b : new Uint8Array(b))
-const b64 = (b: ArrayBuffer | Uint8Array) => { let s = ''; for (const x of bytes(b)) s += String.fromCharCode(x); return btoa(s) }
-const unb64 = (t: string) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0))
+export const bytes = (b: ArrayBuffer | Uint8Array) => (b instanceof Uint8Array ? b : new Uint8Array(b))
+export const b64 = (b: ArrayBuffer | Uint8Array) => { let s = ''; for (const x of bytes(b)) s += String.fromCharCode(x); return btoa(s) }
+export const unb64 = (t: string) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0))
 /** gzip before sealing, so a long history is a few kilobytes on the server (the first byte says whether it was packed) */
-async function pack(text: string): Promise<Uint8Array> {
+export async function pack(text: string): Promise<Uint8Array> {
   const raw = new TextEncoder().encode(text)
   if (typeof CompressionStream === 'undefined') return new Uint8Array([0, ...raw])
   const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer())
   const out = new Uint8Array(z.length + 1); out[0] = 1; out.set(z, 1)
   return out
 }
-async function unpack(b: Uint8Array): Promise<string> {
+export async function unpack(b: Uint8Array): Promise<string> {
   if (b[0] === 0) return new TextDecoder().decode(b.slice(1))
   if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot open compressed data.')
   return new TextDecoder().decode(await new Response(new Blob([b.slice(1)]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())
 }
-const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('')
+export const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('')
 
 /** what a person types: spaces, dashes and case do not matter */
 export const canon = (t: string) => t.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -53,14 +54,22 @@ const post = (body: unknown) => fetch('/api/lb', { method: 'POST', headers: { 'c
 /** has this browser anything worth moving? */
 export const hasData = () => { const s = useStore.getState(); return !!s.profile || s.sessions.length > 0 || s.settings.toured }
 
+export interface Payload { v?: number; data?: unknown; me?: { key?: string; name?: string }; layout?: unknown; sup?: number }
+
+/** everything this browser keeps that is worth moving: the saved data, who you are on the board, the layout, and whether you are a supporter */
+export async function buildPayload(): Promise<string> {
+  const me = await identity()
+  let layout: unknown = null
+  try { layout = JSON.parse(localStorage.getItem('friction:layout') ?? 'null') } catch { /* none */ }
+  return JSON.stringify({ v: 1, data: snapshotData(), me: { key: me.key, name: me.name }, layout, sup: isSupporter() ? 1 : 0 } satisfies Payload)
+}
+
 /** Seal this browser's data and park it for ten minutes. Resolves to the code to type in the other browser. */
 export async function sendData(): Promise<string> {
   const code = makeCode()
   const { id, key } = await ids(canon(code))
   const me = await identity()
-  let layout: unknown = null
-  try { layout = JSON.parse(localStorage.getItem('friction:layout') ?? 'null') } catch { /* none */ }
-  const plain = await pack(JSON.stringify({ v: 1, data: snapshotData(), me: { key: me.key, name: me.name }, layout }))
+  const plain = await pack(await buildPayload())
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain as unknown as ArrayBuffer))
   const blob = b64(new Uint8Array([...iv, ...sealed]))
@@ -79,12 +88,17 @@ export async function receiveData(typed: string): Promise<void> {
   if (r.status === 429) throw new Error('Too many tries. Wait a little and try again.')
   if (!r.ok) throw new Error('The server could not be reached.')
   const { blob } = (await r.json()) as { blob: string }
-  let payload: { v?: number; data?: unknown; me?: { key?: string; name?: string }; layout?: unknown }
+  let payload: Payload
   try {
     const raw = unb64(blob)
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12))
     payload = JSON.parse(await unpack(new Uint8Array(plain)))
   } catch { throw new Error('That code did not open the data.') }
+  await applyPayload(payload)
+}
+
+/** Check a payload and make it this browser's data. The page reloads when it is done. Used by the one-time code and by a cloud backup. */
+export async function applyPayload(payload: Payload): Promise<void> {
   if (payload.v !== 1) throw new Error('That data comes from a different version of Friction.')
   const { data, matched } = sanitizeData(payload.data)
   if (!matched) throw new Error('There was nothing readable in that data.')
@@ -94,6 +108,7 @@ export async function receiveData(typed: string): Promise<void> {
     try { localStorage.setItem('friction:me', JSON.stringify({ key: payload.me.key, code: '', name })) } catch { /* storage blocked */ }
   }
   if (payload.layout && typeof payload.layout === 'object') { try { localStorage.setItem('friction:layout', JSON.stringify(payload.layout)) } catch { /* storage blocked */ } }
+  if (payload.sup === 1) markSupporter()
   useStore.getState().restore(data)
   useStore.setState({ seenIntro: true })
   // the store writes a moment after a change, and the page is read again from storage when it reloads

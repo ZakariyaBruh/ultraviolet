@@ -1,4 +1,5 @@
 import { clear } from 'idb-keyval'
+import { deleteBackup } from './backup'
 import { useLayout } from './layout'
 import { eraseMe } from './leaders'
 import { forgetSupporter } from './supporter'
@@ -27,13 +28,14 @@ function wipeRelay(): Promise<void> {
 export async function eraseTheRest(): Promise<boolean> {
   let relayed = false
   try { relayed = localStorage.getItem('friction:relay') === '1' } catch { /* storage blocked */ }
+  await deleteBackup().catch(() => undefined) // the copy on the server, then the key here (kept as a note if the server cannot be reached)
   forgetSupporter()
   if (relayed) await wipeRelay()
   await leaveRoom().catch(() => undefined)
   const server = await eraseMe()
   useLayout.getState().reset()
   try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith('friction:') && k !== 'friction:erase') localStorage.removeItem(k)
+    for (const k of Object.keys(localStorage)) if (k.startsWith('friction:') && k !== 'friction:erase' && k !== 'friction:backup-del') localStorage.removeItem(k)
   } catch { /* storage blocked */ }
   await clear().catch(() => undefined)
   return server
