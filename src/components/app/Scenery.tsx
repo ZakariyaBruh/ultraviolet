@@ -26,55 +26,62 @@ export function Scenery({ theme, level }: { theme: ThemeId; level: 0 | 1 | 2 }) 
   }
 }
 
-/* ───────── Library: a wall of book spines on shelves ───────── */
+/* ───────── Library: a lattice wall and, at the foot, the shelf the nav stands on ───────── */
 
 const TILE_W = 1200
-const ROW_H = 172
-const ROWS = 3
+const SHELF_H = 88
+const BOARD = 8
 
 function Library() {
   const books = useMemo(() => {
-    const spines = [mixc('var(--hot)', 24), mixc('var(--hot)', 16), mixc('var(--hot)', 30), mixc('var(--ok)', 15), mixc('var(--ok)', 22), mixc('var(--ice)', 16), mixc('var(--ice)', 24), mixc('var(--signal)', 15), mixc('var(--signal)', 24), mixc('var(--ink)', 14)]
-    const out: { key: string; x: number; y: number; w: number; h: number; fill: string; band: number; plate: boolean; lean: number }[] = []
-    for (let row = 0; row < ROWS; row++) {
-      const r = rng(31 + row * 17)
-      let x = 0
-      const base = row * ROW_H + 150
-      while (x < TILE_W) {
-        let w = 15 + Math.floor(r() * 24)
-        if (TILE_W - x - w < 15) w = TILE_W - x
-        const h = 84 + Math.floor(r() * 64)
-        out.push({ key: `${row}-${x}`, x, y: base - h, w, h, fill: spines[Math.floor(r() * spines.length)], band: Math.floor(r() * 3), plate: r() < 0.55, lean: 0 })
-        x += w
-      }
+    // tonal leather, never bright: the wall's own colour lifted a little, some warmer and some cooler, so that the shelf reads as books and not as colour
+    const spines = [mixc('var(--hot)', 15), mixc('var(--hot)', 10), mixc('var(--signal)', 12), mixc('var(--ink)', 9), mixc('var(--ok)', 9), mixc('var(--ice)', 9)]
+    const out: { x: number; y: number; w: number; h: number; fill: string; band: number; plate: boolean }[] = []
+    const r = rng(31)
+    let x = 0
+    while (x < TILE_W) {
+      let w = 13 + Math.floor(r() * 18)
+      if (TILE_W - x - w < 13) w = TILE_W - x
+      const h = 40 + Math.floor(r() * 36)
+      out.push({ x, y: SHELF_H - BOARD - h, w, h, fill: spines[Math.floor(r() * spines.length)], band: Math.floor(r() * 3), plate: r() < 0.5 })
+      x += w
     }
     return out
   }, [])
   return (
-    <svg className="absolute inset-0 size-full" aria-hidden focusable="false" style={{ opacity: 0.6 }}>
-      <defs>
-        <pattern id="lib-shelf" width={TILE_W} height={ROW_H * ROWS} patternUnits="userSpaceOnUse">
-          {books.map((b) => (
-            <g key={b.key}>
-              <rect x={b.x} y={b.y} width={b.w} height={b.h} style={{ fill: b.fill }} />
-              <rect x={b.x} y={b.y} width={1.5} height={b.h} style={{ fill: 'var(--ink)', opacity: 0.06 }} />
-              <rect x={b.x + b.w - 1} y={b.y} width={1} height={b.h} style={{ fill: 'var(--ground)', opacity: 0.55 }} />
-              {b.band > 0 && <rect x={b.x} y={b.y + 9} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.5 }} />}
-              {b.band === 2 && <rect x={b.x} y={b.y + 14} width={b.w} height={1} style={{ fill: 'var(--brass)', opacity: 0.32 }} />}
-              {b.plate && <rect x={b.x + b.w * 0.2} y={b.y + b.h * 0.34} width={b.w * 0.6} height={Math.min(34, b.h * 0.3)} style={{ fill: 'var(--brass)', opacity: 0.2 }} />}
-              {b.band > 0 && <rect x={b.x} y={b.y + b.h - 12} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.4 }} />}
-            </g>
-          ))}
-          {Array.from({ length: ROWS }, (_, i) => (
-            <g key={i}>
-              <rect x={0} y={i * ROW_H + 150} width={TILE_W} height={ROW_H - 150} style={{ fill: 'var(--ground)' }} />
-              <rect x={0} y={i * ROW_H + 150} width={TILE_W} height={2} style={{ fill: 'var(--brass)', opacity: 0.4 }} />
-            </g>
-          ))}
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#lib-shelf)" />
-    </svg>
+    <>
+      {/* the wall: binding cloth with a small diamond lattice, very quiet */}
+      <svg className="absolute inset-0 size-full" aria-hidden focusable="false">
+        <defs>
+          <pattern id="lib-lattice" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M24 0 48 24 24 48 0 24Z" fill="none" style={{ stroke: 'var(--brass)', strokeOpacity: 0.07 }} />
+            <path d="M24 20 28 24 24 28 20 24Z" style={{ fill: 'var(--brass)', fillOpacity: 0.1 }} />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#lib-lattice)" />
+      </svg>
+      {/* the shelf at the foot of the screen, with the nav and the player standing in front of it */}
+      <svg className="absolute inset-x-0 bottom-0 w-full" height={SHELF_H} aria-hidden focusable="false">
+        <defs>
+          <pattern id="lib-books" width={TILE_W} height={SHELF_H} patternUnits="userSpaceOnUse">
+            {books.map((b) => (
+              <g key={b.x}>
+                <rect x={b.x} y={b.y} width={b.w} height={b.h} style={{ fill: b.fill }} />
+                <rect x={b.x} y={b.y} width={1.5} height={b.h} style={{ fill: 'var(--ink)', opacity: 0.07 }} />
+                <rect x={b.x + b.w - 1} y={b.y} width={1} height={b.h} style={{ fill: 'var(--ground)', opacity: 0.6 }} />
+                {b.band > 0 && <rect x={b.x} y={b.y + 8} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.42 }} />}
+                {b.band === 2 && <rect x={b.x} y={b.y + 13} width={b.w} height={1} style={{ fill: 'var(--brass)', opacity: 0.28 }} />}
+                {b.plate && <rect x={b.x + b.w * 0.22} y={b.y + b.h * 0.36} width={b.w * 0.56} height={Math.min(26, b.h * 0.28)} style={{ fill: 'var(--brass)', opacity: 0.2 }} />}
+                {b.band > 0 && <rect x={b.x} y={b.y + b.h - 10} width={b.w} height={2} style={{ fill: 'var(--brass)', opacity: 0.36 }} />}
+              </g>
+            ))}
+            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={BOARD} style={{ fill: 'var(--ground)' }} />
+            <rect x={0} y={SHELF_H - BOARD} width={TILE_W} height={2} style={{ fill: 'var(--brass)', opacity: 0.45 }} />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#lib-books)" />
+      </svg>
+    </>
   )
 }
 
