@@ -5,6 +5,7 @@ import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
+import { PROJECT_MAX, tidyProject } from './plus'
 
 export interface Mute {
   id: string
@@ -58,6 +59,10 @@ export interface SessionRec {
   title: string
   completed: boolean
   breaks?: number
+  /** a label the person gave it (supporters): where the hours went */
+  project?: string
+  /** seconds into the session at each drift, kept from now on so the coach can say when you tend to drift */
+  lapseAt?: number[]
 }
 
 export interface ActiveSession {
@@ -79,6 +84,8 @@ export interface ActiveSession {
   breaks?: number
   /** drifts a streak shield absorbed this session */
   shielded?: number
+  project?: string
+  lapseAt?: number[]
 }
 
 export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
@@ -126,6 +133,10 @@ export interface Settings {
   browserToured: boolean
   /** the cloud browser is switched off: nothing opens in it on its own and no time is used */
   cloudOff: boolean
+  /** supporters: the project a new session is labelled with ('' for none), the names to pick from, and the weekly goal in minutes */
+  project: string
+  projects: string[]
+  weeklyGoalMin: number
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -224,6 +235,10 @@ interface Actions {
   clunk: () => void
   setBest: (game: string, score: number) => void
   setSettings: (patch: Partial<Settings>) => void
+  /** supporters: add a project name to pick from (and choose it), choose one ('' for none), or take one off the list (past sessions keep their label) */
+  addProject: (name: string) => boolean
+  setProject: (name: string) => void
+  removeProject: (name: string) => void
   startSession: (goalMin: number, source: MediaKind | 'silent', title: string) => void
   setSessionSource: (source: MediaKind | 'silent', title: string) => void
   tick: (sec?: number) => void
@@ -269,6 +284,9 @@ export const DEFAULT_SETTINGS: Settings = {
   toured: false,
   browserToured: false,
   cloudOff: false,
+  project: '',
+  projects: [],
+  weeklyGoalMin: 300,
 }
 
 const emptyData = (): Data => ({
@@ -333,6 +351,12 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         if (![0, 1, 2].includes(st.songAge as number)) st.songAge = 0
         if (!['calm', 'focus', 'night', 'retro'].includes(String(st.musicMood))) st.musicMood = 'calm'
         for (const ck of ['accent', 'bg'] as const) if (!/^#[0-9a-f]{6}$/i.test(String(st[ck]))) st[ck] = ''
+        // project names are plain text; the chosen one must be one of the list
+        const names = Array.isArray(v.projects) ? v.projects.map(tidyProject).filter(Boolean) : []
+        st.projects = names.filter((n, i) => names.findIndex((m) => m.toLowerCase() === n.toLowerCase()) === i).slice(0, PROJECT_MAX)
+        st.project = (st.projects as string[]).includes(tidyProject(v.project)) ? tidyProject(v.project) : ''
+        const wg = Number(st.weeklyGoalMin)
+        st.weeklyGoalMin = Number.isFinite(wg) ? Math.min(4800, Math.max(0, Math.round(wg / 30) * 30)) : 300
         ok = st
       }
     } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined
@@ -431,6 +455,18 @@ export const useStore = create<AppState>()(
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
+      addProject: (name) => {
+        const n = tidyProject(name)
+        const list = get().settings.projects
+        if (!n) return false
+        const have = list.find((m) => m.toLowerCase() === n.toLowerCase())
+        if (!have && list.length >= PROJECT_MAX) return false
+        set((s) => ({ settings: { ...s.settings, projects: have ? s.settings.projects : [...s.settings.projects, n], project: have ?? n } }))
+        return true
+      },
+      setProject: (name) => set((s) => ({ settings: { ...s.settings, project: s.settings.projects.includes(name) ? name : '' } })),
+      removeProject: (name) => set((s) => ({ settings: { ...s.settings, projects: s.settings.projects.filter((m) => m !== name), project: s.settings.project === name ? '' : s.settings.project } })),
+
       startSession: (goalMin, source, title) =>
         set({
           session: {
@@ -446,6 +482,7 @@ export const useStore = create<AppState>()(
             cleanSec: 0,
             credit: 0,
             breaks: 0,
+            project: get().settings.project || undefined,
           },
         }),
 
@@ -485,7 +522,7 @@ export const useStore = create<AppState>()(
         set({
           urgeLog: { ...s.urgeLog, [key]: row },
           lapseLog: { ...s.lapseLog, [key]: (s.lapseLog[key] ?? 0) + 1 },
-          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: shielded ? s.session.cleanSec : 0, shielded: (s.session.shielded ?? 0) + (shielded ? 1 : 0) } : null,
+          session: s.session ? { ...s.session, lapses: s.session.lapses + 1, urges: s.session.urges + 1, cleanSec: shielded ? s.session.cleanSec : 0, shielded: (s.session.shielded ?? 0) + (shielded ? 1 : 0), lapseAt: [...(s.session.lapseAt ?? []), Math.round(s.session.elapsedSec)].slice(-30) } : null,
           ...(shielded ? { credits: { ...s.credits, items: { ...have, shields: have.shields - 1 } } } : {}),
         })
         get().log('wander', s.session ? `You left the tab during ${s.session.title}${shielded ? '. A streak shield kept the clean streak' : ''}` : 'You left the tab mid-session')
@@ -508,6 +545,8 @@ export const useStore = create<AppState>()(
           title: a.title,
           completed,
           breaks: a.breaks || undefined,
+          project: a.project || undefined,
+          lapseAt: a.lapseAt?.length ? a.lapseAt : undefined,
         }
         set({
           session: null,

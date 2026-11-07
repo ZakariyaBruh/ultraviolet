@@ -11,7 +11,7 @@ import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
-import { isSupporter, openSupport, sessionsCsv } from '@/lib/supporter'
+import { downloadCsv, downloadIcs, isSupporter, openSupport } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -232,9 +232,12 @@ function Data() {
         </div>
       </Panel>
       {isSupporter() && (
-        <Panel className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">Supporter: download your own sessions as a CSV file. It is built in this browser and sent nowhere.</p>
-          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={() => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([sessionsCsv()], { type: 'text/csv' })); a.download = 'friction-sessions.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) }}>Download sessions (CSV)</button>
+        <Panel className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center md:gap-6">
+          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">Supporter: take your own sessions with you. A CSV file for a spreadsheet, or a calendar file for Google, Apple or Outlook Calendar. Both are built in this browser and sent nowhere.</p>
+          <div className="flex flex-wrap gap-2">
+            <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadCsv}>Download CSV</button>
+            <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadIcs}>Download calendar (.ics)</button>
+          </div>
         </Panel>
       )}
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4">

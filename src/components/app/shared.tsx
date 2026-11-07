@@ -36,7 +36,7 @@ export function Seg({
   id: string
   className?: string
 }) {
-  return <AnimatedTabs tabs={tabs} activeTab={value} onChange={onChange} layoutId={id} variant="glass" renderContent={false} className={className} tabsContainerClassName="max-w-full [&_button]:px-3 sm:[&_button]:px-4" />
+  return <AnimatedTabs tabs={tabs} activeTab={value} onChange={onChange} layoutId={id} variant="glass" renderContent={false} className={cn("min-w-0 max-w-full", className)} tabsContainerClassName="max-w-full flex-wrap sm:flex-nowrap sm:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:shrink-0 [&_button]:px-3 sm:[&_button]:px-4" />
 }
 
 /** Content-layer surface (thicker material, no refraction). */
@@ -91,7 +91,7 @@ export function PageHeader({ title, sub, kicker, sources, children }: { title: s
         {sources && <p className="mt-0.5 max-w-[60ch] text-[12px] leading-[1.35] text-ink-3">Not our streams: they are public and belong to their sources. <a href={SOURCES_HREF} target="_blank" rel="noopener" className="text-ink-2 underline underline-offset-2 hover:text-signal">Sources and who to contact</a></p>}
       </div>
       <HeadSolids name={kicker ?? title} />
-      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+      {children && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{children}</div>}
     </header>
   )
 }

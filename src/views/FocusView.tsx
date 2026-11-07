@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
 import { LengthBand } from '@/components/app/LengthBand'
+import { ProjectPicker } from '@/components/app/ProjectPicker'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Listings } from '@/components/app/Listings'
 import { Logo, Panel, Readout } from '@/components/app/shared'
@@ -23,6 +24,7 @@ import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, streak, sum } from '@/lib/stats'
 import { itemsOf, useStore } from '@/lib/store'
+import { useSupporter } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import type { View } from '@/components/app/Shell'
 
@@ -136,6 +138,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const hasKit = items.owned.includes('kit')
   const dial = (items.owned.includes('solids') && items.dial ? items.dial : 'torus') as Shape
   const sessionId = session?.id
+  const supporter = useSupporter()
   // a session that starts puts the timer in front of any study windows lying over it
   useEffect(() => { if (sessionId) bringToFront(document.querySelector<HTMLElement>('[data-movable="timer"]')) }, [sessionId])
   const sessionMin = useStore((s) => s.settings.sessionMin)
@@ -170,7 +173,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const step = session ? 2 : current ? 2 : 1
 
   const finding = session
-    ? `${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} drift${session.urges === 1 ? '' : 's'}.`
+    ? `${session.project ? `${session.project}: ` : ''}${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} drift${session.urges === 1 ? '' : 's'}.`
     : held >= goal
       ? `Daily goal of ${goal} min met. ${blocked} drifts today.`
       : held > 0
@@ -212,6 +215,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                   <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
+                {supporter && <ProjectPicker />}
                 {hasSound && <SoundsButton />}
               </motion.div>
             ) : (

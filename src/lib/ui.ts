@@ -29,6 +29,9 @@ interface UI {
    * pathologically slow next to a heavy live iframe and was freezing the whole tab. Animation is untouched.
    */
   cloudOpen: boolean
+  /** open Insights on this tab, and its Plus area on this tool (set by the Support screen and cleared once used) */
+  insightsTab: string | null
+  plusTab: string | null
   set: (patch: Partial<Omit<UI, 'set'>>) => void
 }
 
@@ -49,6 +52,8 @@ export const useUI = create<UI>((set) => ({
   receipt: null,
   celebrate: null,
   cloudOpen: false,
+  insightsTab: null,
+  plusTab: null,
   set: (patch) => set(patch),
 }))
 
