@@ -271,7 +271,7 @@ function Help() {
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
       <div className="mt-3 border-t border-ink/10 pt-3">
-        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Every shop unlock is yours, you get a free Break and Streak shield each week, and your avatar has a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: every shop unlock free, a free Break and Streak shield each week, a CSV export of your sessions and a supporter mark.'}</p>
+        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. You have the Year view in Insights, the CSV export in Settings > Data, and a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: a Year view in Insights, a CSV export of your sessions and a supporter mark. Nothing in the shop is given away.'}</p>
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
             <a href={SUPPORT_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">Support, $2 a month</a>

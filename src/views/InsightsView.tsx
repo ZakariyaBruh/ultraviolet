@@ -19,6 +19,7 @@ import { dateKey, daysAgo, fmtMinutes, parseKey } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
+import { isSupporter } from '@/lib/supporter'
 import { useColours } from '@/lib/useColours'
 import { themeDef } from '@/lib/themes'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
@@ -62,6 +63,31 @@ const TABS = [
   { id: 'sessions', label: 'Sessions' },
   { id: 'log', label: 'Log' },
 ]
+const YEAR_TAB = { id: 'year', label: 'Year' }
+
+/** Supporter view: every day of the last 52 weeks, darker the more you held. Honest numbers from the saved log. */
+function YearGrid({ focusLog }: { focusLog: Record<string, number[]> }) {
+  const days = lastDays(371)
+  const first = parseKey(days[0]).getDay()
+  const mins = days.map((d) => Math.round(dayTotal(focusLog as never, d)))
+  const max = Math.max(1, ...mins)
+  const total = mins.reduce((a, b) => a + b, 0)
+  const active = mins.filter((m) => m > 0).length
+  return (
+    <Panel className="flex h-full min-h-0 flex-col gap-3 p-4">
+      <p className="hud">The last 52 weeks</p>
+      <div className="grid min-h-0 flex-1 content-center">
+        <div className="grid grid-flow-col gap-[3px]" style={{ gridTemplateRows: 'repeat(7, 1fr)', aspectRatio: '53 / 7' }} role="img" aria-label={`${active} days with focus in the last 52 weeks, ${fmtMinutes(total)} in all`}>
+          {Array.from({ length: first }, (_, i) => <span key={`p${i}`} />)}
+          {days.map((d, i) => (
+            <span key={d} title={`${d}: ${mins[i]} min`} className="min-h-0 min-w-0 bg-signal" style={{ opacity: mins[i] ? 0.2 + 0.8 * (mins[i] / max) : 0.06 }} />
+          ))}
+        </div>
+      </div>
+      <p className="text-[13px] text-ink-2">{active} days with focus, {fmtMinutes(total)} held in all. The brightest day was {fmtMinutes(max)}.</p>
+    </Panel>
+  )
+}
 
 export function InsightsView() {
   const s = useStore()
@@ -175,7 +201,7 @@ export function InsightsView() {
     <section className="flex h-full min-h-0 flex-col gap-3">
       <PageHeader kicker="Your attention, measured" title="Insights" sub={finding}>
         {s.demo && <span className="whitespace-nowrap rounded-full bg-amber-300/15 px-3 py-1.5 text-xs text-amber-200 ring-1 ring-amber-300/30">Demo history</span>}
-        <Seg id="ins" value={tab} onChange={setTab} tabs={TABS} />
+        <Seg id="ins" value={tab} onChange={setTab} tabs={isSupporter() ? [...TABS.slice(0, 4), YEAR_TAB, ...TABS.slice(4)] : TABS} />
       </PageHeader>
 
       <div className="relative min-h-0 flex-1">
@@ -250,6 +276,8 @@ export function InsightsView() {
                 <div className="flex justify-center"><SlidePagination pageCount={trendSlides.length} page={slide} onChange={setSlide} /></div>
               </div>
             )}
+
+            {tab === 'year' && isSupporter() && <YearGrid focusLog={s.focusLog} />}
 
             {tab === 'rings' && (
               <div className="flex h-full min-h-0 flex-col gap-3">

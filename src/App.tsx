@@ -36,7 +36,6 @@ import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { Onboarding } from '@/components/app/Onboarding'
 import { ReportSheet } from '@/components/app/Report'
-import { applySupporter } from '@/lib/supporter'
 import { ConsentBanner } from '@/components/app/ConsentBanner'
 import { FirstLaunch, InstallPrompt } from '@/components/app/Install'
 import { BrowserTour, ItemTour, Tour } from '@/components/app/Tour'
@@ -103,7 +102,6 @@ export default function App() {
   }, [])
   useTheme()
   useEffect(() => { captureRef(); if (routeFromLocation() !== 'home') void countRecommend() }, [])
-  useEffect(() => { applySupporter() }, [])
 
   const go = (r: Route) => {
     const i = VIEWS.indexOf(r as View)

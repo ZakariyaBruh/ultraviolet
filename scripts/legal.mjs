@@ -196,7 +196,7 @@ ${SOURCES}
 <h2>Advertising</h2>
 <p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
 <h2>Supporting Friction</h2>
-<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that unlocks a few extras in the app (the credit shop's unlockable items and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
+<p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (a Year view in Insights, a CSV export of your sessions and a mark next to your name), and does not change what the free app does. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
 <h2>Ownership</h2>
 <p>Friction's design, code and text belong to its maker. Content you write (notes, chat, aliases) remains yours; you let us store and show it as needed to run the feature you used.</p>
 <h2>No warranty and limit of liability</h2>
@@ -208,19 +208,18 @@ ${SOURCES}
   },
   '/support': {
     title: 'Support Friction: keep it free and get a few goodies',
-    description: 'Friction is free and stays free. If you like it, you can support it for $2 a month: every shop unlock, a free Break and Streak shield each week, a CSV export and a supporter mark.',
+    description: 'Friction is free and stays free. If you like it, you can support it for $2 a month: a Year view, a CSV export and a supporter mark.',
     h1: 'Support Friction',
     lead: 'Friction is free, has no account and no feed, and stays that way. Supporting it is optional and pays for the domain, the hosting and the time.',
     body: `
 <h2>What you get</h2>
 <ul>
-<li><strong>Every unlock in the credit shop, free:</strong> Sound machine, Auto music, Break kit, Solids pack, Fidget spinner and Confetti cannon. Normally you earn credits for them by focusing.</li>
-<li><strong>A free Break and a free Streak shield every week</strong> (you can hold up to three of each), so a long session is easier to protect.</li>
+<li><strong>A Year view in Insights:</strong> every day of the last 52 weeks in one grid, brighter the more you held, with the totals worked out from your own saved numbers.</li>
 <li><strong>Export your sessions</strong> as a CSV file from Settings, Data. It is made in your browser and sent nowhere.</li>
 <li><strong>A supporter mark</strong> next to your name in the app.</li>
 <li><strong>A good feeling,</strong> and one small thing less for the person who builds it to worry about.</li>
 </ul>
-<p>Credits are never sold, and nothing is needed to use Friction. Everything free stays free.</p>
+<p>The shop is not part of this: credits are never sold, and nothing in the shop is given away, so what you earn stays earned. Nothing is needed to use Friction, and everything free stays free.</p>
 <h2>Support, $2 a month</h2>
 <div id="whop" data-whop-checkout-plan-id="plan_Tatq22hQ61z5b" data-whop-checkout-return-url="https://www.frictionx.app/thanks" data-whop-checkout-theme="dark" data-whop-checkout-theme-accent-color="yellow" data-whop-checkout-hide-price="false" style="max-width:520px;min-height:420px"></div>
 <noscript><p><a class="cta" href="https://whop.com/checkout/ch_p0r3GYyFXF8jqKR/" rel="noopener">Support on Whop</a></p></noscript>
@@ -241,7 +240,7 @@ ${SOURCES}
     h1: 'Thank you',
     lead: 'You are keeping Friction free for everyone. That means a lot.',
     body: `
-<div id="ok" hidden><h2>Your goodies are on</h2><p>Every unlock in the credit shop is yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
+<div id="ok" hidden><h2>Your extras are on</h2><p>The Year view in Insights and the CSV export in Settings are yours, and your avatar has a supporter mark. They are switched on in this browser. Keep this page's link (or your Whop receipt): opening it on another device switches them on there too.</p><p><a class="cta" href="/focus">Open Friction</a></p></div>
 <div id="no" hidden><h2>That link did not work</h2><p>If you paid and see this, use <a href="/contact">the contact form</a> with your Whop receipt details and I will sort it out.</p></div>
 <script>
 (async function () {
