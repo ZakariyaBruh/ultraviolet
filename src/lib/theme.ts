@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useStore } from './store'
-import { themeDef } from './themes'
+import { useSupporter } from './supporter'
+import { shownTheme, themeDef, type ThemeId } from './themes'
+import { useUI } from './ui'
 
 const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
 const lin = (c: number) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
@@ -19,9 +21,17 @@ export const eraStage = (era: number) => Math.round((100 - Math.min(100, Math.ma
 /** which of the six ASCII stops a dial value is on (0 off to 5 a whole text world) */
 export const asciiStage = (ascii: number) => Math.round(Math.min(100, Math.max(0, ascii)) / 20)
 
+/** The theme that is on screen: the saved one, unless it is a supporter theme that is not allowed here, or one being previewed. */
+export function useThemeId(): ThemeId {
+  const saved = useStore((s) => s.settings.theme)
+  const supporter = useSupporter()
+  const preview = useUI((s) => s.previewTheme)
+  return shownTheme(saved, supporter, preview)
+}
+
 /** One attribute on <html> picks the look; optional accent and background colours sit on top of it. */
 export function useTheme() {
-  const id = useStore((s) => s.settings.theme)
+  const id = useThemeId()
   const accent = useStore((s) => s.settings.accent)
   const bg = useStore((s) => s.settings.bg)
   const era = useStore((s) => s.settings.era)

@@ -1,8 +1,13 @@
-import { Check, Heart } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, Heart, Lock } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { useMedia } from '@/lib/hooks'
-import { goTo, isSupporter, markSupporter, openPlus, SUPPORT_PLAN } from '@/lib/supporter'
+import { useStore } from '@/lib/store'
+import { goTo, isSupporter, markSupporter, SUPPORT_PLAN, useSupporter } from '@/lib/supporter'
+import { useThemeId } from '@/lib/theme'
+import { startPreview, stopPreview } from '@/lib/themeCycle'
+import { THEMES, themeDef, type ThemeDef, type ThemeId } from '@/lib/themes'
+import { useUI } from '@/lib/ui'
 
 const SRC = 'https://cdn.whop.com/elements/amber/elements.js'
 interface Handle { create: (kind: string) => { mount: (el: HTMLElement | string) => void; destroy?: () => void }; destroy?: () => void }
@@ -21,15 +26,52 @@ function load(): Promise<void> {
 
 interface Perk { title: string; text: string; open?: { label: string; go: () => void } }
 const PERKS: Perk[] = [
-  { title: 'Week review', text: 'Each week against the one before, a weekly goal with a streak, and a picture of your week to keep or share.', open: { label: 'Open', go: () => openPlus('week') } },
-  { title: 'Projects', text: 'Label a session (Maths, Thesis, a client) and see where your hours went, by week, month or all time.', open: { label: 'Open', go: () => openPlus('projects') } },
-  { title: 'Coach', text: 'What your own numbers say: the length you finish most, your calmest hours, your strongest day, when in a session you drift.', open: { label: 'Open', go: () => openPlus('coach') } },
-  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes. Lose a phone, restore in a minute. Only you hold the key.', open: { label: 'Open', go: () => goTo('/settings') } },
-  { title: 'Year view and Records', text: 'Every day of the last 52 weeks in one grid, and your best day, longest run, longest session and best hour.', open: { label: 'Open', go: () => openPlus('year') } },
-  { title: 'Long history and exports', text: 'The last 3,000 sessions are kept, not 300. Take them out as a CSV file or a calendar file (.ics) for Google, Apple or Outlook.' },
-  { title: 'A star on the board', text: 'A star by your alias on the leaderboard, and a small mark on your avatar.' },
-  { title: 'Everything free stays free', text: 'Credits are never sold and the shop is never given away, so what you earn stays earned.' },
+  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes. Lose a phone, restore in a minute. Only you hold the key. It is the one thing here that costs a server to keep, which is why it is not free.', open: { label: 'Open Settings', go: () => goTo('/settings') } },
+  { title: 'A star on the board', text: 'A star by your alias on the leaderboard and a small mark on your avatar. They change nothing about your rank.' },
 ]
+
+/** how each supporter theme is drawn on its tile: its own display face and a hint of its frame, so the tile says what the theme does to a panel (colours come from the theme's own entry in themes.ts) */
+const mix = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, transparent)`
+const FACE: Record<string, { font: string; title?: CSSProperties; frame: (t: ThemeDef) => CSSProperties }> = {
+  library: { font: "'Fraunces Variable', Georgia, serif", title: { fontSize: 21, fontWeight: 650, letterSpacing: '0.04em', textTransform: 'uppercase' }, frame: (t) => ({ boxShadow: `inset 0 0 0 1px ${t.signal}, inset 0 0 0 4px ${t.ground}, inset 0 0 0 5px ${mix(t.signal, 40)}` }) },
+  observatory: { font: "'Cormorant Variable', Georgia, serif", title: { fontSize: 16, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase' }, frame: (t) => ({ boxShadow: `inset 0 0 0 1px ${mix(t.ice, 50)}`, backgroundImage: `repeating-linear-gradient(90deg, ${mix(t.ice, 60)} 0 1px, transparent 1px 8px)`, backgroundSize: '100% 5px', backgroundRepeat: 'no-repeat' }) },
+  mono: { font: "'Archivo Variable', system-ui, sans-serif", title: { fontSize: 25, fontWeight: 900, fontStretch: '68%', textTransform: 'uppercase' }, frame: (t) => ({ boxShadow: `inset 0 0 0 1px ${t.ink}` }) },
+  receipt: { font: "'IBM Plex Mono', ui-monospace, monospace", title: { fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', background: 'linear-gradient(transparent 52%, #ffe95c 52% 90%, transparent 90%)', padding: '0 0.12em', marginLeft: '-0.12em' }, frame: (t) => ({ outline: `1px dashed ${mix(t.ink, 45)}`, outlineOffset: -4 }) },
+  chalkboard: { font: "'Patrick Hand', 'Bradley Hand', 'Segoe Print', system-ui, sans-serif", title: { fontSize: 24, fontWeight: 400, letterSpacing: '0.04em', textTransform: 'uppercase' }, frame: (t) => ({ outline: `2px solid ${mix(t.ink, 55)}`, outlineOffset: -5, borderRadius: 5 }) },
+}
+
+/** The five supporter themes as tiles: anyone can tap one to see the whole app in it for two minutes, a supporter keeps it. */
+function ThemeTiles() {
+  const supporter = useSupporter()
+  const shown = useThemeId()
+  const preview = useUI((x) => x.previewTheme)
+  const setSettings = useStore((x) => x.setSettings)
+  const pick = (t: ThemeDef) => { if (supporter) { stopPreview(); setSettings({ theme: t.id }) } else startPreview(t.id) }
+  return (
+    <div className="grid gap-2">
+      <div role="radiogroup" aria-label="Supporter themes" className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+        {THEMES.filter((t) => t.premium).map((t) => {
+          const f = FACE[t.id as ThemeId]
+          const on = shown === t.id
+          return (
+            <button key={t.id} role="radio" aria-checked={on} onClick={() => pick(t)} aria-label={`${t.name}: ${t.note}. ${supporter ? (on ? 'In use' : 'Tap to use it') : 'Tap to try it for two minutes'}`}
+              className={`relative grid min-h-[5.5rem] content-between gap-2 p-3 text-left ${on ? 'ring-2 ring-signal ring-offset-2 ring-offset-surface' : ''}`} style={{ background: t.ground, color: t.ink, ...f.frame(t) }}>
+              <span className="leading-[1.1]" style={{ fontFamily: f.font, ...f.title }}>{t.name}</span>
+              <span className="pr-4 text-[12.5px] leading-[1.3]" style={{ color: t.ink }}>{t.note}</span>
+              {!supporter ? <Lock className="absolute bottom-2.5 right-2.5 size-3.5" style={{ color: t.ink }} aria-hidden /> : <span className="absolute bottom-3 right-3 size-3" style={{ background: t.signal }} aria-hidden />}
+            </button>
+          )
+        })}
+      </div>
+      {preview && !supporter && (
+        <div role="status" className="flex flex-wrap items-center gap-2 border border-signal/60 bg-signal/10 p-2.5 text-[13px] text-ink">
+          <span className="min-w-0 flex-1 basis-48">Trying {themeDef(preview).name}. This whole screen is in it; it goes back in two minutes.</span>
+          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={stopPreview}>Stop trying it</button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** The embedded Whop checkout. Whop takes the payment; Friction never sees card details and keeps no record of who paid. */
 function Checkout({ onDone }: { onDone: () => void }) {
@@ -65,17 +107,25 @@ export function SupportView() {
   const on = done || isSupporter()
 
   const perks = (
-    <Panel className="flex min-h-[20rem] flex-col gap-3 p-5">
+    <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
-      <ul className="scroll-y grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(250px,1fr))] content-start gap-3" data-no-drag tabIndex={0} aria-label="What you get">
-        {PERKS.map((p) => (
-          <li key={p.title} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
-            <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{p.title}</b></span>
-            <span className="text-[14px] leading-[1.45] text-ink-2">{p.text}</span>
-            {on && p.open && <button className="mt-1 h-11 justify-self-start border border-signal/60 px-4 text-sm font-semibold text-ink hover:bg-signal/10" onClick={p.open.go}>{p.open.label}</button>}
-          </li>
-        ))}
-      </ul>
+      <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
+        <section className="grid gap-2" aria-label="Five more themes">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><Check className="size-4 shrink-0 text-signal" aria-hidden />Five more themes</h2>
+          <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to see this whole screen in it for two minutes, free.</p>
+          <ThemeTiles />
+        </section>
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
+          {PERKS.map((p) => (
+            <li key={p.title} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
+              <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{p.title}</b></span>
+              <span className="text-[14px] leading-[1.45] text-ink-2">{p.text}</span>
+              {on && p.open && <button className="mt-1 h-11 justify-self-start border border-signal/60 px-4 text-sm font-semibold text-ink hover:bg-signal/10" onClick={p.open.go}>{p.open.label}</button>}
+            </li>
+          ))}
+        </ul>
+        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this.</p>
+      </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
       <p className="text-[13px] leading-[1.4] text-ink-3">Whop is the seller: it takes the card details and handles receipts, taxes and refunds. Friction keeps no record of who paid. Cancel any time and what you unlocked stays. See the <a className="underline" href="/terms" target="_blank" rel="noopener">Terms</a> and <a className="underline" href="/privacy" target="_blank" rel="noopener">Privacy</a> pages.</p>
     </Panel>
@@ -87,7 +137,7 @@ export function SupportView() {
         <div className="grid content-start gap-2 p-2">
           <Heart className="size-6 text-signal" aria-hidden />
           <h2 className="text-lg font-semibold">Thank you. You are keeping Friction free.</h2>
-          <p className="text-[14px] text-ink-2">Everything on the left is open to you: use the buttons on each card. Your avatar has its mark, and your alias has a star. Manage or cancel from your Whop receipt.</p>
+          <p className="text-[14px] text-ink-2">Pick any of the five themes on the left, or in Settings under Look. The backup is in Settings under Data. Your avatar has its mark, and your alias has a star. Manage or cancel from your Whop receipt.</p>
         </div>
       ) : (
         <div className="scroll-y min-h-0 flex-1" data-no-drag><Checkout onDone={() => setDone(true)} /></div>
@@ -101,7 +151,7 @@ export function SupportView() {
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
       </PageHeader>
       {wide ? (
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,520px)] gap-4">{perks}{pay}</div>
+        <div className={`grid min-h-0 flex-1 gap-4 ${on ? 'grid-cols-[minmax(0,1fr)_minmax(0,340px)]' : 'grid-cols-[minmax(0,1fr)_minmax(0,520px)]'}`}>{perks}{pay}</div>
       ) : (
         <div className="min-h-0 flex-1 [&>*]:h-full">{tab === 'get' ? perks : pay}</div>
       )}

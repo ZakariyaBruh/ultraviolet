@@ -5,7 +5,7 @@ import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
-import { PROJECT_MAX, tidyProject } from './plus'
+import { PROJECT_MAX, tidyProject } from './review'
 
 export interface Mute {
   id: string
@@ -316,8 +316,8 @@ export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Accept only what has the right shape; anything else falls back to the default for that key. */
-/** how many finished sessions are kept: 300, or 3,000 for a supporter (read from the flag directly: supporter.ts imports this file) */
-const sessionCap = () => { try { return localStorage.getItem('friction:supporter') === '1' ? 3000 : 300 } catch { return 300 } }
+/** how many finished sessions are kept, the same for everyone */
+const sessionCap = () => 300
 
 export function sanitizeData(raw: unknown): { data: Data; matched: number } {
   const base = emptyData()

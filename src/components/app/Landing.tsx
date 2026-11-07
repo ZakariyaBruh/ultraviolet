@@ -57,7 +57,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
   const reduced = !!useReducedMotion()
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto overscroll-contain bg-ground text-ink">
-      <div className="flex h-2.5 shrink-0" aria-hidden>{BARS.map((c) => <i key={c} className="flex-1" style={{ background: c }} />)}</div>
+      <div className="flex h-2.5 shrink-0" data-bars aria-hidden>{BARS.map((c) => <i key={c} className="flex-1" style={{ background: c }} />)}</div>
       <div className="land-mid relative min-h-[3.25rem] flex-[1.3]">
         <DotGrid still={reduced} className="absolute inset-0 size-full" />
         <LandingSolids count={1} still={reduced} />
@@ -69,7 +69,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
         >
           <div className="flex items-center justify-between border-b border-signal/60 px-3 py-1.5 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] text-signal">
             <span>Ch 00 / Friction</span>
-            <span aria-hidden className="flex">{BARS.slice(1).map((c) => <i key={c} className="h-2 w-2.5" style={{ background: c }} />)}</span>
+            <span aria-hidden data-bars className="flex">{BARS.slice(1).map((c) => <i key={c} className="h-2 w-2.5" style={{ background: c }} />)}</span>
           </div>
           <div className="px-3 py-3"><Ident still={reduced} /></div>
         </motion.div>

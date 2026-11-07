@@ -2,7 +2,7 @@ import { Plus, Tag, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { fx_say } from '@/lib/actions'
-import { PROJECT_MAX } from '@/lib/plus'
+import { PROJECT_MAX } from '@/lib/review'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 

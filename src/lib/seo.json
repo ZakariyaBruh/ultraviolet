@@ -172,14 +172,14 @@
   },
   "/support": {
     "title": "Support Friction: Keep It Free for $2 a Month | Friction",
-    "description": "Friction is free and stays free. Support it for $2 a month: weekly reviews, projects, a coach, encrypted cloud backup, exports and a star on the board.",
+    "description": "Friction is free and stays free. Support it for $2 a month: five more themes, an encrypted cloud backup and a star on the board. Nothing free is locked.",
     "h1": "Support Friction",
-    "lead": "Friction is free, has no account and no feed, and stays that way. Supporting it costs $2 a month, pays for the domain and the hosting, and adds tools for people who want to see where their time goes. Nothing in the app is locked behind it.",
+    "lead": "Friction is free, has no account and no feed, and stays that way. Supporting it costs $2 a month and pays for the domain and the hosting. In return you get five more themes, each with its own type, panel frames and picture, an encrypted cloud backup, and a star by your name on the board. Everything that was free is still free.",
     "points": [
-      "A weekly review with a weekly goal and a picture of your week to keep or share",
-      "Projects: label sessions and see where your hours went",
-      "A coach that reads your own numbers: your best length, calmest hours and strongest day",
-      "An encrypted cloud backup with a key only you hold, a Year view, Records, 3,000 sessions of history and CSV and calendar exports"
+      "Five more themes: Library, Observatory, Mono, Receipt and Chalkboard, each with its own type, its own frame round every panel and its own picture behind them. Anyone can try them for two minutes before paying",
+      "An encrypted cloud backup with a key only you hold, so a new phone is a minute of work",
+      "A star by your alias on the leaderboard and a small mark on your avatar",
+      "Still free for everyone: the timer, radio, TV, lessons, games, Insights, the weekly review, projects, the coach, exports and the five original themes"
     ],
     "more": "Payment is handled by Whop, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid. Cancel any time and what you unlocked stays.",
     "name": "Support"

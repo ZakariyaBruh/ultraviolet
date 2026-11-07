@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './themes.css'
 import App from './App'
 
 /** If saved data ever breaks the app, say so and offer the way out instead of a blank page. */

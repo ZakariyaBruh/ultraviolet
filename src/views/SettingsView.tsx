@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import about from '@/lib/about.json'
 import { useState } from 'react'
@@ -12,12 +13,15 @@ import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
 import { BackupPanel, RestoreBackup } from '@/components/app/BackupPanel'
-import { downloadCsv, downloadIcs, isSupporter, openSupport } from '@/lib/supporter'
+import { downloadCsv, downloadIcs } from '@/lib/exports'
+import { isSupporter, openSupport, useSupporter } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
 import { contrast } from '@/lib/theme'
-import { THEMES, themeDef } from '@/lib/themes'
+import { THEMES, themeDef, type ThemeDef } from '@/lib/themes'
+import { startPreview, stopPreview } from '@/lib/themeCycle'
+import { useThemeId } from '@/lib/theme'
 import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
 
@@ -63,18 +67,41 @@ function Focus() {
 }
 
 function ThemePicker() {
-  const id = useStore((x) => x.settings.theme)
   const set = useStore((x) => x.setSettings)
+  const supporter = useSupporter()
+  const shown = useThemeId()
+  const preview = useUI((x) => x.previewTheme)
+  const pick = (t: ThemeDef) => {
+    if (t.premium && !supporter) { startPreview(t.id); return }
+    stopPreview()
+    set({ theme: t.id })
+  }
+  const swatch = (t: ThemeDef) => {
+    const locked = !!t.premium && !supporter
+    return (
+      <button key={t.id} role="radio" aria-checked={shown === t.id} aria-label={`${t.name}: ${t.note}${locked ? '. Supporter theme: tap to preview' : ''}`} onClick={() => pick(t)} className={`group relative h-14 w-[5.75rem] overflow-hidden border text-left transition-transform active:scale-[0.97] ${shown === t.id ? 'border-signal ring-2 ring-signal' : 'border-ink/30'}`} style={{ background: t.ground }}>
+        <span className="absolute left-2 top-2 size-3" style={{ background: t.signal }} />
+        <span className="absolute left-2 top-7 h-px w-8" style={{ background: t.ink }} />
+        <span className="absolute left-2 top-9 h-px w-5" style={{ background: t.ice }} />
+        {locked && <Lock className="absolute right-1.5 top-1.5 size-3" style={{ color: t.ink }} aria-hidden />}
+        <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1.5 py-0.5 font-[family-name:'Barlow_Condensed',sans-serif] text-[13px] font-semibold uppercase leading-4 tracking-[0.08em] text-white">{t.name}</span>
+      </button>
+    )
+  }
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex flex-wrap gap-2">
-      {THEMES.map((t) => (
-        <button key={t.id} role="radio" aria-checked={id === t.id} aria-label={`${t.name}: ${t.note}`} onClick={() => set({ theme: t.id })} className={`group relative h-14 w-[4.5rem] overflow-hidden border text-left transition-transform active:scale-[0.97] ${id === t.id ? 'border-signal ring-2 ring-signal' : 'border-ink/30'}`} style={{ background: t.ground }}>
-          <span className="absolute left-2 top-2 size-3" style={{ background: t.signal }} />
-          <span className="absolute left-2 top-7 h-px w-8" style={{ background: t.ink }} />
-          <span className="absolute left-2 top-9 h-px w-5" style={{ background: t.ice }} />
-          <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1.5 py-0.5 font-[family-name:var(--font-cond)] text-[13px] font-semibold uppercase leading-4 tracking-[0.08em] text-white">{t.name}</span>
-        </button>
-      ))}
+    <div className="grid gap-3">
+      <div role="radiogroup" aria-label="Themes" className="flex flex-wrap gap-2">{THEMES.filter((t) => !t.premium).map(swatch)}</div>
+      <div className="grid gap-1.5">
+        <p className="hud">Supporter themes{supporter ? '' : ' · tap one to try it'}</p>
+        <div role="radiogroup" aria-label="Supporter themes" className="flex flex-wrap gap-2">{THEMES.filter((t) => t.premium).map(swatch)}</div>
+      </div>
+      {preview && (
+        <div role="status" className="flex flex-wrap items-center gap-2 border border-signal bg-signal/10 p-3 text-[13px] text-ink">
+          <span className="min-w-0 flex-1 basis-56">Trying {themeDef(preview).name}. Supporters keep it; for everyone else it goes back to normal in two minutes.</span>
+          <button className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal" onClick={openSupport}>See Support, $2 a month</button>
+          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={stopPreview}>Stop trying it</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -82,7 +109,7 @@ function ThemePicker() {
 function Colours() {
   const accent = useStore((x) => x.settings.accent)
   const bg = useStore((x) => x.settings.bg)
-  const theme = useStore((x) => x.settings.theme)
+  const theme = useThemeId()
   const set = useStore((x) => x.setSettings)
   const def = themeDef(theme)
   const a = accent || def.signal
@@ -234,16 +261,14 @@ function Data() {
         </div>
       </Panel>
       {isSupporter() && <BackupPanel />}
-      {isSupporter() && (
-        <Panel className="grid content-start gap-3 p-4">
-          <p className="hud">Take your sessions with you · supporter</p>
-          <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">A CSV file for a spreadsheet, or a calendar file for Google, Apple or Outlook Calendar. Both are built in this browser and sent nowhere.</p>
-          <div className="flex flex-wrap gap-2">
-            <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadCsv}>Download CSV</button>
-            <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadIcs}>Download calendar (.ics)</button>
-          </div>
-        </Panel>
-      )}
+      <Panel className="grid content-start gap-3 p-4">
+        <p className="hud">Take your sessions with you</p>
+        <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">A CSV file for a spreadsheet, or a calendar file for Google, Apple or Outlook Calendar. Both are built in this browser and sent nowhere.</p>
+        <div className="flex flex-wrap gap-2">
+          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadCsv}>Download CSV</button>
+          <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadIcs}>Download calendar (.ics)</button>
+        </div>
+      </Panel>
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4 lg:col-span-2">
         <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. No file can be imported, so nothing uploaded can take someone else's place. Moving your data to your own other browser takes a one-time code you make yourself." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
@@ -278,7 +303,7 @@ function Help() {
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
       <div className="mt-3 border-t border-ink/10 pt-3">
-        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. Plus in Insights (week review, projects, coach), project labels on Focus, the cloud backup and exports in Settings, and a star by your alias are yours.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: a weekly review, projects, a coach, an encrypted cloud backup and more. Nothing in the shop is given away.'}</p>
+        <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. The five extra themes (under Look), the cloud backup (under Data) and a star by your alias are yours.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: five more themes, an encrypted cloud backup and a star on the board. Everything that is free now stays free, and nothing in the shop is given away.'}</p>
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
             <button onClick={openSupport} className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">See Support, $2 a month</button>

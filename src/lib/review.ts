@@ -1,13 +1,13 @@
 /**
- * The supporter tools (Settings > Support): everything here is plain arithmetic on what is already saved in this browser, so nothing is
- * estimated or invented. A finding says how much data it rests on, and says what is missing when there is not enough yet.
+ * The Review tab in Insights (free for everyone): everything here is plain arithmetic on what is already saved in this browser, so nothing
+ * is estimated or invented. A finding says how much data it rests on, and says what is missing when there is not enough yet.
  */
 import { dateKey, daysAgo, fmtMinutes, weekdayMon } from './dates'
 import { dayTotal, sum } from './stats'
 import type { SessionRec } from './store'
 
 type HourLog = Record<string, number[]>
-export interface PlusData { focusLog: HourLog; urgeLog: HourLog; sessions: SessionRec[] }
+export interface ReviewData { focusLog: HourLog; urgeLog: HourLog; sessions: SessionRec[] }
 
 /* ───────────── projects ───────────── */
 
@@ -56,7 +56,7 @@ export interface Week {
   top: { name: string; min: number } | null
 }
 
-export function weekOf(d: PlusData, start: Date, today: Date = new Date()): Week {
+export function weekOf(d: ReviewData, start: Date, today: Date = new Date()): Week {
   const end = addDays(start, 7).getTime()
   const days: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(start, i)
@@ -87,7 +87,7 @@ export const daysSoFar = (start: Date, today: Date = new Date()): number =>
 export const heldFirst = (w: Week, n: number): number => sum(w.days.slice(0, n).map((x) => x.min))
 
 /** weeks in a row (counting this one once it is reached) with at least `goalMin` minutes held */
-export function weeksHit(d: Pick<PlusData, 'focusLog'>, goalMin: number, today: Date = new Date()): number {
+export function weeksHit(d: Pick<ReviewData, 'focusLog'>, goalMin: number, today: Date = new Date()): number {
   if (goalMin <= 0) return 0
   const cur = weekStart(today)
   const total = (s: Date) => sum(Array.from({ length: 7 }, (_, i) => dayTotal(d.focusLog, dateKey(addDays(s, i)))))
@@ -97,7 +97,7 @@ export function weeksHit(d: Pick<PlusData, 'focusLog'>, goalMin: number, today: 
 }
 
 /** minutes held in each of the last `n` weeks, oldest first; the last one is this week so far */
-export function weekTotals(d: Pick<PlusData, 'focusLog'>, n: number, today: Date = new Date()): number[] {
+export function weekTotals(d: Pick<ReviewData, 'focusLog'>, n: number, today: Date = new Date()): number[] {
   const cur = weekStart(today)
   return Array.from({ length: n }, (_, k) => {
     const s = addDays(cur, -7 * (n - 1 - k))
@@ -158,7 +158,7 @@ const per = (x: number) => (Math.round(x * 10) / 10).toString()
 const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : 0 }
 const snap = (m: number) => Math.min(90, Math.max(10, Math.round(m / 5) * 5))
 
-export function coach(d: PlusData, today: Date = new Date()): Finding[] {
+export function coach(d: ReviewData, today: Date = new Date()): Finding[] {
   const out: Finding[] = []
   const s = d.sessions
 

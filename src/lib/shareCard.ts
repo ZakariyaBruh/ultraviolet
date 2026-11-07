@@ -20,6 +20,9 @@ const W = 1080
 const H = 1350
 const PAD = 72
 
+/** the Mono theme has no colour at all, so its test-card bars are the same bars in grey */
+const grey = (hex: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); const y = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b); return `rgb(${y},${y},${y})` }
+
 const css = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 async function fonts() {
@@ -59,7 +62,8 @@ export async function drawWeekCard(d: CardData): Promise<HTMLCanvasElement> {
   g.fillRect(0, 0, W, H)
   // the test-card bars
   const bw = W / BARS.length
-  BARS.forEach((col, i) => { g.fillStyle = col; g.fillRect(i * bw, 0, bw + 1, 18) })
+  const mono = document.documentElement.dataset.theme === 'mono'
+  BARS.forEach((col, i) => { g.fillStyle = mono ? grey(col) : col; g.fillRect(i * bw, 0, bw + 1, 18) })
 
   // header
   text('FRICTION', PAD, 112, `700 46px ${cond}`, ink, 'left', 6)

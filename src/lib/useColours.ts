@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './store'
+import { useThemeId } from './theme'
 
 export interface Colours { signal: string; ice: string; hot: string; ink: string; ink3: string }
 const read = (): Colours => {
@@ -10,7 +11,7 @@ const read = (): Colours => {
 
 /** The live theme colours as plain strings, for charts and SVG that cannot read CSS variables. Updates when the theme or custom colours change. */
 export function useColours(): Colours {
-  const theme = useStore((s) => s.settings.theme)
+  const theme = useThemeId()
   const accent = useStore((s) => s.settings.accent)
   const bg = useStore((s) => s.settings.bg)
   const [c, setC] = useState<Colours>(read)

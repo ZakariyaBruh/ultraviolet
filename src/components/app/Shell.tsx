@@ -12,6 +12,7 @@ import { VideoSlot } from '@/components/app/VideoSlot'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
+import { useThemeId } from '@/lib/theme'
 import { useUI } from '@/lib/ui'
 import { cycleTheme, themeDef } from '@/lib/themeCycle'
 import type { View } from '@/lib/route'
@@ -40,7 +41,7 @@ export function BarTools({ scope = 'home' }: { scope?: string }) {
   const mark = useStore((s) => s.markEventRead)
   const markAll = useStore((s) => s.markEventsRead)
   const set = useUI((s) => s.set)
-  const theme = useStore((s) => s.settings.theme)
+  const theme = useThemeId()
   const notifications = useMemo(() => events.slice(0, 30).map((e) => ({ id: e.id, message: e.text, timestamp: new Date(e.t), read: e.read })), [events])
   return (
     <div className="flex items-center gap-1.5">

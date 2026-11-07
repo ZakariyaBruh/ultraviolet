@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Panel } from '@/components/app/shared'
 import { fx_say } from '@/lib/actions'
-import { coach, type Finding } from '@/lib/plus'
+import { coach, type Finding } from '@/lib/review'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 

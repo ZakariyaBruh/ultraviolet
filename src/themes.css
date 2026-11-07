@@ -1,0 +1,219 @@
+/* ═════════ Supporter themes ═════════
+   Library, Observatory, Mono, Receipt and Chalkboard. Each one is a different object, not a recolour: its own type, its own frame
+   round every panel, its own picture behind the panels (Scenery.tsx). The five free themes live in index.css.
+   Rules kept here: tokens only (no hex in app code), flat, no blur, no glow, no smooth gradients (hard-edged stripes and dots are
+   patterns, not gradients). Type rules use :where() so the Retro dial (Arcade, Terminal) can still put its pixel type on top. */
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/fraunces/opsz-italic.css";
+@import "@fontsource-variable/cormorant/wght.css";
+@import "@fontsource-variable/cormorant/wght-italic.css";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/700.css";
+@import "@fontsource/patrick-hand/400.css";
+
+/* ───────── tokens ───────── */
+html[data-theme='library'] {
+    --font-cond: 'Fraunces Variable', Georgia, serif;
+    --font-dot: 'Fraunces Variable', Georgia, serif;
+    --ground: #190d10; --surface: #22141a; --raised: #2c1a21; --raised-2: #37212a;
+    --ink: #f1e6d0; --ink-2: #d6c9ae; --ink-3: #b3a68c;
+    --rule: rgba(217, 180, 92, 0.3); --control: rgba(217, 180, 92, 0.55);
+    --signal: #d9b45c; --on-signal: #1a1006; --signal-soft: rgba(217, 180, 92, 0.16);
+    --hot: #e58a78; --warn: #e0b050; --danger: #f08a7a; --ok: #9ccf9a; --ice: #8fc1b5; --popover: #22141a;
+    --primary-foreground: #190d10; --sidebar-primary-foreground: #1a1006;
+    --brass: #d9b45c;
+}
+html[data-theme='observatory'] {
+    --font-cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --font-dot: 'Cormorant Variable', 'Cormorant Garamond', Georgia, serif;
+    --ground: #0a0c1c; --surface: #0e1126; --raised: #141833; --raised-2: #1b2040;
+    --ink: #e9e8f5; --ink-2: #c0c3e0; --ink-3: #9ea3cc;
+    --rule: rgba(143, 180, 255, 0.28); --control: rgba(143, 180, 255, 0.5);
+    --signal: #f4d98a; --on-signal: #15120a; --signal-soft: rgba(244, 217, 138, 0.16);
+    --hot: #ff9fb2; --warn: #f4d98a; --danger: #ff8fa3; --ok: #8fe3c0; --ice: #8fb4ff; --popover: #0e1126;
+    --primary-foreground: #0a0c1c; --sidebar-primary-foreground: #15120a;
+}
+html[data-theme='mono'] {
+    --font-dot: 'Archivo Variable', 'Hanken Grotesk Variable', system-ui, sans-serif;
+    --ground: #000000; --surface: #0b0b0b; --raised: #161616; --raised-2: #222222;
+    --ink: #ffffff; --ink-2: #d4d4d4; --ink-3: #a8a8a8;
+    --rule: rgba(255, 255, 255, 0.34); --control: rgba(255, 255, 255, 0.7);
+    --signal: #ffffff; --on-signal: #000000; --signal-soft: rgba(255, 255, 255, 0.14);
+    /* no colour at all: the status colours are greys, told apart by their labels and, in charts, by how light they are */
+    --hot: #9c9c9c; --warn: #d9d9d9; --danger: #ffffff; --ok: #8a8a8a; --ice: #c8c8c8; --popover: #0b0b0b;
+    --primary-foreground: #000000; --sidebar-primary-foreground: #000000;
+}
+html[data-theme='receipt'] {
+    --font-cond: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-dot: 'IBM Plex Mono', ui-monospace, monospace;
+    --ground: #d8d4c6; --surface: #f8f6ef; --raised: #ece8db; --raised-2: #e0dccd;
+    --ink: #141414; --ink-2: #363636; --ink-3: #4a4a4a;
+    --rule: rgba(20, 20, 20, 0.28); --control: rgba(20, 20, 20, 0.55);
+    --signal: #141414; --on-signal: #f8f6ef; --signal-soft: rgba(20, 20, 20, 0.08);
+    --hot: #9e1f17; --warn: #6b4d00; --danger: #9e1f17; --ok: #1a5c3b; --ice: #254f72; --popover: #f8f6ef;
+    --primary-foreground: #f8f6ef; --sidebar-primary-foreground: #f8f6ef;
+    --hl: #ffe95c;
+}
+html[data-theme='chalkboard'] {
+    --font-cond: 'Patrick Hand', 'Bradley Hand', 'Segoe Print', system-ui, sans-serif;
+    --font-dot: 'Patrick Hand', 'Bradley Hand', 'Segoe Print', system-ui, sans-serif;
+    --ground: #1b2723; --surface: #213029; --raised: #2a3b33; --raised-2: #33473d;
+    --ink: #eef0e6; --ink-2: #cfd5c6; --ink-3: #a9b3a4;
+    --rule: rgba(238, 240, 230, 0.34); --control: rgba(238, 240, 230, 0.6);
+    --signal: #f3d95a; --on-signal: #1b1a06; --signal-soft: rgba(243, 217, 90, 0.16);
+    --hot: #f59bb4; --warn: #f3d95a; --danger: #f7a090; --ok: #a9e3a1; --ice: #8fd4e8; --popover: #213029;
+    --primary-foreground: #1b2723; --sidebar-primary-foreground: #1b1a06;
+}
+
+/* the screen tabs are a narrow strip: a theme whose lettering is wide (Library, Receipt, Chalkboard) keeps the station's condensed face there, so the longest names (Insights, Settings) still fit the open tab */
+html:is([data-theme='library'], [data-theme='receipt'], [data-theme='chalkboard']) [data-tab] { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 13px; letter-spacing: 0.08em; }
+
+/* the page title carries a small drawn rule that never takes room: it is placed, not stacked */
+html:is([data-theme='library'], [data-theme='observatory'], [data-theme='mono'], [data-theme='chalkboard']) h1.dot { position: relative; }
+html:is([data-theme='library'], [data-theme='observatory'], [data-theme='mono'], [data-theme='chalkboard']) h1.dot::after { content: ""; position: absolute; left: 0; pointer-events: none; }
+
+/* ═════════ LIBRARY: a private reading room ═════════
+   Oxblood leather and brass. Panels are framed like a page in a book (a brass rule, a gap, a thinner rule, gilt corners), titles are set
+   in Fraunces, labels are italic, the page behind is a wall of book spines. */
+:where(html[data-theme='library']) .dot { font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: lining-nums tabular-nums; }
+:where(html[data-theme='library']) .dot.uppercase { letter-spacing: 0.08em; font-weight: 600; }
+:where(html[data-theme='library']) .hud { font-family: var(--font-cond); font-style: italic; font-weight: 500; font-size: 15px; line-height: 18px; letter-spacing: 0.01em; text-transform: none; }
+html[data-theme='library'] h1.dot { letter-spacing: 0.05em; font-weight: 650; }
+
+html[data-theme='library'] :is(.glass, .glass-clear, .material) {
+  --r: 3px; border-radius: 3px; background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px rgba(217, 180, 92, 0.6), inset 0 0 0 4px var(--surface), inset 0 0 0 5px rgba(217, 180, 92, 0.28), 0 16px 30px -20px rgba(0, 0, 0, 0.75);
+}
+html[data-theme='library'] :is(.glass, .glass-clear, .material)::before {
+  content: ""; position: absolute; inset: 2px; border-radius: 0; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(var(--brass), var(--brass)) top left / 13px 2px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) top left / 2px 13px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) top right / 13px 2px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) top right / 2px 13px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom left / 13px 2px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom left / 2px 13px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom right / 13px 2px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom right / 2px 13px no-repeat;
+}
+/* the open tab is a gilt label stamped on the spine */
+html[data-theme='library'] .deck-block { box-shadow: inset 0 0 0 1px rgba(26, 16, 6, 0.55), inset 0 0 0 3px var(--signal), inset 0 0 0 4px rgba(26, 16, 6, 0.4); }
+html[data-theme='library'] h1.dot::after { bottom: -4px; width: 3.4ch; height: 1px; background: var(--brass); }
+html[data-theme='library'] .kicker > span { display: none; }
+html[data-theme='library'] .kicker::before { content: ""; width: 6px; height: 6px; rotate: 45deg; background: var(--brass); flex: none; }
+
+/* ═════════ OBSERVATORY: a star chart ═════════
+   Indigo night and pale instrument lines. Panels are plates with a graduated scale along two edges and a crosshair in a corner,
+   titles are engraved capitals in Cormorant, labels are tiny tracked capitals like coordinates. The page behind is a slowly turning sky. */
+:where(html[data-theme='observatory']) .dot { font-weight: 500; letter-spacing: 0; font-variant-numeric: lining-nums tabular-nums; }
+:where(html[data-theme='observatory']) .dot.uppercase { letter-spacing: 0.28em; font-weight: 600; }
+:where(html[data-theme='observatory']) .hud { font-weight: 500; font-size: 13px; letter-spacing: 0.24em; }
+html[data-theme='observatory'] h1.dot { font-weight: 500; letter-spacing: 0.22em; }
+html[data-theme='observatory'] :is(.glass, .glass-clear, .material) {
+  --r: 0px; border-radius: 0; background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+html[data-theme='observatory'] :is(.glass, .glass-clear, .material)::before {
+  content: ""; position: absolute; inset: 0; border-radius: 0; pointer-events: none; z-index: 1;
+  background:
+    repeating-linear-gradient(90deg, rgba(143, 180, 255, 0.55) 0 1px, transparent 1px 8px) 0 0 / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, rgba(143, 180, 255, 0.7) 0 1px, transparent 1px 40px) 0 0 / 100% 9px no-repeat,
+    repeating-linear-gradient(0deg, rgba(143, 180, 255, 0.55) 0 1px, transparent 1px 8px) 0 0 / 4px 100% no-repeat,
+    repeating-linear-gradient(0deg, rgba(143, 180, 255, 0.7) 0 1px, transparent 1px 40px) 0 0 / 9px 100% no-repeat,
+    linear-gradient(var(--signal), var(--signal)) right 9px top 4px / 9px 1px no-repeat,
+    linear-gradient(var(--signal), var(--signal)) right 13px top 0 / 1px 9px no-repeat;
+}
+html[data-theme='observatory'] .deck-block { box-shadow: inset 0 0 0 1px rgba(21, 18, 10, 0.5); }
+html[data-theme='observatory'] h1.dot::after { bottom: -5px; width: min(100%, 9ch); height: 4px; background: repeating-linear-gradient(90deg, var(--ice) 0 1px, transparent 1px 6px) 0 0 / 100% 3px no-repeat, linear-gradient(var(--ice), var(--ice)) 0 3px / 100% 1px no-repeat; opacity: 0.8; }
+html[data-theme='observatory'] .kicker > span { background: var(--ice); }
+.obs-turn { animation: obs-turn 1500s linear infinite; }
+@keyframes obs-turn { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .obs-turn { animation: none; } }
+.motion-calm .obs-turn { animation: none; }
+
+/* ═════════ MONO: black, white and nothing else ═════════
+   No colour anywhere. Panels are keylined rectangles with a solid square on each corner, the open thing is always the inverted one
+   (white fill, black text), titles are a heavy narrow grotesque in capitals, and the page behind is a column grid with an outlined word
+   standing in each side margin (sized to the margin, so it only shows where there is one). */
+:where(html[data-theme='mono']) .dot { font-weight: 800; font-stretch: 78%; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; }
+:where(html[data-theme='mono']) .hud { font-family: var(--font-sans); font-weight: 700; font-size: 12px; letter-spacing: 0.2em; }
+html[data-theme='mono'] h1.dot { font-weight: 900; font-stretch: 68%; letter-spacing: -0.01em; width: fit-content; max-width: 100%; }
+html[data-theme='mono'] :is(.glass, .glass-clear, .material) {
+  --r: 0px; border-radius: 0; background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+html[data-theme='mono'] :is(.glass, .glass-clear, .material)::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 0; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(var(--ink), var(--ink)) top left / 5px 5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) top right / 5px 5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) bottom left / 5px 5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) bottom right / 5px 5px no-repeat;
+}
+html[data-theme='mono'] h1.dot::after { bottom: -4px; width: 100%; height: 3px; background: var(--ink); }
+html[data-theme='mono'] .kicker > span { background: var(--ink); height: 3px; width: 20px; }
+html[data-theme='mono'] ::selection { background: var(--ink); color: var(--ground); }
+html[data-theme='mono'] [data-bars] { filter: grayscale(1); }
+/* the few colours that components bring with them (the red unread badge and dot) become ink and ground */
+html[data-theme='mono'] .bg-rose-500 { background-color: var(--ink); color: var(--ground); border-color: var(--ground); }
+html[data-theme='mono'] [class*='bg-rose-500/'] { background-color: var(--signal-soft); }
+html[data-theme='mono'] [class*='text-rose'] { color: var(--ink); }
+html[data-theme='mono'] [class*='border-rose'] { border-color: var(--control); }
+.mono-cols { background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) 0 0 / calc(100% / 12) 100%; }
+.mono-word { position: absolute; top: 50%; white-space: nowrap; line-height: 0.8; font-family: var(--font-dot); font-weight: 900; font-stretch: 62%; text-transform: uppercase; writing-mode: vertical-rl; font-size: clamp(0px, calc(((100vw - 1240px) / 2 - 16px) / 0.8), 140px); color: transparent; -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.26); user-select: none; }
+.mono-word.l { left: 8px; translate: 0 -50%; rotate: 180deg; }
+.mono-word.r { right: 8px; translate: 0 -50%; }
+
+/* ═════════ RECEIPT: thermal paper ═════════
+   Slips of white paper on a grey counter. Monospaced figures, dashed rules wherever there was a line, a torn bottom edge on every slip,
+   and a yellow highlighter pass under each page title. The only colour is the red of a stamp and the yellow of the highlighter. */
+:where(html[data-theme='receipt']) .dot { font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+:where(html[data-theme='receipt']) .dot.uppercase { letter-spacing: -0.02em; }
+:where(html[data-theme='receipt']) .hud { font-weight: 500; font-size: 12px; letter-spacing: 0.04em; }
+html[data-theme='receipt'] :is(.glass, .glass-clear, .material) {
+  --r: 0px; border-radius: 0; background-color: var(--surface);
+  box-shadow: 0 1px 0 rgba(20, 20, 20, 0.12), 0 14px 22px -16px rgba(20, 20, 20, 0.5);
+}
+html[data-theme='receipt'] :is(.glass, .glass-clear, .material)::before { display: none; }
+/* the torn edge hangs just below the slip: a row of downward points in the paper's own colour */
+html[data-theme='receipt'] :is(.glass, .glass-clear, .material)::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 6px; pointer-events: none;
+  background: conic-gradient(from -45deg at 50% 100%, transparent, var(--surface) 1deg 90deg, transparent 91deg) 0 0 / 12px 100%;
+}
+html[data-locked][data-theme='receipt'] :is(.glass, .glass-clear, .material)::after { opacity: 0.72; }
+/* a line on a receipt is dashed */
+html[data-theme='receipt'] :is([class*='border-t'], [class*='border-b'], [class*='border-y'], [class*='border-l'], [class*='border-r'], [class~='border'], [class*='divide-']) { border-style: dashed; }
+html[data-theme='receipt'] [class*='divide-'] > * { border-style: dashed; }
+/* the highlighter is a little wider than the word; it is shifted back, not given a negative margin, which would make the title block one pixel too narrow for its own text and wrap it */
+html[data-theme='receipt'] h1.dot { width: fit-content; max-width: 100%; padding: 0 0.12em; position: relative; left: -0.12em; background: linear-gradient(transparent 52%, var(--hl) 52% 90%, transparent 90%); }
+html[data-theme='receipt'] .kicker > span { background: var(--ink); height: 0; border-top: 1px dashed var(--ink); width: 22px; }
+html[data-theme='receipt'] ::selection { background: var(--hl); color: var(--ink); }
+/* the hold-to-tune-in label blends against what is behind it (difference): with a near-black signal that left it pale on pale paper; white gives dark on paper and light over the fill */
+html[data-theme='receipt'] .mix-blend-difference { color: #fff; }
+.rc-speck { opacity: 0.55; mix-blend-mode: multiply; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .25  0 0 0 0 .22  0 0 0 0 .15  0 0 0 .3 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+/* ═════════ CHALKBOARD: chalk on slate ═════════
+   A dark green board in a wooden frame. Every panel is outlined by hand (twice, a little crooked), titles and labels are handwritten,
+   a wavy chalk line sits under each page title, and the margins carry small doodles. */
+:where(html[data-theme='chalkboard']) .dot { font-weight: 400; letter-spacing: 0.01em; font-synthesis: none; font-variant-numeric: tabular-nums; }
+:where(html[data-theme='chalkboard']) .dot.uppercase { letter-spacing: 0.04em; }
+:where(html[data-theme='chalkboard']) .hud { font-weight: 400; font-size: 16px; line-height: 18px; letter-spacing: 0.06em; font-synthesis: none; }
+html[data-theme='chalkboard'] h1.dot { font-weight: 400; }
+html[data-theme='chalkboard'] :is(.glass, .glass-clear, .material) {
+  --r: 5px; border-radius: 5px; background-color: var(--surface);
+  box-shadow: none;
+}
+html[data-theme='chalkboard'] :is(.glass, .glass-clear, .material)::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: 0; background: none;
+  border: 9px solid transparent;
+  border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84' fill='none' stroke='%23eef0e6' stroke-linecap='round' stroke-linejoin='round'><g stroke-width='2.2' opacity='.9'><path d='M2.5 9.8 C24 8 60 10.2 81.5 8.2'/><path d='M75.5 2.5 C76.8 26 74.6 60 76 81.5'/><path d='M81 75.2 C58 77 26 74.4 3 76.4'/><path d='M8.6 81 C7.4 58 9.8 24 8 3'/></g><g stroke-width='1.2' opacity='.4'><path d='M5 12.6 C28 11.4 58 13.2 79 11.4'/><path d='M72.6 5 C73.8 28 72 58 73.2 79'/><path d='M79 72.4 C56 74 28 71.6 5.5 73.2'/><path d='M11.6 79 C10.6 56 12.4 26 11 5.5'/></g></svg>") 14 / 9px stretch;
+}
+html[data-theme='chalkboard'] .deck-block { box-shadow: inset 0 0 0 2px var(--on-signal); }
+html[data-theme='chalkboard'] h1.dot::after { bottom: -6px; width: min(100%, 8ch); height: 8px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='8' viewBox='0 0 120 8' preserveAspectRatio='none' fill='none' stroke='%23f3d95a' stroke-width='2' stroke-linecap='round'><path d='M2 5 C14 1.5 22 7 36 4 C50 1 58 6.5 74 3.5 C88 1.5 100 6 118 3'/></svg>") 0 0 / 100% 100% no-repeat; pointer-events: none; }
+html[data-theme='chalkboard'] .kicker > span { background: none; border-top: 2px dotted var(--signal); height: 0; }
+.chalk-dust { opacity: 0.5; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.006 .011' numOctaves='3' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .93  0 0 0 0 .95  0 0 0 0 .9  0 0 0 .55 -.16'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+@media (prefers-contrast: more) {
+  html:is([data-theme='library'], [data-theme='observatory'], [data-theme='mono'], [data-theme='receipt'], [data-theme='chalkboard']) :is(.glass, .glass-clear, .material) { box-shadow: inset 0 0 0 1px var(--ink); }
+}

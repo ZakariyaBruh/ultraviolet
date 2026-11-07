@@ -19,14 +19,16 @@ import { dateKey, daysAgo, fmtMinutes, parseKey } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { getPulse } from '@/lib/pulse'
 import { useStore } from '@/lib/store'
-import { PlusView } from '@/views/plus/PlusView'
+import { ReviewView } from '@/views/review/ReviewView'
 import { useUI } from '@/lib/ui'
 import { useColours } from '@/lib/useColours'
-import { themeDef } from '@/lib/themes'
+import { useThemeId } from '@/lib/theme'
+import { isPremiumTheme, themeDef } from '@/lib/themes'
 import { attentionScore, blockedPerHour, calendarData, dayTotal, hoursMatrix, lastDays, lastWeeks, scoreParts, sum, totals, weekdayShort } from '@/lib/stats'
 
-const VIOLET = '#ffc400'
-const PINK = '#9a958a'
+// the two other series colours of the older themes; a supporter theme brings its own palette, so there they come from its tokens
+const VIOLET_FIXED = '#ffc400'
+const PINK_FIXED = '#9a958a'
 
 function ScoreRing({ score }: { score: number }) {
   return (
@@ -63,12 +65,13 @@ const TABS = [
   { id: 'rings', label: 'Rings' },
   { id: 'sessions', label: 'Sessions' },
   { id: 'log', label: 'Log' },
-  { id: 'plus', label: 'Plus' },
+  { id: 'review', label: 'Review' },
 ]
 
 export function InsightsView() {
   const s = useStore()
-  const SIGNAL = themeDef(s.settings.theme).ice
+  const shownId = useThemeId()
+  const SIGNAL = themeDef(shownId).ice
   const wide = useMedia('(min-width: 1024px)')
   const [tab, setTab] = useState(() => useUI.getState().insightsTab ?? 'today')
   useEffect(() => { if (useUI.getState().insightsTab) useUI.getState().set({ insightsTab: null }) }, [])
@@ -78,6 +81,8 @@ export function InsightsView() {
   const [ring, setRing] = useState(1)
   const [pat, setPat] = useState(1)
   const col = useColours()
+  const VIOLET = isPremiumTheme(shownId) ? col.signal : VIOLET_FIXED
+  const PINK = isPremiumTheme(shownId) ? col.ink3 : PINK_FIXED
   const [sessView, setSessView] = useState('table')
   const day = dateKey(daysAgo(offset))
 
@@ -255,7 +260,7 @@ export function InsightsView() {
               </div>
             )}
 
-            {tab === 'plus' && <PlusView />}
+            {tab === 'review' && <ReviewView />}
 
             {tab === 'rings' && (
               <div className="flex h-full min-h-0 flex-col gap-3">

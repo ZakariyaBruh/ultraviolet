@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { SessionRec } from './store'
+import type { ThemeId } from './themes'
 
 /** Transient UI state: never persisted. */
 interface UI {
@@ -29,9 +30,11 @@ interface UI {
    * pathologically slow next to a heavy live iframe and was freezing the whole tab. Animation is untouched.
    */
   cloudOpen: boolean
-  /** open Insights on this tab, and its Plus area on this tool (set by the Support screen and cleared once used) */
+  /** open Insights on this tab, and its Review tab on this tool (set by deep links and cleared once used) */
   insightsTab: string | null
-  plusTab: string | null
+  reviewTab: string | null
+  /** a supporter theme someone is only looking at: shown now, never saved, gone on reload */
+  previewTheme: ThemeId | null
   set: (patch: Partial<Omit<UI, 'set'>>) => void
 }
 
@@ -53,7 +56,8 @@ export const useUI = create<UI>((set) => ({
   celebrate: null,
   cloudOpen: false,
   insightsTab: null,
-  plusTab: null,
+  reviewTab: null,
+  previewTheme: null,
   set: (patch) => set(patch),
 }))
 

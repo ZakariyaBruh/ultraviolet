@@ -15,6 +15,8 @@ The site never scrolls. You move by tuning:
 ## Themes
 Five complete palettes, switched with the palette button, `T` anywhere, or the swatches in Settings: **Station** (default), **Paper** (light), **Phosphor** (green CRT, all monospace), **Blueprint**, **Sunset**. `lib/themes.ts` defines them; `index.css` carries the variables per `html[data-theme]`. The landing page follows the theme too.
 
+Five more are for supporters, and anyone can try them for two minutes: **Library** (oxblood and brass, a serif, a wall of book spines), **Observatory** (a slowly turning star chart, graduated plates), **Mono** (black and white only, narrow heavy capitals), **Receipt** (light: thermal paper, dashed rules, torn edges, a highlighter) and **Chalkboard** (chalk on slate, hand-drawn frames, doodles in the margins). They live in `src/themes.css` and `components/app/Scenery.tsx`; each changes the type, the frame round every panel and the picture behind the panels, not only the colours.
+
 ## Colour
 Ground `#05070c`, ink `#f3f1ea`. One action colour, broadcast yellow `#ffd23f` (light theme: blue `#1f3bff`): buttons, the needle, the ident window. Ice `#7fd3ff` for the contour field and all data. The colour-bar strip and the landing sphere are the only full-spectrum things.
 
