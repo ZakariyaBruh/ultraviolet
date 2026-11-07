@@ -51,7 +51,7 @@ export function Panel({ children, className, ...rest }: { children: ReactNode; c
 /** solids for each page, in the order they join as the era dial turns back */
 const HEAD: Record<string, Shape[]> = {
   Learn: ['knot', 'cube', 'pyramid'], Arcade: ['cube', 'pyramid', 'torus'], Podcasts: ['helix', 'sphere', 'knot'], News: ['pyramid', 'cube', 'sphere'], Together: ['sphere', 'torus', 'helix'],
-  Settings: ['torus', 'cube', 'knot'], Debrief: ['sphere', 'knot', 'helix'], Recommend: ['pyramid', 'torus', 'cube'], 'Free ebooks': ['cube', 'helix', 'sphere'], 'Your attention, measured': ['helix', 'torus', 'pyramid'], Radio: ['sphere', 'torus', 'helix'], TV: ['cube', 'pyramid', 'torus'],
+  Settings: ['torus', 'cube', 'knot'], Debrief: ['sphere', 'knot', 'helix'], Recommend: ['pyramid', 'torus', 'cube'], 'Time focused': ['pyramid', 'torus', 'cube'], 'Keep it free': ['sphere', 'torus', 'knot'], 'Free ebooks': ['cube', 'helix', 'sphere'], 'Your attention, measured': ['helix', 'torus', 'pyramid'], Radio: ['sphere', 'torus', 'helix'], TV: ['cube', 'pyramid', 'torus'],
 }
 
 /** A few little 3D text solids in the free space between the page title and its controls: one at the clean end of the dial, more as it turns back, never more than the room holds. */

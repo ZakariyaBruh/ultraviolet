@@ -7,9 +7,13 @@ import { useStore } from './store'
  * Insights (every day of the last 52 weeks), a CSV export of their sessions, and a mark by their name. The flag is an honour-system pass.
  */
 const KEY = 'friction:supporter'
+export const SUPPORT_PLAN = 'plan_iP58mTsDntqwy'
 export const SUPPORT_PAGE = '/support'
+/** open the Support screen without leaving the app */
+export const openSupport = () => { history.pushState(null, '', SUPPORT_PAGE); dispatchEvent(new PopStateEvent('popstate')) }
 
 export const isSupporter = () => { try { return localStorage.getItem(KEY) === '1' } catch { return false } }
+export const markSupporter = () => { try { localStorage.setItem(KEY, '1') } catch { /* storage blocked */ } }
 export const forgetSupporter = () => { try { localStorage.removeItem(KEY) } catch { /* storage blocked */ } }
 
 const q = (v: string | number | boolean) => { const t = String(v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t }

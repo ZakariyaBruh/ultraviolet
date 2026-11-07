@@ -115,7 +115,7 @@ const PAGES = {
 <p>Your profile name, settings, sessions, drifts, credits, lessons, notes, to-do lists, layout and shop items are stored in your browser (localStorage and IndexedDB). We cannot see them, and clearing site data or using Erase everything removes them. Your private identity key is a random value that also stays in your browser; only a hash of it is ever sent anywhere.</p>
 <h2>What is sent to our servers</h2>
 <ul>
-<li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, and your score. Erase everything deletes your row.</li>
+<li><strong>The leaderboard (optional).</strong> If you set a public alias and take part, we store a public code (a hash), the alias you chose, and the minutes you have focused since joining (with two numbers used to check them). Erase everything deletes your row.</li>
 <li><strong>Together rooms (optional).</strong> A room stores the names members chose, chat messages, what is being shared and an optional Discord or Slack webhook address the host sets. A room with nobody left is deleted. Erase everything removes your seat.</li>
 <li><strong>The contact form.</strong> A message you send is stored with the topic you chose and, only if you give them, your name and a way to reach you. Your network address is kept only as a one-way hash, to stop spam (three messages a day). Messages are deleted after 180 days. Please do not put anything sensitive in a message.</li>
 <li><strong>Moving your data.</strong> If you use Move my data, your data is encrypted in your browser with a code only you see, kept for ten minutes, and deleted when read. We never see the code or the contents.</li>
@@ -205,46 +205,6 @@ ${SOURCES}
 <p>We may change the service or these terms, and may end or limit access for misuse. The date above shows the latest version.</p>
 <h2>Contact</h2>
 <p>${mail}</p>`,
-  },
-  '/support': {
-    title: 'Support Friction: keep it free and get a few goodies',
-    description: 'Friction is free and stays free. If you like it, you can support it for $2 a month: a Year view, a CSV export and a supporter mark.',
-    h1: 'Support Friction',
-    lead: 'Friction is free, has no account and no feed, and stays that way. Supporting it is optional and pays for the domain, the hosting and the time.',
-    body: `
-<h2>What you get</h2>
-<ul>
-<li><strong>A Year view in Insights:</strong> every day of the last 52 weeks in one grid, brighter the more you held, with the totals worked out from your own saved numbers.</li>
-<li><strong>Export your sessions</strong> as a CSV file from Settings, Data. It is made in your browser and sent nowhere.</li>
-<li><strong>A supporter mark</strong> next to your name in the app.</li>
-<li><strong>A good feeling,</strong> and one small thing less for the person who builds it to worry about.</li>
-</ul>
-<p>The shop is not part of this: credits are never sold, and nothing in the shop is given away, so what you earn stays earned. Nothing is needed to use Friction, and everything free stays free.</p>
-<h2>Support, $2 a month</h2>
-<div id="whop" style="width:100%;max-width:520px;min-height:480px;overflow:hidden"></div>
-<p><small>Checkout not loading? <a href="https://whop.com/checkout/plan_iP58mTsDntqwy/?redirect_url=https%3A%2F%2Fwww.frictionx.app%2Fthanks" rel="noopener">Pay on Whop instead</a>.</small></p>
-<script src="https://cdn.whop.com/elements/amber/elements.js" data-whop-elements></script>
-<script>
-addEventListener('load', function () {
-  try {
-    var c = window.WhopElements().checkout.create({
-      plan: 'plan_iP58mTsDntqwy',
-      returnUrl: 'https://www.frictionx.app/thanks',
-      appearance: { theme: { appearance: 'dark', accentColor: 'yellow' } },
-      onComplete: function (r) { if (r && r.paymentId) location.href = '/thanks?status=succeeded&payment=' + encodeURIComponent(r.paymentId) }
-    })
-    c.create('checkout').mount('#whop')
-  } catch (e) {}
-})
-</script>
-<h2>How it works</h2>
-<ul>
-<li>The payment is handled by <a href="https://whop.com" target="_blank" rel="noopener">Whop</a>, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid.</li>
-<li>After paying you are sent back to Friction with a one-time link that switches on your goodies in that browser. Keep that link (or your receipt): opening it again on another device or after clearing your data switches them back on.</li>
-<li>Cancel any time from your Whop receipt; what you already unlocked stays unlocked.</li>
-<li>Refunds and receipts are Whop's, under its terms. If something goes wrong, use <a href="/contact">the contact form</a> with your receipt details and I will help.</li>
-</ul>
-<p>See also the <a href="/terms">Terms of Use</a> and <a href="/privacy">Privacy Policy</a>.</p>`,
   },
   '/thanks': {
     noindex: true,

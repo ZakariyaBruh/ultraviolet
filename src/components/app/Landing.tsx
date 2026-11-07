@@ -6,7 +6,7 @@ import { DotGrid } from '@/components/app/DotGrid'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
-const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', music: 'Music', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Insights', debrief: 'Debrief', settings: 'Settings' }
+const SHORT: Record<View, string> = { focus: 'Focus', radio: 'Radio', tv: 'TV', podcasts: 'Podcasts', music: 'Music', news: 'News', learn: 'Learn', together: 'Together', leaders: 'Leaders', books: 'Books', arcade: 'Arcade', insights: 'Insights', debrief: 'Debrief', support: 'Support', settings: 'Settings' }
 
 /**
  * The front page's terminal. It types itself out a character at a time and says the same few plain things to everyone, and nothing about the

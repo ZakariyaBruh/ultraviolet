@@ -11,7 +11,7 @@ import { fx_say } from '@/lib/actions'
 import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
-import { isSupporter, SUPPORT_PAGE, sessionsCsv } from '@/lib/supporter'
+import { isSupporter, openSupport, sessionsCsv } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
 import { SlidePagination } from '@/components/ui/slide-pagination'
@@ -251,7 +251,7 @@ function Help() {
         { id: 'a0', question: about.heading, answer: about.intro },
         ...about.items.map((i, n) => ({ id: `a${n + 1}`, question: i.title, answer: i.text })),
         { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
-        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and a count. When its space fills, the lowest score is dropped to make room.' },
+        { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account and no server. The site counts page visits with Google Analytics; that records visits, never your sessions or what you hide. On a server there is only the recommendation board and any Together room you join (chat is kept for a day): a random code, a name you choose and the minutes you have focused since joining the board.' },
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. The player and nav bar are eased off anything they cover unless you put them there yourself. Alt and the arrow keys move a panel from the keyboard, and the reset button in the top bar puts everything back.' },
         { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. Two optional things use AI, and both say so. A lesson’s demo is AI generated when there is no built-in demo for that topic (only the topic title is sent). And the Ask AI window, which only runs when you open it and type, sends your questions to free AI services (Pollinations, with LLM7 as a backup) through Friction’s server; nothing is saved, and it can be wrong. Everything else in the app, including the Debrief, is plain code.' },
@@ -274,8 +274,7 @@ function Help() {
         <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. You have the Year view in Insights, the CSV export in Settings > Data, and a supporter mark.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: a Year view in Insights, a CSV export of your sessions and a supporter mark. Nothing in the shop is given away.'}</p>
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
-            <a href={SUPPORT_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">Support, $2 a month</a>
-            <a href="/support" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center px-1 text-[13px] text-ink-2 underline underline-offset-2 hover:text-signal">What you get</a>
+            <button onClick={openSupport} className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">See Support, $2 a month</button>
           </div>
         )}
       </div>

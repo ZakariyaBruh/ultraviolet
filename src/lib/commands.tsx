@@ -1,4 +1,4 @@
-import { BookOpen, BarChart3, Bot, Home, LayoutPanelTop, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users } from 'lucide-react'
+import { BookOpen, BarChart3, Bot, Home, LayoutPanelTop, Play, Radio, Settings, Tv, Podcast, Newspaper, GraduationCap, Users, Heart } from 'lucide-react'
 import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
 import { WIDGETS } from '@/components/app/widgets/defs'
@@ -32,6 +32,7 @@ export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {
     { id: 'go-books', title: 'Books', category: 'Navigation', icon: <BookOpen className={ic} />, action: () => go('books') },
     { id: 'go-insights', title: 'Insights', category: 'Navigation', icon: <BarChart3 className={ic} />, action: () => go('insights') },
     { id: 'go-debrief', title: 'Debrief', category: 'Navigation', icon: <Bot className={ic} />, action: () => go('debrief') },
+    { id: 'go-support', title: 'Support Friction', category: 'Navigation', icon: <Heart className={ic} />, action: () => go('support') },
     { id: 'go-settings', title: 'Settings', category: 'Navigation', icon: <Settings className={ic} />, action: () => go('settings') },
     ...(s.session ? [] : [{
       id: 'act-lock',

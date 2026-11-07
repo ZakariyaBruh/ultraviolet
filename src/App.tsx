@@ -30,7 +30,7 @@ import { TvView } from '@/views/TvView'
 import { BooksView } from '@/views/BooksView'
 import { LearnView } from '@/views/LearnView'
 import { Celebration } from '@/components/app/Celebration'
-import { captureRef, countRecommend } from '@/lib/leaders'
+import { captureRef } from '@/lib/leaders'
 import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { pendingInvite, useTogether } from '@/lib/together'
@@ -43,6 +43,7 @@ import { useMusicSync } from '@/lib/music'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { TogetherView } from '@/views/TogetherView'
 import { LeadersView } from '@/views/LeadersView'
+import { SupportView } from '@/views/SupportView'
 import { NewsView } from '@/views/NewsView'
 import { PodcastsView } from '@/views/PodcastsView'
 import { MusicView } from '@/views/MusicView'
@@ -101,7 +102,7 @@ export default function App() {
     })
   }, [])
   useTheme()
-  useEffect(() => { captureRef(); if (routeFromLocation() !== 'home') void countRecommend() }, [])
+  useEffect(() => { captureRef() }, [])
 
   const go = (r: Route) => {
     const i = VIEWS.indexOf(r as View)
@@ -158,7 +159,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      {route === 'home' ? <Landing onEnter={() => { void countRecommend(); go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { void countRecommend(); go(v) }} /> : (<>
+      {route === 'home' ? <Landing onEnter={() => { go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { go(v) }} /> : (<>
       <Backdrop reduced={reduced} />
       {level >= 1 && <motion.div key={`cut-${view}`} aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-signal" initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ scaleX: { duration: 0.34, ease: [0.2, 0, 0, 1] }, opacity: { duration: 0.2, delay: 0.3 } }} />}
       <Shell view={view} onChange={change} onHome={() => go('home')}>
@@ -179,8 +180,9 @@ export default function App() {
             {view === 'arcade' && <ArcadeView />}
             {view === 'insights' && <InsightsView />}
             {view === 'debrief' && <DebriefView />}
+            {view === 'support' && <SupportView />}
             {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'music', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'settings'].includes(view) && <Placeholder name={view} />}
+            {!['focus', 'radio', 'tv', 'podcasts', 'music', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'support', 'settings'].includes(view) && <Placeholder name={view} />}
             </FitView>
           </motion.div>
         </AnimatePresence>

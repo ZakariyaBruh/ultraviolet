@@ -1,12 +1,14 @@
 /**
- * Recommendations and the leaderboard. Your browser holds a private key; a short public code is made from it
- * and goes in your share link. When someone new arrives through that link and tunes in, the code is counted once.
- * The server (api/lb.ts) only keeps a person once they reach a few recommends.
+ * The leaderboard: ranked by minutes focused. Your browser holds a private key; a short public code is made from it.
+ * Once you have a public alias, your total focus time is reported now and then (never demo history); the server (api/lb.ts) counts
+ * only what you focus after your first report, and no faster than the clock runs, so a made-up number cannot climb the board.
  *
  * Who you are is the private key and nothing else. The public code is always worked out from it, never read back from storage,
  * so editing the saved identity cannot make you someone else; the key is the only thing the server trusts, and nobody else has it.
  * Together rooms use a second id made from the same key that is never shown or shared (`roomId`).
  */
+import { useStore } from './store'
+import { dayTotalAll } from './focusTotal'
 const ME = 'friction:me'
 const FROM = 'friction:from'
 const COUNTED = 'friction:counted'
@@ -139,4 +141,14 @@ export async function retryErase(): Promise<boolean> {
     try { localStorage.removeItem(ERASE) } catch { /* storage blocked */ }
     return true
   } catch { return false }
+}
+
+/** Tells the board how long you have focused in all (minutes, demo history left out). Only people with a public alias are on the board. */
+export async function reportFocus(me: Me): Promise<void> {
+  if (!hasAlias(me)) return
+  const st = useStore.getState()
+  if (st.demo) return
+  try {
+    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)) }) })
+  } catch { /* offline: it is reported next time */ }
 }

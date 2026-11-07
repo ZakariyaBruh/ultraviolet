@@ -157,17 +157,31 @@
     "name": "Together"
   },
   "/leaders": {
-    "title": "Friction Leaderboard: Top Recommenders This Month | Friction",
-    "description": "See who has brought the most people to Friction. Pick a public alias, share your link and join the board when someone tunes in. Your name stays private.",
-    "h1": "The Friction leaderboard: top recommenders",
-    "lead": "The leaderboard shows the people who have brought the most others to Friction. Choose a public alias, share your link, and when someone new arrives through it and tunes in, they are counted once. Your private name is never shown on the board.",
+    "title": "Friction Leaderboard: Who Has Focused the Longest | Friction",
+    "description": "See who has focused the longest on Friction. Pick a public alias and your focus time is counted from your first report, no faster than the clock runs.",
+    "h1": "The Friction leaderboard: who has focused longest",
+    "lead": "The leaderboard ranks people by how long they have focused. Choose a public alias and your focus time is reported now and then. Only time after your first report counts, and never faster than the clock runs, so a made-up number cannot climb the board. Your private name is never shown.",
     "points": [
       "Aliases are unique, so no two people share a name",
-      "The board holds a fixed number of places, and a newcomer can replace the lowest score once it is full",
-      "You can leave the board at any time by erasing your data",
-      "Your standing is checked from a private key that never leaves your browser except as a hash"
+      "Demo history never counts, and time before you joined the board does not either",
+      "Each report can add no more minutes than have passed since the last one",
+      "You can leave the board at any time by erasing your data"
     ],
-    "more": "This is the only public list in Friction, and it ranks recommendations, not focus time.",
+    "more": "This is the only public list in Friction. It ranks focus time, and your standing is checked from a private key that never leaves your browser except as a hash.",
     "name": "Leaders"
+  },
+  "/support": {
+    "title": "Support Friction: Keep It Free for $2 a Month | Friction",
+    "description": "Friction is free and stays free. Support it for $2 a month and get a Year view of your focus, a CSV export of your sessions and a supporter mark.",
+    "h1": "Support Friction",
+    "lead": "Friction is free, has no account and no feed, and stays that way. Supporting it costs $2 a month and pays for the domain, the hosting and the time. Nothing in the app is locked behind it.",
+    "points": [
+      "A Year view in Insights: every day of the last 52 weeks in one grid",
+      "A CSV export of your own sessions, made in your browser",
+      "A supporter mark next to your name",
+      "Credits are never sold and the shop is never given away, so what you earn stays earned"
+    ],
+    "more": "Payment is handled by Whop, which sells it to you and takes the card details. Friction never sees them and keeps no record of who paid. Cancel any time and what you unlocked stays.",
+    "name": "Support"
   }
 }

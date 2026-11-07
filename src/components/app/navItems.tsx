@@ -1,4 +1,4 @@
-import { Users, Trophy, GraduationCap, Newspaper, Podcast, Music2, BarChart3, BookOpen, ClipboardList, Home, Radio, Settings, Tv, Gamepad2 } from 'lucide-react'
+import { Users, Trophy, GraduationCap, Newspaper, Podcast, Music2, BarChart3, BookOpen, ClipboardList, Home, Radio, Settings, Tv, Gamepad2, Heart } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { View } from '@/lib/route'
 
@@ -17,5 +17,6 @@ export const NAV: { id: View; label: string; icon: ReactNode }[] = [
   { id: 'arcade', label: 'Arcade', icon: <Gamepad2 className={ic} /> },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className={ic} /> },
   { id: 'debrief', label: 'Debrief', icon: <ClipboardList className={ic} /> },
+  { id: 'support', label: 'Support', icon: <Heart className={ic} /> },
   { id: 'settings', label: 'Settings', icon: <Settings className={ic} /> },
 ]
