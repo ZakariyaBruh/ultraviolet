@@ -26,7 +26,7 @@ function load(): Promise<void> {
 
 interface Perk { title: string; text: string; open?: { label: string; go: () => void } }
 const PERKS: Perk[] = [
-  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes. Lose a phone, restore in a minute. Only you hold the key. It is the one thing here that costs a server to keep, which is why it is not free.', open: { label: 'Open Settings', go: () => goTo('/settings') } },
+  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes: lose a phone, restore in a minute. Only you hold the key. It costs a server to keep, so it is not free.', open: { label: 'Open Settings', go: () => goTo('/settings') } },
   { title: 'A star on the board', text: 'A star by your alias on the leaderboard and a small mark on your avatar. They change nothing about your rank.' },
 ]
 
@@ -115,7 +115,7 @@ export function SupportView() {
           <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to see this whole screen in it for two minutes, free.</p>
           <ThemeTiles />
         </section>
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
+        <ul className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-3">
           {PERKS.map((p) => (
             <li key={p.title} className="grid content-start gap-1.5 border border-ink/15 bg-ink/[0.03] p-4">
               <span className="flex items-center gap-2"><Check className="size-4 shrink-0 text-signal" aria-hidden /><b className="text-[15px] font-semibold text-ink">{p.title}</b></span>
