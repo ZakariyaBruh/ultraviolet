@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { MediaItem } from './store'
 import { useStore } from './store'
 import { registerClick } from './radio'
+import { isTrying, refuse } from './trial'
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
 
@@ -105,6 +106,7 @@ if (audio) wire(audio)
 if (video) wire(video)
 
 export function play(item: MediaItem, queue?: MediaItem[]) {
+  if (isTrying()) { refuse(); return }
   teardown()
   const vol = useStore.getState().settings.volume
   audio.volume = vol

@@ -40,7 +40,7 @@ const FACE: Record<string, { font: string; title?: CSSProperties; frame: (t: The
   chalkboard: { font: "'Patrick Hand', 'Bradley Hand', 'Segoe Print', system-ui, sans-serif", title: { fontSize: 24, fontWeight: 400, letterSpacing: '0.04em', textTransform: 'uppercase' }, frame: (t) => ({ outline: `2px solid ${mix(t.ink, 55)}`, outlineOffset: -5, borderRadius: 5 }) },
 }
 
-/** The five supporter themes as tiles: anyone can tap one to see the whole app in it for two minutes, a supporter keeps it. */
+/** The five supporter themes as tiles: anyone can tap one to see the whole app in it once a day for two minutes, a supporter keeps it. */
 function ThemeTiles() {
   const supporter = useSupporter()
   const shown = useThemeId()

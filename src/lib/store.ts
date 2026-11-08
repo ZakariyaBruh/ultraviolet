@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { isTrying, refuse } from './trial'
 import { BREAK_MIN, CAPSULE_MAX, finishBonus, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
@@ -467,7 +468,8 @@ export const useStore = create<AppState>()(
       setProject: (name) => set((s) => ({ settings: { ...s.settings, project: s.settings.projects.includes(name) ? name : '' } })),
       removeProject: (name) => set((s) => ({ settings: { ...s.settings, projects: s.settings.projects.filter((m) => m !== name), project: s.settings.project === name ? '' : s.settings.project } })),
 
-      startSession: (goalMin, source, title) =>
+      startSession: (goalMin, source, title) => {
+        if (isTrying()) { refuse(); return }
         set({
           session: {
             id: uid(),
@@ -484,7 +486,8 @@ export const useStore = create<AppState>()(
             breaks: 0,
             project: get().settings.project || undefined,
           },
-        }),
+        })
+      },
 
       setSessionSource: (source, title) =>
         set((s) => (s.session ? { session: { ...s.session, source, title } } : s)),

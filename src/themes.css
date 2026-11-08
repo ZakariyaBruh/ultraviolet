@@ -112,30 +112,24 @@ html[data-theme='library'] .kicker > span { display: none; }
 html[data-theme='library'] .kicker::before { content: ""; width: 6px; height: 6px; rotate: 45deg; background: var(--signal); flex: none; }
 html[data-theme='library'] ::selection { background: var(--signal); color: var(--on-signal); }
 
-/* ═════════ OBSERVATORY: a star chart ═════════
-   Indigo night and pale instrument lines. Panels are plates with a graduated scale along two edges and a crosshair in a corner,
-   titles are engraved capitals in Cormorant, labels are tiny tracked capitals like coordinates. The page behind is a slowly turning sky. */
+/* ═════════ OBSERVATORY: a night sky over an instrument bench ═════════
+   Indigo night, pale chart lines and one brass accent. The sky behind is a dim, slowly turning star chart with no lettering, so it never
+   competes with text. A panel is a plain plate: solid indigo, one fine frame, and a short brass tab on its top edge like an instrument label.
+   Titles are Cormorant capitals with moderate tracking; small labels are tracked capitals (kept readable: 13px, 0.12em). */
 :where(html[data-theme='observatory']) .dot { font-weight: 500; letter-spacing: 0; font-variant-numeric: lining-nums tabular-nums; }
-:where(html[data-theme='observatory']) .dot.uppercase { letter-spacing: 0.28em; font-weight: 600; }
-:where(html[data-theme='observatory']) .hud { font-weight: 500; font-size: 13px; letter-spacing: 0.24em; }
-html[data-theme='observatory'] h1.dot { font-weight: 500; letter-spacing: 0.22em; }
+:where(html[data-theme='observatory']) .dot.uppercase { letter-spacing: 0.14em; font-weight: 600; }
+:where(html[data-theme='observatory']) .hud { font-weight: 500; font-size: 13px; letter-spacing: 0.12em; }
+html[data-theme='observatory'] h1.dot { font-weight: 500; letter-spacing: 0.14em; }
 html[data-theme='observatory'] :is(.glass, .glass-clear, .material) {
-  --r: 0px; border-radius: 0; background-color: var(--surface);
+  --r: 2px; border-radius: 2px; background-color: var(--surface);
   box-shadow: inset 0 0 0 1px var(--rule);
 }
 html[data-theme='observatory'] :is(.glass, .glass-clear, .material)::before {
-  content: ""; position: absolute; inset: 0; border-radius: 0; pointer-events: none; z-index: 1;
-  background:
-    repeating-linear-gradient(90deg, rgba(143, 180, 255, 0.55) 0 1px, transparent 1px 8px) 0 0 / 100% 4px no-repeat,
-    repeating-linear-gradient(90deg, rgba(143, 180, 255, 0.7) 0 1px, transparent 1px 40px) 0 0 / 100% 9px no-repeat,
-    repeating-linear-gradient(0deg, rgba(143, 180, 255, 0.55) 0 1px, transparent 1px 8px) 0 0 / 4px 100% no-repeat,
-    repeating-linear-gradient(0deg, rgba(143, 180, 255, 0.7) 0 1px, transparent 1px 40px) 0 0 / 9px 100% no-repeat,
-    linear-gradient(var(--signal), var(--signal)) right 9px top 4px / 9px 1px no-repeat,
-    linear-gradient(var(--signal), var(--signal)) right 13px top 0 / 1px 9px no-repeat;
+  content: ""; position: absolute; left: 14px; top: -1px; width: 28px; height: 3px; border-radius: 0 0 1px 1px; background: var(--signal); pointer-events: none; z-index: 1;
 }
 html[data-theme='observatory'] .deck-block { box-shadow: inset 0 0 0 1px rgba(21, 18, 10, 0.5); }
-html[data-theme='observatory'] h1.dot::after { bottom: -5px; width: min(100%, 9ch); height: 4px; background: repeating-linear-gradient(90deg, var(--ice) 0 1px, transparent 1px 6px) 0 0 / 100% 3px no-repeat, linear-gradient(var(--ice), var(--ice)) 0 3px / 100% 1px no-repeat; opacity: 0.8; }
-html[data-theme='observatory'] .kicker > span { background: var(--ice); }
+html[data-theme='observatory'] h1.dot::after { bottom: -5px; width: min(100%, 6ch); height: 1px; background: var(--signal); }
+html[data-theme='observatory'] .kicker > span { background: var(--signal); }
 .obs-turn { animation: obs-turn 1500s linear infinite; }
 @keyframes obs-turn { to { rotate: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .obs-turn { animation: none; } }

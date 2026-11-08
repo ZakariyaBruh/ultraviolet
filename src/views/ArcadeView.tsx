@@ -1,4 +1,5 @@
 import { Apple, ArrowUpDown, Car, CircleDot, Coins, Crosshair, Disc, Ghost, Layers, LayoutGrid, Lock, Mountain, Orbit, Pause, PlaneLanding, Play as PlayIcon, Rocket, Skull, Swords, Volume2, VolumeX, Worm, type LucideIcon } from 'lucide-react'
+import { isTrying, refuse } from '@/lib/trial'
 import { useEffect, useRef, useState } from 'react'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { Panel, Seg } from '@/components/app/shared'
@@ -37,6 +38,7 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
   const settings = useStore((s) => s.settings)
 
   const start = () => {
+    if (isTrying()) { refuse(); return }
     if (live || !useStore.getState().spendCredits(price, `Played ${game.name}`)) return
     run.current?.stop()
     setPhase('play'); setFresh(false); setPaused(false); setCanContinue(false)

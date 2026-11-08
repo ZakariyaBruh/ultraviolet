@@ -114,7 +114,7 @@ function Observatory({ turning }: { turning: boolean }) {
     <circle r={r} fill="none" strokeWidth={len} strokeDasharray={`${w} ${(2 * Math.PI * r) / count - w}`} style={{ stroke: 'var(--ice)', opacity: o }} />
   )
   return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden>
+    <div className="absolute inset-0 overflow-hidden" style={{ opacity: 0.55 }} aria-hidden>
       <svg className={turning ? 'obs-turn' : ''} viewBox="-1000 -1000 2000 2000" focusable="false" style={{ position: 'absolute', left: '64%', top: '60%', width: '150vmax', height: '150vmax', translate: '-50% -50%' }}>
         <g fill="none" style={{ stroke: 'var(--ice)' }}>
           <circle r="975" strokeWidth="1.5" opacity=".55" />
@@ -128,16 +128,12 @@ function Observatory({ turning }: { turning: boolean }) {
         {ring(940, 30, 360, 1.6, 0.42)}
         {ring(932, 20, 72, 2, 0.55)}
         {ring(926, 14, 36, 2.6, 0.7)}
-        <g style={{ fill: 'var(--ice)', fontFamily: 'var(--font-cond)', letterSpacing: '4px' }} fontSize="26" textAnchor="middle" opacity=".7">
-          {Array.from({ length: 12 }, (_, i) => <text key={i} transform={`rotate(${i * 30}) translate(0 -860)`}>{i * 30}°</text>)}
-        </g>
         <ellipse rx="700" ry="260" transform="rotate(-24) translate(0 90)" fill="none" strokeWidth="1.4" strokeDasharray="14 10" style={{ stroke: 'var(--signal)', opacity: 0.4 }} />
         {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r} style={{ fill: s.fill, opacity: s.o }} />)}
         {CONS.map((c) => (
           <g key={c.name} transform={`translate(${c.at[0]} ${c.at[1]}) rotate(${c.rot}) scale(${c.s})`}>
             {c.lines.map(([a, b], i) => <line key={i} x1={c.pts[a][0]} y1={c.pts[a][1]} x2={c.pts[b][0]} y2={c.pts[b][1]} strokeWidth="1.2" style={{ stroke: 'var(--ice)', opacity: 0.5 }} />)}
             {c.pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r={i === 0 ? 4.6 : 3.2} style={{ fill: 'var(--signal)', opacity: 0.85 }} />)}
-            <text x={c.label[0]} y={c.label[1]} fontSize="22" style={{ fill: 'var(--ice)', opacity: 0.7, fontFamily: 'var(--font-dot)', fontStyle: 'italic', letterSpacing: '1px' }}>{c.name}</text>
           </g>
         ))}
         {BRIGHT.map((b) => (
@@ -145,7 +141,6 @@ function Observatory({ turning }: { turning: boolean }) {
             <line x1="-16" x2="16" strokeWidth="1" style={{ stroke: 'var(--signal)', opacity: 0.7 }} />
             <line y1="-16" y2="16" strokeWidth="1" style={{ stroke: 'var(--signal)', opacity: 0.7 }} />
             <circle r="4.2" style={{ fill: 'var(--signal)' }} />
-            <text x="14" y="30" fontSize="20" style={{ fill: 'var(--ink)', opacity: 0.6, fontFamily: 'var(--font-dot)', fontStyle: 'italic', letterSpacing: '1px' }}>{b.name}</text>
           </g>
         ))}
       </svg>
