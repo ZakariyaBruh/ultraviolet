@@ -5,6 +5,7 @@ import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { goTo, isSupporter, markSupporter, SUPPORT_PLAN, useSupporter } from '@/lib/supporter'
 import { useThemeId } from '@/lib/theme'
+import { goalFor } from '@/lib/goals'
 import { startPreview, stopPreview } from '@/lib/themeCycle'
 import { THEMES, themeDef, type ThemeDef, type ThemeId } from '@/lib/themes'
 import { useUI } from '@/lib/ui'
@@ -100,6 +101,23 @@ function Checkout({ onDone }: { onDone: () => void }) {
   )
 }
 
+/** The goal bar: the next supporter goal, how far along it is, and what it is for, said honestly. The count is set by hand (api/goal.ts). */
+function GoalBar() {
+  const [n, setN] = useState<number | null>(null)
+  useEffect(() => { fetch('/api/goal').then((r) => (r.ok ? r.json() : null)).then((j) => setN(typeof j?.n === 'number' ? j.n : null)).catch(() => setN(null)) }, [])
+  if (n === null) return null
+  const { goal } = goalFor(n)
+  const pct = Math.min(100, Math.round((n / goal) * 100))
+  return (
+    <section className="grid gap-2" aria-label="Supporter goal">
+      <h2 className="text-[15px] font-semibold text-ink">{n === 0 ? 'No supporters yet. Be the first.' : `${n} supporter${n === 1 ? '' : 's'} so far`}</h2>
+      <div className="flex items-center justify-between gap-3 text-[13px] text-ink-2"><span>Current goal: {goal} supporter{goal === 1 ? '' : 's'}</span><span className="fig">{n} / {goal}</span></div>
+      <div role="progressbar" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={n} aria-label={`${n} of ${goal} supporters`} className="h-3 border border-ink/30 bg-ink/[0.04]"><div className="h-full bg-signal" style={{ width: `${pct}%` }} /></div>
+      <p className="text-[14px] leading-[1.45] text-ink-2">Each goal is a little bigger than the one before. As more people support Friction we can pay for more of it, such as longer use of the cloud browser. That takes time and these are not promises of a date: we will build what the money allows, one step at a time, and say so here when something ships. Thank you either way.</p>
+    </section>
+  )
+}
+
 export function SupportView() {
   const wide = useMedia('(min-width: 1024px)')
   const [tab, setTab] = useState('get')
@@ -110,6 +128,7 @@ export function SupportView() {
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
       <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
+        <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><Check className="size-4 shrink-0 text-signal" aria-hidden />Five more themes</h2>
           <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to see this whole screen in it for two minutes, free.</p>
