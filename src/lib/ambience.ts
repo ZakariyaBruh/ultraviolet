@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { isTrying, refuse } from './trial'
 import { itemsOf, useStore } from './store'
 
 /**
@@ -155,6 +156,7 @@ function apply(id: LayerId, v: number) {
 export const useAmbience = create<Ambience>((set, get) => ({
   on: false,
   start: () => {
+    if (isTrying()) { refuse(); return }
     try {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
       if (!AC) return

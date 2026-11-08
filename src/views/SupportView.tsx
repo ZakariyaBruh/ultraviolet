@@ -95,7 +95,7 @@ function Checkout({ onDone }: { onDone: () => void }) {
   }, [onDone])
   return (
     <>
-      <div ref={box} data-no-drag className="min-h-[420px]" />
+      <div className="bg-black p-2 text-white [color-scheme:dark]"><div ref={box} data-no-drag className="min-h-[420px]" /></div>
       {failed && <p className="text-sm text-ink-2">The checkout did not load. <a className="underline" href={`https://whop.com/checkout/${SUPPORT_PLAN}/?redirect_url=${encodeURIComponent(`${location.origin}/thanks`)}`} target="_blank" rel="noopener noreferrer">Pay on Whop instead</a>.</p>}
     </>
   )
@@ -127,6 +127,7 @@ export function SupportView() {
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
+      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month is cheaper than a cup of coffee, and it keeps Friction free for everyone else.</p>
       <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
         <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">

@@ -4,6 +4,8 @@ import { useStore } from './store'
 import { THEMES, themeDef, themesFor, type ThemeId } from './themes'
 import { useUI } from './ui'
 import { stop as stopPlayer } from './player'
+import { stopMusic } from './music'
+import { useAmbience } from './ambience'
 import { isTrying, markTrial, refuse, setTrying, trialAvailable } from './trial'
 
 if (typeof window !== 'undefined') addEventListener('friction:trial-refused', () => fx_say({ title: 'Look around only', description: 'While you try a theme nothing plays and nothing can be locked in.' }))
@@ -28,7 +30,7 @@ export function startPreview(id: ThemeId) {
   if (useStore.getState().session) { fx_say({ title: 'Finish your session first', description: 'A theme can be tried only between sessions.' }); return }
   if (useUI.getState().previewTheme === id) return
   if (!isTrying() && !trialAvailable()) { fx_say({ title: 'You tried a theme today', description: 'Supporters keep every theme. A free try comes back tomorrow.' }); return }
-  if (!isTrying()) { markTrial(); stopPlayer(); previewTimer = setTimeout(() => endPreview(true), 120_000) } // switching themes never adds time
+  if (!isTrying()) { markTrial(); stopPlayer(); stopMusic(); useAmbience.getState().stop(); previewTimer = setTimeout(() => endPreview(true), 120_000) } // switching themes never adds time
   setTrying(true)
   useUI.getState().set({ previewTheme: id })
   fx_say({ title: `Trying ${themeDef(id).name}`, description: 'Look around. Nothing plays and nothing locks in while you try it. It goes back in two minutes.' })

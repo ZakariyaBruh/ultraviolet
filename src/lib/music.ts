@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isTrying, refuse } from './trial'
 import { create } from 'zustand'
 import { usePlayer } from './player'
 import { useStore } from './store'
@@ -275,6 +276,7 @@ function begin(mood: MoodId) {
 
 /** Starts the music, or moves it to another mood. Must follow a tap or a key press, as every browser insists. */
 export function startMusic(mood: MoodId) {
+  if (isTrying()) { refuse(); return }
   try {
     if (!ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
