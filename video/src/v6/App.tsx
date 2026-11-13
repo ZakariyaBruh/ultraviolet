@@ -148,7 +148,7 @@ const Slats = ({ now }: { now: number }) => {
         )
       })}
       {/* the words on two strips of tape, as on the lock shot */}
-      <div style={{ position: 'absolute', left: 96, top: 330, transform: 'rotate(-2deg)', opacity: 1 - interpolate(now, [17.3, 17.45], [0, 1], clamp) }}>
+      <div style={{ position: 'absolute', left: 96, top: 330, opacity: 1 - interpolate(now, [17.3, 17.45], [0, 1], clamp) }}>
         {([['Same screen.', 15.0, P.deep, P.ink], ['Five looks.', 15.5, P.signal, P.deep]] as const).map(([w, t0, bg, fg]) => {
           const p = spr(now - t0, 0.34, 0.66)
           return <div key={w} style={{ width: 'fit-content', marginBottom: 14, opacity: now >= t0 ? 1 : 0, transform: `translateX(${(1 - p) * -70}px) scale(${1.2 - 0.2 * p})`, transformOrigin: '0 50%', background: bg, color: fg, padding: '18px 34px 10px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 168, lineHeight: 0.9, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{w}</div>
@@ -248,7 +248,7 @@ export const AppScene = () => {
             const p = spr(now - 8.0, 0.32, 0.62)
             const away = interpolate(now, [8.28, 8.45], [0, 1], { ...clamp, easing: E.in })
             return (
-              <div style={{ position: 'absolute', left: 1190, top: 800, transform: `rotate(-7deg) scale(${(1.7 - 0.7 * p) * (1 - 0.3 * away)})`, opacity: Math.min(1, p * 2) * (1 - away), background: P.signal, padding: '18px 34px 14px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 118, lineHeight: 0.9, textTransform: 'uppercase', color: P.deep, whiteSpace: 'nowrap', boxShadow: `10px 10px 0 ${P.deep}` }}>Earn credits.</div>
+              <div style={{ position: 'absolute', left: 1190, top: 800, transform: `scale(${(1.7 - 0.7 * p) * (1 - 0.3 * away)})`, transformOrigin: '0 50%', opacity: Math.min(1, p * 2) * (1 - away), background: P.signal, padding: '18px 34px 14px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 118, lineHeight: 0.9, textTransform: 'uppercase', color: P.deep, whiteSpace: 'nowrap', boxShadow: `10px 10px 0 ${P.deep}` }}>Earn credits.</div>
             )
           })()}
 

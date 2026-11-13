@@ -9,7 +9,6 @@ export const LOCK_CLICKS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 /** The second photoreal shot. The dial locks in: it clicks round, and each click raises a ring of glowing ridges, the friction of the opening, now holding it in place.
  *  The camera starts on the knurled edge, backs away and climbs, and ends straight down on a target of rings. */
 const WORDS = ['Each', 'click', 'puts', 'friction', 'back.']
-const TILT = [-1.6, 1.2, -0.8, 1.5, -1.1]
 
 export const LockSegment = () => {
   const f = useCurrentFrame()
@@ -29,7 +28,7 @@ export const LockSegment = () => {
           const q = spr(now - LOCK_CLICKS[i], 0.3, 0.62)
           const locked = now >= LOCK_CLICKS[5]
           return (
-            <div key={w} style={{ opacity: now >= LOCK_CLICKS[i] ? 1 : 0, transform: `translateY(${(1 - q) * 46}px) rotate(${TILT[i] * (2 - q)}deg) scale(${1.25 - 0.25 * q})`, background: locked ? P.signal : P.deep, color: locked ? P.deep : P.ink, padding: '14px 26px 8px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 112, lineHeight: 0.9, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{w}</div>
+            <div key={w} style={{ opacity: now >= LOCK_CLICKS[i] ? 1 : 0, transform: `translateY(${(1 - q) * 46}px) scale(${1.25 - 0.25 * q})`, background: locked ? P.signal : P.deep, color: locked ? P.deep : P.ink, padding: '14px 26px 8px', fontFamily: 'Barlow', fontWeight: 700, fontSize: 112, lineHeight: 0.9, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{w}</div>
           )
         })}
       </div>
