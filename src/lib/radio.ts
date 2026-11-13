@@ -6,10 +6,8 @@ import type { MediaItem } from './store'
  * broadcasters such as France Inter, Deutschlandfunk, NRK, SR, NPO, RAI and ABC, public stations such as WQXR, WNYC and WFMT, and
  * independents that publish free streams for anyone to play, such as SomaFM and Radio Paradise), found through the community directory
  * https://www.radio-browser.info and kept only where the stream checks out. Played straight from them; we never re-broadcast.
- * `scripts/curate-radio.py` rebuilds the list. The directory is still told when a station is played (`registerClick`).
+ * `scripts/curate-radio.py` rebuilds the list. The directory is still told when a station is played (`registerClick` in `radioPing.ts`).
  */
-const MIRRORS = ['https://de1.api.radio-browser.info', 'https://de2.api.radio-browser.info', 'https://all.api.radio-browser.info']
-
 export interface RadioStation {
   stationuuid: string
   name: string
@@ -23,14 +21,6 @@ export interface RadioStation {
   votes: number
   clickcount: number
   hls: number
-}
-
-async function rb(path: string): Promise<unknown> {
-  let last: unknown
-  for (const base of MIRRORS) {
-    try { const res = await fetch(base + path, { signal: AbortSignal.timeout(7000) }); if (res.ok) return await res.json() } catch (err) { last = err }
-  }
-  throw last instanceof Error ? last : new Error('Radio directory unreachable')
 }
 
 interface Row { uuid: string; name: string; url: string; logo: string | null; cc: string; country: string; codec: string; bitrate: number; tags: string[] }
@@ -54,12 +44,6 @@ export async function searchStations({ tag, name }: RadioQuery): Promise<RadioSt
     const r = ROWS[i]
     return (!want || r.tags.includes(want)) && (!n || r.name.toLowerCase().includes(n) || r.country.toLowerCase().includes(n))
   })
-}
-
-/** Be a good citizen: tell the directory this station was played. */
-export function registerClick(uuid?: string) {
-  if (!uuid) return
-  void rb(`/json/url/${uuid}`).catch(() => undefined)
 }
 
 export function stationToMedia(s: RadioStation): MediaItem {

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { isTrying, refuse } from './trial'
+import { isTrying, onHush, refuse } from './trial'
 import { itemsOf, useStore } from './store'
 
 /**
@@ -184,6 +184,8 @@ export const useAmbience = create<Ambience>((set, get) => ({
     for (const l of LAYERS) { useStore.getState().setMix(l.id, mix[l.id] ?? 0); if (get().on) apply(l.id, mix[l.id] ?? 0) }
   },
 }))
+// a theme trial is a look around: it silences this without the theme switcher having to load the sound machine
+onHush(() => useAmbience.getState().stop())
 
 // the Volume setting is the master level
 useStore.subscribe((s, p) => { if (s.settings.volume !== p.settings.volume && ctx && master) master.gain.setTargetAtTime(Math.min(1, s.settings.volume * 0.7), ctx.currentTime, 0.1) })

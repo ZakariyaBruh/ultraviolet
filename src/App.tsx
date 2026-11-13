@@ -1,58 +1,39 @@
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { FitView } from '@/components/app/FitView'
-import { ArcadeView } from '@/views/ArcadeView'
-import { Landing } from '@/components/app/Landing'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
-import seo from '@/lib/seo.json'
+import { PartBoundary, Waiting } from '@/components/app/Part'
+import * as P from '@/components/app/screens'
+import { loadSeo, seoNow, type SeoTable } from '@/lib/seoText'
 import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
-import { WidgetsPicker } from '@/components/app/widgets/Layer'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { SpotlightSearch } from '@/components/ui/spotlight-search'
 import { UndoToast } from '@/components/ui/undo-toast'
 import { fx_say, quickPlay } from '@/lib/actions'
-import { buildSearchItems, PRESETS } from '@/lib/commands'
+import { PRESETS } from '@/lib/presets'
 import { useSessionEngine } from '@/lib/engine'
 import { useFx } from '@/lib/fx'
+import { installSeen, platform, standalone } from '@/lib/install'
+import { settle } from '@/lib/perf'
+import { useWakeLock } from '@/lib/wake'
 import { useTheme } from '@/lib/theme'
 import { cycleTheme } from '@/lib/themeCycle'
 import { usePlayer } from '@/lib/player'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
-import { FocusView } from '@/views/FocusView'
-import { DebriefView } from '@/views/DebriefView'
-import { SettingsView } from '@/views/SettingsView'
-import { InsightsView } from '@/views/InsightsView'
-import { RadioView } from '@/views/RadioView'
-import { TvView } from '@/views/TvView'
-import { BooksView } from '@/views/BooksView'
-import { LearnView } from '@/views/LearnView'
-import { Celebration } from '@/components/app/Celebration'
 import { captureRef } from '@/lib/leaders'
 import { useMilestones, } from '@/lib/notify'
 import { useBoardWatch } from '@/lib/watch'
 import { startBackupWatch } from '@/lib/backup'
 import { pendingInvite, useTogether } from '@/lib/together'
-import { Onboarding } from '@/components/app/Onboarding'
-import { ReportSheet } from '@/components/app/Report'
 import { ConsentBanner } from '@/components/app/ConsentBanner'
-import { FirstLaunch, InstallPrompt } from '@/components/app/Install'
-import { BrowserTour, ItemTour, Tour } from '@/components/app/Tour'
 import { useMusicSync } from '@/lib/music'
-import { Mixer } from '@/components/app/shop/Mixer'
-import { TogetherView } from '@/views/TogetherView'
-import { LeadersView } from '@/views/LeadersView'
-import { SupportView } from '@/views/SupportView'
-import { NewsView } from '@/views/NewsView'
-import { PodcastsView } from '@/views/PodcastsView'
-import { MusicView } from '@/views/MusicView'
 import about from '@/lib/about.json'
 
 /** The same plain text the built page carries (scripts/prerender.mjs), for screen readers and for anything that reads the page after it has started: the screen itself is controls and pictures. */
-function AboutScreen({ route }: { route: Route }) {
-  const m = (seo as Record<string, { h1: string; lead: string; points: string[]; more: string }>)[hrefFor(route)]
+function AboutScreen({ route, words }: { route: Route; words: SeoTable | null }) {
+  const m = words?.[hrefFor(route)]
   if (!m) return null
   return (
     <section className="sr-only" aria-label="About this screen">
@@ -69,8 +50,23 @@ function AboutScreen({ route }: { route: Route }) {
   )
 }
 
-function Placeholder({ name }: { name: string }) {
-  return <div className="grid h-full place-items-center text-ink-2">{name} is being rebuilt.</div>
+/** true from the first time `on` is, so a part that has been fetched and shown stays mounted (and can animate out) */
+function useOnce(on: boolean) {
+  const [seen, setSeen] = useState(on)
+  if (on && !seen) setSeen(true)
+  return seen || on
+}
+
+const loadFailed = () => fx_say({ title: 'That could not be loaded', description: typeof navigator !== 'undefined' && navigator.onLine === false ? 'You are offline. It will work when you are back online.' : 'Check your connection and try again, or reload the page.', variant: 'warning' })
+
+/**
+ * Something that sits over the screens and is fetched the first time it is wanted (search, the celebration card, the tour). Nothing
+ * is drawn while it is on its way, each has a boundary of its own so one arriving never hides another, and one that cannot be
+ * fetched says so once as a notice and is asked for again the next time it is opened.
+ */
+function Over({ when, again, children }: { when: boolean; again?: unknown; children: ReactNode }) {
+  if (!when) return null
+  return <PartBoundary quiet resetKey={again} onFail={loadFailed}><Suspense fallback={null}>{children}</Suspense></PartBoundary>
 }
 
 export default function App() {
@@ -83,8 +79,24 @@ export default function App() {
   const notice = useFx((s) => s.notice)
   const ui = useUI()
   const profile = useStore((s) => s.profile)
+  const seenIntro = useStore((s) => s.seenIntro)
+  const toured = useStore((s) => s.settings.toured)
+  // each of these is fetched the first time it is needed and then stays (see `Over`)
+  const inApp = route !== 'home'
+  const searchOn = useOnce(ui.searchOpen)
+  const partyOn = useOnce(!!ui.celebrate)
+  const reportOn = useOnce(ui.reportOpen)
+  const toursOn = useOnce(inApp && (!toured || ui.tourOpen || ui.browserTour || !!ui.itemTour))
+  const welcomeOn = useOnce(inApp && (!profile || !seenIntro || ui.onboardOpen))
+  // the install screens: only on a phone or tablet that has not said no this visit, or in a Home Screen app that has just been opened empty
+  const installOn = useMemo(() => { const p = platform(); return standalone() ? p === 'ios' && !useStore.getState().profile : !!p && !installSeen() }, [])
+
+  // the words for each screen arrive just after the first paint (lib/seoText.ts)
+  const [words, setWords] = useState(seoNow)
+  useEffect(() => { if (!words) void loadSeo().then(setWords, () => undefined) }, [words])
 
   useSessionEngine()
+  useWakeLock()
   useMilestones()
   useBoardWatch()
   useEffect(() => startBackupWatch(), [])
@@ -105,8 +117,22 @@ export default function App() {
   }, [])
   useTheme()
   useEffect(() => { captureRef() }, [])
+  // the moving background lightens itself on a device that cannot keep up (lib/perf.ts); it says so, once for each step
+  useEffect(() => {
+    const told = (e: Event) => {
+      const still = (e as CustomEvent<number>).detail === 0
+      fx_say(still
+        ? { title: 'Background held still', description: 'This device still could not keep up, so the moving background has stopped. Everything else works as before. You can change this in Settings, under Look.' }
+        : { title: 'Lighter background', description: 'This device was struggling to keep up, so the moving background is now drawn less often. You can change this in Settings, under Look.' })
+    }
+    addEventListener('friction:perf', told)
+    return () => removeEventListener('friction:perf', told)
+  }, [])
+  // a change of screen is a burst of honest work, not a slow device: nothing is judged while it settles
+  useEffect(() => { settle(3500) }, [route])
 
   const go = (r: Route) => {
+    void P.preloadScreen(r) // start fetching it now; the screen that is leaving takes a moment to go
     const i = VIEWS.indexOf(r as View)
     dir.current = i >= prev.current ? 1 : -1
     if (i >= 0) prev.current = i
@@ -114,6 +140,12 @@ export default function App() {
     if (location.pathname !== hrefFor(r)) history.pushState(null, '', hrefFor(r))
   }
   const change = (v: View) => go(v)
+
+  // once the app is up and quiet, fetch the other screens one at a time, so moving between them never waits (from the front page only Focus, which Hold to tune in opens)
+  useEffect(() => {
+    if (route === 'home') { void P.preloadScreen(pendingInvite() ? 'together' : 'focus'); return }
+    P.preloadRest(route)
+  }, [route === 'home']) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const pop = () => { const r = routeFromLocation(); const i = VIEWS.indexOf(r as View); dir.current = i >= prev.current ? 1 : -1; if (i >= 0) prev.current = i; setRoute(r) }
@@ -123,8 +155,9 @@ export default function App() {
 
   useEffect(() => {
     // the built page already carries this (scripts/prerender.mjs); this keeps it right when you move around inside the app
-    const meta = (seo as Record<string, { title: string; description: string }>)[hrefFor(route)]
-    document.title = meta?.title ?? (route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`)
+    const meta = words?.[hrefFor(route)]
+    // until the words are here the built page's own title stands; it is the right one for the address that was opened
+    if (words || document.title === 'Friction') document.title = meta?.title ?? (route === 'home' ? 'Friction' : `${route[0].toUpperCase()}${route.slice(1)} · Friction`)
     if (meta) document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
     // screens that only ever show your own numbers are kept out of search results
     let r = document.querySelector<HTMLMetaElement>('meta[name="robots"]')
@@ -134,7 +167,7 @@ export default function App() {
     let c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
     if (!c) { c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c) }
     c.href = `https://www.frictionx.app${hrefFor(route)}`
-  }, [route])
+  }, [route, words])
 
   // ⌘K / Ctrl K opens search from anywhere
   useEffect(() => {
@@ -156,42 +189,47 @@ export default function App() {
     if (useStore.getState().session) useStore.getState().setSessionSource(current?.kind ?? 'silent', current?.name ?? 'Silent focus')
   }, [current])
 
-  const items = useMemo(() => (ui.searchOpen ? buildSearchItems(change) : []), [ui.searchOpen]) // eslint-disable-line react-hooks/exhaustive-deps
   const d = dir.current
 
   return (
     <MotionConfig reducedMotion={level === 0 ? 'always' : 'user'}>
-      {route === 'home' ? <Landing onEnter={() => { go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { go(v) }} /> : (<>
+      {route === 'home' ? (
+        <PartBoundary><Suspense fallback={null}><P.Landing onEnter={() => { go(pendingInvite() ? 'together' : 'focus') }} onGo={(v) => { go(v) }} /></Suspense></PartBoundary>
+      ) : (<>
       <Backdrop reduced={reduced} />
       {level >= 1 && <motion.div key={`cut-${view}`} aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-signal" initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }} transition={{ scaleX: { duration: 0.34, ease: [0.2, 0, 0, 1] }, opacity: { duration: 0.2, delay: 0.3 } }} />}
       <Shell view={view} onChange={change} onHome={() => go('home')}>
+        {/* a screen that is not here yet waits outside the transition, so it comes in once, whole, when it arrives */}
+        <Suspense fallback={<Waiting />}>
         <AnimatePresence mode="wait" initial={false} custom={d}>
           <motion.div key={view} className="h-full" initial={{ opacity: 0, x: 36 * d, y: 6, scale: 0.975 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }} exit={{ opacity: 0, x: -18 * d, scale: 0.99, transition: { duration: 0.11, ease: [0.4, 0, 1, 1] } }} transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.8, opacity: { duration: 0.16, ease: 'easeOut' } }}>
             <FitView watch={view}>
             {level >= 1 && <StaticBurst />}
-            {view === 'focus' && <FocusView go={change} />}
-            {view === 'radio' && <RadioView />}
-            {view === 'tv' && <TvView />}
-            {view === 'podcasts' && <PodcastsView />}
-            {view === 'music' && <MusicView />}
-            {view === 'news' && <NewsView />}
-            {view === 'learn' && <LearnView />}
-            {view === 'together' && <TogetherView />}
-            {view === 'leaders' && <LeadersView />}
-            {view === 'books' && <BooksView />}
-            {view === 'arcade' && <ArcadeView />}
-            {view === 'insights' && <InsightsView />}
-            {view === 'debrief' && <DebriefView />}
-            {view === 'support' && <SupportView />}
-            {view === 'settings' && <SettingsView />}
-            {!['focus', 'radio', 'tv', 'podcasts', 'music', 'news', 'learn', 'together', 'leaders', 'books', 'arcade', 'insights', 'debrief', 'support', 'settings'].includes(view) && <Placeholder name={view} />}
+            <PartBoundary>
+            {view === 'focus' && <P.Focus go={change} />}
+            {view === 'radio' && <P.Radio />}
+            {view === 'tv' && <P.Tv />}
+            {view === 'podcasts' && <P.Podcasts />}
+            {view === 'music' && <P.Music />}
+            {view === 'news' && <P.News />}
+            {view === 'learn' && <P.Learn />}
+            {view === 'together' && <P.Together />}
+            {view === 'leaders' && <P.Leaders />}
+            {view === 'books' && <P.Books />}
+            {view === 'arcade' && <P.Arcade />}
+            {view === 'insights' && <P.Insights />}
+            {view === 'debrief' && <P.Debrief />}
+            {view === 'support' && <P.Support />}
+            {view === 'settings' && <P.Settings />}
+            </PartBoundary>
             </FitView>
           </motion.div>
         </AnimatePresence>
+        </Suspense>
       </Shell>
       </>)}
 
-      <SpotlightSearch open={ui.searchOpen} onOpenChange={(o) => ui.set({ searchOpen: o })} onClose={() => ui.set({ searchOpen: false })} items={items} placeholder="Search screens, stations, actions, components" />
+      <Over when={searchOn} again={ui.searchOpen}><P.Search go={change} /></Over>
 
       <Sheet open={ui.widgetsOpen} onOpenChange={(o) => ui.set({ widgetsOpen: o })}>
         <SheetContent side="bottom">
@@ -199,10 +237,10 @@ export default function App() {
             <SheetTitle>Widgets</SheetTitle>
             <SheetDescription>Study windows for the Focus screen. Open as many as you like and move them where they suit you.</SheetDescription>
           </SheetHeader>
-          <SheetBody><WidgetsPicker /></SheetBody>
+          <SheetBody><PartBoundary small><Suspense fallback={<Waiting small />}><P.Picker /></Suspense></PartBoundary></SheetBody>
         </SheetContent>
       </Sheet>
-      <ReportSheet />
+      <Over when={reportOn} again={ui.reportOpen}><P.Report /></Over>
       <ConsentBanner />
       <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
         <SheetContent side="bottom">
@@ -210,7 +248,7 @@ export default function App() {
             <SheetTitle>Sound machine</SheetTitle>
             <SheetDescription>Made here, out of noise. Nothing is downloaded.</SheetDescription>
           </SheetHeader>
-          <SheetBody><Mixer /></SheetBody>
+          <SheetBody><PartBoundary small><Suspense fallback={<Waiting small />}><P.Mixer /></Suspense></PartBoundary></SheetBody>
         </SheetContent>
       </Sheet>
       <Sheet open={ui.tuneOpen} onOpenChange={(o) => ui.set({ tuneOpen: o })}>
@@ -253,20 +291,18 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
-      <AboutScreen route={route} />
-      <FirstLaunch />
-      {route !== 'home' && <Onboarding />}
-      <InstallPrompt route={route} />
-      {route !== 'home' && <Tour view={view} go={change} />}
-      {route !== 'home' && <ItemTour view={view} go={change} />}
-      {route !== 'home' && <BrowserTour view={view} go={change} />}
+      <AboutScreen route={route} words={words} />
+      <Over when={installOn}><P.Install route={route} /></Over>
+      <Over when={inApp && welcomeOn} again={ui.onboardOpen}><P.Onboarding /></Over>
+      <Over when={inApp && toursOn} again={ui.tourOpen || ui.browserTour || !!ui.itemTour}><P.Tours view={view} go={change} /></Over>
       <div className="retro-fx retro-warm" aria-hidden /><div className="retro-fx retro-grain" aria-hidden /><div className="retro-fx retro-scan" aria-hidden />
-      <Celebration />
+      <Over when={partyOn} again={!!ui.celebrate}><P.Celebration /></Over>
       <UndoToast
         key={notice?.id}
         open={!!notice}
         title={notice?.title}
-        description={notice?.description}
+        // a notice with only a title has no second line (the component's own default line is about undoing, which is wrong for most)
+        description={notice?.description ?? ''}
         variant={notice?.variant === 'danger' ? 'error' : notice?.variant === 'warning' ? 'warning' : notice?.variant === 'success' ? 'success' : notice?.undo ? 'default' : 'info'}
         undoLabel={notice?.label ?? 'Undo'}
         position="top-center"

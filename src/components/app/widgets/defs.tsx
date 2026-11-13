@@ -1,18 +1,28 @@
 import { Calculator as CalcIcon, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
-import { MusicControls } from '@/components/app/MusicControls'
-import { Mixer } from '@/components/app/shop/Mixer'
-import { Cannon, Spinner } from '@/components/app/shop/Toys'
+import { part } from '@/components/app/Part'
 import { useStore } from '@/lib/store'
 import type { ItemId } from '@/lib/credits'
-import { Ask } from './Ask'
-import { Browser } from './Browser'
-import { Calculator } from './Calculator'
-import { Converter } from './Converter'
-import { Notepad } from './Notepad'
-import { Sketch } from './Sketch'
-import { Timer } from './Timer'
-import { Todo } from './Todo'
+
+/**
+ * Each window's body is a part of its own (`Part.tsx`), fetched the first time that window is opened: the Browser alone is bigger
+ * than any screen, and the Focus screen should not have to wait for windows nobody has open.
+ */
+const Notepad = part(() => import('./Notepad').then((m) => m.Notepad))
+const Calculator = part(() => import('./Calculator').then((m) => m.Calculator))
+const Todo = part(() => import('./Todo').then((m) => m.Todo))
+const Timer = part(() => import('./Timer').then((m) => m.Timer))
+const Converter = part(() => import('./Converter').then((m) => m.Converter))
+const Sketch = part(() => import('./Sketch').then((m) => m.Sketch))
+const Ask = part(() => import('./Ask').then((m) => m.Ask))
+const Browser = part(() => import('./Browser').then((m) => m.Browser))
+const MusicControls = part(() => import('@/components/app/MusicControls').then((m) => m.MusicControls))
+const Mixer = part(() => import('@/components/app/shop/Mixer').then((m) => m.Mixer))
+const Spinner = part(() => import('@/components/app/shop/Toys').then((m) => m.Spinner))
+const Cannon = part(() => import('@/components/app/shop/Toys').then((m) => m.Cannon))
+
+/** the windows that work with no connection, fetched ahead of time so that they open offline too (the Browser and Ask AI need the network anyway) */
+export const preloadLight = () => Promise.all([Notepad, Calculator, Todo, Timer, Converter, Sketch].map((w) => w.preload())).then(() => undefined)
 
 export interface WidgetDef { id: string; name: string; blurb: string; icon: LucideIcon; Body: ComponentType; /** a Shop item that has to be bought before the window exists */ needs?: ItemId; /** a wide window, for things that need room */ large?: boolean }
 

@@ -10,7 +10,8 @@
       "Study windows on the focus screen: notepad, timer, calculator, to-do list, converter, scratch board and a small browser",
       "Lessons built from Wikipedia by fixed rules, with quizzes and interactive demos",
       "Earn credits for focused minutes and spend them on arcade games and shop extras",
-      "Focus rooms where friends lock in together and chat"
+      "Focus rooms where friends lock in together and chat",
+      "Works with no connection after your first visit: the timer and the study windows open offline"
     ],
     "more": "There is no account. Your sessions, settings and layout are stored in your own browser, and one button erases all of it. Friction uses AI in only three clearly labelled places: demos for lessons that have no built-in one, an optional Ask AI window, and a check that helps the Browser block games and short-form social media. Lessons and their questions are never written by AI.",
     "name": "Home"
@@ -25,7 +26,8 @@
       "Credits grow by the minute: one a minute, and more the longer you stay clean",
       "A drift resets the climb, and a bought break pauses the clock without counting as one",
       "Open the Widgets deck for a notepad, timer, calculator, to-do list, converter or scratch board",
-      "Radio, TV and podcasts keep playing on every screen"
+      "Radio, TV and podcasts keep playing on every screen",
+      "On a phone or tablet the screen stays awake while you are locked in, so a sleeping screen is never counted as a drift"
     ],
     "more": "Everything you measure stays in this browser. The Debrief screen turns your numbers into plain sentences about your best and worst hours, with no AI and no server.",
     "name": "Focus"

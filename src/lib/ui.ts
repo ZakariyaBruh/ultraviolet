@@ -35,6 +35,8 @@ interface UI {
   reviewTab: string | null
   /** a supporter theme someone is only looking at: shown now, never saved, gone on reload */
   previewTheme: ThemeId | null
+  /** an Arcade round is being played: the backdrop holds still so the game has the processor to itself */
+  playing: boolean
   set: (patch: Partial<Omit<UI, 'set'>>) => void
 }
 
@@ -58,6 +60,7 @@ export const useUI = create<UI>((set) => ({
   insightsTab: null,
   reviewTab: null,
   previewTheme: null,
+  playing: false,
   set: (patch) => set(patch),
 }))
 

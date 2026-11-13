@@ -1,8 +1,8 @@
-import Hls from 'hls.js'
+import type Hls from 'hls.js'
 import { create } from 'zustand'
 import type { MediaItem } from './store'
 import { useStore } from './store'
-import { registerClick } from './radio'
+import { registerClick } from './radioPing'
 import { isTrying, refuse } from './trial'
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
@@ -30,6 +30,20 @@ const audio = typeof Audio !== 'undefined' ? new Audio() : (null as unknown as H
 export const video = typeof document !== 'undefined' ? document.createElement('video') : (null as unknown as HTMLVideoElement)
 let hls: Hls | null = null
 let watchdog: ReturnType<typeof setTimeout> | undefined
+/** each play and each stop starts a new turn, so a library that arrives late can never start a stream that is no longer wanted */
+let turn = 0
+
+type HlsCtor = typeof import('hls.js').default
+let hlsLib: Promise<HlsCtor | null> | null = null
+/**
+ * hls.js is the biggest single thing in the app (about a megabyte of source) and only streams in the .m3u8 format need it, which is
+ * most TV channels and almost no radio. So it is fetched the first time one is played, or when the TV screen opens, and not at start.
+ */
+const loadHls = () => (hlsLib ??= import('hls.js').then((m) => m.default, () => { hlsLib = null; return null }))
+/** hls.js needs Media Source. A browser without it (an iPhone) plays .m3u8 by itself, so the library is never fetched there. */
+const canMse = () => typeof window !== 'undefined' && ('MediaSource' in window || 'ManagedMediaSource' in window || 'WebKitMediaSource' in window)
+/** fetch the stream library ahead of the first channel (the TV screen calls this when it opens) */
+export const warmStreams = () => { if (canMse()) void loadHls() }
 
 if (audio) {
   audio.preload = 'none'
@@ -59,6 +73,7 @@ function barsPoster(): string {
 const active = () => (usePlayer.getState().current?.kind === 'tv' ? video : audio)
 
 function teardown() {
+  turn++
   clearTimeout(watchdog)
   hls?.destroy()
   hls = null
@@ -120,18 +135,24 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
   else audio.crossOrigin = 'anonymous'
   const isHls = /\.m3u8(\?|$)/i.test(item.url)
   arm()
-  if (isHls && Hls.isSupported()) {
-    hls = new Hls({ lowLatencyMode: true, maxBufferLength: 20 })
-    hls.on(Hls.Events.ERROR, (_e, d) => d.fatal && fail('Stream unavailable'))
-    hls.loadSource(item.url)
-    hls.attachMedia(el)
-    hls.on(Hls.Events.MANIFEST_PARSED, () => void el.play().catch(() => set({ status: 'paused' })))
-  } else {
+  const plain = () => {
     el.src = item.url
     void el.play().catch((e: unknown) => {
       if ((e as Error)?.name === 'NotAllowedError') set({ status: 'paused' })
     })
   }
+  if (isHls && canMse()) {
+    const mine = turn
+    void loadHls().then((H) => {
+      if (mine !== turn) return // something else was played, or this was stopped, while the library was on its way
+      if (!H || !H.isSupported()) { plain(); return }
+      hls = new H({ lowLatencyMode: true, maxBufferLength: 20 })
+      hls.on(H.Events.ERROR, (_e, d) => d.fatal && fail('Stream unavailable'))
+      hls.loadSource(item.url)
+      hls.attachMedia(el)
+      hls.on(H.Events.MANIFEST_PARSED, () => void el.play().catch(() => set({ status: 'paused' })))
+    })
+  } else plain()
 }
 
 export function toggle() {

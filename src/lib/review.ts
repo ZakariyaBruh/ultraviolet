@@ -6,15 +6,14 @@ import { dateKey, daysAgo, fmtMinutes, weekdayMon } from './dates'
 import { weekdayAverages } from './insights'
 import { dayTotal, sum } from './stats'
 import type { SessionRec } from './store'
+import { PROJECT_MAX, tidyProject } from './projects'
 
 type HourLog = Record<string, number[]>
 export interface ReviewData { focusLog: HourLog; urgeLog: HourLog; sessions: SessionRec[] }
 
 /* ───────────── projects ───────────── */
 
-export const PROJECT_MAX = 12
-/** a project name as it is kept: no control characters or markup, single spaces, at most 24 characters */
-export const tidyProject = (s: unknown): string => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24)
+export { PROJECT_MAX, tidyProject }
 export const projectOf = (x: Pick<SessionRec, 'project'>): string => tidyProject(x.project)
 export const NO_PROJECT = 'No project'
 

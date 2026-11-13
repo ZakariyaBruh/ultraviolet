@@ -2,15 +2,9 @@
    Library, Observatory, Mono, Receipt and Chalkboard. Each one is a different object, not a recolour: its own type, its own frame
    round every panel, its own picture behind the panels (Scenery.tsx). The five free themes live in index.css.
    Rules kept here: tokens only (no hex in app code), flat, no blur, no glow, no smooth gradients (hard-edged stripes and dots are
-   patterns, not gradients). Type rules use :where() so the Retro dial (Arcade, Terminal) can still put its pixel type on top. */
-@import "@fontsource-variable/fraunces/opsz.css";
-@import "@fontsource-variable/fraunces/opsz-italic.css";
-@import "@fontsource-variable/cormorant/wght.css";
-@import "@fontsource-variable/cormorant/wght-italic.css";
-@import "@fontsource-variable/archivo/wdth.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/700.css";
-@import "@fontsource/patrick-hand/400.css";
+   patterns, not gradients). Type rules use :where() so the Retro dial (Arcade, Terminal) can still put its pixel type on top.
+   Their faces (Fraunces, Cormorant, Archivo, IBM Plex Mono, Patrick Hand) are not imported here: each is fetched when its theme is on
+   (lib/fonts.ts, src/fonts). */
 
 /* ───────── tokens ───────── */
 html[data-theme='library'] {

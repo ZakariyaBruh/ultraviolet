@@ -1,12 +1,12 @@
 import { Maximize2 } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Browser } from '@/components/app/Browser'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Logo } from '@/components/app/shared'
 import { fetchCategory, searchAllTv, TV_CATEGORIES } from '@/lib/iptv'
-import { play, usePlayer } from '@/lib/player'
+import { play, usePlayer, warmStreams } from '@/lib/player'
 import { useUI } from '@/lib/ui'
 
 /** A proper screen: the channel sits in its own 16:9 frame with its controls underneath. */
@@ -57,6 +57,8 @@ function Stage() {
 export function TvView() {
   // typing in the box searches every channel in every list, not just the chip you are on
   const load = useCallback((cat: string, q: string) => (q ? searchAllTv(q) : fetchCategory(cat)), [])
+  // almost every channel needs the stream library, so it is fetched while you choose and the first one starts without a wait
+  useEffect(() => { warmStreams() }, [])
   return (
     <motion.div className="h-full" initial={false}>
       <Browser kind="tv" layout="rail" kicker="Live TV" title="TV" sub="A curated list of public-service and international broadcasters, played straight from their own servers. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="news" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />

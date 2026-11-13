@@ -24,6 +24,7 @@ import { startPreview, stopPreview } from '@/lib/themeCycle'
 import { useThemeId } from '@/lib/theme'
 import { setVolume } from '@/lib/player'
 import { DATA_KEYS, useStore, type AppState } from '@/lib/store'
+import { relearn, usePerf } from '@/lib/perf'
 
 const snapshot = (s: AppState) => {
   const o: Record<string, unknown> = {}
@@ -184,6 +185,7 @@ function Screen() {
       <Dial title="Retro" hint="How old the screen and its type look. Each stop adds to the last." value={era} onChange={(v) => set({ era: v })} stops={RETRO} labelOf="Retro stops" ends={['Past', 'Future']} label="Retro, from the past to the future" flip />
       <div className="border-t border-rule" />
       <Dial title="ASCII" hint="How many 3D solids are drawn in text, and how far they roam. Apart from the retro look, so mix them as you like." value={ascii} onChange={(v) => set({ ascii: v })} stops={ASCII} labelOf="ASCII stops" ends={['Off', 'World']} label="ASCII, from off to a whole text world" />
+      <div className="border-t border-rule"><Detail /></div>
     </Panel>
   )
 }
@@ -198,6 +200,29 @@ function Alerts() {
         <button className="h-11 w-fit border border-ink/30 px-4 text-sm hover:bg-ink/10" onClick={() => void askOs().then((r) => setState(r))}>Turn on system notifications</button>
       )}
     </div>
+  )
+}
+
+/**
+ * How much the moving background may cost this device (lib/perf.ts). Auto is the default and looks after itself; the line under it
+ * says what it has done, in words, and offers the way back when it has lightened things.
+ */
+function Detail() {
+  const mode = useStore((x) => x.settings.perf)
+  const set = useStore((x) => x.setSettings)
+  const auto = usePerf((p) => p.auto)
+  const hint = mode === 'full' ? 'Always drawn in full, even if this device struggles.'
+    : mode === 'lite' ? 'Drawn half as often and less sharp. Easier on a slow device and on the battery.'
+    : auto === 2 ? 'Drawn in full. If this device cannot keep up, Auto lightens it and tells you.'
+    : auto === 1 ? 'Auto has lightened it, because this device was not keeping up.'
+    : 'Auto is holding it still, because this device was not keeping up.'
+  return (
+    <Row title="Background" hint={hint} wrap>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {mode === 'auto' && auto < 2 && <button onClick={relearn} className="h-11 px-2 text-sm text-ink-2 underline underline-offset-4 hover:text-ink">Try full again</button>}
+        <Seg id="set-perf" value={mode} onChange={(v) => set({ perf: v as 'auto' | 'full' | 'lite' })} tabs={[{ id: 'auto', label: 'Auto' }, { id: 'full', label: 'Full' }, { id: 'lite', label: 'Lite' }]} />
+      </div>
+    </Row>
   )
 }
 
@@ -282,13 +307,16 @@ function Help() {
   const items = [
         { id: 'a0', question: about.heading, answer: about.intro },
         ...about.items.map((i, n) => ({ id: `a${n + 1}`, question: i.title, answer: i.text })),
-        { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running.' },
+        { id: '1', question: 'What counts as a drift?', answer: 'Leaving this tab for six seconds or more while a session is running. On a phone or tablet the screen is kept awake while you are locked in, so it does not lock by itself and count as one.' },
         { id: '2', question: 'Where is my data?', answer: 'Everything you make (sessions, shelf, hidden topics, layout) is in localStorage and IndexedDB in this browser. There is no account. The site counts page visits with Google Analytics, only if you accept cookies; that records visits, never your sessions or what you hide. On a server there is only the leaderboard (a random code, a name you choose and the minutes you have focused since joining), any Together room you join (chat is kept for a day) and, if you are a supporter and turn it on, an encrypted backup that only your key can open.' },
         { id: '3', question: 'Does the site scroll?', answer: 'Not at normal sizes: every screen fits the display, and you move with the tab deck at the bottom, by dragging, or with the keyboard. In a very small window, a screen that cannot fit scrolls inside its own area, between the top bar and the tabs.' },
         { id: '4', question: 'Can I move things around, or make them bigger?', answer: 'Yes. Grab any panel (not a button or slider) and drag or throw it. It glides and stays where you leave it. Every panel moves on its own and can overlap another. To resize one, drag an edge or a corner: the grip in the bottom right shows when you point at a panel (on a touch screen, touch the panel first), double-click a grip to put the size back, and Escape while dragging cancels. What no longer fits scrolls inside the panel, and the study windows keep their title bar still. The player and nav bar are eased off anything they cover unless you put them there yourself. From the keyboard, Alt and the arrow keys move a panel and Ctrl, Alt and the arrow keys resize it (Shift for bigger steps). The reset button in the top bar puts everything back, sizes included.' },
         { id: '5', question: 'What is written by an AI, and what is not?', answer: 'Lessons are made from Wikipedia text by fixed rules, and so are their questions and answers. No AI writes them. Two optional things use AI, and both say so. A lesson’s demo is AI generated when there is no built-in demo for that topic (only the topic title is sent). And the Ask AI window, which only runs when you open it and type, sends your questions to free AI services (Pollinations, with LLM7 as a backup) through Friction’s server; nothing is saved, and it can be wrong. Everything else in the app, including the Debrief, is plain code.' },
         { id: '6', question: 'What happens when I erase everything?', answer: 'Your sessions, shelf, notes, layout and cached lessons are removed from this browser. Your place on the leaderboard goes too, with your alias, so the name is free again, and you leave any Together room. Each person holds at most one row on the server in each place, so there is little to remove.' },
         { id: '7', question: 'Where do the songs come from?', answer: 'The Music screen searches five free services at once, none needing an account or a key: Audius (independent artists), Openverse (openly licensed music, mostly from Jamendo), Wikimedia Commons (freely licensed recordings, a lot of classical), the Library of Congress (early records, 1900 to 1925) and the Internet Archive (public domain and openly licensed recordings). Only the words you search for are sent. None of them rates its music, so you choose an age (Everyone, Teens or Adults) and Friction filters by the explicit flags and words they give. That is a guide, not a guarantee. Songs play in the same player as radio. Auto music, made in your browser, is a separate Shop item and steps aside while a song plays.' },
+        { id: '9', question: 'Does it work without a connection?', answer: 'After your first visit, yes. Friction keeps a copy of its own files in this browser, so it opens with no connection and starts faster every time after. The timer, the study windows and everything you have saved work offline. Radio, TV, songs, podcasts, news, lessons, rooms and the leaderboard need a connection, and say so.' },
+        { id: '10', question: 'Why did the background get simpler?', answer: 'The moving background (the flowing lines, the solids drawn in text and the rush of stars while you are locked in) is the most demanding thing Friction draws. If your device cannot keep up, Friction draws it less often, and if that is not enough it holds it still. It tells you when it does, and nothing else changes. Under Look, Background lets you choose Full or Lite yourself.' },
+        { id: '11', question: 'What can I do from the keyboard?', answer: 'Ctrl K (or Command K) opens search from anywhere, and T changes the theme. With a tab in the deck focused, the arrow keys, Home and End move between screens. Alt with the arrow keys moves the focused panel, and Ctrl Alt with the arrow keys resizes it (hold Shift for bigger steps). Escape closes what is open, cancels a drag and leaves the tour.' },
         { id: '8', question: 'Who owns the radio and TV streams?', answer: 'Their broadcasters do. Friction hosts, records and re-streams nothing: the radio and TV lists are hand-picked (public-service and international broadcasters and independents that publish free streams, found through radio-browser.info and github.com/iptv-org/iptv), and your own browser connects straight to each station or channel. Some streams are down or limited to certain countries. If you are the rights holder and want something taken off our list, the Contact page says how; to remove it from the web it has to come down at the source.' },
       ]
   const per = 2

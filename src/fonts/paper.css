@@ -1,0 +1,2 @@
+/* A face that only one look uses. It is a stylesheet of its own so that it is fetched when that look is on (lib/fonts.ts), not by everyone. */
+@import "@fontsource/dela-gothic-one";

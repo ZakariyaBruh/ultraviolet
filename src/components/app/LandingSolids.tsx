@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { dotHoles } from '@/components/app/DotGrid'
 import { clearGrid, fbm, makeGrid, plot, RAMP, SHAPES, turn, type Shape, type Turn } from '@/lib/ascii3d'
+import { dprCap, everyFrame, pace, usePerf } from '@/lib/perf'
 
 /** a fresh order of the solids every visit, so the front page is never the same one twice in a row */
 const shuffled = (): Shape[] => {
@@ -25,7 +26,11 @@ const LINE = 10
  * (`dotHoles`), so it reads as an object standing before the grid, not a drawing showing through it. Which solids, and which
  * is the big one, is picked at random each time the page opens.
  */
-export function LandingSolids({ count, still }: { count: number; still: boolean }) {
+export function LandingSolids({ count, still: asked }: { count: number; still: boolean }) {
+  // on the shared clock (lib/perf.ts) at the same rate as the dot matrix behind it, so the two are drawn in the same frames: twenty a
+  // second at full detail, ten at light, one frame at still
+  const tier = usePerf((s) => s.tier)
+  const still = tier === 0 || asked
   const ref = useRef<HTMLCanvasElement>(null)
   const [order] = useState(shuffled)
   useEffect(() => {
@@ -33,7 +38,8 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
     const ctx = cv?.getContext('2d')
     if (!cv || !ctx) return
     const rot: Turn[] = []
-    let cols = 0, rows = 0, cw = 5.4, raf = 0, last = 0, t = 0, spin = 0, w = 0
+    let cols = 0, rows = 0, cw = 5.4, last = 0, t = 0, spin = 0, w = 0
+    let stop: (() => void) | undefined
     let g = makeGrid(1, 1)
     let occ = new Uint8Array(0)
     let signal = '#ffd23f'
@@ -42,7 +48,7 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
     const lo = [1e9, 1e9, 1e9], hi = [-1, -1, -1]
 
     const size = () => {
-      const dpr = Math.min(2, devicePixelRatio || 1)
+      const dpr = Math.min(dprCap(), devicePixelRatio || 1)
       w = cv.clientWidth
       const h = cv.clientHeight
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr)
@@ -94,18 +100,16 @@ export function LandingSolids({ count, still }: { count: number; still: boolean 
       if (still) dotHoles.bump?.()
     }
     const loop = (now: number) => {
-      raf = requestAnimationFrame(loop)
-      if (document.hidden || now - last < 1000 / 24) return
       const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
       last = now; t += dt; spin += dt * 0.9
       list.forEach((_, i) => turn((rot[i] ??= { a: i, b: i * 0.9, c: 0 }), dt, t, i * 2.3, 0.9))
       draw()
     }
     size(); draw()
-    if (!still) raf = requestAnimationFrame(loop)
+    if (!still) stop = everyFrame(loop, pace(3, 6))
     const ro = new ResizeObserver(() => { size(); draw() })
     ro.observe(cv)
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); dotHoles.test = null; if (still) dotHoles.bump?.() }
-  }, [count, still, order])
+    return () => { stop?.(); ro.disconnect(); dotHoles.test = null; if (still) dotHoles.bump?.() }
+  }, [count, still, order, tier])
   return <canvas ref={ref} aria-hidden className="land-solids pointer-events-none absolute inset-0 size-full text-signal" />
 }

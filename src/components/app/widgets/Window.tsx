@@ -1,5 +1,6 @@
 import { Ghost, Minus, X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
+import { PartBoundary, Waiting } from '@/components/app/Part'
 import { Glass } from '@/components/app/glass'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -70,7 +71,7 @@ export function WidgetWindow({ id, title, index, wide, large, children }: { id: 
         </div>
       </div>
       {/* when the window is resized the body scrolls and the title bar stays put */}
-      <div data-win-body className="min-h-0 flex-1 overflow-auto p-3">{children}</div>
+      <div data-win-body className="min-h-0 flex-1 overflow-auto p-3"><PartBoundary small><Suspense fallback={<Waiting small />}>{children}</Suspense></PartBoundary></div>
     </Glass>
   )
 }

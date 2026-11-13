@@ -3,6 +3,7 @@ import { MoreHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useMedia } from '@/lib/hooks'
 import { NAV } from '@/components/app/navItems'
+import { preloadScreen } from '@/components/app/screens'
 import { hrefFor, type View } from '@/lib/route'
 import { cn } from '@/lib/utils'
 
@@ -51,6 +52,10 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
               aria-current={on ? 'page' : undefined}
               aria-label={n.label}
               tabIndex={on ? 0 : -1}
+              // pointing at a tab, or a finger landing on it, is enough to start fetching its screen
+              onPointerEnter={() => void preloadScreen(n.id)}
+              onPointerDown={() => void preloadScreen(n.id)}
+              onFocus={() => void preloadScreen(n.id)}
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
                 e.preventDefault()
@@ -83,7 +88,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
             {more && (
               <div className="absolute bottom-full right-0 z-50 mb-2 grid w-48 gap-0.5 border border-ink/25 bg-surface p-1 shadow-[0_18px_40px_-18px_rgba(0,0,0,.7)]">
                 {rest.map((n) => (
-                  <a key={n.id} href={hrefFor(n.id)} aria-current={n.id === view ? 'page' : undefined} onClick={(e) => { e.preventDefault(); onChange(n.id) }} className={cn('flex min-h-11 items-center gap-3 px-3 text-sm', n.id === view ? 'bg-signal text-on-signal' : 'hover:bg-ink/10')}>
+                  <a key={n.id} href={hrefFor(n.id)} aria-current={n.id === view ? 'page' : undefined} onPointerDown={() => void preloadScreen(n.id)} onFocus={() => void preloadScreen(n.id)} onClick={(e) => { e.preventDefault(); onChange(n.id) }} className={cn('flex min-h-11 items-center gap-3 px-3 text-sm', n.id === view ? 'bg-signal text-on-signal' : 'hover:bg-ink/10')}>
                     <span className="[&>svg]:size-[18px]">{n.icon}</span>{n.label}
                   </a>
                 ))}

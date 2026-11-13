@@ -10,6 +10,7 @@ import { runGame, type Game, type Key } from '@/games/engine'
 import { useCoarse, useGridFit, useSize } from '@/lib/hooks'
 import { CONTINUE_COST } from '@/lib/credits'
 import { useStore } from '@/lib/store'
+import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
 const ICONS: Record<string, LucideIcon> = { dodge: Rocket, pong: CircleDot, breakout: LayoutGrid, snake: Worm, invaders: Skull, asteroids: Disc, stack: Layers, cross: Car, tunnel: Mountain, orbit: Orbit, gravity: ArrowUpDown, slash: Apple, turret: Crosshair, maze: Ghost, lander: PlaneLanding, rogue: Swords }
@@ -57,6 +58,11 @@ function Play({ game, onExit }: { game: Game; onExit: () => void }) {
     })
   }
   useEffect(() => () => run.current?.stop(), [])
+  // while a round is on the backdrop holds still: the game draws sixty frames a second and should not share them
+  useEffect(() => {
+    useUI.getState().set({ playing: phase === 'play' && !paused })
+    return () => useUI.getState().set({ playing: false })
+  }, [phase, paused])
   // leaving the tab ends nothing; locking in mid-round stops it
   useEffect(() => { if (live && phase === 'play') { run.current?.stop(); setPhase('over') } }, [live, phase])
   const can = !live && bal >= price

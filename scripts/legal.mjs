@@ -5,7 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
-const UPDATED = '7 November 2026'
+const UPDATED = '11 November 2026'
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
@@ -152,6 +152,7 @@ const PAGES = {
     body: `
 <h2>What we store ourselves</h2>
 <p>Friction uses your browser's local storage and IndexedDB, not cookies, to remember your settings, sessions, notes and layout, plus small flags such as whether you have seen the tour. These are needed for the app to work and are never sent to advertisers.</p>
+<p>So that Friction opens without a connection and starts faster on a repeat visit, your browser also keeps a copy of the app's own public files (its pages, scripts, styles and fonts) in its cache storage. That copy holds nothing about you, is the same for every visitor, and is removed when you clear site data.</p>
 <table>
 <thead><tr><th>Name</th><th>Purpose</th><th>Kept</th></tr></thead>
 <tbody>

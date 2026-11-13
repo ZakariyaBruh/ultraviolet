@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { clearGrid, fbm, makeGrid, plot, RAMP, turn, type Shape, type Turn } from '@/lib/ascii3d'
+import { usePerf } from '@/lib/perf'
+import type { Stage } from '@/lib/stage'
 import { useUI } from '@/lib/ui'
 
 /**
@@ -8,8 +10,13 @@ import { useUI } from '@/lib/ui'
  * two stops: Stars adds it with text stars and seven solids, and World adds a sun on the horizon, shooting stars and nine solids.
  * The sun is the trailer's: a sphere with slits across its lower half, set behind the floor. The Sunset theme already has a sun of
  * its own (a CSS disc on the horizon), so there the scene leaves its own out and lets that one stand.
- * It sits behind everything, never takes the pointer, and costs one small canvas. When something is finished (the
- * celebration card) they all speed up and swell for a few seconds.
+ * It sits behind everything and never takes the pointer. It is a layer on the shared backdrop canvas (lib/stage.ts), drawn over
+ * the contour field in the same frame. When something is finished (the celebration card) they all speed up and swell for a few
+ * seconds. At light detail (lib/perf.ts) it is drawn half as often; at still, once, and again only when a panel has moved.
+ *
+ * Where the panels and the lines of text are is measured only when the page has actually changed (a mutation, a scroll, the end
+ * of a transition), with a slow check every few seconds behind that: measuring means asking the browser to lay the page out, and
+ * doing it on a timer was a steady cost on every screen even when nothing moved.
  */
 interface Spec { shape: Shape; x: number; y: number; r: number; ph: number; ax: number; ay: number; w: number; sa: number; sb: number }
 /** a solid: where it lives (x, y as fractions of the screen), how big, how far it wanders and how fast it turns */
@@ -47,27 +54,34 @@ const PANELS = '[data-movable], .material, .glass'
 const hash = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x) }
 /** how strong the sun is next to the solids: it is far behind them, so it stays quieter */
 const SUN_GAIN = 0.8
+const FACE = `700 ${FONT}px "Geist Mono Variable", ui-monospace, Menlo, Consolas, monospace`
+/** what a change to the page has to be for the panels to be measured again: not the solids' own text, and not anything hidden from readers */
+const ignored = (n: Node | null) => { const e = n && (n.nodeType === 1 ? (n as Element) : n.parentElement); return !e || !!e.closest('pre, canvas, svg, [aria-hidden="true"]') }
+/** a style or class change matters only on something that is a panel or holds one: a progress bar growing inside a panel moves nothing the scene sits behind */
+const holdsPanel = (n: Node) => n.nodeType === 1 && ((n as Element).matches(PANELS) || !!(n as Element).querySelector(PANELS))
 
-export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }) {
-  const ref = useRef<HTMLCanvasElement>(null)
+export function AsciiScene({ canvas, stage, level }: { canvas: Stage; stage: number; level: 0 | 1 | 2 }) {
+  const tier = usePerf((s) => s.tier)
+  // the scene's own time and each solid's turn outlive a change of detail level, so nothing jumps when the level steps down
+  const mem = useRef<{ t: number; spin: number; rot: Turn[] }>({ t: 0, spin: 0, rot: [] })
   useEffect(() => {
-    const cv = ref.current
-    const ctx = cv?.getContext('2d')
-    if (!cv || !ctx || stage < 1) return
+    if (stage < 1) return
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
-    const still = reduced || level === 0
-    let cols = 0, rows = 0, cw = 8
+    const still = reduced || level === 0 || tier === 0
+    let cols = 0, rows = 0, cw = 8, w = 0, h = 0
     let g = makeGrid(1, 1)
-    let raf = 0, last = 0, t = 0, spin = 0
+    let last = 0
+    let { t, spin } = mem.current
     // each solid keeps its own turn, so one can slow while another speeds up
-    const rot: Turn[] = []
-    let signal = '#ffd23f', ink = '#ffffff', colorAt = 0
+    const rot = mem.current.rot
+    let signal = '#ffd23f', ink = '#ffffff'
     let mask = new Float32Array(0)
     // one row of characters per strength step, and where in the row each has anything
     let runs: string[][] = []
     const lo = new Array<number>(STEPS).fill(1e9), hi = new Array<number>(STEPS).fill(-1)
     let seen = ''
-    let maskAt = 0
+    // the page changed since the panels were last measured, and when that was
+    let dirty = true, maskAt = 0
     // on a phone the page text fills the screen, so only the lower solids stay and they sit a little quieter
     const narrow = innerWidth < 640
     const st = Math.min(5, stage)
@@ -83,20 +97,17 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
     let isSun = new Uint8Array(0)
     let sunset = false
 
-    const size = () => {
-      const dpr = Math.min(2, devicePixelRatio || 1)
-      const w = innerWidth, h = innerHeight
-      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr)
-      cv.style.width = `${w}px`; cv.style.height = `${h}px`
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.font = `700 ${FONT}px "Geist Mono Variable", ui-monospace, Menlo, Consolas, monospace`
-      ctx.textBaseline = 'top'
-      cw = ctx.measureText('M').width || 8
+    // the width of a character in this face, measured once on a scrap canvas (the shared one is not ours to set up)
+    const ruler = document.createElement('canvas').getContext('2d')
+    const size = (W: number, H: number) => {
+      w = W; h = H
+      if (ruler) { ruler.font = FACE; cw = ruler.measureText('M').width || 8 }
       cols = Math.ceil(w / cw); rows = Math.ceil(h / LINE)
       g = makeGrid(cols, rows, cw / LINE)
       isSun = new Uint8Array(cols * rows)
       runs = Array.from({ length: STEPS }, () => new Array<string>(cols).fill(' '))
       lo.fill(1e9); hi.fill(-1)
+      dirty = true
     }
     /** find panels and lines of text on screen and quieten the scene behind them; returns false when nothing moved */
     const panels = () => {
@@ -104,6 +115,7 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       // freezes an iPad (one thread for the page and its frames). Keep the last mask while it is open — the scene is
       // behind the frame anyway and the solids keep turning. The measure resumes the moment it closes.
       if (useUI.getState().cloudOpen) return false
+      dirty = false; maskAt = performance.now()
       const boxes: { r: DOMRect; v: number }[] = []
       document.querySelectorAll<HTMLElement>(PANELS).forEach((el) => {
         const r = el.getBoundingClientRect()
@@ -148,10 +160,27 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       sunset = document.documentElement.dataset.theme === 'sunset'
     }
 
-    const draw = () => {
+    /** measure the panels again if the page has changed (not more often than the detail level allows), or if it has been a while */
+    const remeasure = () => {
+      const since = performance.now() - maskAt
+      return (dirty ? since > (tier === 2 ? 600 : 1200) : since > 5000) ? panels() : false
+    }
+    const draw = (ctx: CanvasRenderingContext2D, now: number) => {
       if (!cols) return
-      if (performance.now() - colorAt > 400) { colours(); colorAt = performance.now() }
-      if (performance.now() - maskAt > 600) { maskAt = performance.now(); panels() }
+      if (!still) {
+        // the scene's own time: it runs faster for a few seconds after a finish
+        const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
+        const en = energy()
+        t += dt * (1 + 3 * en)
+        spin += dt * (1 + 5 * en)
+        specs.forEach((s, i) => turn((rot[i] ??= { a: 0, b: 0, c: 0 }), dt, t, s.ph, (0.7 + s.sa * 0.6) * (1 + 5 * en)))
+        last = now
+        mem.current.t = t; mem.current.spin = spin
+        remeasure()
+      }
+      if (mask.length !== cols * rows) panels()
+      ctx.font = FACE
+      ctx.textBaseline = 'top'
       clearGrid(g)
       const base = Math.min(cols, rows * 2.2)
       const e = still ? 0 : energy()
@@ -227,7 +256,6 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
           }
         }
       }
-      ctx.clearRect(0, 0, cv.width, cv.height)
       const cx = cols / 2
       const scroll = still ? 0 : t * 0.9
       ctx.fillStyle = signal
@@ -292,25 +320,33 @@ export function AsciiScene({ stage, level }: { stage: number; level: 0 | 1 | 2 }
       }
       ctx.globalAlpha = 1
     }
-    const loop = (now: number) => {
-      raf = requestAnimationFrame(loop)
-      if (document.hidden || now - last < 1000 / 24) return
-      const dt = last ? Math.min(0.2, (now - last) / 1000) : 0
-      const e = energy()
-      t += dt * (1 + 3 * e)
-      spin += dt * (1 + 5 * e)
-      specs.forEach((s, i) => turn((rot[i] ??= { a: 0, b: 0, c: 0 }), dt, t, s.ph, (0.7 + s.sa * 0.6) * (1 + 5 * e)))
-      last = now
-      draw()
+    colours()
+    // the first frame builds each solid's cloud of points, which is real work on a slow device: it waits until the screen itself is up
+    let off = () => {}
+    const start = () => { off = canvas.add({ z: 1, step: () => (still ? 0 : tier === 2 ? 3 : 6), resize: size, draw }) }
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback
+    const wait = ric ? 0 : window.setTimeout(start, 120)
+    const idle = ric ? ric(start, { timeout: 700 }) : 0
+    // colours follow the theme; a still scene is drawn again to show them
+    const themed = new MutationObserver(() => { colours(); canvas.redraw() })
+    themed.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] })
+    // anything that can move a panel or a line of text marks the page as changed
+    const mark = () => { dirty = true }
+    const changed = new MutationObserver((list) => {
+      if (dirty) return
+      for (const m of list) { if (!ignored(m.target) && (m.type === 'childList' || holdsPanel(m.target))) { dirty = true; return } }
+    })
+    changed.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class', 'hidden', 'open'] })
+    addEventListener('scroll', mark, { capture: true, passive: true })
+    document.addEventListener('transitionend', mark, true)
+    document.addEventListener('animationend', mark, true)
+    // a still scene has no frames of its own, so it looks now and then and draws again only when the panels really have moved
+    const watch = still ? window.setInterval(() => { if (!document.hidden && remeasure()) canvas.redraw() }, 700) : 0
+    return () => {
+      off(); clearTimeout(wait); if (idle) (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idle)
+      clearInterval(watch); unsub(); themed.disconnect(); changed.disconnect()
+      removeEventListener('scroll', mark, { capture: true }); document.removeEventListener('transitionend', mark, true); document.removeEventListener('animationend', mark, true)
     }
-    size(); colours(); panels(); draw()
-    if (!still) raf = requestAnimationFrame(loop)
-    // a still scene has no loop, so it watches the panels itself and redraws only when they have moved
-    const watch = still ? setInterval(() => { if (!document.hidden && panels()) draw() }, 700) : 0
-    const onResize = () => { size(); panels(); draw() }
-    addEventListener('resize', onResize)
-    return () => { cancelAnimationFrame(raf); clearInterval(watch); unsub(); removeEventListener('resize', onResize) }
-  }, [stage, level])
-  if (stage < 1) return null
-  return <canvas ref={ref} data-scene aria-hidden className="pointer-events-none absolute inset-0" />
+  }, [canvas, stage, level, tier])
+  return null
 }

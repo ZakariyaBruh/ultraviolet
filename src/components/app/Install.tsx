@@ -7,26 +7,7 @@ import { hasData } from '@/lib/transfer'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { cn } from '@/lib/utils'
-
-type Platform = 'ios' | 'android' | null
-const ua = () => (typeof navigator === 'undefined' ? '' : navigator.userAgent)
-/** iPadOS asks for the desktop site by default, so an iPad looks like a Mac with a touch screen */
-const ipad = () => typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
-export const platform = (): Platform => (/iPhone|iPod|iPad/.test(ua()) || ipad() ? 'ios' : /Android/.test(ua()) ? 'android' : null)
-export const standalone = () => {
-  try { return matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true } catch { return false }
-}
-
-interface InstallEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
-let deferred: InstallEvent | null = null
-let installed = false
-if (typeof window !== 'undefined') {
-  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e as InstallEvent })
-  addEventListener('appinstalled', () => { installed = true; deferred = null })
-}
-const HIDE = 'friction:install-hide'
-const seen = () => { try { return sessionStorage.getItem(HIDE) === '1' } catch { return false } }
-const hide = () => { try { sessionStorage.setItem(HIDE, '1') } catch { /* storage blocked */ } }
+import { hideInstall as hide, installSeen as seen, ipad, pending, platform, standalone, ua } from '@/lib/install'
 
 /* the little scenes: what the person will see on their own screen, drawn flat */
 function Scene({ step, tablet, calm }: { step: number; tablet: boolean; calm: boolean }) {
@@ -116,7 +97,7 @@ export function InstallPrompt({ route }: { route: string }) {
   const [fresh, setFresh] = useState(false)
   const tablet = ipad() || /iPad/.test(ua())
 
-  const should = !!plat && !standalone() && !installed && ready && toured && !running && !busy && route !== 'home' && !seen()
+  const should = !!plat && !standalone() && !pending.installed && ready && toured && !running && !busy && route !== 'home' && !seen()
   useEffect(() => {
     if (!should) { if (!busy) setOpen(false); return }
     const t = setTimeout(() => { setFresh(hasData()); setOpen(true) }, 2800)
@@ -125,11 +106,12 @@ export function InstallPrompt({ route }: { route: string }) {
 
   const close = () => { hide(); setOpen(false) }
   const install = async () => {
-    if (deferred) {
-      await deferred.prompt()
-      const c = await deferred.userChoice.catch(() => null)
-      deferred = null
-      if (c?.outcome === 'accepted') { installed = true; setStep(4); return }
+    const ask = pending.event
+    if (ask) {
+      await ask.prompt()
+      const c = await ask.userChoice.catch(() => null)
+      pending.event = null
+      if (c?.outcome === 'accepted') { pending.installed = true; setStep(4); return }
     }
     setStep(0)
   }
@@ -248,4 +230,9 @@ export function FirstLaunch() {
       )}
     </AnimatePresence>
   )
+}
+
+/** Both install surfaces as one part: the app loads it only on a phone or tablet, or in a Home Screen app that has just been opened empty. */
+export function InstallLayer({ route }: { route: string }) {
+  return <><FirstLaunch /><InstallPrompt route={route} /></>
 }

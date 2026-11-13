@@ -3,20 +3,12 @@ import type { SpotlightSearchItem } from '@/components/ui/spotlight-search'
 import type { View } from '@/components/app/Shell'
 import { WIDGETS } from '@/components/app/widgets/defs'
 import { fx_say, quickPlay } from './actions'
+import { PRESETS } from './presets'
 import { play } from './player'
 import { useStore } from './store'
 import { useUI } from './ui'
 
 const ic = 'size-4'
-
-export const PRESETS: { label: string; kind: 'radio' | 'tv'; tag: string }[] = [
-  { label: 'Lo-fi', kind: 'radio', tag: 'lofi' },
-  { label: 'Ambient', kind: 'radio', tag: 'ambient' },
-  { label: 'Classical', kind: 'radio', tag: 'classical' },
-  { label: 'News', kind: 'tv', tag: 'news' },
-  { label: 'Public TV', kind: 'tv', tag: 'general' },
-  { label: 'Learning', kind: 'tv', tag: 'education' },
-]
 
 /** Everything ⌘K can reach: screens, actions, tuning presets, and saved and recent listings. */
 export function buildSearchItems(go: (v: View) => void): SpotlightSearchItem[] {

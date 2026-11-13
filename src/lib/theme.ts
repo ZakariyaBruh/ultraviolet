@@ -3,6 +3,8 @@ import { useStore } from './store'
 import { useSupporter } from './supporter'
 import { shownTheme, themeDef, type ThemeId } from './themes'
 import { useUI } from './ui'
+import { fontsForRetro, fontsForTheme } from './fonts'
+import { usePerf } from './perf'
 
 const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
 const lin = (c: number) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
@@ -39,6 +41,11 @@ export function useTheme() {
   const motion = useStore((s) => s.settings.motion)
   // calm motion switches off the page-level moves in index.css (panels coming up, the pressed button)
   useEffect(() => { document.documentElement.toggleAttribute('data-calm', motion === 0) }, [motion])
+  // how much the moving background may cost (lib/perf.ts): the person's choice goes in, the level in force comes out as html[data-perf]
+  const perf = useStore((s) => s.settings.perf)
+  const tier = usePerf((s) => s.tier)
+  useEffect(() => { usePerf.getState().setMode(perf) }, [perf])
+  useEffect(() => { document.documentElement.dataset.perf = String(tier) }, [tier])
   useEffect(() => {
     // the retro dial: six stops, 0 future to 5 all-the-way retro. --retro is the stop as a fraction; --fx is the same
     // but never past Broadcast, because the screen effects (scanline, grain, warmth, glow) stop there. The text solids
@@ -47,6 +54,7 @@ export function useTheme() {
     document.documentElement.style.setProperty('--retro', (stage / 5).toFixed(2))
     document.documentElement.style.setProperty('--fx', (Math.min(stage, 2) / 5).toFixed(2))
     document.documentElement.dataset.retro = String(stage)
+    fontsForRetro(stage)
   }, [era])
   useEffect(() => { document.documentElement.dataset.ascii = String(asciiStage(ascii)) }, [ascii])
   useEffect(() => {
@@ -54,6 +62,7 @@ export function useTheme() {
     const el = document.documentElement
     const light = bg ? lum(bg) > 0.4 : t.light
     el.dataset.theme = t.id
+    fontsForTheme(t.id)
     el.classList.toggle('dark', !light)
     el.classList.toggle('light', light)
     el.style.colorScheme = light ? 'light' : 'dark'

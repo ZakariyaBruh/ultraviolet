@@ -26,6 +26,7 @@ Opened at the start of a work or study block, on a phone or laptop. The page nev
 - All data in the browser: localStorage (settings, logs, sessions, favourites) and IndexedDB (cached lists). No accounts, no server.
 - Heatmaps (weekday x hour, daily), circular/ring dashboards, charts, and LOTS of motion are explicit user requests. Motion must respect prefers-reduced-motion and the in-app Calm/Lively/LOTS setting.
 - No vertical scroll anywhere: lists page, charts are slides.
+- It has to work on a slow phone, an old tablet and a bad connection, because that is what a lot of students have. A visit fetches only the screen it opens on; the moving background lightens itself, and says so, on a device that cannot keep up; after one visit the app opens with no connection (the timer and the study windows work offline); and the screen stays awake while locked in, so a phone that locks itself is not counted as a drift.
 
 ## Brand Commitments
 Name: Friction ("Put the friction back"). Must use EasyUI components heavily. The user rejected the first version as looking AI-generated.

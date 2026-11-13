@@ -16,7 +16,7 @@ import { useStretch, useBreath } from '@/components/app/BreakKit'
 import type { Shape } from '@/lib/ascii3d'
 import { useAmbience } from '@/lib/ambience'
 import { fx_say, quickPlay } from '@/lib/actions'
-import { PRESETS } from '@/lib/commands'
+import { PRESETS } from '@/lib/presets'
 import { bringToFront } from '@/components/app/Arrange'
 import { nextTier, rateAt, tierLabel, tiersFor } from '@/lib/credits'
 import { dateKey, fmtClock } from '@/lib/dates'
@@ -48,7 +48,8 @@ function FrictionDial({ progress, left, running, paused, live, note, shape }: { 
       <div className="relative z-10 h-3 w-full" aria-hidden>
         <div className="absolute inset-x-0 top-1/2 h-px bg-ink/30" />
         {Array.from({ length: 21 }, (_, i) => <i key={i} className={`absolute top-1/2 w-px -translate-y-1/2 bg-ink/40 ${i % 5 === 0 ? 'h-3' : 'h-1.5'}`} style={{ left: `${i * 5}%` }} />)}
-        <div className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-ice transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
+        {/* no transition on the fill: it moves a third of a pixel a second, so easing it only kept the browser laying out sixty times a second for the whole session */}
+        <div className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-ice" style={{ width: `${progress * 100}%` }} />
         <div className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 border border-ice bg-black" style={{ left: `${progress * 100}%` }} />
       </div>
     </Glass>

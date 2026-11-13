@@ -19,6 +19,11 @@ export interface SpeedWarpProps {
   className?: string;
   /** Whether the warp animation loop is paused. Default: false */
   paused?: boolean;
+  /**
+   * Draw at most this many frames a second. Left out, it draws on every frame the display has, as it always did. With it, the
+   * stars cover the same distance each second, in fewer and longer steps: for devices that cannot spare sixty frames (lib/perf.ts).
+   */
+  fps?: number;
   /** Optional children rendered on top of the warp canvas */
   children?: React.ReactNode;
 }
@@ -27,6 +32,7 @@ export function SpeedWarp({
   speed = 25,
   starCount = 600,
   paused = false,
+  fps,
   className,
   children,
 }: SpeedWarpProps) {
@@ -68,7 +74,16 @@ export function SpeedWarp({
       prevZ: 0,
     }));
 
-    const render = (): void => {
+    const gap = fps ? 1000 / fps : 0;
+    let drawn = 0;
+    const render = (now: number = performance.now()): void => {
+      // a capped rate: skip this frame if the last one was drawn too recently, and move the stars by the time that really passed
+      if (gap && drawn && now - drawn < gap - 2) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+      const moved = gap && drawn ? Math.min(4, (now - drawn) / (1000 / 60)) : 1;
+      drawn = now;
       // Completely wipe the canvas frame to ensure 100% transparent background
       ctx.clearRect(0, 0, width, height);
 
@@ -77,7 +92,7 @@ export function SpeedWarp({
 
       for (const star of stars) {
         star.prevZ = star.z;
-        star.z -= speed;
+        star.z -= speed * moved;
 
         // Reset star to the back if it passes the camera plane
         if (star.z <= 0) {
@@ -147,7 +162,7 @@ export function SpeedWarp({
       intersectionObserver?.disconnect();
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [speed, starCount, paused]);
+  }, [speed, starCount, paused, fps]);
 
   if (children) {
     return (

@@ -1,12 +1,33 @@
 // After `vite build`: write one copy of index.html for each public screen with that screen's own <head> (title, description, canonical,
 // Open Graph, Twitter card, JSON-LD), so crawlers and link previews that do not run JavaScript see the right page. The body is untouched:
 // the app starts and takes over as usual. Titles must be 50-60 characters and descriptions 140-160, or the build stops.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
 const seo = JSON.parse(readFileSync('src/lib/seo.json', 'utf8'))
 const html = readFileSync('dist/index.html', 'utf8')
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+
+/**
+ * Each screen is a file of its own (src/components/app/screens.ts), fetched by the app once it has started. That would be one
+ * round trip after another on a slow connection, so every built page also asks for its own screen's files up front
+ * (<link rel="modulepreload">), alongside the app itself. Which files those are comes from the build's manifest.
+ */
+const manifest = JSON.parse(readFileSync('dist/.vite/manifest.json', 'utf8'))
+const sourceOf = (route) => (route === '/' ? 'src/components/app/Landing.tsx' : `src/views/${route[1].toUpperCase()}${route.slice(2)}View.tsx`)
+const preloads = (route) => {
+  const start = manifest[sourceOf(route)]
+  if (!start) throw new Error(`prerender: no built file for ${route} (${sourceOf(route)}); is the screen still in src/components/app/screens.ts?`)
+  const files = new Set()
+  const walk = (key) => {
+    const c = manifest[key]
+    if (!c || c.isEntry || files.has(c.file)) return // the entry and what it imports are already asked for by the page
+    files.add(c.file)
+    for (const i of c.imports ?? []) walk(i)
+  }
+  walk(sourceOf(route))
+  return [...files].filter((f) => f.endsWith('.js') && !html.includes(`/${f}"`)).map((f) => `<link rel="modulepreload" crossorigin href="/${f}">`)
+}
 
 for (const [route, m] of Object.entries(seo)) {
   if (!m.h1 || !m.lead || !m.points?.length || !m.more || !m.name) throw new Error(`seo.json ${route}: needs h1, lead, points, more and name`)
@@ -59,12 +80,45 @@ for (const [route, m] of Object.entries(seo)) {
     `<meta name="twitter:description" content="${esc(m.description)}" />`,
     `<meta name="twitter:image" content="${SITE}/og.png" />`,
     ld(route, m),
+    ...preloads(route),
   ].map((l) => `    ${l}`).join('\n')
   out = out.replace('</head>', `${head}\n    ${SEO_STYLE}\n  </head>`).replace('<div id="root"></div>', `<div id="root">${body(route, m)}</div>`)
   if (route === '/') writeFileSync('dist/index.html', out)
   else { mkdirSync(`dist${route}`, { recursive: true }); writeFileSync(`dist${route}/index.html`, out) }
   n++
 }
+/**
+ * The screens that only ever show your own numbers are not in seo.json (they are kept out of search), so until now their addresses
+ * were answered with the front page's file. They get a plain page of their own: the right title, noindex, and their own screen's files.
+ */
+for (const [route, name] of [['/settings', 'Settings'], ['/insights', 'Insights'], ['/debrief', 'Debrief']]) {
+  const head = [`<link rel="canonical" href="${SITE}${route}" />`, '<meta name="robots" content="noindex, nofollow" />', ...preloads(route), '<style>body{background:#05070c}</style>'].map((l) => `    ${l}`).join('\n')
+  const out = html
+    .replace(/<title>.*?<\/title>/, `<title>${name} · Friction</title>`)
+    .replace(/<link rel="canonical"[^>]*>\s*/g, '')
+    .replace(/<meta property="og:[^>]*>\s*/g, '').replace(/<meta name="twitter:[^>]*>\s*/g, '')
+    .replace('</head>', `${head}\n  </head>`)
+  mkdirSync(`dist${route}`, { recursive: true }); writeFileSync(`dist${route}/index.html`, out)
+}
+// the manifest was only needed here; it is not part of the site
+rmSync('dist/.vite', { recursive: true, force: true })
+
+/**
+ * The service worker (scripts/sw.js) is what lets the app open with no connection after one visit. It needs two lists that only
+ * the build knows: the app's own addresses (from src/lib/route.ts, so a new screen cannot be forgotten) and every file of this
+ * build, so files kept from an older build are dropped. It is written last, when dist/assets is complete.
+ */
+{
+  const views = readFileSync('src/lib/route.ts', 'utf8').match(/export const VIEWS: View\[\] = \[([^\]]+)\]/)
+  if (!views) throw new Error('prerender: could not read VIEWS from src/lib/route.ts for the service worker')
+  const routes = ['/', '/app', ...views[1].split(',').map((v) => `/${v.trim().replace(/['"]/g, '')}`).filter((v) => v.length > 1)]
+  const assets = readdirSync('dist/assets').map((f) => `/assets/${f}`)
+  const sw = readFileSync('scripts/sw.js', 'utf8')
+  if (!sw.includes('/*ROUTES*/[]') || !sw.includes('/*ASSETS*/[]')) throw new Error('prerender: scripts/sw.js has lost its two placeholders')
+  writeFileSync('dist/sw.js', sw.replace('/*ROUTES*/[]', JSON.stringify(routes)).replace('/*ASSETS*/[]', JSON.stringify(assets)))
+  console.log(`service worker: ${routes.length} addresses, ${assets.length} files`)
+}
+
 // pages that live outside the app (plain files in public/) and still belong in the sitemap
 const STATIC = ['/blogs', '/about', '/contact', '/privacy', '/cookies', '/terms', '/disclaimer']
 // the sitemap comes from the same list, so a screen cannot be in one and not the other

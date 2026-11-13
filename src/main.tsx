@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './themes.css'
 import App from './App'
+import { preloadScreen } from '@/components/app/screens'
+import { routeFromLocation } from '@/lib/route'
+import { fontsForRetro, fontsForTheme } from '@/lib/fonts'
+import { useStore } from '@/lib/store'
+import { eraStage } from '@/lib/theme'
+import { startOffline } from '@/lib/offline'
 
 /** If saved data ever breaks the app, say so and offer the way out instead of a blank page. */
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -27,10 +33,23 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   }
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Boundary>
-      <App />
-    </Boundary>
-  </StrictMode>,
-)
+/**
+ * The screen this visit opens on is its own file. The built page asks for it alongside this one (the modulepreload links written by
+ * scripts/prerender.mjs), so it is usually here by now; waiting a moment for it means the first thing drawn is the whole screen
+ * rather than its frame and then, a beat later, what goes in it. If it is slow, the frame is drawn without it.
+ */
+const first = preloadScreen(routeFromLocation())
+// the saved look's own faces, if it has any, are asked for now rather than after the first paint (lib/fonts.ts)
+{ const s = useStore.getState().settings; fontsForTheme(s.theme); fontsForRetro(eraStage(s.era)) }
+void Promise.race([first, new Promise((done) => setTimeout(done, 150))]).then(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <Boundary>
+        <App />
+      </Boundary>
+    </StrictMode>,
+  )
+})
+
+// keep a copy of the app for when there is no connection, and say so when the connection goes (lib/offline.ts)
+startOffline()

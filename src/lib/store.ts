@@ -6,7 +6,7 @@ import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
-import { PROJECT_MAX, tidyProject } from './review'
+import { PROJECT_MAX, tidyProject } from './projects'
 
 export interface Mute {
   id: string
@@ -109,6 +109,8 @@ export interface Settings {
   sessionMin: number
   /** 0 calm · 1 lively · 2 maximum */
   motion: 0 | 1 | 2
+  /** how much the moving background may cost this device: auto (it adjusts itself, see lib/perf.ts), full (never lightened) or lite (never above light) */
+  perf: 'auto' | 'full' | 'lite'
   volume: number
   /** swallow and count scroll gestures (on by default) */
   guard: boolean
@@ -270,6 +272,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dailyGoalMin: 90,
   sessionMin: 25,
   motion: 1,
+  perf: 'auto',
   volume: 0.8,
   guard: true,
   theme: 'station',
@@ -341,6 +344,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const st: Record<string, unknown> = { ...DEFAULT_SETTINGS }
         for (const [sk, dv] of Object.entries(DEFAULT_SETTINGS)) if (typeof v[sk] === typeof dv) st[sk] = v[sk]
         if (![0, 1, 2].includes(st.motion as number)) st.motion = DEFAULT_SETTINGS.motion
+        if (!['auto', 'full', 'lite'].includes(String(st.perf))) st.perf = DEFAULT_SETTINGS.perf
         st.theme = normalizeTheme(v.theme)
         const era = Number.isFinite(Number(st.era)) ? Number(st.era) : 80
         st.era = Math.min(100, Math.max(0, Math.round(era / 20) * 20))

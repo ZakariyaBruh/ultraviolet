@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFx } from './fx'
 import { notify } from './notify'
 import { useStore } from './store'
+import { fmtClock } from './dates'
 
 /** Drives the focus timer and notices when you wander off to another tab. */
 export function useSessionEngine() {
@@ -35,13 +36,21 @@ export function useSessionEngine() {
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', check) }
   }, [breakUntil])
 
+  // the page's own title, put back when you return (it says the timer is waiting while you are away from a running session)
+  const title = useRef<string | null>(null)
   useEffect(() => {
     const onVis = () => {
       const s = useStore.getState().session
       if (document.visibilityState === 'hidden') {
         hiddenAt.current = s && !s.paused ? Date.now() : null
+        // the tab strip is the one place still in view from another tab: it says the truth, that the timer has stopped and is waiting
+        if (s && !s.paused && title.current === null) {
+          title.current = document.title
+          document.title = `Waiting for you · ${fmtClock(Math.max(0, s.goalMin * 60 - s.elapsedSec))} left · Friction`
+        }
         return
       }
+      if (title.current !== null) { document.title = title.current; title.current = null }
       const at = hiddenAt.current
       hiddenAt.current = null
       if (!at || !useStore.getState().session) return

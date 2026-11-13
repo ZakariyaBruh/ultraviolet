@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store'
 import { goTo, isSupporter, markSupporter, SUPPORT_PLAN, useSupporter } from '@/lib/supporter'
 import { useThemeId } from '@/lib/theme'
 import { goalFor } from '@/lib/goals'
+import { supporterFonts } from '@/lib/fonts'
 import { startPreview, stopPreview } from '@/lib/themeCycle'
 import { THEMES, themeDef, type ThemeDef, type ThemeId } from '@/lib/themes'
 import { useUI } from '@/lib/ui'
@@ -91,7 +92,11 @@ function Checkout({ onDone }: { onDone: () => void }) {
       })
       h.create('checkout').mount(box.current)
     }).catch(() => setFailed(true))
-    return () => { dead = true; try { h?.destroy?.() } catch { /* already gone */ } }
+    // Whop's frame arrives with no title, so a screen reader hears only "frame": name it when it appears
+    const name = () => box.current?.querySelectorAll('iframe:not([title])').forEach((f) => f.setAttribute('title', 'Whop checkout: support Friction for $2 a month'))
+    const seen = new MutationObserver(name)
+    if (box.current) seen.observe(box.current, { childList: true, subtree: true })
+    return () => { dead = true; seen.disconnect(); try { h?.destroy?.() } catch { /* already gone */ } }
   }, [onDone])
   return (
     <>
@@ -119,10 +124,14 @@ function GoalBar() {
 }
 
 export function SupportView() {
-  const wide = useMedia('(min-width: 1024px)')
+  // side by side only where both halves have room: on an iPad (1024 to 1194 wide on its side) the checkout took 520px and left what
+  // you get in a 390px strip, so there the two are tabs, as on a phone, and each gets the whole width
+  const wide = useMedia('(min-width: 1280px)')
   const [tab, setTab] = useState('get')
   const [done, setDone] = useState(false)
   const on = done || isSupporter()
+  // each theme tile is drawn in that theme's own face, so this screen asks for all five
+  useEffect(() => { supporterFonts() }, [])
 
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
@@ -160,7 +169,7 @@ export function SupportView() {
           <p className="text-[14px] text-ink-2">Pick any of the five themes on the left, or in Settings under Look. The backup is in Settings under Data. Your avatar has its mark, and your alias has a star. Manage or cancel from your Whop receipt.</p>
         </div>
       ) : (
-        <div className="scroll-y min-h-0 flex-1" data-no-drag><Checkout onDone={() => setDone(true)} /></div>
+        <div className="scroll-y min-h-0 flex-1" data-no-drag tabIndex={0} role="region" aria-label="Checkout"><Checkout onDone={() => setDone(true)} /></div>
       )}
     </Panel>
   )

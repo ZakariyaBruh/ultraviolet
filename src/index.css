@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source(".");
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/unbounded";
@@ -7,10 +7,6 @@
 @import "@fontsource/barlow-condensed/500.css";
 @import "@fontsource/barlow-condensed/600.css";
 @import "@fontsource/barlow-condensed/700.css";
-@import "@fontsource/dela-gothic-one";
-@import "@fontsource/silkscreen/400.css";
-@import "@fontsource/silkscreen/700.css";
-@import "@fontsource/vt323";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -280,6 +276,8 @@ input { caret-color: var(--signal); }
   .eq i, .live-dot::after, .ripple { animation: none !important; }
 }
 .motion-calm .eq i, .motion-calm .live-dot::after { animation-play-state: paused !important; }
+/* at still detail (lib/perf.ts) nothing animates without end: the device could not keep up, so the small loops stop as well */
+html[data-perf='0'] .eq i, html[data-perf='0'] .live-dot::after, html[data-perf='0'] .bar-dance { animation: none; }
 @keyframes blink { 50% { opacity: 0.15; } }
 
 /* retro zones: a CRT's scanlines. Futuristic zones never get them. */
@@ -331,6 +329,8 @@ button[class~="h-14"], a[class~="h-14"] { min-height: 3.5rem; }
 /* a solid beside a title wanders a little inside its own space */
 @keyframes sway { 0% { translate: -6px 4px; } 50% { translate: 8px -5px; } 100% { translate: -3px -6px; } }
 .ascii-sway { display: inline-block; animation: sway 9s ease-in-out infinite alternate; }
+/* at still detail (lib/perf.ts, html[data-perf='0']) the solids do not turn, so they do not sway either */
+html[data-perf='0'] .ascii-sway { animation: none; }
 @keyframes bars { 0%, 100% { height: 6px; } 50% { height: 28px; } }
 .bar-dance { animation: bars 1.1s ease-in-out infinite; }
 @keyframes winin { from { opacity: 0; } }
