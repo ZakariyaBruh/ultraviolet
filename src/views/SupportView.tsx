@@ -108,15 +108,6 @@ function Checkout({ onDone }: { onDone: () => void }) {
 }
 
 /** The goal bar: the next supporter goal, how far along it is, and what it is for, said honestly. The count is set by hand (api/goal.ts). */
-function PhBadge() {
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <ProductHuntBadge />
-      <p className="max-w-[34ch] text-[13px] leading-[1.4] text-ink-3">Friction is on Product Hunt. A look and an upvote there help too. It opens in a new tab.</p>
-    </div>
-  )
-}
-
 function GoalBar() {
   const [n, setN] = useState<number | null>(null)
   useEffect(() => { fetch('/api/goal').then((r) => (r.ok ? r.json() : null)).then((j) => setN(typeof j?.n === 'number' ? j.n : null)).catch(() => setN(null)) }, [])
@@ -163,7 +154,6 @@ export function SupportView() {
             </li>
           ))}
         </ul>
-        <PhBadge />
         <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this.</p>
       </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
@@ -189,6 +179,8 @@ export function SupportView() {
     <section className="flex h-full min-h-0 flex-col gap-3">
       <PageHeader kicker="Keep it free" title="Support" sub="Friction has no account and no feed, and stays free. Supporting it pays for the domain and the hosting.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
+        {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
+        <ProductHuntBadge scale={1.3} className="border border-signal/60 bg-ground/60 p-1.5" />
       </PageHeader>
       {wide ? (
         <div className={`grid min-h-0 flex-1 gap-4 ${on ? 'grid-cols-[minmax(0,1fr)_minmax(0,340px)]' : 'grid-cols-[minmax(0,1fr)_minmax(0,520px)]'}`}>{perks}{pay}</div>
