@@ -67,7 +67,7 @@ function ThemeTiles() {
       </div>
       {preview && !supporter && (
         <div role="status" className="flex flex-wrap items-center gap-2 border border-signal/60 bg-signal/10 p-2.5 text-[13px] text-ink">
-          <span className="min-w-0 flex-1 basis-48">Trying {themeDef(preview).name}. This whole screen is in it; it goes back in two minutes.</span>
+          <span className="min-w-0 flex-1 basis-48">Trying {themeDef(preview).name} for two minutes, then it goes back. Look around: nothing plays and nothing locks in meanwhile.</span>
           <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={stopPreview}>Stop trying it</button>
         </div>
       )}
@@ -141,7 +141,7 @@ export function SupportView() {
         <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><Check className="size-4 shrink-0 text-signal" aria-hidden />Five more themes</h2>
-          <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to see this whole screen in it for two minutes, free.</p>
+          <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to try it for two minutes, free: the whole app changes while you look around.</p>
           <ThemeTiles />
         </section>
         <ul className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-3">

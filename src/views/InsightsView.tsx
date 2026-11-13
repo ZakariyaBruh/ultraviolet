@@ -31,7 +31,6 @@ export function InsightsView() {
   const focusLog = useStore((s) => s.focusLog)
   const urgeLog = useStore((s) => s.urgeLog)
   const sessions = useStore((s) => s.sessions)
-  const demo = useStore((s) => s.demo)
   const now = spanOf({ focusLog, urgeLog, sessions }, 0, 7)
   const before = spanOf({ focusLog, urgeLog, sessions }, 7, 7)
   const finding = now.perHour !== null && before.perHour !== null
@@ -42,7 +41,6 @@ export function InsightsView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3" data-flow>
       <PageHeader kicker="Your attention, measured" title="Insights" sub={finding}>
-        {demo && <span className="whitespace-nowrap rounded-full bg-amber-300/15 px-3 py-1.5 text-xs text-amber-200 ring-1 ring-amber-300/30">Demo history</span>}
         <Seg id="ins" value={tab} onChange={setTab} tabs={TABS} />
       </PageHeader>
       {/* a floor, not min-h-0: in a short window the region would shrink to a sliver; with a floor the page overflows instead and the shell's small-window scroll (data-scroll) takes over */}

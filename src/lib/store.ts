@@ -188,7 +188,6 @@ interface Data {
   favorites: MediaItem[]
   recent: MediaItem[]
   seenIntro: boolean
-  demo: boolean
   profile: Profile | null
   events: EventRec[]
   books: BookRef[]
@@ -257,7 +256,6 @@ interface Actions {
   log: (kind: EventKind, text: string) => void
   markEventsRead: () => void
   markEventRead: (id: string) => void
-  loadDemo: () => void
   resetAll: () => void
   restore: (snapshot: Data) => void
 }
@@ -304,7 +302,6 @@ const emptyData = (): Data => ({
   favorites: [],
   recent: [],
   seenIntro: false,
-  demo: false,
   profile: null,
   events: [],
   books: [],
@@ -320,6 +317,51 @@ export const DATA_KEYS = Object.keys(emptyData()) as (keyof Data)[]
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Accept only what has the right shape; anything else falls back to the default for that key. */
+/* ───────── history rebuilt from real sessions (declared here, above the store: saved data is read and cleaned the moment the store is created, and an error in that step is swallowed and starts the app empty) ───────── */
+
+/**
+ * Set when saved data carried made-up history (from the old "Load demo history" button, which was removed) and it was taken out on
+ * load. The app says so once (App.tsx), so nobody wonders why their numbers changed.
+ */
+export const demoRemoved = { pending: false }
+
+/**
+ * The hourly logs, rebuilt from finished sessions alone: each session's focus minutes are spread evenly over the hours it ran, its
+ * drifts land on the day it ended. Used when made-up history is removed, so that what is left is real and the charts agree with the
+ * Sessions list. Approximate to the hour, never invented: every number comes from a session this person actually ran.
+ */
+function historyFrom(sessions: SessionRec[]) {
+  const focusLog: HourLog = {}
+  const urgeLog: HourLog = {}
+  const sourceLog: SourceLog = {}
+  const lapseLog: Record<string, number> = {}
+  const sourceSecs: Record<SourceKey, number> = { radio: 0, tv: 0, silent: 0 }
+  const num = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n)
+  for (const s of sessions) {
+    if (!num(s.start) || !num(s.end) || !num(s.focusSec) || s.end <= s.start) continue
+    const src: SourceKey = s.source === 'radio' || s.source === 'tv' ? s.source : 'silent'
+    sourceSecs[src] += s.focusSec
+    const span = (s.end - s.start) / 1000
+    // hour by hour, at most four days of it
+    for (let t = s.start, i = 0; t < s.end && i < 96; i++) {
+      const d = new Date(t)
+      const next = Math.min(s.end, new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime())
+      const key = dateKey(d)
+      const min = (s.focusSec / 60) * ((next - t) / 1000 / span)
+      const row = (focusLog[key] ??= zeros())
+      row[d.getHours()] += min
+      const day = (sourceLog[key] ??= { radio: zeros(), tv: zeros(), silent: zeros() })
+      day[src][d.getHours()] += min
+      t = next
+    }
+    const end = new Date(s.end)
+    const key = dateKey(end)
+    if (num(s.urges) && s.urges > 0) (urgeLog[key] ??= zeros())[end.getHours()] += s.urges
+    if (num(s.lapses) && s.lapses > 0) lapseLog[key] = (lapseLog[key] ?? 0) + s.lapses
+  }
+  return { focusLog, urgeLog, sourceLog, lapseLog, sourceSecs }
+}
+
 /** how many finished sessions are kept, the same for everyone */
 const sessionCap = () => 300
 
@@ -400,6 +442,12 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
       out[k] = ok
       matched++
     }
+  }
+  // History made up by the old "Load demo history" button is taken out: its sessions go, and the logs are rebuilt from the real ones left
+  if (raw.demo === true) {
+    const kept = (out.sessions as SessionRec[]).filter((x) => !String(x.id).startsWith('demo-'))
+    Object.assign(out, historyFrom(kept), { sessions: kept })
+    demoRemoved.pending = true
   }
   return { data: out as unknown as Data, matched }
 }
@@ -681,11 +729,6 @@ export const useStore = create<AppState>()(
 
       markEventRead: (id) => set((s) => ({ events: s.events.map((e) => (e.id === id ? { ...e, read: true } : e)) })),
 
-      loadDemo: () => {
-        const demo = makeDemo()
-        set({ ...demo, settings: get().settings, favorites: get().favorites, recent: get().recent, profile: get().profile, events: get().events, books: get().books, mutes: get().mutes, widgets: get().widgets, learn: get().learn, credits: get().credits, seenIntro: true, demo: true })
-      },
-
       resetAll: () => set({ ...emptyData(), seenIntro: true, session: null }),
 
       restore: (snapshot) => set({ ...snapshot, session: null }),
@@ -723,86 +766,6 @@ export function snapshotData(): Data {
   return JSON.parse(JSON.stringify(out)) as Data
 }
 
-/* ───────── demo history so the heatmaps have something to show ───────── */
-function rng(seed: number) {
-  let t = seed >>> 0
-  return () => {
-    t += 0x6d2b79f5
-    let r = Math.imul(t ^ (t >>> 15), 1 | t)
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r)
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-function splitSources(f: number[], rand: () => number): Record<SourceKey, number[]> {
-  const out: Record<SourceKey, number[]> = { radio: zeros(), tv: zeros(), silent: zeros() }
-  f.forEach((m, h) => {
-    if (m <= 0) return
-    const r = rand()
-    const k: SourceKey = r < 0.46 ? 'radio' : r < 0.77 ? 'tv' : 'silent'
-    out[k][h] = m
-  })
-  return out
-}
-
-function makeDemo(): Data {
-  const rand = rng(1337)
-  const d = emptyData()
-  const peaks = [9, 10, 15, 16, 21]
-  const DAYS = 150
-  for (let i = DAYS; i >= 0; i--) {
-    const day = new Date()
-    day.setDate(day.getDate() - i)
-    const key = dateKey(day)
-    const dow = (day.getDay() + 6) % 7
-    const progress = 1 - i / DAYS // habits improve over time
-    const weekend = dow >= 5
-    if (rand() < (weekend ? 0.55 : 0.8) * (0.55 + progress * 0.45)) {
-      const f = new Array(24).fill(0)
-      const u = new Array(24).fill(0)
-      for (const p of peaks) {
-        if (rand() < 0.6) {
-          const h = (p + (rand() < 0.3 ? 1 : 0)) % 24
-          f[h] += (8 + rand() * 38) * (0.5 + progress * 0.7)
-        }
-      }
-      for (let h = 7; h < 24; h++) {
-        const base = f[h] > 0 ? 1.5 : 3.2
-        u[h] = Math.round(rand() * base * (1.8 - progress) * (weekend ? 1.5 : 1))
-      }
-      for (let h = 0; h < 24; h++) f[h] = Math.min(60, Math.round(f[h] * 10) / 10)
-      d.focusLog[key] = f
-      d.sourceLog[key] = splitSources(f, rand)
-      d.urgeLog[key] = u
-      const lapses = Math.round(rand() * 3 * (1.3 - progress))
-      if (lapses) d.lapseLog[key] = lapses
-    }
-  }
-  const kinds: (MediaKind | 'silent')[] = ['radio', 'tv', 'radio', 'silent']
-  for (let i = 0; i < 18; i++) {
-    const end = Date.now() - (i + 1) * 1000 * 60 * 60 * (5 + rand() * 20)
-    const goal = [15, 25, 25, 45, 60][Math.floor(rand() * 5)]
-    const completed = rand() > 0.22
-    const focusSec = Math.round(goal * 60 * (completed ? 1 : 0.3 + rand() * 0.5))
-    const source = kinds[Math.floor(rand() * kinds.length)]
-    d.sessions.push({
-      id: `demo-${i}`,
-      start: end - focusSec * 1000,
-      end,
-      goalMin: goal,
-      focusSec,
-      urges: Math.round(rand() * 9),
-      lapses: Math.round(rand() * 2),
-      source,
-      title: source === 'tv' ? 'Documentary channel' : source === 'radio' ? 'Ambient radio' : 'Silent focus',
-      completed,
-    })
-  }
-  const total = Object.values(d.focusLog).reduce((a, r) => a + r.reduce((x, y) => x + y, 0), 0) * 60
-  d.sourceSecs = { radio: Math.round(total * 0.46), tv: Math.round(total * 0.31), silent: Math.round(total * 0.23) }
-  d.demo = true
-  return d
-}
 
 // dev-only handle so screenshots and tests can seed data
 if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __store: typeof useStore }).__store = useStore

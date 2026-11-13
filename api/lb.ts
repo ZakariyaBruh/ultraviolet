@@ -6,7 +6,7 @@ import { createClient, type Client } from '@libsql/client/web'
  * What is stored, and only this: `board` (a code, a public alias, minutes focused, and two numbers used to check them).
  *
  * The minutes are reported by the person's own browser, so they are checked rather than trusted: a person is only credited for focus
- * from the moment they report their first total (what they had before is not counted, and neither is demo history), and each
+ * from the moment they report their first total (what they had before is not counted), and each
  * report can add no more minutes than the clock has run since the last one. A person who was offline catches up over several reports.
  * Someone is on the board once they have an alias and at least one minute. While the database is full, no new rows are added.
  */
@@ -234,7 +234,7 @@ export default {
         // old share links still call this: nothing is counted any more
         if (body.a === 'recommend') return json({ ok: true })
 
-        // Focus report: the browser's own total of minutes focused (demo history left out). Credited in small, clock-bounded steps.
+        // Focus report: the browser's own total of minutes focused. Credited in small, clock-bounded steps.
         if (body.a === 'report') {
           const key = String(body.key ?? '')
           const total = Math.floor(Number((body as { total?: number }).total))

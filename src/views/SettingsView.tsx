@@ -98,7 +98,7 @@ function ThemePicker() {
       </div>
       {preview && (
         <div role="status" className="flex flex-wrap items-center gap-2 border border-signal bg-signal/10 p-3 text-[13px] text-ink">
-          <span className="min-w-0 flex-1 basis-56">Trying {themeDef(preview).name}. Supporters keep it; for everyone else it goes back to normal in two minutes.</span>
+          <span className="min-w-0 flex-1 basis-56">Trying {themeDef(preview).name} for two minutes, then it goes back to your own theme. Supporters keep it.</span>
           <button className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal" onClick={openSupport}>See Support, $2 a month</button>
           <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={stopPreview}>Stop trying it</button>
         </div>
@@ -328,7 +328,6 @@ function Help() {
       <div className="mt-3 flex flex-wrap gap-2">
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ tourOpen: true })}>Take the tour</button>
         <button className="h-11 flex-1 border border-ink/30 text-sm text-ink hover:bg-ink/10" onClick={() => useUI.getState().set({ onboardOpen: true })}>Run the welcome again</button>
-        <button className="h-11 flex-1 border border-ink/30 text-sm text-ink" onClick={() => { const before = snapshot(useStore.getState()); useStore.getState().loadDemo(); fx_say({ title: 'Demo data loaded', description: 'Your own history was replaced for now.', variant: 'success', undo: () => useStore.getState().restore(before as unknown as AppState) }) }}>Load demo data</button>
       </div>
       <div className="mt-3 border-t border-ink/10 pt-3">
         <p className="text-[13px] leading-[1.4] text-ink-2">{isSupporter() ? 'Thank you for supporting Friction. The five extra themes (under Look), the cloud backup (under Data) and a star by your alias are yours.' : 'Friction is free and stays free. If you like it, you can support it for $2 a month: five more themes, an encrypted cloud backup and a star on the board. Everything that is free now stays free, and nothing in the shop is given away.'}</p>

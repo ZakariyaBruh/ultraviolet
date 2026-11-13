@@ -27,7 +27,6 @@ Everything stays in the browser. No account, no backend.
 | Settings, focus / urge logs, sessions, favorites, recents | `localStorage` (`anti-scroll:v1`) |
 | Cached radio + channel lists | IndexedDB (6 h / 12 h TTL) |
 
-Settings → Data → *Load demo history* fills the charts with clearly-labelled made-up data.
 
 ## Stack
 

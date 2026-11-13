@@ -105,7 +105,7 @@ export function LeadersView() {
                 <button type="submit" className={btn}>Save</button>
               </form>
             )}
-            <p className="mt-auto text-[13px] leading-[18px] text-ink-3">Only focus after you joined counts, and never faster than the clock runs, so a made-up number cannot climb. Demo history is never counted. The board holds a random code, the name you choose and your minutes.</p>
+            <p className="mt-auto text-[13px] leading-[18px] text-ink-3">Only focus after you joined counts, and never faster than the clock runs, so a made-up number cannot climb. The board holds a random code, the name you choose and your minutes.</p>
           </Panel>
 
           <div className="flex min-h-0 min-w-0 flex-col gap-2">

@@ -32,7 +32,7 @@ Opened at the start of a work or study block, on a phone or laptop. The page nev
 Name: Friction ("Put the friction back"). Must use EasyUI components heavily. The user rejected the first version as looking AI-generated.
 
 ## Evidence on Hand
-No real user data, testimonials or customers. A "Load demo history" button produces clearly labelled fake history so charts can be previewed; never present it as real.
+No real user data, testimonials or customers, and no sample history in the app: every number a person sees comes from what they did here.
 
 ## Product Principles
 1. The unit of progress is an unbroken minute; the thing counted against you is a drift, leaving the tab mid-session.

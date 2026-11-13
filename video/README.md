@@ -60,7 +60,7 @@ windows are, not a coloured bar. No text shadows, no monospace outside the ASCII
     npx remotion render src/index.ts V6 out/trailer6.mp4 --codec=h264 --crf=16
     python3 scripts/gate6.py out/trailer6.mp4 && python3 scripts/qa.py out/trailer6.mp4 30
 
-The numbers on the app screens (drifts today, minutes held) are the app's own seeded demo history, which the app flags and lets you remove.
+The numbers on the app screens come from a fixture the trailer builds for itself (`scripts/seed.cjs`); the app has no demo-history feature any more.
 
 ---
 

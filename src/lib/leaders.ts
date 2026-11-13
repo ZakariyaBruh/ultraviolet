@@ -1,6 +1,6 @@
 /**
  * The leaderboard: ranked by minutes focused. Your browser holds a private key; a short public code is made from it.
- * Once you have a public alias, your total focus time is reported now and then (never demo history); the server (api/lb.ts) counts
+ * Once you have a public alias, your total focus time is reported now and then; the server (api/lb.ts) counts
  * only what you focus after your first report, and no faster than the clock runs, so a made-up number cannot climb the board.
  *
  * Who you are is the private key and nothing else. The public code is always worked out from it, never read back from storage,
@@ -144,11 +144,10 @@ export async function retryErase(): Promise<boolean> {
   } catch { return false }
 }
 
-/** Tells the board how long you have focused in all (minutes, demo history left out). Only people with a public alias are on the board. */
+/** Tells the board how long you have focused in all (minutes). Only people with a public alias are on the board. */
 export async function reportFocus(me: Me): Promise<void> {
   if (!hasAlias(me)) return
   const st = useStore.getState()
-  if (st.demo) return
   try {
     await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)), s: isSupporter() ? 1 : 0 }) })
   } catch { /* offline: it is reported next time */ }

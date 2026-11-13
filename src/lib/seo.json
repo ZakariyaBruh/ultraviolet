@@ -165,7 +165,7 @@
     "lead": "The leaderboard ranks people by how long they have focused. Choose a public alias and your focus time is reported now and then. Only time after your first report counts, and never faster than the clock runs, so a made-up number cannot climb the board. Your private name is never shown.",
     "points": [
       "Aliases are unique, so no two people share a name",
-      "Demo history never counts, and time before you joined the board does not either",
+      "Time before you joined the board does not count",
       "Each report can add no more minutes than have passed since the last one",
       "You can leave the board at any time by erasing your data"
     ],

@@ -32,7 +32,7 @@ export function startPreview(id: ThemeId) {
   if (!isTrying()) { markTrial(); stopPlayer(); stopMusic(); hushAll(); previewTimer = setTimeout(() => endPreview(true), 120_000) } // switching themes never adds time
   setTrying(true)
   useUI.getState().set({ previewTheme: id })
-  fx_say({ title: `Trying ${themeDef(id).name}`, description: 'Look around. Nothing plays and nothing locks in while you try it. It goes back in two minutes.' })
+  fx_say({ title: `Trying ${themeDef(id).name}`, description: 'Look around. Nothing plays and nothing locks in meanwhile. It goes back to your own theme in two minutes.' })
 }
 function endPreview(timed: boolean) {
   clearTimeout(previewTimer)

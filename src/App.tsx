@@ -20,7 +20,7 @@ import { useWakeLock } from '@/lib/wake'
 import { useTheme } from '@/lib/theme'
 import { cycleTheme } from '@/lib/themeCycle'
 import { usePlayer } from '@/lib/player'
-import { useStore } from '@/lib/store'
+import { demoRemoved, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { captureRef } from '@/lib/leaders'
 import { useMilestones, } from '@/lib/notify'
@@ -117,6 +117,13 @@ export default function App() {
   }, [])
   useTheme()
   useEffect(() => { captureRef() }, [])
+  // saved data from before the demo-history button was removed may still carry made-up history; it was taken out on load, so say so once
+  useEffect(() => {
+    if (!demoRemoved.pending) return
+    demoRemoved.pending = false
+    fx_say({ title: 'Sample history removed', description: 'What you see now comes only from sessions you ran here.' })
+    useStore.setState({}) // write the cleaned data now, so the old flag is gone from storage
+  }, [])
   // the moving background lightens itself on a device that cannot keep up (lib/perf.ts); it says so, once for each step
   useEffect(() => {
     const told = (e: Event) => {
