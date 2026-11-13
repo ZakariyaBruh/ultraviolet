@@ -287,7 +287,7 @@ ${EXTRA}
 <div class="head"><div class="wrap"><p class="kicker"><a href="/">Friction</a></p><h1>${esc(p.h1)}</h1><p class="lead">${p.lead}</p></div></div>
 <div class="wrap body"><div class="article">${p.body}</div></div>
 </main>
-<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed. Your data stays in your browser.</p><p>${FOOT}</p></div></footer>
+<footer><div class="wrap"><p>Friction is a free focus timer with radio, live TV and lessons. No account, no feed.</p><p>${FOOT}</p></div></footer>
 </body>
 </html>
 `

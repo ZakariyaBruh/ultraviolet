@@ -62,7 +62,7 @@ export const End = () => {
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 600, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', position: 'relative', opacity: url, transform: `translateY(${(1 - url) * 16}px)`, fontFamily: 'Hanken', fontWeight: 600, fontSize: 80, letterSpacing: '-0.035em', color: P.ink }}>
-            frictionx.vercel.app
+            frictionx.app
             <div style={{ position: 'absolute', left: 0, bottom: -12, height: 6, width: `${underline * 100}%`, background: P.signal }} />
           </div>
         </div>
@@ -72,7 +72,7 @@ export const End = () => {
           </div>
         </div>
         <div style={{ position: 'absolute', left: 96, right: 96, bottom: 54, display: 'flex', justifyContent: 'space-between', fontFamily: 'Barlow', fontWeight: 700, fontSize: 24, letterSpacing: '0.22em', textTransform: 'uppercase', color: P.dim, opacity: line }}>
-          <span>frictionx.vercel.app</span><span>Free · No account · Your data stays in your browser</span>
+          <span>frictionx.app</span><span>Free · No account</span>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 100 }}><Bars progress={bars} height={18} /></div>
         <Vignette k={0.5} />
