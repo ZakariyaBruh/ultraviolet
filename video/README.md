@@ -1,4 +1,4 @@
-# Friction trailer (v8)
+# Friction trailer (v10)
 
 A 45.6 s launch trailer, 1920x1080 at 30 fps, on a 120 bpm grid (beat 0.5 s, bar 2 s) so every cut and hit lands on a beat.
 Renders, recordings and Blender frames are not in git (they are regenerated); everything that makes them is.
@@ -11,11 +11,24 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 | 0.0 - 6.2 | The hook: a dial slides and spins faster and faster, "No bottom. No edge. No brakes.", the floor bites and it stops. | `blender/hook6.py`: the motion is simulated and baked into real keyframes, so Cycles motion blur sees true motion. The ridges are glowing ice-blue bars that rise ahead of the dial (before, they were dark mirror strips nobody could see), and the camera keeps the dial in the left third with open floor ahead of it. The words say what it is: "Scrolling has no friction." then, as it slows, "Until something pushes back." |
 | 6.2 - 7.0 | Black and silence. | The score gates everything except the room tone. |
 | 7.0 - 13.0 | The dial is thrown, slows under friction and becomes the O of FRICTION; "Put the friction back."; the O turns into the app's text doughnut, which grows until the camera flies through its hole into the app (the move v3 had). | `src/v6/Title.tsx` (the doughnut is the app's own `ascii3d.ts` engine, `src/Ascii.tsx`), `Dial.tsx`. The hole is a mask over the title; the app scene is mounted 14 frames early underneath it. |
-| 13.0 - 22.0 | The real app, one take, played through a spring camera. Set a length, lock in, leave the tab (it counts), finish: the card, the rocket, the confetti. | `scripts/capture6.cjs` + `src/v6/App.tsx`. |
-| 22.0 - 28.0 | The second 3D segment: the camera runs up out of the app into the app's own ASCII engine turned all the way up. The ASCII dial clicks through its six stops (Off, Drift, A few, Floor, Stars, World), each click on a beat putting more in: one solid, three, a ridged ground drawn as text, stars, a sun on the horizon, then a flight through it. The camera runs back down into the app. | `src/v6/AsciiWorld.tsx` (the engine in `src/ascii3d.ts`, a voxel-style ground with grid lines, solids composited by depth), `Elevator` in `Trailer6.tsx`. |
-| 28.0 - 37.0 | Five looks, the Arcade, the front page; the camera plunges into the yellow solid on the front page. | `App.tsx`. |
+| 13.0 - 22.0 | The real app as three differently staged shots, the tablet carried from one to the next on a spring: big type beside a tablet turned toward it (Set a length. Lock in.); the tablet steps aside for two magnified insets with lines back to where they came from (the toast, the drift count); the tablet front on with FINISH. standing behind it and a stamp on its corner. Then it lies down flat and the camera skims over its glass until the frame is only black. | `scripts/capture6.cjs` + `src/v6/App.tsx` (`POSES`, `Tablet`, `Line`, `Inset`). |
+| 22.0 - 28.0 | The second 3D segment: the app's own ASCII engine turned all the way up, rising on the black glass the camera has just flown over. The ASCII dial clicks through its six stops (Off, Drift, A few, Floor, Stars, World), each click on a beat putting more in: one solid, three, a ridged ground drawn as text, stars, a sun on the horizon, then a flight through it. The colour bars close over it from both edges and open on the next shot. | `src/v6/AsciiWorld.tsx` (the engine in `src/ascii3d.ts`, a voxel-style ground with grid lines, solids composited by depth), `WorldIn` in `Trailer6.tsx`, `BarsWipe` in `App.tsx`. |
+| 28.0 - 37.0 | One screen cut into five strips, a look each, taking turns to be the wide one; the strips turn edge on and behind them is a tablet at an angle beside a counting 16 (the Arcade); static, then half footage of the front page typing itself and half a field of yellow with the words on it, which takes the frame, grows ridges and cuts to the yellow dial. | `App.tsx` (`Slats`, the arcade and front page blocks). |
 | 37.0 - 41.0 | The second photoreal shot: the dial locks in. It clicks round six detents on the beat; each of the first five raises a ring of glowing ridges around it (the opening's friction, now a field that holds it); the camera starts on the knurled edge, backs away and climbs, and ends straight down on a target of rings. The sixth click locks, with a pulse of light. | `blender/lock7.py` (baked from springs, Cycles, 1440 x 810, light linking so the glass does not mirror the dial's lamps), `blender/render_lock7.sh`, `src/v6/LockSegment.tsx`. |
 | 41.0 - 45.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
+
+## v10: what changed and why
+
+The complaint was that every part was a text box over a screen and every change of shot a swipe or a zoom. So:
+
+* No caption plate anywhere in the app sections or the lock shot. Each beat has its own staging (type beside the device, insets with leader lines, a word
+  behind the device, strips, a number, a colour field, a word of tape for each click of the dial).
+* The tablet is one prop on one spring (`POSES`), so going from shot to shot is the prop moving, not a cut.
+* Changes of scene are things that happen to the picture: the tablet lies flat and the camera goes over it into black (asked for by name), the colour
+  bars close and open, strips turn on their edges, static between stations, and the yellow field that becomes the yellow dial (a cut on colour).
+* The vertical whip (`Elevator`) and the plunge into the solid are gone.
+
+Stills were looked at for each shot; the long gates (`gate6.py`, `qa.py`) were not rerun for this cut, on request.
 
 ## What was learned (and applied)
 
@@ -54,10 +67,10 @@ windows are, not a coloured bar. No text shadows, no monospace outside the ASCII
 
 ## Pipeline
 
-    node scripts/capture6.cjs take                       # needs `npx vite --port 5174` in the app and /tmp/claude-0/state5174.json (a seeded profile)
+    node scripts/capture6.cjs take                       # needs `npx vite --port 5174` in the app and a seeded profile
     blender -b -P blender/hook6.py -- 1 186 public/v6/hook 1440 810 10     # or blender/render_hook6.sh (chunked)
     gcc -O2 -o tsfr tsfr.c -lm && python3 scripts/score6.py                 # writes public/v6/score.wav and cues.json
-    npx remotion render src/index.ts V6 out/trailer6.mp4 --codec=h264 --crf=16
+    npx remotion render src/index.ts V6 out/friction-trailer-v10.mp4 --codec=h264 --crf=17
     python3 scripts/gate6.py out/trailer6.mp4 && python3 scripts/qa.py out/trailer6.mp4 30
 
 The numbers on the app screens come from a fixture the trailer builds for itself (`scripts/seed.cjs`); the app has no demo-history feature any more.
@@ -118,4 +131,4 @@ tab; credits come from focus, lessons and trivia; sixteen games; five looks. No 
 - The app footage sits in a tablet (`src/v6/Device.tsx`: blue-black body, hairline rim, yellow standby dot) that drifts a little in 3D while the camera is wide; the camera zoom is capped (`ZMAX` 1.15 in `App.tsx`) so the bezel stays in shot.
 - `src/v6/Ring.tsx` is the third 3D piece: six tablets (the app's Focus, Radio, TV, Learn, Arcade and Focus screens) turn on a CSS-3D ring and the first comes back to fill the frame. It is cut in at `RING_AT` (28.0 s) after the ASCII world, and the app scene resumes after it (`Trailer6.tsx`, `T.appEnd`, `T.lockEnd` and everything after move later by `RING_S`).
 - `public/v6/score.wav` is the old score with 4 s (bars 24 to 28) repeated at 28.0 s so the beat grid holds; it is not in git (ignored), so redo the splice if the file is lost: `atrim=0:28` + `atrim=24:28` + `atrim=28`.
-- Capture: `node scripts/capture6.cjs take` needs vite on port 5174; do not edit `src/` while it runs. Render: `npx remotion render src/index.ts V6 out/trailer6.mp4 --codec=h264 --crf=16 --color-space=bt709`.
+- Capture: `node scripts/capture6.cjs take` needs vite on port 5174; do not edit `src/` while it runs. Render: `npx remotion render src/index.ts V6 out/friction-trailer-v10.mp4 --codec=h264 --crf=17 --color-space=bt709`.
