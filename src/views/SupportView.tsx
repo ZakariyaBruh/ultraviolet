@@ -107,6 +107,20 @@ function Checkout({ onDone }: { onDone: () => void }) {
 }
 
 /** The goal bar: the next supporter goal, how far along it is, and what it is for, said honestly. The count is set by hand (api/goal.ts). */
+/** Product Hunt's follow badge in the version that suits the theme on screen: light for the paper-like themes, neutral for Mono, dark for the rest */
+function FollowBadge() {
+  const id = useThemeId()
+  const look = themeDef(id).light ? 'light' : id === 'mono' ? 'neutral' : 'dark'
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <a href="https://www.producthunt.com/products/friction-4?utm_source=badge-follow&utm_medium=badge&utm_campaign=badge-friction-4" target="_blank" rel="noopener noreferrer" className="block w-fit">
+        <img alt="Friction - Focus u. | Product Hunt" width="250" height="54" loading="lazy" style={{ width: 250, height: 54 }} src={`https://api.producthunt.com/widgets/embed-image/v1/follow.svg?product_id=1360614&theme=${look}`} />
+      </a>
+      <p className="max-w-[34ch] text-[13px] leading-[1.4] text-ink-3">Not ready to subscribe? Following Friction on Product Hunt helps too. It opens in a new tab.</p>
+    </div>
+  )
+}
+
 function GoalBar() {
   const [n, setN] = useState<number | null>(null)
   useEffect(() => { fetch('/api/goal').then((r) => (r.ok ? r.json() : null)).then((j) => setN(typeof j?.n === 'number' ? j.n : null)).catch(() => setN(null)) }, [])
@@ -153,6 +167,7 @@ export function SupportView() {
             </li>
           ))}
         </ul>
+        <FollowBadge />
         <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this.</p>
       </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}

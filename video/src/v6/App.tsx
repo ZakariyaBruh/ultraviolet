@@ -1,4 +1,4 @@
-import { Freeze, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
+import { Freeze, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion'
 import type { CSSProperties, ReactNode } from 'react'
 import { BARS, E, FPS, Fill, Grain, Kicker, P, Ticks, clamp, shake, spr } from './kit'
 import { Body, Screen } from './Device'
@@ -192,7 +192,7 @@ export const AppScene = () => {
   /* the front page: footage on the left, the yellow field on the right; at the end the field takes the frame */
   const take = interpolate(now, [23.2, 23.7], [0, 1], { ...clamp, easing: E.inOut })
   const edge = 1056 * (1 - take)
-  const ridges = interpolate(now, [23.55, 24.0], [0, 1], clamp)
+  const ridges = interpolate(now, [23.35, 23.95], [0, 1], { ...clamp, easing: E.inOut })
   const drift = interpolate(now, [20.1, 24], [0, 1], clamp)
 
   return (
@@ -284,10 +284,10 @@ export const AppScene = () => {
               <Line now={now} t0={21.5} t1={23.14} size={146} color={P.deep}>No account.</Line>
               <div style={{ marginTop: 30 }}><Line now={now} t0={22.5} t1={23.16} size={74} color={P.deep} track="0.08em">Open it and start.</Line></div>
             </div>
-            {/* the field grows the ridges of the dial it is about to become */}
-            <Fill style={{ opacity: ridges * 0.5, backgroundImage: 'repeating-linear-gradient(90deg, rgba(120,84,0,0) 0 26px, rgba(120,84,0,0.55) 34px, rgba(255,246,200,0.7) 42px, rgba(120,84,0,0) 52px)' }} />
           </div>
           <div style={{ position: 'absolute', left: edge - 3, top: 0, width: 6, height: 1080, background: P.deep, opacity: take < 1 ? 1 : 0 }} />
+          {/* the field dissolves into the first frame of the next shot itself (the dial's knurled edge), so the cut lands on identical pixels */}
+          <Fill style={{ opacity: ridges, transform: 'scale(1.012)' }}><Img src={staticFile('v6/lock/l_0001.png')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Fill>
         </Fill>
       )}
 
