@@ -504,6 +504,16 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     type Drag = { el: HTMLElement; id: string; pid: number; x0: number; y0: number; o0: Offset; k: number; r: ReturnType<typeof range>; began: boolean; lx: number; ly: number; lt: number; vx: number; vy: number; rot: number }
     let d: Drag | null = null
     let swallow = false
+    /*
+     * In a window so small that the page scrolls (`#canvas[data-scroll]`), a panel lets a finger pan the page (`touch-action: pan-y`), so a vertical
+     * swipe could never carry it: the page moved instead. There, a finger picks a panel up by holding still on it for a moment (it lifts, and a tap of
+     * buzz where the device has one); from then on the page is held still (touchmove is cancelled) and the panel follows. A quick swipe still scrolls.
+     */
+    const HOLD_MS = 260
+    let hold = 0
+    let carrying = false
+    const freeze = (e: TouchEvent) => { if (carrying && e.cancelable) e.preventDefault() }
+    const drop = () => { clearTimeout(hold); hold = 0; carrying = false }
     const flair = () => !REDUCED() && useStore.getState().settings.motion > 0
 
     const save = (el: HTMLElement, id: string) => { useLayout.getState().move(scopeOf(id, scope), id, live(el)); rememberAt(scope, el, id) }
@@ -537,12 +547,30 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       if (!hit) return
       delete el.dataset.gliding
       const r = range(el)
-      d = { el, id: hit.id, pid: e.pointerId, x0: e.clientX, y0: e.clientY, o0: live(el), k: r.k, r, began: false, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, vx: 0, vy: 0, rot: 0 }
+      const cur: Drag = { el, id: hit.id, pid: e.pointerId, x0: e.clientX, y0: e.clientY, o0: live(el), k: r.k, r, began: false, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, vx: 0, vy: 0, rot: 0 }
+      d = cur
+      if (e.pointerType === 'touch' && getComputedStyle(el).touchAction !== 'none') {
+        // the page can scroll under this finger: wait for a hold before it is a drag
+        hold = window.setTimeout(() => {
+          if (d !== cur || cur.began) return
+          carrying = true
+          cur.o0 = live(el); cur.x0 = cur.lx; cur.y0 = cur.ly
+          el.dataset.dragging = 'true'
+          lift(el)
+          document.documentElement.dataset.dragging = 'true'
+          navigator.vibrate?.(8)
+        }, HOLD_MS)
+      }
     }
     const move = (e: PointerEvent) => {
       if (!d || e.pointerId !== d.pid) return
       const dx = e.clientX - d.x0
       const dy = e.clientY - d.y0
+      if (hold && !carrying) {
+        if (Math.hypot(dx, dy) > 7) { drop(); d = null } // a swipe: it is the page's
+        else { d.lx = e.clientX; d.ly = e.clientY }
+        return
+      }
       if (!d.began) {
         if (Math.hypot(dx, dy) < 7) return
         d.began = true
@@ -565,8 +593,13 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     const up = (e: PointerEvent) => {
       if (!d || e.pointerId !== d.pid) return
       const cur = d
+      const wasCarrying = carrying
       d = null
-      if (!cur.began) return
+      drop()
+      if (!cur.began) {
+        if (wasCarrying) { delete cur.el.dataset.dragging; delete document.documentElement.dataset.dragging }
+        return
+      }
       swallow = true
       setTimeout(() => { swallow = false }, 0)
       delete cur.el.dataset.dragging
@@ -595,6 +628,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       paint(el, { x: clampTo(o.x + v[0], r.minX, r.maxX), y: clampTo(o.y + v[1], r.minY, r.maxY) })
       save(el, hit.id)
     }
+    document.addEventListener('touchmove', freeze, { passive: false })
     document.addEventListener('pointerdown', down, true)
     document.addEventListener('pointermove', move, true)
     document.addEventListener('pointerup', up, true)
@@ -602,6 +636,8 @@ export function ArrangeLayer({ scope }: { scope: string }) {
     document.addEventListener('click', click, true)
     document.addEventListener('keydown', key)
     return () => {
+      document.removeEventListener('touchmove', freeze)
+      drop()
       document.removeEventListener('pointerdown', down, true)
       document.removeEventListener('pointermove', move, true)
       document.removeEventListener('pointerup', up, true)
