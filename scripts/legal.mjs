@@ -5,7 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
-const UPDATED = '11 November 2026'
+const UPDATED = '14 November 2026'
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
@@ -129,7 +129,7 @@ const PAGES = {
 <li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
 <li><strong>Cloud backup (supporters, optional).</strong> If you turn it on, your browser seals a copy of its data with a backup key that never leaves your devices, and we store the sealed copy: one row with an identifier made from the key, a hash of a second value that proves you hold it, the sealed data and the time. We cannot read it. It is deleted when you turn backup off or erase everything, and after about 400 days without a save. If you lose the key, nobody can open the copy.</li>
-<li><strong>Whop (supporters).</strong> If you choose to support Friction, the payment is made on Whop's own pages. Whop collects your payment details and email as the seller; Friction never receives them. When you return, a single flag in your browser records that you are a supporter.</li>
+<li><strong>Whop (supporters).</strong> If you choose to support Friction, the payment is made on Whop's own pages. Whop collects your payment details and email as the seller; Friction never receives them. When you return, a single flag in your browser records that you are a supporter. If you use Sign in with Whop on another device, you sign in on Whop's own page and Whop sends your browser back with a one-time code; Friction's server exchanges it, asks Whop only whether you have an active Support Friction membership, and then discards and revokes the token. Friction does not see or keep your Whop name, email or id, and the answer is just yes or no.</li>
 <li><strong>Product Hunt badge.</strong> The front page shows a badge image served by Product Hunt, which therefore sees your network address and browser, as any website that loads an image does.</li>
 <li><strong>Video and audio embeds.</strong> YouTube videos open in the privacy-friendly embed.</li>
 </ul>

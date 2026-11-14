@@ -6,6 +6,8 @@ import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { goTo, isSupporter, markSupporter, SUPPORT_PLAN, useSupporter } from '@/lib/supporter'
 import { useThemeId } from '@/lib/theme'
+import { fx_say } from '@/lib/actions'
+import { finishWhopSignin, startWhopSignin, whopSigninReady } from '@/lib/whopSignin'
 import { goalFor } from '@/lib/goals'
 import { supporterFonts } from '@/lib/fonts'
 import { startPreview, stopPreview } from '@/lib/themeCycle'
@@ -133,6 +135,22 @@ export function SupportView() {
   const on = done || isSupporter()
   // each theme tile is drawn in that theme's own face, so this screen asks for all five
   useEffect(() => { supporterFonts() }, [])
+  // Sign in with Whop: shown only once the server has an app id; Whop sends the person back here with the answer in the address
+  const [signin, setSignin] = useState(false)
+  const [going, setGoing] = useState(false)
+  useEffect(() => {
+    let live = true
+    void whopSigninReady().then((c) => { if (live) setSignin(!!c) })
+    void finishWhopSignin().then((r) => {
+      if (r === 'supporter') { setDone(true); fx_say({ title: 'You are a supporter', description: 'The extras are on in this browser. Thank you for keeping Friction free.' }) }
+      else if (r === 'no-membership') fx_say({ title: 'No active membership found', description: 'That Whop account has no active Support Friction membership. If you paid with another email, sign in with that one.', variant: 'warning' })
+      else if (r === 'cancelled') fx_say({ title: 'Sign in cancelled', description: 'Nothing was changed.' })
+      else if (r === 'scope') fx_say({ title: 'Sign in is not fully set up', description: 'Whop did not allow Friction to check memberships. Use the thank-you link from your receipt for now.', variant: 'warning' })
+      else if (r === 'failed') fx_say({ title: 'Sign in did not finish', description: 'Try again, or use the thank-you link from your Whop receipt.', variant: 'warning' })
+    })
+    return () => { live = false }
+  }, [])
+  const signIn = async () => { setGoing(true); if (!(await startWhopSignin())) { setGoing(false); fx_say({ title: 'Sign in is not available', description: 'Try again in a moment.', variant: 'warning' }) } }
 
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
@@ -172,6 +190,9 @@ export function SupportView() {
       ) : (
         <div className="scroll-y min-h-0 flex-1" data-no-drag tabIndex={0} role="region" aria-label="Checkout"><Checkout onDone={() => setDone(true)} /></div>
       )}
+      {!on && signin && (
+        <p className="text-[13px] leading-[1.4] text-ink-3">Already a supporter on another device? <button type="button" onClick={signIn} disabled={going} className="underline">Sign in with Whop</button> to switch your extras on here. Friction learns nothing about you from it: only whether the membership is active.</p>
+      )}
     </Panel>
   )
 
@@ -180,6 +201,7 @@ export function SupportView() {
       <PageHeader kicker="Keep it free" title="Support" sub="Friction has no account and no feed, and stays free. Supporting it pays for the domain and the hosting, and keeps the app ad free.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
+        {signin && !on && <button type="button" onClick={signIn} disabled={going} className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Sign in with Whop'}</button>}
         <ProductHuntBadge scale={1.3} className="border border-signal/60 bg-ground/60 p-1.5" />
       </PageHeader>
       {wide ? (
