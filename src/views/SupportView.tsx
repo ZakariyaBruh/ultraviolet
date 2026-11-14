@@ -137,7 +137,7 @@ export function SupportView() {
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
-      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month is cheaper than a cup of coffee, and it keeps Friction free for everyone else.</p>
+      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month is cheaper than a cup of coffee, and it keeps Friction free and ad free for everyone else.</p>
       <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
         <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">
@@ -154,7 +154,7 @@ export function SupportView() {
             </li>
           ))}
         </ul>
-        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this.</p>
+        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this. The app has no ads, and your $2 is what keeps it that way. If ads ever run, it is only on the public blog and legal pages, never inside the app.</p>
       </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
       <p className="text-[13px] leading-[1.4] text-ink-3">Whop is the seller: it takes the card details and handles receipts, taxes and refunds. Friction keeps no record of who paid. Cancel any time and what you unlocked stays. See the <a className="underline" href="/terms" target="_blank" rel="noopener">Terms</a> and <a className="underline" href="/privacy" target="_blank" rel="noopener">Privacy</a> pages.</p>
@@ -177,7 +177,7 @@ export function SupportView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Keep it free" title="Support" sub="Friction has no account and no feed, and stays free. Supporting it pays for the domain and the hosting.">
+      <PageHeader kicker="Keep it free" title="Support" sub="Friction has no account and no feed, and stays free. Supporting it pays for the domain and the hosting, and keeps the app ad free.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
         <ProductHuntBadge scale={1.3} className="border border-signal/60 bg-ground/60 p-1.5" />
