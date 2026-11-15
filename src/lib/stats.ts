@@ -1,5 +1,6 @@
 import type { HeatDay } from '@/components/ui/activity-heatmap'
 import { dateKey, daysAgo, parseKey } from './dates'
+import { runOf } from './run'
 import type { AppState } from './store'
 
 type HourLog = Record<string, number[]>
@@ -13,29 +14,13 @@ export function calendarData(log: HourLog): HeatDay[] {
     .filter((d) => d.value > 0)
 }
 
-/** Consecutive days (ending today, or yesterday if today is still empty) with ≥ minMin focused minutes. */
+/** Days in a row with at least `minMin` focused minutes; one empty day in seven is forgiven (see `runOf`). */
 export function streak(log: HourLog, minMin = 10, today: Date = new Date()): number {
-  let n = 0
-  let i = dayTotal(log, dateKey(today)) >= minMin ? 0 : 1
-  for (; i < 400; i++) {
-    if (dayTotal(log, dateKey(daysAgo(i, today))) >= minMin) n++
-    else break
-  }
-  return n
+  return runOf(log, minMin, today).days
 }
 
-export function bestStreak(log: HourLog, minMin = 10): number {
-  const keys = Object.keys(log).filter((k) => dayTotal(log, k) >= minMin).sort()
-  let best = 0
-  let run = 0
-  let prev: Date | null = null
-  for (const k of keys) {
-    const d = parseKey(k)
-    run = prev && Math.round((+d - +prev) / 864e5) === 1 ? run + 1 : 1
-    best = Math.max(best, run)
-    prev = d
-  }
-  return best
+export function bestStreak(log: HourLog, minMin = 10, today: Date = new Date()): number {
+  return runOf(log, minMin, today).best
 }
 
 export function lastDays(n: number): string[] {

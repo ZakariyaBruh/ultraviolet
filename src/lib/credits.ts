@@ -86,5 +86,8 @@ export const SHOP: Record<ItemId, ShopItem> = {
 }
 export const SHOP_ORDER: ItemId[] = ['break', 'longbreak', 'shield', 'lifeline', 'capsule', 'sound', 'automusic', 'kit', 'solids', 'spinner', 'confetti', 'brick']
 
+/** the first finished session of a day in a run of two or more days pays one credit for each day of the run, up to this many */
+export const STREAK_BONUS_MAX = 5
+
 /** what one restart after a game over costs */
 export const CONTINUE_COST = 2

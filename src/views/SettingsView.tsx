@@ -13,7 +13,7 @@ import { eraseTheRest } from '@/lib/erase'
 import { MusicControls } from '@/components/app/MusicControls'
 import { useConsent } from '@/lib/consent'
 import { BackupPanel, RestoreBackup } from '@/components/app/BackupPanel'
-import { downloadCsv, downloadIcs } from '@/lib/exports'
+import { downloadCsv, downloadIcs, downloadReminder } from '@/lib/exports'
 import { isSupporter, openSupport, useSupporter } from '@/lib/supporter'
 import { useUI } from '@/lib/ui'
 import { askOs, osState } from '@/lib/notify'
@@ -294,6 +294,11 @@ function Data() {
           <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={downloadIcs}>Download calendar (.ics)</button>
         </div>
       </Panel>
+      <Panel className="grid content-start gap-3 p-4">
+        <p className="hud">A daily reminder</p>
+        <p className="max-w-prose text-[13px] leading-[1.4] text-ink-2">Friction can't ring when it's closed. Your calendar can. This adds a repeating "Lock in" event with an alert at the time you pick. Built here, sent nowhere.</p>
+        <ReminderRow />
+      </Panel>
       <Panel className="flex flex-col justify-between gap-3 rounded-3xl p-4 lg:col-span-2">
         <DrawCheckbox label="Everything stays in this browser" description="Erasing also removes your place on the leaderboard and your seat in any room. No file can be imported, so nothing uploaded can take someone else's place. Moving your data to your own other browser takes a one-time code you make yourself." checked readOnly />
         <DragToConfirm className="slide-end slide-danger" label="Slide to erase everything" confirmedLabel="Erased" variant="danger" isConfirmed={confirmed} onConfirm={async () => { const before = snapshot(useStore.getState()); useStore.getState().resetAll(); setConfirmed(true); const onServer = await eraseTheRest(); fx_say({ title: 'All data erased', description: onServer ? 'You are off the leaderboard and out of every room. Undo brings your data back here, not your place on the board.' : 'You are offline, so the leaderboard place will be removed the next time the app can reach the server.', variant: 'danger', undo: () => { useStore.getState().restore(before as unknown as AppState); setConfirmed(false) } }) }} onReset={() => setConfirmed(false)} autoResetDelay={4000} />
@@ -360,6 +365,18 @@ export function SettingsView() {
         {tab === 'data' && <Data />}
         {tab === 'help' && <Help />}
       </div>
+    </div>
+  )
+}
+
+function ReminderRow() {
+  const [t, setT] = useState('09:00')
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="flex items-center gap-2 text-sm text-ink-2">Time
+        <input type="time" value={t} onChange={(e) => setT(e.target.value)} className="h-11 border border-ink/30 bg-transparent px-3 text-ink" />
+      </label>
+      <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={() => downloadReminder(t)}>Add to calendar (.ics)</button>
     </div>
   )
 }

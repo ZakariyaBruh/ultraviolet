@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { isTrying, refuse } from './trial'
-import { BREAK_MIN, CAPSULE_MAX, finishBonus, TRIPS_MAX, TRIP_MAX_MIN, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
+import { BREAK_MIN, CAPSULE_MAX, finishBonus, TRIPS_MAX, TRIP_MAX_MIN, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, STREAK_BONUS_MAX, type ItemId } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey } from './dates'
+import { markAt, memo, runOf } from './run'
 import { PROJECT_MAX, tidyProject } from './projects'
 
 export interface Mute {
@@ -633,7 +634,21 @@ export const useStore = create<AppState>()(
         // a sealed time capsule opens once, after a session that was finished
         const note = completed ? itemsOf(get().credits).capsule : ''
         if (note) set((st) => ({ credits: { ...st.credits, items: { ...itemsOf(st.credits), capsule: '' } } }))
-        if (completed) useUI.getState().set({ celebrate: { title: note ? 'A note from past you' : 'Session complete', detail: `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}` } })
+        if (completed) {
+          // the day's run: a card of its own on a milestone, a line and a small bonus otherwise
+          const r = runOf(get().focusLog)
+          const mark = r.doneToday ? markAt(r.days) : undefined
+          const markKey = mark && r.since ? `${r.since}:${mark.days}` : ''
+          const newMark = !!markKey && memo.get('friction:mark') !== markKey
+          if (newMark) memo.set('friction:mark', markKey)
+          const dayKey = dateKey()
+          const bonus = r.doneToday && r.days >= 2 && memo.get('friction:run-day') !== dayKey ? Math.min(r.days, STREAK_BONUS_MAX) : 0
+          if (r.doneToday) memo.set('friction:run-day', dayKey)
+          if (bonus > 0) get().earnCredits(bonus, `Day ${r.days} on air`)
+          const runNote = r.doneToday ? ` Day ${r.days} on air${bonus > 0 ? `, +${bonus} credits` : ''}. Back tomorrow for ${r.days + 1}.` : ''
+          const base = `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}`
+          useUI.getState().set({ celebrate: newMark && mark ? { title: mark.title, detail: `${mark.line}${bonus > 0 ? ` +${bonus} credits.` : ''} ${base}` } : { title: note ? 'A note from past you' : 'Session complete', detail: `${base}${runNote}` } })
+        }
         // a finished session gets the celebration card instead of a toast
         if (!completed) useFx.getState().say(a.elapsedSec >= 10 ? { title: 'Session ended', description: `${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min kept.` } : { title: 'Too short to count', description: 'Sessions under 10 seconds are not saved.' })
         get().log('session', `${completed ? 'Completed' : 'Ended'} ${a.title}: ${Math.round(a.elapsedSec / 60)} of ${a.goalMin} min, ${a.urges} drift${a.urges === 1 ? '' : 's'}`)

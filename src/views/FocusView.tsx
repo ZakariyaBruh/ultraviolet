@@ -22,7 +22,8 @@ import { nextTier, rateAt, tierLabel, tiersFor, TRIPS_MAX } from '@/lib/credits'
 import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
-import { dayTotal, streak, sum } from '@/lib/stats'
+import { dayTotal, sum } from '@/lib/stats'
+import { runLine, runOf, nextMark, type DayMark } from '@/lib/run'
 import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import type { View } from '@/components/app/Shell'
@@ -205,7 +206,9 @@ export function FocusView({ go }: { go: (v: View) => void }) {
 
   const held = dayTotal(focusLog, today)
   const blocked = Math.round(sum(urgeLog[today] ?? []))
-  const days = streak(focusLog)
+  const run = runOf(focusLog)
+  const days = run.days
+  const streakLine = runLine(run, held)
 
   const start = () => {
     useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
@@ -217,10 +220,10 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const finding = session
     ? `${session.project ? `${session.project}: ` : ''}${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} drift${session.urges === 1 ? '' : 's'}.`
     : held >= goal
-      ? `Daily goal of ${goal} min met. ${blocked} drifts today.`
+      ? `Daily goal of ${goal} min met. ${blocked} drifts today. ${streakLine}`.trim()
       : held > 0
-        ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts.`
-        : 'Nothing yet today. Pick a length and lock in.'
+        ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts. ${streakLine}`.trim()
+        : `Nothing yet today. ${streakLine || 'Pick a length and lock in.'}`
 
   return (
     <section className={`relative flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : '[justify-content:safe_center]'}`}>
@@ -242,7 +245,10 @@ export function FocusView({ go }: { go: (v: View) => void }) {
               <div className="h-px bg-ink/10" />
               <Readout label="Held today" value={<AnimatedNumber value={Math.round(held)} />} unit="min" note={`of ${goal} min goal`} />
               <div className="h-px bg-ink/10" />
-              <Readout label="Streak" value={<AnimatedNumber value={days} />} unit={days === 1 ? 'day' : 'days'} note="10+ min each day" />
+              <div className="grid gap-2">
+                <Readout label="Days on air" value={<AnimatedNumber value={days} />} unit={days === 1 ? 'day' : 'days'} note={run.doneToday ? (nextMark(days) ? `${nextMark(days)!.days - days} to ${nextMark(days)!.days}` : 'held today') : days > 0 ? '10 min keeps it' : '10+ min a day'} />
+                <WeekStrip week={run.week} rest={run.restReady || !run.alive} />
+              </div>
             </Panel>
           </motion.div>
         )}
@@ -350,7 +356,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       )}
       {!wide && (
         <div className="grid grid-cols-3 gap-2">
-          {[{ l: 'Drifts', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'Streak', v: days, u: 'd' }].map((r) => (
+          {[{ l: 'Drifts', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'On air', v: days, u: days === 1 ? 'day' : 'days' }].map((r) => (
             <Panel key={r.l} className="px-3 py-2.5">
               <div className="hud">{r.l}</div>
               <div className="fig mt-0.5 text-2xl text-ink"><AnimatedNumber value={r.v} />{r.u && <span className="ml-1 text-sm text-ink-2">{r.u}</span>}</div>
@@ -360,5 +366,24 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       )}
       <WidgetLayer />
     </section>
+  )
+}
+
+const MARK_CLASS: Record<DayMark, string> = {
+  on: 'h-2 bg-signal',
+  open: 'h-2 border border-dashed border-signal bg-transparent',
+  rest: 'h-1 self-end bg-ice/60',
+  off: 'h-1 self-end bg-ink/20',
+}
+const MARK_WORD: Record<DayMark, string> = { on: 'held', open: 'open', rest: 'rest day', off: 'empty' }
+
+/** The last seven days as seven bars, like the test-card strip: lit when held, a low bar for a rest day or an empty one. */
+function WeekStrip({ week, rest }: { week: { key: string; mark: DayMark }[]; rest: boolean }) {
+  const label = `Last seven days: ${week.map((w) => MARK_WORD[w.mark]).join(', ')}.${rest ? ' A rest day is free.' : ''}`
+  return (
+    <div role="img" aria-label={label} className="grid gap-1">
+      <div className="grid h-2 grid-cols-7 gap-1">{week.map((w) => <span key={w.key} className={MARK_CLASS[w.mark]} />)}</div>
+      <p className="hud text-[10px] text-ink-3">{rest ? 'Rest day free' : 'Rest day used'}</p>
+    </div>
   )
 }

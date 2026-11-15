@@ -133,7 +133,7 @@ export function scoreView(d: InsightData, dailyGoalMin: number, today: Date = ne
   const calm = per === null ? 0.5 : 1 - Math.min(1, per / 30)
   const parts: ScorePart[] = [
     { id: 'goal', label: 'Daily goal', measure: `${Math.round(focus)} of ${dailyGoalMin} min held today`, rule: 'Minutes held today against your goal.', max: 55, value: goal },
-    { id: 'streak', label: 'Streak', measure: `${run} day${run === 1 ? '' : 's'} in a row`, rule: 'Days in a row with at least 10 minutes. Seven or more is full marks.', max: 25, value: Math.min(7, run) / 7 },
+    { id: 'streak', label: 'Streak', measure: `${run} day${run === 1 ? '' : 's'} in a row`, rule: 'Days in a row with at least 10 minutes. One empty day in seven is forgiven. Seven or more is full marks.', max: 25, value: Math.min(7, run) / 7 },
     { id: 'calm', label: 'Calm', measure: per === null ? 'No focus yet today' : `${Math.round(per * 10) / 10} drift${Math.round(per * 10) / 10 === 1 ? '' : 's'} per focused hour today`, rule: 'No drifts is full marks, 30 or more an hour is none. A day with no focus counts as half.', max: 20, value: calm },
   ]
   return { score: Math.round(sum(parts.map((p) => p.value * p.max))), parts }
