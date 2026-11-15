@@ -69,7 +69,7 @@ export function TogetherView() {
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(t) }, [])
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [msgs.length])
 
-  if (!code || !room) return (<section className="flex h-full min-h-0 flex-col gap-3"><PageHeader kicker="Together" title="Together" sub="Lock in with friends, in the same room." /><Lobby />{useRoom.getState().busy && <p className="hud">Opening the room…</p>}</section>)
+  if (!code || !room) return (<section className="flex h-full min-h-0 flex-col gap-3"><PageHeader kicker="Together" title="Together" sub="Lock in together. One room, up to twelve people." /><Lobby />{useRoom.getState().busy && <p className="hud">Opening the room…</p>}</section>)
 
   const link = inviteLink(code)
   const copy = async (what: string) => { try { await navigator.clipboard.writeText(what); setCopied(true); setTimeout(() => setCopied(false), 1600) } catch { fx_say({ title: 'Copy it by hand', description: what }) } }

@@ -23,7 +23,7 @@ export function startOffline() {
   addEventListener('offline', () => {
     if (told) return
     told = true
-    fx_say({ title: 'You are offline', description: 'The timer, your windows and everything you have saved keep working. Stations, lessons and the board need a connection.', variant: 'warning' })
+    fx_say({ title: 'You are offline', description: 'The timer, your windows and your saved stuff still work. Stations, lessons and the board need a connection.', variant: 'warning' })
   })
   addEventListener('online', () => {
     if (!told) return

@@ -8,7 +8,7 @@ import { useStore, type AppState } from './store'
  * real work, and a badge that paid would be something to grind. Once earned it stays earned (`store.achievements`, id -> when), so
  * trimming old sessions never takes one away. Nothing here leaves the browser.
  */
-export type AchGroup = 'Focus' | 'Habit' | 'Learn' | 'Credits'
+export type AchGroup = 'Focus' | 'Habit' | 'Learn' | 'Credits' | 'Board'
 export type Src = Pick<AppState, 'sessions' | 'focusLog' | 'credits' | 'learn' | 'settings'>
 
 export interface Facts {
@@ -25,6 +25,18 @@ export interface Facts {
   earned: number
   spent: number
   games: number
+  /** a day of focus after eight or more days with none */
+  comeback: number
+  brick: number
+  breaks: number
+  trips: number
+}
+
+/** 1 if there was ever a day of focus after a gap of eight or more days with none */
+function comeback(log: Src['focusLog']): number {
+  const days = Object.keys(log).filter((k) => dayTotal(log, k) > 0).sort()
+  for (let i = 1; i < days.length; i++) if ((Date.parse(days[i]) - Date.parse(days[i - 1])) / 864e5 >= 9) return 1
+  return 0
 }
 
 export function factsOf(s: Src, today: Date = new Date()): Facts {
@@ -46,6 +58,10 @@ export function factsOf(s: Src, today: Date = new Date()): Facts {
     earned: s.credits.earned,
     spent: s.credits.spent,
     games: Object.values(s.credits.best).filter((n) => n > 0).length,
+    comeback: comeback(s.focusLog),
+    brick: s.credits.items?.owned?.includes('brick') ? 1 : 0,
+    breaks: s.sessions.filter((x) => (x.breaks ?? 0) > 0).length,
+    trips: s.sessions.filter((x) => (x.trips ?? 0) > 0).length,
   }
 }
 
@@ -58,41 +74,80 @@ export interface Achievement {
   goal: number
   /** how the progress is counted, for "12 of 50 sessions" */
   unit: string
+  /** earned by something that happens (a fast lesson, a rank) rather than counted from saved numbers: no progress bar */
+  event?: boolean
   value: (f: Facts) => number
 }
 
 const A = (id: string, group: AchGroup, name: string, how: string, goal: number, unit: string, value: (f: Facts) => number): Achievement => ({ id, group, name, how, goal, unit, value })
+/** earned when something happens, by `award(id)` from the place it happens */
+const E = (id: string, group: AchGroup, name: string, how: string): Achievement => ({ id, group, name, how, goal: 1, unit: '', event: true, value: () => 0 })
 
 export const ACHIEVEMENTS: Achievement[] = [
-  A('first-lock', 'Focus', 'First lock-in', 'Finish a session.', 1, 'session', (f) => f.finished),
-  A('ten-sessions', 'Focus', 'Ten sessions', 'Finish ten sessions.', 10, 'sessions', (f) => f.finished),
-  A('fifty-sessions', 'Focus', 'Fifty sessions', 'Finish fifty sessions.', 50, 'sessions', (f) => f.finished),
-  A('hundred-sessions', 'Focus', 'A hundred sessions', 'Finish a hundred sessions.', 100, 'sessions', (f) => f.finished),
-  A('clean-sheet', 'Focus', 'Clean sheet', 'Finish a session without leaving once.', 1, 'clean session', (f) => f.clean),
-  A('ten-clean', 'Focus', 'Ten clean sheets', 'Finish ten sessions without leaving.', 10, 'clean sessions', (f) => f.clean),
-  A('an-hour', 'Focus', 'An hour in one go', 'Finish a session set for an hour.', 60, 'minutes', (f) => f.longest),
-  A('ninety', 'Focus', 'Ninety minutes', 'Finish a session set for ninety minutes.', 90, 'minutes', (f) => f.longest),
-  A('ten-hours', 'Focus', 'Ten hours held', 'Hold ten hours of focus in all.', 600, 'minutes', (f) => f.minutes),
-  A('fifty-hours', 'Focus', 'Fifty hours held', 'Hold fifty hours of focus in all.', 3000, 'minutes', (f) => f.minutes),
-  A('hundred-hours', 'Focus', 'A hundred hours held', 'Hold a hundred hours of focus in all.', 6000, 'minutes', (f) => f.minutes),
-  A('streak-3', 'Habit', 'Three days running', 'Focus ten minutes or more on three days in a row.', 3, 'days', (f) => f.streak),
-  A('streak-7', 'Habit', 'A week running', 'Ten minutes or more on seven days in a row.', 7, 'days', (f) => f.streak),
-  A('streak-30', 'Habit', 'A month running', 'Ten minutes or more on thirty days in a row.', 30, 'days', (f) => f.streak),
-  A('goal-day', 'Habit', 'Goal reached', 'Reach your daily goal.', 1, 'day', (f) => f.goalDays),
-  A('goal-week', 'Habit', 'Seven goal days', 'Reach your daily goal on seven days.', 7, 'days', (f) => f.goalDays),
-  A('early-bird', 'Habit', 'Early bird', 'Finish a session that began before seven in the morning.', 1, 'session', (f) => f.early),
-  A('night-owl', 'Habit', 'Night owl', 'Finish a session that began after ten at night.', 1, 'session', (f) => f.late),
-  A('first-lesson', 'Learn', 'First lesson', 'Finish a lesson.', 1, 'lesson', (f) => f.lessons),
-  A('ten-lessons', 'Learn', 'Ten lessons', 'Finish ten different lessons.', 10, 'lessons', (f) => f.lessons),
-  A('perfect-lesson', 'Learn', 'Full marks', 'Answer every question in a lesson right.', 1, 'lesson', (f) => f.perfect),
-  A('hundred-credits', 'Credits', 'A hundred credits', 'Earn a hundred credits.', 100, 'credits', (f) => f.earned),
-  A('thousand-credits', 'Credits', 'A thousand credits', 'Earn a thousand credits.', 1000, 'credits', (f) => f.earned),
-  A('first-spend', 'Credits', 'First purchase', 'Spend credits, in the shop or on a round.', 1, 'credit spent', (f) => f.spent),
-  A('five-games', 'Credits', 'Five games', 'Score in five different arcade games.', 5, 'games', (f) => f.games),
+  A('first-lock', 'Focus', "Fine, I'll try it", 'Finish a session.', 1, 'session', (f) => f.finished),
+  A('ten-sessions', 'Focus', 'Repeat offender', 'Finish ten sessions.', 10, 'sessions', (f) => f.finished),
+  A('fifty-sessions', 'Focus', 'Fifty? Really?', 'Finish fifty sessions.', 50, 'sessions', (f) => f.finished),
+  A('hundred-sessions', 'Focus', 'Touch grass', 'Finish a hundred sessions.', 100, 'sessions', (f) => f.finished),
+  A('clean-sheet', 'Focus', 'Not one peek', 'Finish a session without leaving once.', 1, 'clean session', (f) => f.clean),
+  A('ten-clean', 'Focus', 'Monk mode', 'Finish ten sessions without leaving.', 10, 'clean sessions', (f) => f.clean),
+  A('an-hour', 'Focus', 'Say whaaa?', 'Finish a session set for an hour.', 60, 'minutes', (f) => f.longest),
+  A('ninety', 'Focus', 'Different breed', 'Finish a session set for ninety minutes.', 90, 'minutes', (f) => f.longest),
+  A('ten-hours', 'Focus', 'Ten hours deep', 'Hold ten hours of focus, all told.', 600, 'minutes', (f) => f.minutes),
+  A('fifty-hours', 'Focus', 'Basically a job', 'Hold fifty hours of focus.', 3000, 'minutes', (f) => f.minutes),
+  A('hundred-hours', 'Focus', 'This is your personality now', 'Hold a hundred hours of focus.', 6000, 'minutes', (f) => f.minutes),
+  A('took-break', 'Focus', 'Five-minute hero', 'Take a Break in the middle of a session.', 1, 'session', (f) => f.breaks),
+  A('stepped-out', 'Focus', 'Off to do real work', 'Step out to work elsewhere, and say so first.', 1, 'session', (f) => f.trips),
+  A('brick', 'Focus', 'Why, though?', 'Buy the Golden Brick. It does nothing.', 1, 'brick', (f) => f.brick),
+  A('streak-3', 'Habit', 'Okay, a pattern', 'Ten minutes or more on three days in a row.', 3, 'days', (f) => f.streak),
+  A('streak-7', 'Habit', 'A week, no excuses', 'Ten minutes or more on seven days in a row.', 7, 'days', (f) => f.streak),
+  A('streak-30', 'Habit', 'Thirty days. Who are you?', 'Ten minutes or more on thirty days in a row.', 30, 'days', (f) => f.streak),
+  A('goal-day', 'Habit', 'Overachiever, once', 'Hit your daily goal.', 1, 'day', (f) => f.goalDays),
+  A('goal-week', 'Habit', 'Overachiever, seven times', 'Hit your daily goal on seven days.', 7, 'days', (f) => f.goalDays),
+  A('early-bird', 'Habit', 'Up before the pigeons', 'Finish a session that began before 7 am.', 1, 'session', (f) => f.early),
+  A('night-owl', 'Habit', 'Sleep is for later', 'Finish a session that began after 10 pm.', 1, 'session', (f) => f.late),
+  A('comeback', 'Habit', "Look who's back", 'Focus again after eight or more days away.', 1, 'comeback', (f) => f.comeback),
+  A('first-lesson', 'Learn', "Teacher's pet", 'Finish a lesson.', 1, 'lesson', (f) => f.lessons),
+  A('ten-lessons', 'Learn', 'Citation needed', 'Finish ten different lessons.', 10, 'lessons', (f) => f.lessons),
+  A('perfect-lesson', 'Learn', '100%, obviously', 'Get every question in a lesson right.', 1, 'lesson', (f) => f.perfect),
+  E('iq', 'Learn', 'An IQ too high?', 'Finish a lesson in under a minute with every answer right.'),
+  E('trivia-perfect', 'Learn', 'Pub quiz menace', 'Get every question right in a trivia round.'),
+  A('hundred-credits', 'Credits', 'Pocket change', 'Earn a hundred credits.', 100, 'credits', (f) => f.earned),
+  A('thousand-credits', 'Credits', 'Rich-ish', 'Earn a thousand credits.', 1000, 'credits', (f) => f.earned),
+  A('first-spend', 'Credits', 'Retail therapy', 'Spend credits, in the shop or on a round.', 1, 'credit spent', (f) => f.spent),
+  A('five-games', 'Credits', "Can't pick a favourite", 'Score in five different arcade games.', 5, 'games', (f) => f.games),
+  E('onboard', 'Board', 'On the board', 'Get a name on the leaderboard.'),
+  E('top-10', 'Board', 'Top ten, somehow', 'Reach the top ten.'),
+  E('top-3', 'Board', 'On the podium', 'Reach the top three.'),
+  E('first', 'Board', 'Number one. Insufferable.', 'Reach number one.'),
+  E('climber', 'Board', 'Elbows out', 'Climb three places or more between visits to the board.'),
+  E('room', 'Board', 'Study group', 'Start or join a Together room.'),
 ]
 
 export const progressOf = (a: Achievement, f: Facts) => Math.min(1, Math.max(0, a.value(f) / a.goal))
 export const metBy = (a: Achievement, f: Facts) => a.value(f) >= a.goal
+
+/** record one that is earned by something happening (a fast lesson, a rank, a room) and say so; does nothing if it is already earned */
+export function award(id: string) {
+  const s = useStore.getState()
+  const a = ACHIEVEMENTS.find((x) => x.id === id)
+  if (!a || s.achievements[id]) return
+  useStore.setState({ achievements: { ...s.achievements, [id]: Date.now() } })
+  useFx.getState().say({ title: `Unlocked: ${a.name}`, description: a.how })
+}
+
+/** where you stand on the board: the ranks, and a climb of three places or more since the last visit */
+export function noteRank(rank: number) {
+  if (!(rank >= 1)) return
+  award('onboard')
+  if (rank <= 10) award('top-10')
+  if (rank <= 3) award('top-3')
+  if (rank === 1) award('first')
+  try {
+    const prev = Number(localStorage.getItem('friction:rank'))
+    if (prev >= 1 && prev - rank >= 3) award('climber')
+    localStorage.setItem('friction:rank', String(rank))
+  } catch { /* storage blocked */ }
+}
 
 /** the ids that are met now and were not recorded before */
 export function newlyMet(have: Record<string, number>, s: Src, today: Date = new Date()): Achievement[] {
@@ -113,8 +168,8 @@ export function startAchievementWatch(): () => void {
     const t = Date.now()
     useStore.setState({ achievements: { ...s.achievements, ...Object.fromEntries(got.map((a) => [a.id, t])) } })
     const say = useFx.getState().say
-    if (got.length > 2) say({ title: `${got.length} achievements earned`, description: 'From what you have already done. They are in Insights, under Achievements.' })
-    else for (const a of got) say({ title: `Achievement: ${a.name}`, description: a.how })
+    if (got.length > 2) say({ title: `${got.length} achievements unlocked`, description: 'Earned from your history. They are in Insights.' })
+    else for (const a of got) say({ title: `Unlocked: ${a.name}`, description: a.how })
   }
   const off = useStore.subscribe((s, p) => {
     if (s.sessions === p.sessions && s.focusLog === p.focusLog && s.credits === p.credits && s.learn === p.learn) return

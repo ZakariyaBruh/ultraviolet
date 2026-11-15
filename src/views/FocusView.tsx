@@ -65,7 +65,7 @@ function TripClock({ until }: { until: number }) {
   return (
     <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5]" role="status">
       <span>Working elsewhere · <span className="fig text-ink">{left > 0 ? fmtClock(left) : '0:00'}</span> to be back</span>
-      <span className="max-w-[34ch] text-ink-3 normal-case">{left > 0 ? 'Go and work. Time away is not counted, and it costs what a drift costs. A Break is the only free leave.' : 'The time you gave is up. Being away now counts as a drift.'}</span>
+      <span className="max-w-[34ch] text-ink-3 normal-case">{left > 0 ? "Away time isn't counted and it costs what a drift costs. Only a Break leaves free." : "Time's up. Staying away now counts as a drift."}</span>
     </p>
   )
 }
@@ -220,7 +220,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       ? `Daily goal of ${goal} min met. ${blocked} drifts today.`
       : held > 0
         ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts.`
-        : 'Nothing held yet today. Choose a length, tune in, lock in.'
+        : 'Nothing yet today. Pick a length and lock in.'
 
   return (
     <section className={`relative flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : '[justify-content:safe_center]'}`}>

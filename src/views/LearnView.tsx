@@ -1,3 +1,4 @@
+import { award } from '@/lib/achievements'
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, ExternalLink, Flame, Layers, Shuffle, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -78,6 +79,7 @@ const cardFor = (title: string, step: Step, i: number): { id: string; front: str
 }
 
 function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: boolean) => void }) {
+  const openedAt = useRef(Date.now())
   // the built-in demo for the topic comes first; only a topic without one has a demo written for it while the first ideas are read
   const aiOn = useStore((s) => s.settings.aiDemos !== false)
   const curated = useMemo(() => demoFor(lesson.title), [lesson.title])
@@ -139,6 +141,8 @@ function LessonPlayer({ lesson, onExit }: { lesson: Lesson; onExit: (review?: bo
       if (fresh) useStore.getState().earnCredits(c, `Lesson: ${lesson.title}`)
       setCredit(fresh ? c : 0)
       finishLesson(lesson.title, score.ok, score.n)
+      // every answer right, in under a minute from opening it
+      if (score.n >= 3 && score.ok === score.n && Date.now() - openedAt.current < 60_000) award('iq')
       useUI.getState().set({ celebrate: { title: 'Lesson complete', detail: `${lesson.title}: ${lesson.ideas.length} ideas${score.n ? `, ${score.ok} of ${score.n} checks right` : ''}${fresh ? `. +${c} credits` : ''}.` } })
     }
   }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -286,6 +290,7 @@ function TriviaGame() {
     if (at === qs.length - 1) {
       const total = ok + (right ? 1 : 0)
       notify('learn', `Trivia round: ${total} of ${qs.length} right.`, 'Trivia')
+      if (total === qs.length && qs.length >= 5) award('trivia-perfect')
       const c = triviaCredits(total, qs.length)
       const today = dateKey()
       const paidToday = useStore.getState().credits.log.filter((e) => e.why === 'Trivia round' && dateKey(new Date(e.t)) === today).length
@@ -391,7 +396,7 @@ export function LearnView() {
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
       {lesson ? <h1 className="sr-only">Learn: {lesson.title}</h1> : (
-        <PageHeader kicker="Learn" title="Learn" sub={`Lessons are built from Wikipedia by fixed rules, never by an AI. ${aiDemos ? 'Only a demo with no built-in version is AI generated, and it says so.' : 'AI generated demos are switched off.'}`}>
+        <PageHeader kicker="Learn" title="Learn" sub={`Built from Wikipedia by fixed rules. No AI writes the lessons. ${aiDemos ? 'A demo with no hand-made version is written by AI, and says so.' : 'AI demos are off.'}`}>
           <div className="flex items-center gap-4 text-sm" aria-label="Your progress">
             <span className="inline-flex items-center gap-1.5"><Sparkles className="size-4 text-signal" /><span className="fig font-semibold">{xp}</span> XP</span>
             <span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-signal" /><span className="fig font-semibold">{streak}</span> day{streak === 1 ? '' : 's'}</span>

@@ -1,3 +1,4 @@
+import { noteRank } from '@/lib/achievements'
 import { Star, Trophy } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -33,6 +34,7 @@ export function LeadersView() {
       const [b, s] = await Promise.all([loadBoard(), loadStanding(m)])
       if (dead) return
       setRows(b.rows); setSt(s)
+      if (s.listed) noteRank(s.rank)
       if (s.listed && m.name && s.name !== m.name) void sendName(m, m.name).then((r) => { if (r === 'taken' || r === 'reserved' || r === 'invalid') { saveName(m, ''); setMe({ ...m, name: '' }); setProblem(nameProblem(r)) } })
     }).catch(() => !dead && setErr(true))
     return () => { dead = true }
@@ -73,7 +75,7 @@ export function LeadersView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Time focused" title="Leaders" sub="Ranked by how long people have focused. Your time counts from the moment you join the board." />
+      <PageHeader kicker="Time focused" title="Leaders" sub="Ranked by time focused. Your clock starts when you join." />
       {err ? (
         <Panel className="grid justify-items-start gap-3 p-5"><p className="text-sm text-ink-2">The leaderboard did not answer. Check your connection.</p><button className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setNonce((x) => x + 1)}>Try again</button></Panel>
       ) : !me || !rows ? (

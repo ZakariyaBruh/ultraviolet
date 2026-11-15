@@ -600,7 +600,7 @@ export const useStore = create<AppState>()(
           ...(shielded ? { credits: { ...s.credits, items: { ...have, shields: have.shields - 1 } } } : {}),
         })
         get().log('wander', s.session ? `You left the tab during ${s.session.title}${shielded ? '. A streak shield kept the clean streak' : ''}` : 'You left the tab mid-session')
-        if (shielded) useFx.getState().say({ title: 'Shield used', description: 'Your clean streak carries on. The drift still counts.' })
+        if (shielded) useFx.getState().say({ title: 'Shield used', description: 'Streak kept. The drift still counts.' })
       },
 
       endSession: (completed) => {

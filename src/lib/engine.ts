@@ -74,7 +74,7 @@ export function useSessionEngine() {
       // a declared step-out is recorded as one, not as a drift (unless they stayed away past the time they gave)
       if (useStore.getState().session?.tripUntil) {
         useStore.getState().endTrip(away)
-        if (away >= 6) useFx.getState().say({ title: 'Welcome back', description: `Stepped out for ${Math.max(1, Math.round(away / 60))} min to work. It is recorded as a step-out, not a drift.` })
+        if (away >= 6) useFx.getState().say({ title: 'Welcome back', description: `Back after ${Math.max(1, Math.round(away / 60))} min. Logged as a step-out, not a drift.` })
         return
       }
       if (away >= 6) {

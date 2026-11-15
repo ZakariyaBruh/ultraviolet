@@ -7,7 +7,7 @@ import { stop as stopPlayer } from './player'
 import { stopMusic } from './music'
 import { hushAll, isTrying, markTrial, refuse, setTrying, trialAvailable } from './trial'
 
-if (typeof window !== 'undefined') addEventListener('friction:trial-refused', () => fx_say({ title: 'Look around only', description: 'While you try a theme nothing plays and nothing can be locked in.' }))
+if (typeof window !== 'undefined') addEventListener('friction:trial-refused', () => fx_say({ title: 'Look around only', description: "While you're trying a theme, nothing plays and you can't lock in." }))
 
 export { themeDef }
 
@@ -26,13 +26,13 @@ export function cycleTheme() {
 let previewTimer: ReturnType<typeof setTimeout> | undefined
 /** Show a supporter theme for two minutes without saving it, so anyone can see what they would get. Once a day, never during a session, and nothing plays while it is on. */
 export function startPreview(id: ThemeId) {
-  if (useStore.getState().session) { fx_say({ title: 'Finish your session first', description: 'A theme can be tried only between sessions.' }); return }
+  if (useStore.getState().session) { fx_say({ title: 'Finish your session first', description: 'You can only try a theme between sessions.' }); return }
   if (useUI.getState().previewTheme === id) return
-  if (!isTrying() && !trialAvailable()) { fx_say({ title: 'You tried a theme today', description: 'Supporters keep every theme. A free try comes back tomorrow.' }); return }
+  if (!isTrying() && !trialAvailable()) { fx_say({ title: 'You tried a theme today', description: 'Supporters keep every theme. Your free try comes back tomorrow.' }); return }
   if (!isTrying()) { markTrial(); stopPlayer(); stopMusic(); hushAll(); previewTimer = setTimeout(() => endPreview(true), 120_000) } // switching themes never adds time
   setTrying(true)
   useUI.getState().set({ previewTheme: id })
-  fx_say({ title: `Trying ${themeDef(id).name}`, description: 'Look around. Nothing plays and nothing locks in meanwhile. It goes back to your own theme in two minutes.' })
+  fx_say({ title: `Trying ${themeDef(id).name}`, description: "Look around for two minutes. Nothing plays and you can't lock in. Then it goes back." })
 }
 function endPreview(timed: boolean) {
   clearTimeout(previewTimer)

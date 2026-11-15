@@ -1,3 +1,4 @@
+import { award } from './achievements'
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { fx_say } from './actions'
@@ -163,6 +164,7 @@ export async function createRoom() {
   try {
     const r = await call({ a: 'create', name: friendName() })
     ls.set(KEY, r.code)
+    award('room')
     set({ code: r.code, room: r, msgs: r.msgs, seenSess: r.sess?.start ?? 0, seenMedia: r.media?.at ?? 0 })
     begin()
   } catch (e) { set({ err: (e as Error).message }) } finally { set({ busy: false }) }
@@ -174,6 +176,7 @@ export async function joinRoom(raw: string) {
   try {
     const r = await call({ a: 'sync', code, name: friendName(), status: 'idle', since: 0 })
     ls.set(KEY, code)
+    award('room')
     clearInvite()
     set({ code, room: r, msgs: r.msgs, seenSess: r.sess?.start ?? 0, seenMedia: r.media?.at ?? 0 })
     begin()

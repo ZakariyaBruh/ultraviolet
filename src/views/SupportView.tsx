@@ -31,8 +31,8 @@ function load(): Promise<void> {
 
 interface Perk { title: string; text: string; open?: { label: string; go: () => void } }
 const PERKS: Perk[] = [
-  { title: 'Encrypted cloud backup', text: 'A sealed copy of everything, saved every few minutes: lose a phone, restore in a minute. Only you hold the key. It costs a server to keep, so it is not free.', open: { label: 'Open Settings', go: () => goTo('/settings') } },
-  { title: 'A star on the board', text: 'A star by your alias on the leaderboard and a small mark on your avatar. They change nothing about your rank.' },
+  { title: 'Encrypted cloud backup', text: "An encrypted copy of your data, saved every few minutes. Lose a phone, restore in a minute. Only you hold the key. It costs a server, so it isn't free.", open: { label: 'Open Settings', go: () => goTo('/settings') } },
+  { title: 'A star on the board', text: 'A star by your name on the leaderboard and a mark on your avatar. Your rank stays the same.' },
 ]
 
 /** how each supporter theme is drawn on its tile: its own display face and a hint of its frame, so the tile says what the theme does to a panel (colours come from the theme's own entry in themes.ts) */
@@ -142,25 +142,25 @@ export function SupportView() {
     let live = true
     void whopSigninReady().then((c) => { if (live) setSignin(!!c) })
     void finishWhopSignin().then((r) => {
-      if (r === 'supporter') { setDone(true); fx_say({ title: 'You are a supporter', description: 'The extras are on in this browser. Thank you for keeping Friction free.' }) }
-      else if (r === 'no-membership') fx_say({ title: 'No active membership found', description: 'That Whop account has no active Support Friction membership. If you paid with another email, sign in with that one.', variant: 'warning' })
-      else if (r === 'cancelled') fx_say({ title: 'Sign in cancelled', description: 'Nothing was changed.' })
-      else if (r === 'scope') fx_say({ title: 'Sign in is not fully set up', description: 'Whop did not allow Friction to check memberships. Use the thank-you link from your receipt for now.', variant: 'warning' })
-      else if (r === 'failed') fx_say({ title: 'Sign in did not finish', description: 'Try again, or use the thank-you link from your Whop receipt.', variant: 'warning' })
+      if (r === 'supporter') { setDone(true); fx_say({ title: "You're a supporter", description: 'Extras are on in this browser. Thanks.' }) }
+      else if (r === 'no-membership') fx_say({ title: 'No active membership', description: 'Nothing active on that Whop account. Paid with another email? Try that one.', variant: 'warning' })
+      else if (r === 'cancelled') fx_say({ title: 'Sign in cancelled', description: '' })
+      else if (r === 'scope') fx_say({ title: 'Sign in is not set up yet', description: 'Whop would not let us check memberships. Use the link in your receipt for now.', variant: 'warning' })
+      else if (r === 'failed') fx_say({ title: "Sign in didn't finish", description: 'Try again, or use the link in your Whop receipt.', variant: 'warning' })
     })
     return () => { live = false }
   }, [])
-  const signIn = async () => { setGoing(true); if (!(await startWhopSignin())) { setGoing(false); fx_say({ title: 'Sign in is not available', description: 'Try again in a moment.', variant: 'warning' }) } }
+  const signIn = async () => { setGoing(true); if (!(await startWhopSignin())) { setGoing(false); fx_say({ title: "Can't sign in right now", description: 'Try again in a moment.', variant: 'warning' }) } }
 
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
-      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month is cheaper than a cup of coffee, and it keeps Friction free and ad free for everyone else.</p>
+      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month. Cheaper than a coffee, and it keeps Friction free and ad-free for everyone else.</p>
       <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
         <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><Check className="size-4 shrink-0 text-signal" aria-hidden />Five more themes</h2>
-          <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each one changes more than the colours: its own type, its own frame round every panel and its own picture behind them. Tap one to try it for two minutes, free: the whole app changes while you look around.</p>
+          <p className="text-[14px] leading-[1.45] text-ink-2">Library, Observatory, Mono, Receipt and Chalkboard. Each changes the type, the panel frames and the backdrop, not just the colours. Tap one to try it free for two minutes.</p>
           <ThemeTiles />
         </section>
         <ul className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-3">
@@ -172,7 +172,7 @@ export function SupportView() {
             </li>
           ))}
         </ul>
-        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free, for everyone.</b> The timer, radio, TV, music, lessons, games and widgets. All of Insights, and the Week review, Projects, Coach, Year and Records. Project labels, CSV and calendar exports, the five original themes and the leaderboard. Credits are never sold and the shop is never given away. Nothing that was free has been moved behind this. The app has no ads, and your $2 is what keeps it that way. If ads ever run, it is only on the public blog and legal pages, never inside the app.</p>
+        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free for everyone:</b> the timer, radio, TV, music, lessons, games, widgets, all of Insights, the exports, the five original themes and the leaderboard. Credits are never sold. Nothing that was free has moved behind this. The app has no ads and your $2 keeps it that way. If ads ever run, it's only on the blog and legal pages.</p>
       </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
       <p className="text-[13px] leading-[1.4] text-ink-3">Whop is the seller: it takes the card details and handles receipts, taxes and refunds. Friction keeps no record of who paid. Cancel any time and what you unlocked stays. See the <a className="underline" href="/terms" target="_blank" rel="noopener">Terms</a> and <a className="underline" href="/privacy" target="_blank" rel="noopener">Privacy</a> pages.</p>
@@ -191,14 +191,14 @@ export function SupportView() {
         <div className="scroll-y min-h-0 flex-1" data-no-drag tabIndex={0} role="region" aria-label="Checkout"><Checkout onDone={() => setDone(true)} /></div>
       )}
       {!on && signin && (
-        <p className="text-[13px] leading-[1.4] text-ink-3">Already a supporter on another device? <button type="button" onClick={signIn} disabled={going} className="underline">Sign in with Whop</button> to switch your extras on here. Friction learns nothing about you from it: only whether the membership is active.</p>
+        <p className="text-[13px] leading-[1.4] text-ink-3">Already supporting from another device? <button type="button" onClick={signIn} disabled={going} className="underline">Sign in with Whop</button> to turn your extras on here. We only learn whether the membership is active.</p>
       )}
     </Panel>
   )
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Keep it free" title="Support" sub="Friction has no account and no feed, and stays free. Supporting it pays for the domain and the hosting, and keeps the app ad free.">
+      <PageHeader kicker="Keep it free" title="Support" sub="No account, no feed, no ads in the app. Support pays for the domain and the hosting.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
         {signin && !on && <button type="button" onClick={signIn} disabled={going} className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Sign in with Whop'}</button>}

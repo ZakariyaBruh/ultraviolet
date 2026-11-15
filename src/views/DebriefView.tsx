@@ -81,7 +81,7 @@ export function DebriefView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Debrief" title="What happened" sub="Worked out from the numbers saved in this browser. No AI, no server, nothing to type." />
+      <PageHeader kicker="Debrief" title="What happened" sub="Straight from your saved numbers. No AI, no server." />
       {t.focus === 0 ? (
         <Panel className="grid min-h-[9rem] flex-1 place-items-center p-6 text-center">
           <p className="max-w-[40ch] text-[15px] leading-6 text-ink-2">Nothing to read yet. Lock in for one session, even 15 minutes, and this page turns into the report of your day.</p>

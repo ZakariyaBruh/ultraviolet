@@ -351,7 +351,7 @@ export function SettingsView() {
   const [tab, setTab] = useState('focus')
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <PageHeader kicker="Settings" title="Make it yours">
+      <PageHeader kicker="Settings" title="Settings">
         <Seg id="set-tabs" value={tab} onChange={setTab} tabs={[{ id: 'focus', label: 'Settings' }, { id: 'look', label: 'Look' }, { id: 'data', label: 'Data' }, { id: 'help', label: 'Help' }]} />
       </PageHeader>
       <div className="min-h-0 flex-1">

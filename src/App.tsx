@@ -136,8 +136,8 @@ export default function App() {
     const told = (e: Event) => {
       const still = (e as CustomEvent<number>).detail === 0
       fx_say(still
-        ? { title: 'Background held still', description: 'This device still could not keep up, so the moving background has stopped. Everything else works as before. You can change this in Settings, under Look.' }
-        : { title: 'Lighter background', description: 'This device was struggling to keep up, so the moving background is now drawn less often. You can change this in Settings, under Look.' })
+        ? { title: 'Background held still', description: 'Still struggling, so the background is still now. Everything else works the same. Change it in Settings > Look.' }
+        : { title: 'Lighter background', description: 'This device was struggling, so the background moves less now. Change it in Settings > Look.' })
     }
     addEventListener('friction:perf', told)
     return () => removeEventListener('friction:perf', told)
