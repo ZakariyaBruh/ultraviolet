@@ -1,5 +1,6 @@
 import { dayTotal, streak, sum } from './stats'
 import { useFx } from './fx'
+import { isSupporter } from './supporter'
 import { useStore, type AppState } from './store'
 
 /**
@@ -121,6 +122,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   E('first', 'Board', 'Number one. Insufferable.', 'Reach number one.'),
   E('climber', 'Board', 'Elbows out', 'Climb three places or more between visits to the board.'),
   E('room', 'Board', 'Study group', 'Start or join a Together room.'),
+  E('supporter', 'Board', 'Keeping the lights on', 'Support Friction. A badge and nothing else: it unlocks no feature.'),
 ]
 
 export const progressOf = (a: Achievement, f: Facts) => Math.min(1, Math.max(0, a.value(f) / a.goal))
@@ -162,6 +164,8 @@ export function newlyMet(have: Record<string, number>, s: Src, today: Date = new
 export function startAchievementWatch(): () => void {
   let timer = 0
   const check = () => {
+    // someone who already supports gets it the first time this runs, and a new supporter gets it when they join
+    if (isSupporter()) award('supporter')
     const s = useStore.getState()
     const got = newlyMet(s.achievements, s)
     if (!got.length) return

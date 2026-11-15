@@ -23,7 +23,11 @@ export const openReview = (tab: string) => { useUI.getState().set({ insightsTab:
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((f) => f())
 export const isSupporter = () => { try { return localStorage.getItem(KEY) === '1' } catch { return false } }
-export const markSupporter = () => { try { localStorage.setItem(KEY, '1') } catch { /* storage blocked */ } emit() }
+export const markSupporter = () => {
+  try { localStorage.setItem(KEY, '1') } catch { /* storage blocked */ }
+  emit()
+  void import('./achievements').then((m) => m.award('supporter'))
+}
 export const forgetSupporter = () => { try { localStorage.removeItem(KEY) } catch { /* storage blocked */ } emit() }
 /** true for a supporter, and the screen updates the moment that changes */
 export function useSupporter(): boolean {
