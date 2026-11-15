@@ -1,5 +1,6 @@
 import { Component, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/app/LoadingBlock'
+import { useStore } from '@/lib/store'
 
 /**
  * The app is sent in parts: the screen you are on, then the others while nothing else is happening, and the heavy extras (the stream
@@ -77,7 +78,15 @@ export class PartBoundary extends Component<{ children: ReactNode; small?: boole
     return { err }
   }
   componentDidCatch(err: unknown) {
-    if (err instanceof LoadError) this.props.onFail?.()
+    if (!(err instanceof LoadError)) return
+    this.props.onFail?.()
+    // a tab left open across an update asks for files that are gone: fetch the new page once by itself, unless a session is running
+    if (!this.props.quiet && navigator.onLine !== false && !useStore.getState().session) {
+      try {
+        const last = Number(sessionStorage.getItem('friction:heal') ?? 0)
+        if (Date.now() - last > 60_000) { sessionStorage.setItem('friction:heal', String(Date.now())); location.reload() }
+      } catch { /* storage blocked: the Reload button is there */ }
+    }
   }
   componentDidUpdate(prev: { resetKey?: unknown }) {
     if (this.state.err && prev.resetKey !== this.props.resetKey) this.setState({ err: null })

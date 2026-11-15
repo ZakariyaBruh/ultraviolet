@@ -23,6 +23,7 @@ export interface Run {
 }
 
 const REST_EVERY = 7
+const SCAN_DAYS = 800
 
 /**
  * Days in a row with at least `minMin` focused minutes. One empty day in any seven is forgiven (a rest day: the run carries on, the day is
@@ -41,8 +42,9 @@ export function runOf(log: HourLog, minMin = 10, today: Date = new Date()): Run 
   let lastRest = -Infinity
   let idx = 0
   if (keys.length) {
-    const start = parseKey(keys[0])
     const end = parseKey(todayKey)
+    const start = parseKey(keys[0])
+    start.setTime(Math.max(+start, +end - SCAN_DAYS * 864e5)) // a stray old key cannot make this long
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1), idx++) {
       const k = dateKey(d)
       if (dayMin(log, k) >= minMin) {
