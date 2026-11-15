@@ -65,7 +65,7 @@ function TripClock({ until }: { until: number }) {
   return (
     <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5]" role="status">
       <span>Working elsewhere · <span className="fig text-ink">{left > 0 ? fmtClock(left) : '0:00'}</span> to be back</span>
-      <span className="max-w-[34ch] text-ink-3 normal-case">{left > 0 ? 'Go and work. Time away is not counted, and it costs the no-drift bonus.' : 'The time you gave is up. Being away now counts as a drift.'}</span>
+      <span className="max-w-[34ch] text-ink-3 normal-case">{left > 0 ? 'Go and work. Time away is not counted, and it costs what a drift costs. A Break is the only free leave.' : 'The time you gave is up. Being away now counts as a drift.'}</span>
     </p>
   )
 }

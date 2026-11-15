@@ -200,6 +200,8 @@ interface Data {
   books: BookRef[]
   /** topics hidden from the news, until a time (0 = until removed) */
   mutes: Mute[]
+  /** achievement id -> when it was earned (ms): kept, so one earned stays earned when old sessions are trimmed */
+  achievements: Record<string, number>
   learn: Learn
   credits: Credits
   widgets: Widgets
@@ -316,6 +318,7 @@ const emptyData = (): Data => ({
   events: [],
   books: [],
   mutes: [],
+  achievements: {},
   learn: { xp: 0, days: [], done: {}, deck: [] },
   credits: { bal: 0, earned: 0, spent: 0, best: {}, log: [], items: noItems() },
   widgets: { open: [], note: '', todos: [], pages: [], min: [], ghost: [] },
@@ -444,6 +447,12 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const pages = Array.isArray(v.pages) ? v.pages.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.url === 'string' && /^https?:\/\/[^\s]{1,500}$/.test(x.url)).slice(0, PAGES_MAX).map((x) => ({ name: String(x.name).slice(0, 30), url: String(x.url) })) : []
         const ids = (a: unknown) => (Array.isArray(a) ? [...new Set(a.filter((x): x is string => typeof x === 'string' && open.includes(x)))].slice(0, 12) : [])
         ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages, min: ids(v.min), ghost: ids(v.ghost) }
+      }
+    } else if (k === 'achievements') {
+      if (isObj(v)) {
+        const o: Record<string, number> = {}
+        for (const [id, t] of Object.entries(v)) if (/^[a-z0-9-]{1,30}$/.test(id) && typeof t === 'number' && isFinite(t) && t > 0) o[id] = t
+        ok = o
       }
     } else if (Array.isArray(b)) ok = Array.isArray(v) ? v.filter((x) => isObj(x)) : undefined
     else if (typeof b === 'boolean') ok = typeof v === 'boolean' ? v : undefined
@@ -678,9 +687,10 @@ export const useStore = create<AppState>()(
       endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
 
       /**
-       * Step out to work somewhere else: declared first, a few minutes at a time, so leaving the tab for it is not a drift. It is not a pause
-       * (the timer still only runs while you are looking at it, so nothing is credited for the time away) and it costs the no-drift bonus,
-       * so it is never a way to leave for free. At most TRIPS_MAX a session; staying away past the time you gave counts as a drift.
+       * Step out to work somewhere else: declared first, a few minutes at a time, so leaving the tab for it is recorded as a step-out, not a drift.
+       * It is not a pause (the timer still only runs while you are looking at it, so nothing is credited for the time away) and it costs what a
+       * drift costs (the clean streak and the no-drift bonus), so it is never a way to leave for free: only a bought Break is. At most TRIPS_MAX a
+       * session; staying away past the time you gave counts as a drift as well.
        */
       startTrip: (min) => {
         const a = get().session
@@ -695,7 +705,13 @@ export const useStore = create<AppState>()(
         const over = Date.now() > a.tripUntil + 45e3
         // only a real trip (they did leave) is recorded; one declared and not taken is simply dropped
         if (awaySec < 6) { set({ session: { ...a, tripUntil: undefined } }); return }
-        set({ session: { ...a, tripUntil: undefined, trips: (a.trips ?? 0) + 1, tripSec: (a.tripSec ?? 0) + awaySec } })
+        // it costs what a drift costs, so the paid Break stays the only way to leave for nothing: the clean streak starts again (a streak shield holds it, as it does for a drift)
+        const have = itemsOf(get().credits)
+        const shielded = have.shields > 0 && (a.cleanSec ?? 0) >= 600
+        set({
+          session: { ...a, tripUntil: undefined, trips: (a.trips ?? 0) + 1, tripSec: (a.tripSec ?? 0) + awaySec, cleanSec: shielded ? a.cleanSec : 0, shielded: (a.shielded ?? 0) + (shielded ? 1 : 0) },
+          ...(shielded ? { credits: { ...get().credits, items: { ...have, shields: have.shields - 1 } } } : {}),
+        })
         get().log('session', `Stepped out to work for ${Math.max(1, Math.round(awaySec / 60))} min during ${a.title}`)
         // past the time they gave, it was an ordinary drift after all
         if (over) get().addLapse()

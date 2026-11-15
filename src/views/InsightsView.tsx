@@ -5,6 +5,7 @@ import { spanOf } from '@/lib/insights'
 import { useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
 import { ReviewView } from '@/views/review/ReviewView'
+import { AchievementsTab } from '@/views/insights/Achievements'
 import { LogTab, SessionsTab } from '@/views/insights/Lists'
 import { PatternsTab, RingsTab, TodayTab, TrendsTab } from '@/views/insights/Tabs'
 
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'sessions', label: 'Sessions' },
   { id: 'log', label: 'Log' },
   { id: 'review', label: 'Review' },
+  { id: 'achievements', label: 'Achievements' },
 ]
 
 const drifts = (n: number) => `${n} drift${n === 1 ? '' : 's'}`
@@ -54,6 +56,7 @@ export function InsightsView() {
             {tab === 'sessions' && <SessionsTab />}
             {tab === 'log' && <LogTab />}
             {tab === 'review' && <ReviewView />}
+            {tab === 'achievements' && <AchievementsTab />}
           </motion.div>
         </AnimatePresence>
       </div>

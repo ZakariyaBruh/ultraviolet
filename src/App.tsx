@@ -100,6 +100,13 @@ export default function App() {
   useMilestones()
   useBoardWatch()
   useEffect(() => startBackupWatch(), [])
+  // achievements are recorded as they are met; the list is its own small file, fetched after the first screen
+  useEffect(() => {
+    let off: (() => void) | undefined
+    let gone = false
+    void import('@/lib/achievements').then((m) => { if (!gone) off = m.startAchievementWatch() })
+    return () => { gone = true; off?.() }
+  }, [])
   useMusicSync()
   useTogether()
   // a drift: the whole screen gives a small, soft zoom, like it took the hit

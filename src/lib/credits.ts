@@ -71,7 +71,7 @@ export interface ShopItem {
 
 /** the shop: fixed prices, no chance involved */
 export const SHOP: Record<ItemId, ShopItem> = {
-  break: { id: 'break', name: 'Break', price: 25, kind: 'use', tag: 'Focus', blurb: `${BREAK_MIN} minutes off, mid lock-in. The timer waits and leaving the tab is not a drift.` },
+  break: { id: 'break', name: 'Break', price: 25, kind: 'use', tag: 'Focus', blurb: `${BREAK_MIN} minutes off, mid lock-in. The timer waits, leaving the tab is not a drift, and your clean streak and no-drift bonus are kept. The only way to leave at no cost.` },
   longbreak: { id: 'longbreak', name: 'Long break', price: 45, kind: 'use', tag: 'Focus', blurb: `Like a break, but ${LONG_BREAK_MIN} minutes. For when you really need to walk away.` },
   shield: { id: 'shield', name: 'Streak shield', price: 40, kind: 'use', tag: 'Focus', blurb: 'Your next drift keeps your clean streak alive. It is still counted as a drift.' },
   lifeline: { id: 'lifeline', name: '50:50 lifelines', price: 20, kind: 'use', tag: 'Learn', blurb: `A pack of ${LIFELINES_PER_PACK}. In a lesson check or trivia question, remove two wrong answers.` },
