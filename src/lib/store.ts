@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { isTrying, refuse } from './trial'
-import { BREAK_MIN, CAPSULE_MAX, finishBonus, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
+import { BREAK_MIN, CAPSULE_MAX, finishBonus, TRIPS_MAX, TRIP_MAX_MIN, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, type ItemId } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
@@ -60,6 +60,9 @@ export interface SessionRec {
   title: string
   completed: boolean
   breaks?: number
+  /** times they stepped out on purpose to work somewhere else (declared first), and how many seconds that was */
+  trips?: number
+  tripSec?: number
   /** a label the person gave it: where the hours went */
   project?: string
   /** seconds into the session at each drift, kept from now on so the coach can say when you tend to drift */
@@ -83,6 +86,10 @@ export interface ActiveSession {
   /** a paid break is running until this time (ms) */
   breakUntil?: number
   breaks?: number
+  /** a declared step-out to work elsewhere: leaving the tab before this time is not a drift */
+  tripUntil?: number
+  trips?: number
+  tripSec?: number
   /** drifts a streak shield absorbed this session */
   shielded?: number
   project?: string
@@ -234,6 +241,9 @@ interface Actions {
   setMix: (layer: string, level: number) => void
   addSpins: (n: number) => void
   endBreak: () => void
+  startTrip: (min: number) => void
+  cancelTrip: () => void
+  endTrip: (awaySec: number) => void
   clunk: () => void
   setBest: (game: string, score: number) => void
   setSettings: (patch: Partial<Settings>) => void
@@ -600,6 +610,8 @@ export const useStore = create<AppState>()(
           title: a.title,
           completed,
           breaks: a.breaks || undefined,
+          trips: a.trips || undefined,
+          tripSec: a.tripSec || undefined,
           project: a.project || undefined,
           lapseAt: a.lapseAt?.length ? a.lapseAt : undefined,
         }
@@ -607,7 +619,7 @@ export const useStore = create<AppState>()(
           session: null,
           sessions: a.elapsedSec >= 10 ? [rec, ...s.sessions].slice(0, sessionCap()) : s.sessions,
         })
-        const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses) : 0)
+        const credit = Math.floor((a.credit ?? a.elapsedSec / 60) + 1e-6) + (completed ? finishBonus(a.lapses, a.trips ?? 0) : 0)
         if (credit > 0) get().earnCredits(credit, completed ? `Finished ${a.title}` : `Locked in on ${a.title}`)
         // a sealed time capsule opens once, after a session that was finished
         const note = completed ? itemsOf(get().credits).capsule : ''
@@ -664,6 +676,30 @@ export const useStore = create<AppState>()(
         get().log('session', `Took a ${min} minute break during ${a.title}`)
       },
       endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
+
+      /**
+       * Step out to work somewhere else: declared first, a few minutes at a time, so leaving the tab for it is not a drift. It is not a pause
+       * (the timer still only runs while you are looking at it, so nothing is credited for the time away) and it costs the no-drift bonus,
+       * so it is never a way to leave for free. At most TRIPS_MAX a session; staying away past the time you gave counts as a drift.
+       */
+      startTrip: (min) => {
+        const a = get().session
+        if (!a || a.paused || a.tripUntil || (a.trips ?? 0) >= TRIPS_MAX) return
+        const m = Math.max(1, Math.min(TRIP_MAX_MIN, Math.round(min)))
+        set({ session: { ...a, tripUntil: Date.now() + m * 60e3 } })
+      },
+      cancelTrip: () => set((s) => (s.session?.tripUntil ? { session: { ...s.session, tripUntil: undefined } } : s)),
+      endTrip: (awaySec) => {
+        const a = get().session
+        if (!a?.tripUntil) return
+        const over = Date.now() > a.tripUntil + 45e3
+        // only a real trip (they did leave) is recorded; one declared and not taken is simply dropped
+        if (awaySec < 6) { set({ session: { ...a, tripUntil: undefined } }); return }
+        set({ session: { ...a, tripUntil: undefined, trips: (a.trips ?? 0) + 1, tripSec: (a.tripSec ?? 0) + awaySec } })
+        get().log('session', `Stepped out to work for ${Math.max(1, Math.round(awaySec / 60))} min during ${a.title}`)
+        // past the time they gave, it was an ordinary drift after all
+        if (over) get().addLapse()
+      },
       useLifeline: () => {
         const have = itemsOf(get().credits)
         if (have.lifelines < 1) return false

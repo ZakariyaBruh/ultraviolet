@@ -1,4 +1,4 @@
-import { Coffee, Hourglass, Play, Radio, Volume2 } from 'lucide-react'
+import { Coffee, ExternalLink, Hourglass, Play, Radio, Volume2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
@@ -18,7 +18,7 @@ import { useAmbience } from '@/lib/ambience'
 import { fx_say, quickPlay } from '@/lib/actions'
 import { PRESETS } from '@/lib/presets'
 import { bringToFront } from '@/components/app/Arrange'
-import { nextTier, rateAt, tierLabel, tiersFor } from '@/lib/credits'
+import { nextTier, rateAt, tierLabel, tiersFor, TRIPS_MAX } from '@/lib/credits'
 import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
@@ -57,6 +57,49 @@ function FrictionDial({ progress, left, running, paused, live, note, shape }: { 
 }
 
 /** On a break the dial says so, and for how long. With the Break kit it also breathes with you and offers a stretch. */
+/** while a declared step-out is on: how long is left of the time they gave */
+function TripClock({ until }: { until: number }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t) }, [])
+  const left = Math.ceil((until - now) / 1000)
+  return (
+    <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5]" role="status">
+      <span>Working elsewhere · <span className="fig text-ink">{left > 0 ? fmtClock(left) : '0:00'}</span> to be back</span>
+      <span className="max-w-[34ch] text-ink-3 normal-case">{left > 0 ? 'Go and work. Time away is not counted, and it costs the no-drift bonus.' : 'The time you gave is up. Being away now counts as a drift.'}</span>
+    </p>
+  )
+}
+
+/** Leaving to work somewhere else (a book, a document, another app): say so first and it is recorded as a step-out, not a drift. Not a pause: nothing is credited while away. */
+function StepOut({ trips, until }: { trips: number; until?: number }) {
+  const [pick, setPick] = useState(false)
+  const store = useStore.getState
+  if (until) {
+    return (
+      <Glass radius={999} clear as="button" onClick={() => store().cancelTrip()} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
+        <Play className="size-4 fill-current" />Stay here instead
+      </Glass>
+    )
+  }
+  if (trips >= TRIPS_MAX) return null
+  if (!pick) {
+    return (
+      <Glass radius={999} clear as="button" onClick={() => setPick(true)} aria-expanded={false} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
+        <ExternalLink className="size-4" />Work elsewhere {TRIPS_MAX - trips < TRIPS_MAX && <span className="fig text-ink-2">{TRIPS_MAX - trips} left</span>}
+      </Glass>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="How long will you be away">
+      <span className="hud !text-[12px] text-ink-2">Back in</span>
+      {[5, 10, 15].map((m) => (
+        <Glass key={m} radius={999} clear as="button" onClick={() => { store().startTrip(m); setPick(false) }} className="inline-flex h-12 min-w-14 items-center justify-center px-4 text-[15px] font-medium text-ink"><span className="fig">{m}</span>&nbsp;min</Glass>
+      ))}
+      <button type="button" onClick={() => setPick(false)} className="h-12 px-3 text-sm text-ink-3 underline">Cancel</button>
+    </div>
+  )
+}
+
 function BreakClock({ until, kit }: { until: number; kit: boolean }) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t) }, [])
@@ -205,7 +248,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         )}
 
         <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
-          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : <CreditMeter />) : <CreditHint />} />
+          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : session.tripUntil ? <TripClock until={session.tripUntil} /> : <CreditMeter />) : <CreditHint />} />
 
           <AnimatePresence mode="wait" initial={false}>
             {!session ? (
@@ -242,6 +285,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                     {hasSound && <SoundsButton />}
                   </div>
                 )}
+                {!session.breakUntil && <StepOut trips={session.trips ?? 0} until={session.tripUntil} />}
                 <div className="w-full">
                   <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />
                 </div>

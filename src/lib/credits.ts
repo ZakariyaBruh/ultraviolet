@@ -40,7 +40,11 @@ export const nextTier = (cleanSec: number, goalMin = 60) => {
 export const tierLabel = (sec: number) => (sec % 60 === 0 ? `${sec / 60} min` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`)
 
 /** a finished session pays 5, and 5 more if you never drifted */
-export const finishBonus = (lapses: number) => 5 + (lapses === 0 ? 5 : 0)
+/** the no-drift part of the finish bonus is lost by a drift and by a step-out to work elsewhere (it is free to take, so it has a price) */
+export const finishBonus = (lapses: number, trips = 0) => 5 + (lapses === 0 && trips === 0 ? 5 : 0)
+/** stepping out to work somewhere else: at most this many a session, each at most this long */
+export const TRIPS_MAX = 2
+export const TRIP_MAX_MIN = 15
 
 /** a lesson pays for finishing it and for every check you got right, with a bonus for a clean sheet */
 export const lessonCredits = (right: number, checks: number) => 3 + right + (checks > 0 && right === checks ? 4 : 0)
