@@ -61,7 +61,7 @@ export function TvView() {
   useEffect(() => { warmStreams() }, [])
   return (
     <motion.div className="h-full" initial={false}>
-      <Browser kind="tv" layout="rail" kicker="Live TV" title="TV" sub="A curated list of public-service and international broadcasters, played straight from their own servers. Dead streams are skipped." chips={TV_CATEGORIES} initialChip="news" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
+      <Browser kind="tv" layout="rail" kicker="Live TV" title="TV" sub="Live news, weather, space and sport from channels that stream free themselves. Played from their own servers. The usual cable channels are not here: they have no free stream to play." chips={TV_CATEGORIES} initialChip="news" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
     </motion.div>
   )
 }
