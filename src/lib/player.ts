@@ -70,6 +70,14 @@ function barsPoster(): string {
   return c.toDataURL('image/png')
 }
 
+/** a channel that plays in YouTube's own embed has an address like yt:UC... and no stream of ours */
+export const ytId = (url: string) => (/^yt:(UC[\w-]{22})$/.exec(url) ?? [])[1] ?? ''
+/** the embed has loaded: that is all the page can know, so the channel counts as playing */
+export function embedReady() {
+  clearTimeout(watchdog)
+  if (usePlayer.getState().status === 'loading') set({ status: 'playing', error: null, hops: 0 })
+}
+
 const active = () => (usePlayer.getState().current?.kind === 'tv' ? video : audio)
 
 function teardown() {
@@ -133,6 +141,7 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
   // podcast hosts rarely send CORS headers, and a plain element needs none to play
   if (item.id.startsWith('pod:') || item.id.startsWith('song:')) audio.removeAttribute('crossorigin')
   else audio.crossOrigin = 'anonymous'
+  if (ytId(item.url)) { arm(); return } // the embed in VideoSlot does the rest
   const isHls = /\.m3u8(\?|$)/i.test(item.url)
   arm()
   const plain = () => {
@@ -158,6 +167,7 @@ export function play(item: MediaItem, queue?: MediaItem[]) {
 export function toggle() {
   const { status, current } = usePlayer.getState()
   if (!current) return
+  if (ytId(current.url)) { stop(); return } // an embed cannot be paused from here
   const el = active()
   if (status === 'playing' || status === 'loading') {
     el.pause()

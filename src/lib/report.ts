@@ -24,6 +24,9 @@ const OWN: Record<string, string> = { musopen: 'Musopen (on the Internet Archive
 
 export function reportFor(item: MediaItem): ReportInfo {
   const id = item.id
+  if (id.startsWith('tv:yt-')) {
+    return { who: 'YouTube and the channel', whoUrl: 'https://support.google.com/youtube/answer/2802027', links: [{ label: 'Report this video to YouTube', href: 'https://support.google.com/youtube/answer/2802027', note: 'This channel plays in YouTube\'s own player, so YouTube and the channel decide what stays.' }] }
+  }
   if (id.startsWith('tv:')) {
     return {
       who: 'the broadcaster', whoUrl: 'https://iptv-org.github.io',

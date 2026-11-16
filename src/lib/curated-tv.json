@@ -301,97 +301,11 @@
   "pop": 1
  },
  {
-  "id": "AfricanewsFrench.fr",
-  "name": "Africanews French",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/africanews-fr/25050/index.m3u8",
-  "logo": "https://i.imgur.com/5UxU4zc.png",
-  "cc": "FR",
-  "cats": [
-   "news"
-  ]
- },
- {
-  "id": "AlJazeera2.qa",
-  "name": "Al Jazeera 2",
-  "url": "https://live-hls-web-aja2-gcp.thehlive.com/AJA2/index.m3u8",
-  "logo": "https://i.imgur.com/miq8O1Q.png",
-  "cc": "QA",
-  "cats": [
-   "news"
-  ]
- },
- {
-  "id": "AlJazeera.qa",
-  "name": "Al Jazeera Arabic",
-  "url": "https://live-hls-apps-aja-fa.getaj.net/AJA/01.m3u8",
-  "logo": "https://dtil.tmsimg.com/assets/s159135_ld_h15_aa.png?lock=720x540",
-  "cc": "QA",
-  "cats": [
-   "news"
-  ]
- },
- {
-  "id": "ArirangUN.kr",
-  "name": "Arirang UN",
-  "url": "https://amdlive-ch02-ctnd-com.akamaized.net/arirang_2ch/smil:arirang_2ch.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/Jdy3WNm.png",
-  "cc": "KR",
-  "cats": [
-   "news"
-  ]
- },
- {
-  "id": "BRFernsehen.de",
-  "name": "BR Fernsehen",
-  "url": "https://mcdn.br.de/br/fs/bfs_sued/hls/de/master.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Logo_Bayerischer_Rundfunk_2024.svg/960px-Logo_Bayerischer_Rundfunk_2024.svg.png",
-  "cc": "DE",
-  "cats": []
- },
- {
-  "id": "CanalOnce.mx",
-  "name": "Canal Once",
-  "url": "https://vivo.canaloncelive.tv/securepkgr3/oncemexico/playlist.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Canal_Once_logo_2025.png",
-  "cc": "MX",
-  "cats": []
- },
- {
-  "id": "DDHimachalPradesh.in",
-  "name": "DD Himachal Pradesh",
-  "url": "https://d3qs3d2rkhfqrt.cloudfront.net/out/v1/afd2e335b0ba40eb9bdf1096118c6ede/index.m3u8",
-  "logo": "https://ltsk-cdn.s3.eu-west-1.amazonaws.com/jumpstart/Temp_Live/cdn/HLS/Channel/transparentImages/DD-Himachal-Logo_2000_X_1125_Transpharent.png",
-  "cc": "IN",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "DDNews.in",
-  "name": "DD News",
-  "url": "https://d3qs3d2rkhfqrt.cloudfront.net/out/v1/0811cd8c37ca4c409d5385a6cd2fa18b/index.m3u8",
-  "logo": "https://ltsk-cdn.s3.eu-west-1.amazonaws.com/jumpstart/Temp_Live/cdn/HLS/Channel/transparentImages/DD%20News.png",
-  "cc": "IN",
-  "cats": [
-   "news"
-  ]
- },
- {
   "id": "DRTV.dk",
   "name": "DRTV",
   "url": "https://drlivedrtvahls.akamaized.net/hls/live/2113613/drlivedrtva/master.m3u8",
   "logo": "https://i.ibb.co/c6n2vbW/512px-DR-TV-logo-svg.png",
   "cc": "DK",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "ERTCosmos.gr",
-  "name": "ERT Cosmos",
-  "url": "https://ert-ucdn.broadpeak-aas.com/bpk-tv/ERTCosmos/default/index.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/ERT_Cosmos_Logo_2026.svg/960px-ERT_Cosmos_Logo_2026.svg.png",
-  "cc": "GR",
   "cats": [
    "general"
   ]
@@ -404,26 +318,6 @@
   "cc": "GR",
   "cats": [
    "news"
-  ]
- },
- {
-  "id": "France24.fr",
-  "name": "France 24 Arabic",
-  "url": "https://live.france24.com/hls/live/2037222-b/F24_AR_HI_HLS/master_5000.m3u8",
-  "logo": "https://ltsk-cdn.s3.eu-west-1.amazonaws.com/jumpstart/Temp_Live/cdn/HLS/Channel/transparentImages/France%2024.png",
-  "cc": "FR",
-  "cats": [
-   "news"
-  ]
- },
- {
-  "id": "hrfernsehen.de",
-  "name": "hr-fernsehen",
-  "url": "https://hrhls.akamaized.net/hls/live/2024525/hrhls/index.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/HR-Fernsehen_Logo_2023.svg/960px-HR-Fernsehen_Logo_2023.svg.png",
-  "cc": "DE",
-  "cats": [
-   "general"
   ]
  },
  {
@@ -449,16 +343,6 @@
   ]
  },
  {
-  "id": "NDRFernsehen.de",
-  "name": "NDR Fernsehen",
-  "url": "https://mcdn.ndr.de/ndr/hls/ndr_fs/ndr_hh/master.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Logo_NDR_Fernsehen_2017.svg/960px-Logo_NDR_Fernsehen_2017.svg.png",
-  "cc": "DE",
-  "cats": [
-   "general"
-  ]
- },
- {
   "id": "ORF1.at",
   "name": "ORF 1",
   "url": "https://test02.mdn.ors.at/orf/orf1/qxa/manifest.m3u8",
@@ -476,101 +360,6 @@
   "cc": "AT",
   "cats": [
    "culture"
-  ]
- },
- {
-  "id": "Rai3.it",
-  "name": "Rai 3",
-  "url": "https://d3k8wzt41aflvx.cloudfront.net/RAI3/Live.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Rai_3_-_Logo_2016.svg/960px-Rai_3_-_Logo_2016.svg.png",
-  "cc": "IT",
-  "cats": []
- },
- {
-  "id": "TVBrasil.br",
-  "name": "TV Brasil",
-  "url": "https://tvbrasil-stream.ebc.com.br/index.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/TvBrasil2023.png/960px-TvBrasil2023.png",
-  "cc": "BR",
-  "cats": []
- },
- {
-  "id": "TVR1.ro",
-  "name": "TVR 1",
-  "url": "https://tvr-1.lg.mncdn.com/tvr1/smil:tvr1.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/CcUX1gB.png",
-  "cc": "RO",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVR2.ro",
-  "name": "TVR 2",
-  "url": "https://tvr-2.lg.mncdn.com/tvr2/smil:tvr2.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/mKouHIZ.png",
-  "cc": "RO",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVR3.ro",
-  "name": "TVR 3",
-  "url": "https://tvr-3.lg.mncdn.com/tvr3/smil:tvr3.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/yHCuTap.png",
-  "cc": "RO",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVRCultural.ro",
-  "name": "TVR Cultural",
-  "url": "https://tvr-cultural.lg.mncdn.com/tvrcultural/smil:tvrcultural.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/U9i70C9.png",
-  "cc": "RO",
-  "cats": [
-   "culture"
-  ]
- },
- {
-  "id": "TVRMoldova.md",
-  "name": "TVR Moldova",
-  "url": "https://tvr-moldova.lg.mncdn.com/tvrmoldova/smil:tvrmoldova.smil/chunklist.m3u8",
-  "logo": "https://i.imgur.com/wDe9gL2.png",
-  "cc": "MD",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVRSport.ro",
-  "name": "TVR Sport",
-  "url": "https://tvr-sport.lg.mncdn.com/tvrsport/smil:tvrsport.smil/playlist.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/TVR_Sport_Logo_2023.svg/960px-TVR_Sport_Logo_2023.svg.png",
-  "cc": "RO",
-  "cats": [
-   "general",
-   "sports"
-  ]
- },
- {
-  "id": "TVRIWorld.id",
-  "name": "TVRI World",
-  "url": "https://ott-balancer.tvri.go.id/live/eds/TVRIWorld/hls/TVRIWorld.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/TVRIWorld.png/960px-TVRIWorld.png",
-  "cc": "ID",
-  "cats": []
- },
- {
-  "id": "WDRFernsehen.de",
-  "name": "WDR Fernsehen",
-  "url": "https://wdr-live.ard-mcdn.de/wdr/live/hls/de/master.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/WDR_Fernsehen_Logo_2018.svg/960px-WDR_Fernsehen_Logo_2018.svg.png",
-  "cc": "DE",
-  "cats": [
-   "general"
   ]
  },
  {
@@ -597,27 +386,6 @@
   "pop": 1
  },
  {
-  "id": "CanalEducacao.br",
-  "name": "Canal Educacao",
-  "url": "https://canaleducacao-stream.ebc.com.br/index.m3u8",
-  "logo": "https://i.imgur.com/OOB7nrS.png",
-  "cc": "BR",
-  "cats": [
-   "education"
-  ],
-  "pop": 1
- },
- {
-  "id": "NRWision.de",
-  "name": "NRWision",
-  "url": "https://fms.nrwision.de/live/ngrp:livestreamHD.stream/playlist.m3u8",
-  "logo": "https://i.imgur.com/RkF2Kmx.png",
-  "cc": "DE",
-  "cats": [
-   "education"
-  ]
- },
- {
   "id": "ClassicArtsShowcase.us",
   "name": "Classic Arts Showcase",
   "url": "https://classicarts.akamaized.net/hls/live/1024257/CAS/master.m3u8",
@@ -634,17 +402,6 @@
   "url": "https://tv-trtcocuk.medya.trt.com.tr/master.m3u8",
   "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/TRT_%C3%87ocuk_logo_%282021%29.svg/960px-TRT_%C3%87ocuk_logo_%282021%29.svg.png",
   "cc": "TR",
-  "cats": [
-   "kids"
-  ],
-  "pop": 1
- },
- {
-  "id": "Boing.it",
-  "name": "Boing",
-  "url": "https://boing.akamaized.net/6380392800112/eu-central-1/6284318116001/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3N0Ijoib3dwbnN1LmVncmVzcy5haGc3NmwiLCJhY2NvdW50X2lkIjoiNjI4NDMxODExNjAwMSIsImVobiI6ImJvaW5nLmFrYW1haXplZC5uZXQiLCJpc3MiOiJibGl2ZS1wbGF5YmFjay1zb3VyY2UtYXBpIiwic3ViIjoicGF0aG1hcHRva2VuIiwiYXVkIjpbIjYyODQzMTgxMTYwMDEiXSwianRpIjoiNjM4MDM5MjgwMDExMiJ9.0RWQ0yZrauU0cHSnbpBYhgyRPeq1Lyw6nOn_fo7_cg0/playlist-hls.m3u8",
-  "logo": "https://i.imgur.com/rabKj9i.png",
-  "cc": "IT",
   "cats": [
    "kids"
   ],
@@ -673,27 +430,6 @@
   "pop": 1
  },
  {
-  "id": "Kronehit.at",
-  "name": "Kronehit",
-  "url": "https://bitcdn-kronehit.bitmovin.com/v2/hls/playlist.m3u8",
-  "logo": "https://i.imgur.com/dQJQv1X.png",
-  "cc": "AT",
-  "cats": [
-   "music"
-  ],
-  "pop": 1
- },
- {
-  "id": "RadiowaCzworka.pl",
-  "name": "Radiowa Czworka",
-  "url": "https://stream14.polskieradio.pl/pr4_video/video_pr4.stream/playlist.m3u8",
-  "logo": "https://i.imgur.com/VAtxF7k.png",
-  "cc": "PL",
-  "cats": [
-   "music"
-  ]
- },
- {
   "id": "TVEStar.es",
   "name": "TVE Star",
   "url": "https://rtvelivestream-rtveplayplus.rtve.es/rtvesec/int/star_main_1080.m3u8",
@@ -704,66 +440,6 @@
    "series"
   ],
   "pop": 1
- },
- {
-  "id": "QatarTelevision.qa",
-  "name": "Qatar Television",
-  "url": "https://qatartv.akamaized.net/hls/live/20000609/qtv1/master.m3u8",
-  "logo": "https://i.imgur.com/N5RB4sp.png",
-  "cc": "QA",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVRI.id",
-  "name": "TVRI",
-  "url": "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/960px-TVRILogo2019.svg.png",
-  "cc": "ID",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "SenalColombia.co",
-  "name": "Senal Colombia",
-  "url": "https://streaming.rtvc.gov.co/TV_Senal_Colombia_live/smil:live.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/Y9x16vl.png",
-  "cc": "CO",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "MCOTHD.th",
-  "name": "MCOT HD",
-  "url": "https://mcothd-streaming-edge-cdn.mcot.net/tencentmcot/smil:tencentmcot.smil/playlist.m3u8",
-  "logo": "https://i.imgur.com/ejPxGmU.png",
-  "cc": "TH",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "TVCGMNE.me",
-  "name": "TVCG MNE",
-  "url": "https://rtcg-live-open.morescreens.com/RTCG_1_004/playlist.m3u8",
-  "logo": "https://i.imgur.com/pf8VEwf.png",
-  "cc": "ME",
-  "cats": [
-   "general"
-  ]
- },
- {
-  "id": "GaliciaTVEuropa.es",
-  "name": "Galicia TV Europa",
-  "url": "https://crtvg-europa.flumotion.cloud/playlist.m3u8",
-  "logo": "https://i.imgur.com/dvkzH8n.png",
-  "cc": "ES",
-  "cats": [
-   "general"
-  ]
  },
  {
   "id": "AlArabiyaEnglish.sa",
@@ -821,16 +497,6 @@
   "pop": 1
  },
  {
-  "id": "TRTHaber.tr",
-  "name": "TRT Haber",
-  "url": "https://tv-trthaber.medya.trt.com.tr/master.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/TRT_Haber_Eyl%C3%BCl_2020_Logo.svg/960px-TRT_Haber_Eyl%C3%BCl_2020_Logo.svg.png",
-  "cc": "TR",
-  "cats": [
-   "news"
-  ]
- },
- {
   "id": "Telesur.ve",
   "name": "Telesur",
   "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8",
@@ -840,60 +506,6 @@
    "news"
   ],
   "pop": 1
- },
- {
-  "id": "EuronewsFrench.fr",
-  "name": "Euronews French",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-fr/25026/index.m3u8",
-  "logo": "https://i.imgur.com/5A0Wnrv.png",
-  "cc": "FR",
-  "cats": [
-   "news"
-  ],
-  "pop": 1
- },
- {
-  "id": "EuronewsGerman.fr",
-  "name": "Euronews German",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-de/25027/index.m3u8",
-  "logo": "https://provider-static.plex.tv/epg/cms/production/2fe3efc9-5aef-40f7-be0e-46ff4b9ae94d/DELogo_Euronews_stacked_REallyWHite_on_german_RGB-01rdx.png",
-  "cc": "DE",
-  "cats": [
-   "news"
-  ],
-  "pop": 1
- },
- {
-  "id": "EuronewsSpanish.fr",
-  "name": "Euronews Spanish",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-es/25053/index.m3u8",
-  "logo": "https://provider-static.plex.tv/epg/cms/production/f7dacd88-7f26-40a6-960e-a597d8b560c5/ESLogo_Euronews_stacked_white_on_spanish_1500x1000wht.png",
-  "cc": "ES",
-  "cats": [
-   "news"
-  ],
-  "pop": 1
- },
- {
-  "id": "EuronewsItalian.fr",
-  "name": "Euronews Italian",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-it/25085/index.m3u8",
-  "logo": "https://provider-static.plex.tv/epg/cms/production/ca19114a-f498-4ac3-bade-257fb304e0be/ITLogo_Euronews_stacked_white_on_italien_1500x1000whtrdx2.png",
-  "cc": "IT",
-  "cats": [
-   "news"
-  ],
-  "pop": 1
- },
- {
-  "id": "EuronewsPortuguese.fr",
-  "name": "Euronews Portuguese",
-  "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-pt/25040/index.m3u8",
-  "logo": "https://provider-static.plex.tv/epg/cms/production/73b5e777-8a44-4def-8e33-be43f7f8177c/Logo_Euronews_stacked_white_on_portuguese_1500x1000rdxWHITE.png",
-  "cc": "PT",
-  "cats": [
-   "news"
-  ]
  },
  {
   "id": "PalmBeachesTV.us",
@@ -907,34 +519,104 @@
   ]
  },
  {
-  "id": "TRTEBA.tr",
-  "name": "TRT EBA",
-  "url": "https://tv-e-okul01.medya.trt.com.tr/master.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/TRT_EBA_TV_logo.svg/960px-TRT_EBA_TV_logo.svg.png",
-  "cc": "TR",
+  "id": "yt-sky",
+  "name": "Sky News",
+  "url": "yt:UCoMdktPbSTixAyNGwb-UYkQ",
+  "logo": null,
+  "cc": "GB",
   "cats": [
+   "news"
+  ],
+  "pop": 3
+ },
+ {
+  "id": "yt-lofi",
+  "name": "Lofi Girl",
+  "url": "yt:UCSJ4gkVC6NrvII8umztf0Ow",
+  "logo": null,
+  "cc": "FR",
+  "cats": [
+   "music"
+  ],
+  "pop": 3
+ },
+ {
+  "id": "yt-nasa",
+  "name": "NASA",
+  "url": "yt:UCLA_DiR1FfKNvjuUpBHmylQ",
+  "logo": null,
+  "cc": "US",
+  "cats": [
+   "documentary",
    "education"
-  ]
+  ],
+  "pop": 3
  },
  {
-  "id": "ETVPlus.ee",
-  "name": "ETV+",
-  "url": "https://sb.err.ee/live/etvpluss.m3u8",
-  "logo": "https://upload.wikimedia.org/wikipedia/commons/a/a2/ETV%2B_logo.png",
-  "cc": "EE",
+  "id": "yt-abc",
+  "name": "ABC News",
+  "url": "yt:UCBi2mrWuNuyYy4gbM6fU18Q",
+  "logo": null,
+  "cc": "US",
   "cats": [
-   "entertainment"
-  ]
+   "news"
+  ],
+  "pop": 2
  },
  {
-  "id": "ETV2.ee",
-  "name": "ETV 2",
-  "url": "https://sb.err.ee/live/etv2.m3u8",
-  "logo": "https://i.imgur.com/fUjGHDa.png",
-  "cc": "EE",
+  "id": "yt-reuters",
+  "name": "Reuters",
+  "url": "yt:UChqUTb7kYRX8-EiaN3XFrSQ",
+  "logo": null,
+  "cc": "GB",
   "cats": [
-   "kids",
-   "culture"
-  ]
+   "news",
+   "business"
+  ],
+  "pop": 2
+ },
+ {
+  "id": "yt-cna",
+  "name": "CNA",
+  "url": "yt:UC83jt4dlz1Gjl58fzQrrKZg",
+  "logo": null,
+  "cc": "SG",
+  "cats": [
+   "news"
+  ],
+  "pop": 2
+ },
+ {
+  "id": "yt-kexp",
+  "name": "KEXP",
+  "url": "yt:UC3I2GFN_F8WudD_2jUZbojA",
+  "logo": null,
+  "cc": "US",
+  "cats": [
+   "music"
+  ],
+  "pop": 2
+ },
+ {
+  "id": "yt-wion",
+  "name": "WION",
+  "url": "yt:UC_gUM8rL-Lrg6O3adPW9K1g",
+  "logo": null,
+  "cc": "IN",
+  "cats": [
+   "news"
+  ],
+  "pop": 1
+ },
+ {
+  "id": "yt-ndtv",
+  "name": "NDTV 24x7",
+  "url": "yt:UCZFMm1mMw0F81Z37aaEzTUA",
+  "logo": null,
+  "cc": "IN",
+  "cats": [
+   "news"
+  ],
+  "pop": 1
  }
 ]
