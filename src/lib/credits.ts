@@ -58,7 +58,7 @@ export const LONG_BREAK_MIN = 12
 export const LIFELINES_PER_PACK = 5
 export const CAPSULE_MAX = 240
 
-export type ItemId = 'break' | 'longbreak' | 'shield' | 'lifeline' | 'capsule' | 'sound' | 'automusic' | 'kit' | 'solids' | 'spinner' | 'confetti' | 'brick'
+export type ItemId = 'break' | 'longbreak' | 'shield' | 'freeze' | 'lifeline' | 'capsule' | 'sound' | 'automusic' | 'kit' | 'solids' | 'spinner' | 'confetti' | 'brick'
 export interface ShopItem {
   id: ItemId
   name: string
@@ -70,10 +70,13 @@ export interface ShopItem {
 }
 
 /** the shop: fixed prices, no chance involved */
+/** streak freezes you can hold at once */
+export const FREEZE_MAX = 2
 export const SHOP: Record<ItemId, ShopItem> = {
   break: { id: 'break', name: 'Break', price: 25, kind: 'use', tag: 'Focus', blurb: `${BREAK_MIN} minutes off, mid lock-in. The timer waits, leaving the tab is not a drift, and your clean streak and no-drift bonus are kept. The only way to leave at no cost.` },
   longbreak: { id: 'longbreak', name: 'Long break', price: 45, kind: 'use', tag: 'Focus', blurb: `Like a break, but ${LONG_BREAK_MIN} minutes. For when you really need to walk away.` },
   shield: { id: 'shield', name: 'Streak shield', price: 40, kind: 'use', tag: 'Focus', blurb: 'Your next drift keeps your clean streak alive. It is still counted as a drift.' },
+  freeze: { id: 'freeze', name: 'Streak freeze', price: 40, kind: 'use', tag: 'Focus', blurb: `Covers one missed day so a run of three or more days is not lost. It is spent by itself, within two days. You can hold ${FREEZE_MAX}.` },
   lifeline: { id: 'lifeline', name: '50:50 lifelines', price: 20, kind: 'use', tag: 'Learn', blurb: `A pack of ${LIFELINES_PER_PACK}. In a lesson check or trivia question, remove two wrong answers.` },
   capsule: { id: 'capsule', name: 'Time capsule', price: 20, kind: 'use', tag: 'Focus', blurb: 'Write a note to yourself. It opens after your next finished session.' },
   sound: { id: 'sound', name: 'Sound machine', price: 120, kind: 'unlock', tag: 'Focus', blurb: 'Rain, wind, fire, waves and a low hum, made on the spot and mixed by you.' },
@@ -84,7 +87,7 @@ export const SHOP: Record<ItemId, ShopItem> = {
   confetti: { id: 'confetti', name: 'Confetti cannon', price: 12, kind: 'unlock', tag: 'Toy', blurb: 'A rocket and a lot of confetti, on demand. No reason needed.' },
   brick: { id: 'brick', name: 'The Golden Brick', price: 5000, kind: 'unlock', tag: 'Toy', blurb: 'It does nothing. You will know it is there.' },
 }
-export const SHOP_ORDER: ItemId[] = ['break', 'longbreak', 'shield', 'lifeline', 'capsule', 'sound', 'automusic', 'kit', 'solids', 'spinner', 'confetti', 'brick']
+export const SHOP_ORDER: ItemId[] = ['break', 'longbreak', 'shield', 'freeze', 'lifeline', 'capsule', 'sound', 'automusic', 'kit', 'solids', 'spinner', 'confetti', 'brick']
 
 /** the first finished session of a day in a run of two or more days pays one credit for each day of the run, up to this many */
 export const STREAK_BONUS_MAX = 5

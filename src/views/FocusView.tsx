@@ -206,6 +206,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
 
   const held = dayTotal(focusLog, today)
   const blocked = Math.round(sum(urgeLog[today] ?? []))
+  useEffect(() => { useStore.getState().mendRun() }, [])
   const run = runOf(focusLog)
   const days = run.days
   const streakLine = runLine(run, held)
@@ -373,9 +374,10 @@ const MARK_CLASS: Record<DayMark, string> = {
   on: 'h-2 bg-signal',
   open: 'h-2 border border-dashed border-signal bg-transparent',
   rest: 'h-1 self-end bg-ice/60',
+  frozen: 'h-1 self-end bg-ice',
   off: 'h-1 self-end bg-ink/20',
 }
-const MARK_WORD: Record<DayMark, string> = { on: 'held', open: 'open', rest: 'rest day', off: 'empty' }
+const MARK_WORD: Record<DayMark, string> = { on: 'held', open: 'open', rest: 'rest day', frozen: 'frozen', off: 'empty' }
 
 /** The last seven days as seven bars, like the test-card strip: lit when held, a low bar for a rest day or an empty one. */
 function WeekStrip({ week, rest }: { week: { key: string; mark: DayMark }[]; rest: boolean }) {

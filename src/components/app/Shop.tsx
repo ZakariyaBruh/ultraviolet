@@ -8,7 +8,7 @@ import { Capsule, KitPreview, Solids } from '@/components/app/shop/Detail'
 import { Mixer } from '@/components/app/shop/Mixer'
 import { Brick, Cannon, Spinner } from '@/components/app/shop/Toys'
 import { fx_say } from '@/lib/actions'
-import { LIFELINES_PER_PACK, SHOP, SHOP_ORDER, type ItemId } from '@/lib/credits'
+import { FREEZE_MAX, LIFELINES_PER_PACK, SHOP, SHOP_ORDER, type ItemId } from '@/lib/credits'
 import { useGridFit } from '@/lib/hooks'
 import { itemsOf, useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,7 @@ function holding(id: ItemId, it: ReturnType<typeof itemsOf>): string {
   if (id === 'break') return `${it.breaks} in your pocket`
   if (id === 'longbreak') return `${it.longBreaks} in your pocket`
   if (id === 'shield') return `${it.shields} in your pocket`
+  if (id === 'freeze') return `${it.freezes} of ${FREEZE_MAX}`
   if (id === 'lifeline') return `${it.lifelines} left`
   if (id === 'capsule') return it.capsule ? 'one sealed' : 'none sealed'
   return it.owned.includes(id) ? 'owned' : ''
@@ -30,6 +31,7 @@ const HOW: Partial<Record<ItemId, string>> = {
   break: 'Use it from the Focus screen while you are locked in.',
   longbreak: 'Use it from the Focus screen while you are locked in.',
   shield: 'It works by itself: when you drift after ten or more clean minutes, it is spent and the streak carries on.',
+  freeze: 'It works by itself: if a run of three or more days ends, a freeze covers the missed day when you next open Focus (within two days).',
   lifeline: 'A 50:50 button appears under the answers in lessons and trivia.',
   sound: 'Open it from the Focus screen with the Sounds button.',
   automusic: 'Open the Music widget from the Focus screen and press play.',

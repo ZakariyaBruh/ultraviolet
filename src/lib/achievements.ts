@@ -1,4 +1,5 @@
 import { dayTotal, streak, sum } from './stats'
+import { runOf } from './run'
 import { useFx } from './fx'
 import { isSupporter } from './supporter'
 import { useStore, type AppState } from './store'
@@ -18,6 +19,8 @@ export interface Facts {
   longest: number
   minutes: number
   streak: number
+  bestRun: number
+  frozen: number
   goalDays: number
   early: number
   late: number
@@ -51,6 +54,8 @@ export function factsOf(s: Src, today: Date = new Date()): Facts {
     longest: done.reduce((m, x) => Math.max(m, x.goalMin), 0),
     minutes: Object.values(s.focusLog).reduce((a, row) => a + sum(row), 0),
     streak: streak(s.focusLog, 10, today),
+    bestRun: runOf(s.focusLog, 10, today).best,
+    frozen: (s.credits.items?.frozen ?? []).length,
     goalDays: goal > 0 ? Object.keys(s.focusLog).filter((k) => dayTotal(s.focusLog, k) >= goal).length : 0,
     early: done.filter((x) => hour(x.start) >= 4 && hour(x.start) < 7).length,
     late: done.filter((x) => hour(x.start) >= 22).length,
@@ -99,9 +104,14 @@ export const ACHIEVEMENTS: Achievement[] = [
   A('took-break', 'Focus', 'Five-minute hero', 'Take a Break in the middle of a session.', 1, 'session', (f) => f.breaks),
   A('stepped-out', 'Focus', 'Off to do real work', 'Step out to work elsewhere, and say so first.', 1, 'session', (f) => f.trips),
   A('brick', 'Focus', 'Why, though?', 'Buy the Golden Brick. It does nothing.', 1, 'brick', (f) => f.brick),
-  A('streak-3', 'Habit', 'Okay, a pattern', 'Ten minutes or more on three days in a row.', 3, 'days', (f) => f.streak),
-  A('streak-7', 'Habit', 'A week, no excuses', 'Ten minutes or more on seven days in a row.', 7, 'days', (f) => f.streak),
-  A('streak-30', 'Habit', 'Thirty days. Who are you?', 'Ten minutes or more on thirty days in a row.', 30, 'days', (f) => f.streak),
+  A('streak-3', 'Habit', 'Okay, a pattern', 'Ten minutes or more on three days in a row.', 3, 'days', (f) => f.bestRun),
+  A('streak-7', 'Habit', 'A week, no excuses', 'Ten minutes or more on seven days in a row.', 7, 'days', (f) => f.bestRun),
+  A('streak-30', 'Habit', 'Thirty days. Who are you?', 'Ten minutes or more on thirty days in a row.', 30, 'days', (f) => f.bestRun),
+  A('streak-14', 'Habit', 'Two weeks. Suspicious.', 'Ten minutes or more, fourteen days running.', 14, 'days', (f) => f.bestRun),
+  A('streak-60', 'Habit', 'Sixty days, no one asked', 'Sixty days running. One rest day a week is allowed.', 60, 'days', (f) => f.bestRun),
+  A('streak-100', 'Habit', 'Triple digits', 'A hundred days running.', 100, 'days', (f) => f.bestRun),
+  A('streak-365', 'Habit', 'A whole orbit', 'A year of days. Yes, really.', 365, 'days', (f) => f.bestRun),
+  A('froze', 'Habit', 'Saved by the freeze', 'Let a Streak freeze cover a missed day.', 1, 'freeze', (f) => f.frozen),
   A('goal-day', 'Habit', 'Overachiever, once', 'Hit your daily goal.', 1, 'day', (f) => f.goalDays),
   A('goal-week', 'Habit', 'Overachiever, seven times', 'Hit your daily goal on seven days.', 7, 'days', (f) => f.goalDays),
   A('early-bird', 'Habit', 'Up before the pigeons', 'Finish a session that began before 7 am.', 1, 'session', (f) => f.early),

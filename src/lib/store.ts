@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { isTrying, refuse } from './trial'
-import { BREAK_MIN, CAPSULE_MAX, finishBonus, TRIPS_MAX, TRIP_MAX_MIN, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, STREAK_BONUS_MAX, type ItemId } from './credits'
+import { BREAK_MIN, CAPSULE_MAX, finishBonus, TRIPS_MAX, TRIP_MAX_MIN, LIFELINES_PER_PACK, LONG_BREAK_MIN, rateAt, SHOP, STREAK_BONUS_MAX, FREEZE_MAX, type ItemId } from './credits'
 import { useFx } from './fx'
 import { useUI } from './ui'
 import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
-import { dateKey } from './dates'
-import { markAt, memo, runOf } from './run'
+import { dateKey, parseKey } from './dates'
+import { markAt, memo, runOf, setFrozen } from './run'
 import { PROJECT_MAX, tidyProject } from './projects'
 
 export interface Mute {
@@ -166,6 +166,10 @@ export interface Items {
   breaks: number
   longBreaks: number
   shields: number
+  /** streak freezes in hand */
+  freezes: number
+  /** days a freeze was spent on */
+  frozen: string[]
   lifelines: number
   owned: string[]
   clunks: number
@@ -177,7 +181,7 @@ export interface Items {
   /** a note waiting to open after the next finished session */
   capsule: string
 }
-export const noItems = (): Items => ({ breaks: 0, longBreaks: 0, shields: 0, lifelines: 0, owned: [], clunks: 0, spins: 0, dial: '', mix: {}, capsule: '' })
+export const noItems = (): Items => ({ breaks: 0, longBreaks: 0, shields: 0, freezes: 0, frozen: [], lifelines: 0, owned: [], clunks: 0, spins: 0, dial: '', mix: {}, capsule: '' })
 export const itemsOf = (c: Credits): Items => ({ ...noItems(), ...c.items })
 
 type HourLog = Record<string, number[]>
@@ -237,6 +241,8 @@ interface Actions {
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
   buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
+  /** spend streak freezes on a run that ended in the last two days; returns what was covered */
+  mendRun: () => string[]
   sealCapsule: (text: string) => boolean
   useBreak: (long?: boolean) => void
   useLifeline: () => boolean
@@ -439,7 +445,7 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         if (it.brick === true && !owned.includes('brick')) owned.push('brick') // from before there was a list
         const mix: Record<string, number> = {}
         if (isObj(it.mix)) for (const [l, lv] of Object.entries(it.mix)) if (typeof lv === 'number' && isFinite(lv)) mix[l.slice(0, 12)] = Math.min(1, Math.max(0, lv))
-        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), longBreaks: n(it.longBreaks), shields: n(it.shields), lifelines: n(it.lifelines), owned, clunks: n(it.clunks), spins: n(it.spins), dial: typeof it.dial === 'string' ? it.dial.slice(0, 12) : '', mix, capsule: typeof it.capsule === 'string' ? it.capsule.slice(0, CAPSULE_MAX) : '' } }
+        ok = { bal: n(v.bal), earned: n(v.earned), spent: n(v.spent), best, log, items: { breaks: n(it.breaks), longBreaks: n(it.longBreaks), shields: n(it.shields), freezes: Math.min(FREEZE_MAX, n(it.freezes)), frozen: Array.isArray(it.frozen) ? it.frozen.filter((x): x is string => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x)).slice(-60) : [], lifelines: n(it.lifelines), owned, clunks: n(it.clunks), spins: n(it.spins), dial: typeof it.dial === 'string' ? it.dial.slice(0, 12) : '', mix, capsule: typeof it.capsule === 'string' ? it.capsule.slice(0, CAPSULE_MAX) : '' } }
       }
     } else if (k === 'widgets') {
       if (isObj(v)) {
@@ -668,6 +674,7 @@ export const useStore = create<AppState>()(
         const it = SHOP[id]
         const have = itemsOf(get().credits)
         if (it.kind === 'unlock' && have.owned.includes(id)) return false
+        if (id === 'freeze' && have.freezes >= FREEZE_MAX) return false
         if (!get().spendCredits(it.price, `Bought ${it.name}`)) return false
         set((s) => {
           const h = itemsOf(s.credits)
@@ -675,11 +682,28 @@ export const useStore = create<AppState>()(
           if (id === 'break') next.breaks += 1
           else if (id === 'longbreak') next.longBreaks += 1
           else if (id === 'shield') next.shields += 1
+          else if (id === 'freeze') next.freezes += 1
           else if (id === 'lifeline') next.lifelines += LIFELINES_PER_PACK
           else if (!next.owned.includes(id)) next.owned = [...next.owned, id]
           return { credits: { ...s.credits, items: next } }
         })
         return true
+      },
+      mendRun: () => {
+        const done: string[] = []
+        for (let i = 0; i < 2; i++) {
+          const s = get()
+          const have = itemsOf(s.credits)
+          const r = runOf(s.focusLog)
+          if (have.freezes < 1 || !r.lost || r.lost.days < 3) break
+          const age = Math.round((+new Date(new Date().setHours(0, 0, 0, 0)) - +parseKey(r.lost.key)) / 864e5)
+          if (age > 2) break
+          set({ credits: { ...s.credits, items: { ...have, freezes: have.freezes - 1, frozen: [...have.frozen, r.lost.key].slice(-60) } } })
+          setFrozen(get().credits.items?.frozen ?? [])
+          done.push(r.lost.key)
+        }
+        if (done.length) { const r = runOf(get().focusLog); useFx.getState().say({ title: 'Streak freeze used', description: `${done.length === 1 ? 'A missed day was' : `${done.length} missed days were`} covered. Day ${r.days}${r.doneToday ? '' : ' so far'} on air.` }) }
+        return done
       },
       /** Seal a note to yourself. It opens, once, after your next finished session. */
       sealCapsule: (text) => {
@@ -838,3 +862,8 @@ export function snapshotData(): Data {
 if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __store: typeof useStore }).__store = useStore
 
 if (import.meta.env.DEV) (globalThis as { __store?: unknown }).__store = useStore
+
+// the days a streak freeze covered are read by `runOf` everywhere, so keep them in step with the store (also after a load or a restore)
+const syncFrozen = () => setFrozen(useStore.getState().credits?.items?.frozen ?? [])
+syncFrozen()
+useStore.subscribe(syncFrozen)
