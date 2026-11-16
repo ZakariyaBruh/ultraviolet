@@ -5,8 +5,9 @@ import { Browser } from '@/components/app/Browser'
 import { AsciiSolid } from '@/components/app/AsciiSolid'
 import { VideoSlot } from '@/components/app/VideoSlot'
 import { Logo } from '@/components/app/shared'
+import { LoadingBlock } from '@/components/app/LoadingBlock'
 import { fetchCategory, searchAllTv, TV_CATEGORIES } from '@/lib/iptv'
-import { play, usePlayer, warmStreams } from '@/lib/player'
+import { play, step, usePlayer, warmStreams } from '@/lib/player'
 import { useUI } from '@/lib/ui'
 
 /** A proper screen: the channel sits in its own 16:9 frame with its controls underneath. */
@@ -26,7 +27,8 @@ function Stage() {
             {!tv && <div className="flex flex-col items-center gap-2"><AsciiSolid cols={40} rows={18} speed={0.6} className="text-[7px] text-signal" /><p className="hud">Off air. Pick a channel.</p></div>}
           </div>
         )}
-        {tv && status === 'loading' && <div className="absolute inset-0 grid place-items-center bg-black/60"><span className="hud text-ink">Tuning…</span></div>}
+        {tv && status === 'loading' && <div className="absolute inset-0 grid place-items-center bg-black/70"><LoadingBlock label="Tuning" size={56} className="min-h-0 h-auto text-white" /></div>}
+        {tv && status === 'error' && <div className="absolute inset-0 grid place-items-center bg-black/80 p-4 text-center"><div className="grid justify-items-center gap-3"><p className="hud text-white">Off air</p><p className="max-w-[30ch] text-sm text-white/80">This channel is not sending right now. Trying the next one.</p><button onClick={() => step(1)} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Next channel</button></div></div>}
         {tv && (
           <button onClick={() => set({ theatre: true })} className="absolute right-2 top-2 inline-flex h-11 items-center gap-2 bg-black/70 px-3 text-sm text-white hover:bg-black">
             <Maximize2 className="size-4" /> Fill screen
@@ -61,7 +63,7 @@ export function TvView() {
   useEffect(() => { warmStreams() }, [])
   return (
     <motion.div className="h-full" initial={false}>
-      <Browser kind="tv" layout="rail" kicker="Live TV" title="TV" sub="Live news, weather, space and sport from channels that stream free themselves. Played from their own servers. The usual cable channels are not here: they have no free stream to play." chips={TV_CATEGORIES} initialChip="news" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
+      <Browser kind="tv" layout="rail" kicker="Live TV" title="TV" sub="Live news, business, weather, documentaries, kids, music and sport from channels that stream free themselves. Played from their own servers. The usual cable channels are not here: they have no free stream to play." chips={TV_CATEGORIES} initialChip="news" load={load} remoteSearch placeholder="Search every channel" aside={<Stage />} />
     </motion.div>
   )
 }

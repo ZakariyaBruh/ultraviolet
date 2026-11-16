@@ -13,12 +13,16 @@ interface Row { id: string; name: string; url: string; logo: string | null; cc: 
 const ROWS = curated as Row[]
 
 /** the chips, each a way of grouping the list */
-const ALL_CATEGORIES = ['news', 'general', 'education', 'culture', 'kids', 'sports', 'music'] as const
+const ALL_CATEGORIES = ['news', 'business', 'weather', 'general', 'entertainment', 'documentary', 'education', 'culture', 'kids', 'sports', 'music'] as const
 export type TvCategory = (typeof ALL_CATEGORIES)[number]
 const GROUP: Record<TvCategory, string[]> = {
   news: ['news'],
-  general: ['general', 'public', 'entertainment', 'series', 'movies', 'lifestyle', 'undefined'],
-  education: ['education', 'documentary', 'science', 'outdoor', 'weather'],
+  business: ['business'],
+  weather: ['weather'],
+  general: ['general', 'public', 'undefined'],
+  entertainment: ['entertainment', 'series', 'movies', 'comedy', 'lifestyle', 'animation', 'classic'],
+  documentary: ['documentary', 'science', 'outdoor', 'travel'],
+  education: ['education'],
   culture: ['culture'],
   kids: ['kids'],
   sports: ['sports'],
