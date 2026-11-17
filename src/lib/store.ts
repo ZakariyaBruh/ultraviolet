@@ -9,6 +9,7 @@ import { dateKey, parseKey } from './dates'
 import { markAt, memo, runOf, setFrozen } from './run'
 import { CAL_MAX, type CalEvent } from './ical'
 import { PROJECT_MAX, tidyProject } from './projects'
+import { sanitizeDecks, type Deck } from './cards'
 
 export interface Mute {
   id: string
@@ -220,8 +221,10 @@ export interface SavedPage { name: string; url: string }
 /** `min`: open windows tucked into the tray (kept running, just out of the way); `ghost`: windows you can click through */
 /** an imported calendar: the events as read from the file (see `lib/ical.ts`), kept in this browser only */
 export interface Cal { name: string; at: number; events: CalEvent[] }
-export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window's text for each language */ code?: Record<string, string> }
+export interface Widgets { open: string[]; /** the first page of the Notepad, kept for older saves */ note: string; /** every Notepad page (the first is `note`) */ notes?: string[]; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window: text for each language, `in:<language>` its Input box, `@lang` the language last used */ code?: Record<string, string>; /** the Flashcards window's decks (lib/cards.ts) */ decks?: Deck[]; /** the Graph window: up to three formulas and the angle unit */ graph?: { f: string[]; deg?: boolean }; /** events and countdowns typed into the Calendar window, kept apart from an imported file */ own?: CalEvent[] }
 export const NOTE_MAX = 20000
+export const NOTES_MAX = 12
+export const OWN_MAX = 100
 export const TODO_MAX = 60
 export const PAGES_MAX = 8
 
@@ -237,6 +240,7 @@ interface Actions {
   ghostWidget: (id: string, on: boolean) => void
   closeWidgets: () => void
   setNote: (text: string) => void
+  setNotes: (pages: string[]) => void
   addTodo: (text: string) => void
   toggleTodo: (id: string) => void
   removeTodo: (id: string) => void
@@ -244,6 +248,10 @@ interface Actions {
   setCalendar: (name: string, events: CalEvent[]) => void
   setCode: (lang: string, text: string) => void
   clearCalendar: () => void
+  setDecks: (decks: Deck[]) => void
+  setGraph: (g: { f: string[]; deg?: boolean }) => void
+  addOwnEvent: (ev: CalEvent) => void
+  removeOwnEvent: (id: string) => void
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
   buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
@@ -462,8 +470,15 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const num = (x: unknown) => typeof x === 'number' && isFinite(x)
         const cal = isObj(v.cal) && Array.isArray(v.cal.events) ? { name: String(v.cal.name ?? '').slice(0, 60), at: num(v.cal.at) ? v.cal.at : 0, events: v.cal.events.filter((x) => isObj(x) && typeof x.t === 'string' && num(x.s) && num(x.e)).slice(0, CAL_MAX).map((x, i) => { const r = isObj(x.r) && ['D', 'W', 'M', 'Y'].includes(String(x.r.f)) ? { f: x.r.f, i: Math.max(1, Math.min(52, Number(x.r.i) || 1)), ...(num(x.r.n) ? { n: x.r.n } : {}), ...(num(x.r.u) ? { u: x.r.u } : {}), ...(Array.isArray(x.r.d) ? { d: (x.r.d as unknown[]).filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6).slice(0, 7) } : {}) } : undefined; return { id: String(i), t: String(x.t).slice(0, 120), s: x.s as number, e: x.e as number, ...(x.day === true ? { day: true } : {}), ...(typeof x.loc === 'string' ? { loc: x.loc.slice(0, 100) } : {}), ...(r ? { r: r as CalEvent['r'] } : {}), ...(Array.isArray(x.x) ? { x: x.x.filter(num).slice(0, 200) as number[] } : {}) } as CalEvent }) } : undefined
         const code: Record<string, string> = {}
-        if (isObj(v.code)) for (const l of ['python', 'javascript', 'html', 'sql']) if (typeof v.code[l] === 'string') code[l] = (v.code[l] as string).slice(0, NOTE_MAX)
-        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}) }
+        // the Code window: text and input for each language (the ids of LANGS in lib/codelangs.ts, kept here so the start file stays small) and the last language
+        const LANG_IDS = ['python', 'javascript', 'typescript', 'html', 'sql', 'bash', 'cpp', 'ruby', 'lua', 'php']
+        if (isObj(v.code)) for (const [l, t] of Object.entries(v.code)) if (typeof t === 'string' && (LANG_IDS.includes(l) || LANG_IDS.includes(l.replace(/^in:/, '')) || (l === '@lang' && LANG_IDS.includes(t)))) code[l] = t.slice(0, NOTE_MAX)
+        const decks = sanitizeDecks(v.decks)
+        // a date of your own is let go a month after it
+        const own = Array.isArray(v.own) ? (v.own as unknown[]).filter((x): x is Record<string, unknown> => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && num(x.s) && num(x.e)).filter((x) => (x.e as number) > Date.now() - 30 * 864e5).slice(-OWN_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 120), s: x.s as number, e: Math.max(x.s as number, x.e as number), ...(x.day === true ? { day: true } : {}) })) : undefined
+        const notes = Array.isArray(v.notes) ? (v.notes as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, NOTES_MAX).map((t) => t.slice(0, NOTE_MAX)) : undefined
+        const graph = isObj(v.graph) && Array.isArray(v.graph.f) ? { f: (v.graph.f as unknown[]).slice(0, 3).map((x) => (typeof x === 'string' ? x.slice(0, 200) : '')), ...(v.graph.deg === true ? { deg: true } : {}) } : undefined
+        ok = { open, note: notes?.length ? notes[0] : typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', ...(notes && notes.length > 1 ? { notes } : {}), todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}), ...(decks?.length ? { decks } : {}), ...(graph ? { graph } : {}), ...(own?.length ? { own } : {}) }
       }
     } else if (k === 'achievements') {
       if (isObj(v)) {
@@ -816,7 +831,8 @@ export const useStore = create<AppState>()(
       minAllWidgets: (on) => set((s) => ({ widgets: { ...s.widgets, min: on ? [...s.widgets.open] : [] } })),
       ghostWidget: (id, on) => set((s) => (s.widgets.open.includes(id) ? { widgets: { ...s.widgets, ghost: on ? [...new Set([...(s.widgets.ghost ?? []), id])] : (s.widgets.ghost ?? []).filter((x) => x !== id) } } : s)),
       closeWidgets: () => set((s) => ({ widgets: { ...s.widgets, open: [], min: [], ghost: [] } })),
-      setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX) } })),
+      setNote: (text) => set((s) => ({ widgets: { ...s.widgets, note: text.slice(0, NOTE_MAX), ...(s.widgets.notes ? { notes: [text.slice(0, NOTE_MAX), ...s.widgets.notes.slice(1)] } : {}) } })),
+      setNotes: (pages) => { const notes = (pages.length ? pages : ['']).slice(0, NOTES_MAX).map((t) => t.slice(0, NOTE_MAX)); set((s) => ({ widgets: { ...s.widgets, note: notes[0], notes } })) },
       addTodo: (text) => {
         const t = text.trim().slice(0, 160)
         if (!t) return
@@ -827,6 +843,10 @@ export const useStore = create<AppState>()(
       setCode: (lang, text) => set((s) => ({ widgets: { ...s.widgets, code: { ...(s.widgets.code ?? {}), [lang]: text.slice(0, NOTE_MAX) } } })),
       setCalendar: (name, events) => set((s) => ({ widgets: { ...s.widgets, cal: { name: name.slice(0, 60), at: Date.now(), events: events.slice(0, CAL_MAX) } } })),
       clearCalendar: () => set((s) => { const { cal: _gone, ...rest } = s.widgets; return { widgets: rest } }),
+      setDecks: (decks) => set((s) => ({ widgets: { ...s.widgets, decks: sanitizeDecks(decks) ?? [] } })),
+      addOwnEvent: (ev) => set((s) => ({ widgets: { ...s.widgets, own: [...(s.widgets.own ?? []), { id: ev.id.slice(0, 24), t: ev.t.slice(0, 120), s: ev.s, e: Math.max(ev.s, ev.e), ...(ev.day ? { day: true } : {}) }].sort((a, b) => a.s - b.s).slice(-OWN_MAX) } })),
+      removeOwnEvent: (id) => set((s) => ({ widgets: { ...s.widgets, own: (s.widgets.own ?? []).filter((e) => e.id !== id) } })),
+      setGraph: (g) => set((s) => ({ widgets: { ...s.widgets, graph: { f: g.f.slice(0, 3).map((x) => String(x).slice(0, 200)), ...(g.deg ? { deg: true } : {}) } } })),
       clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
 
       markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),

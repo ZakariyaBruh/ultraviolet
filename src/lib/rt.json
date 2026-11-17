@@ -1,0 +1,5 @@
+{
+ "bash": "bash-3.6.1.js",
+ "cpp": "jscpp-2.0.9.js",
+ "ts": "sucrase-3.35.1.js"
+}

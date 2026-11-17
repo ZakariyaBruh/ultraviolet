@@ -337,6 +337,8 @@ html[data-perf='0'] .ascii-sway { animation: none; }
 .win-in { animation: winin 160ms var(--ease-out, ease-out); }
 /* text that does not fit its box scrolls inside it, with a thin bar, instead of being cut off */
 .scroll-y { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
+/* the sideways twin, for a row of page tabs or a wide code block */
+.scroll-x { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink) 40%, transparent) transparent; }
 /* the landing's middle band measures itself: the station ident and the solids only show when the band is tall enough to hold them */
 .land-mid { container-type: size; }
 .land-ident { display: none; }

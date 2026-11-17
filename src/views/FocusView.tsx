@@ -1,5 +1,5 @@
 import { Coffee, ExternalLink, Hourglass, Play, Radio, Volume2 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
 import { LengthBand } from '@/components/app/LengthBand'
@@ -23,7 +23,7 @@ import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, sum } from '@/lib/stats'
-import { nextUp } from '@/lib/ical'
+import { nextUp, type CalEvent } from '@/lib/ical'
 import { runLine, runOf, nextMark, type DayMark } from '@/lib/run'
 import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
@@ -173,6 +173,38 @@ function SoundsButton() {
   )
 }
 
+/**
+ * One line under the length, only when it helps: just after a finished session, a rest on the Timer (it rings when the rest is over);
+ * otherwise, when the next event in an imported calendar starts before the chosen length would end, the length that finishes first.
+ */
+function NextStep({ sessionMin, minute, events }: { sessionMin: number; minute: number; events: CalEvent[] }) {
+  const last = useStore((s) => s.sessions[0])
+  const setSettings = useStore((s) => s.setSettings)
+  const [rested, setRested] = useState('')
+  const now = minute * 6e4
+  const btn = 'min-h-11 max-w-[420px] px-2 text-center text-[13px] leading-[1.35] text-signal hover:underline'
+  if (last?.completed && now - last.end < 10 * 6e4 && rested !== last.id) {
+    const rest = last.goalMin >= 50 ? 10 : 5
+    const go = () => {
+      setRested(last.id)
+      void import('@/components/app/widgets/Timer').then(({ useTimer }) => {
+        const t = useTimer.getState()
+        t.setMode('countdown'); t.setTarget(rest * 6e4); t.start()
+        useStore.getState().setWidget('timer', true)
+      })
+    }
+    return <button onClick={go} className={btn}>Done. Rest {rest} minutes on the timer, then go again.</button>
+  }
+  const up = events.length ? nextUp(events, now) : null
+  if (!up || up.s <= now) return null
+  const until = Math.floor((up.s - now) / 6e4)
+  if (until >= sessionMin + 2) return null
+  const at = new Date(up.s).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const fit = Math.floor((until - 2) / 5) * 5
+  if (fit < 10) return <p className="max-w-[420px] px-2 text-center text-[13px] text-ink-2">{up.t} at {at}, in {until} min.</p>
+  return <button onClick={() => setSettings({ sessionMin: fit })} className={btn}>{up.t} at {at}. Make it {fit} min to finish first.</button>
+}
+
 export function FocusView({ go }: { go: (v: View) => void }) {
   const session = useStore((s) => s.session)
   const credits = useStore((s) => s.credits)
@@ -212,10 +244,14 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const days = run.days
   const streakLine = runLine(run, held)
   const cal = useStore((s) => s.widgets.cal)
+  const own = useStore((s) => s.widgets.own)
+  const events = useMemo(() => [...(cal?.events ?? []), ...(own ?? [])], [cal, own])
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 6e4))
   useEffect(() => { const t = setInterval(() => setMinute(Math.floor(Date.now() / 6e4)), 30000); return () => clearInterval(t) }, [])
-  const up = cal ? nextUp(cal.events, minute * 6e4) : null
-  const calLine = up ? (up.s <= minute * 6e4 ? `On now: ${up.t}.` : `Next: ${up.t} at ${new Date(up.s).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`) : ''
+  const up = events.length ? nextUp(events, minute * 6e4) : null
+  // with nothing on in the next day, the nearest date you typed in to count down to (an exam, a deadline), up to two months off
+  const count = !up ? (own ?? []).map((e) => ({ e, n: Math.round((new Date(e.s).setHours(0, 0, 0, 0) - new Date(minute * 6e4).setHours(0, 0, 0, 0)) / 864e5) })).find((x) => x.n >= 1 && x.n <= 60) : undefined
+  const calLine = up ? (up.s <= minute * 6e4 ? `On now: ${up.t}.` : `Next: ${up.t} at ${new Date(up.s).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`) : count ? `${count.e.t} ${count.n === 1 ? 'is tomorrow' : `in ${count.n} days`}.` : ''
 
   const start = () => {
     useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
@@ -270,6 +306,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                   <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
                 <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
+                <NextStep sessionMin={sessionMin} minute={minute} events={events} />
                 <ProjectPicker />
                 {hasSound && <SoundsButton />}
               </motion.div>
