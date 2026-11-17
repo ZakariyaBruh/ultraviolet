@@ -23,6 +23,7 @@ import { dateKey, fmtClock } from '@/lib/dates'
 import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, sum } from '@/lib/stats'
+import { nextUp } from '@/lib/ical'
 import { runLine, runOf, nextMark, type DayMark } from '@/lib/run'
 import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
@@ -210,6 +211,11 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const run = runOf(focusLog)
   const days = run.days
   const streakLine = runLine(run, held)
+  const cal = useStore((s) => s.widgets.cal)
+  const [minute, setMinute] = useState(() => Math.floor(Date.now() / 6e4))
+  useEffect(() => { const t = setInterval(() => setMinute(Math.floor(Date.now() / 6e4)), 30000); return () => clearInterval(t) }, [])
+  const up = cal ? nextUp(cal.events, minute * 6e4) : null
+  const calLine = up ? (up.s <= minute * 6e4 ? `On now: ${up.t}.` : `Next: ${up.t} at ${new Date(up.s).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`) : ''
 
   const start = () => {
     useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
@@ -221,10 +227,10 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const finding = session
     ? `${session.project ? `${session.project}: ` : ''}${Math.round(session.elapsedSec / 60)} of ${session.goalMin} min held, ${session.urges} drift${session.urges === 1 ? '' : 's'}.`
     : held >= goal
-      ? `Daily goal of ${goal} min met. ${blocked} drifts today. ${streakLine}`.trim()
+      ? `Daily goal of ${goal} min met. ${blocked} drifts today. ${streakLine} ${calLine}`.trim()
       : held > 0
-        ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts. ${streakLine}`.trim()
-        : `Nothing yet today. ${streakLine || 'Pick a length and lock in.'}`
+        ? `${Math.round(held)} of ${goal} min today, ${blocked} drifts. ${streakLine} ${calLine}`.trim()
+        : `Nothing yet today. ${streakLine || 'Pick a length and lock in.'} ${calLine}`.trim()
 
   return (
     <section className={`relative flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : '[justify-content:safe_center]'}`}>

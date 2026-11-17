@@ -7,6 +7,7 @@ import { normalizeTheme, type ThemeId } from './themes'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { dateKey, parseKey } from './dates'
 import { markAt, memo, runOf, setFrozen } from './run'
+import { CAL_MAX, type CalEvent } from './ical'
 import { PROJECT_MAX, tidyProject } from './projects'
 
 export interface Mute {
@@ -217,7 +218,9 @@ export interface Todo { id: string; t: string; done: boolean }
 /** a shortcut the person added to the Browser's start page */
 export interface SavedPage { name: string; url: string }
 /** `min`: open windows tucked into the tray (kept running, just out of the way); `ghost`: windows you can click through */
-export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[] }
+/** an imported calendar: the events as read from the file (see `lib/ical.ts`), kept in this browser only */
+export interface Cal { name: string; at: number; events: CalEvent[] }
+export interface Widgets { open: string[]; note: string; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal }
 export const NOTE_MAX = 20000
 export const TODO_MAX = 60
 export const PAGES_MAX = 8
@@ -238,6 +241,8 @@ interface Actions {
   toggleTodo: (id: string) => void
   removeTodo: (id: string) => void
   clearDoneTodos: () => void
+  setCalendar: (name: string, events: CalEvent[]) => void
+  clearCalendar: () => void
   earnCredits: (n: number, why: string) => void
   spendCredits: (n: number, why: string) => boolean
   buyItem: (id: Exclude<ItemId, 'capsule'>) => boolean
@@ -453,7 +458,9 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const todos = Array.isArray(v.todos) ? v.todos.filter((x) => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && typeof x.done === 'boolean').slice(0, TODO_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 160), done: !!x.done })) : []
         const pages = Array.isArray(v.pages) ? v.pages.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.url === 'string' && /^https?:\/\/[^\s]{1,500}$/.test(x.url)).slice(0, PAGES_MAX).map((x) => ({ name: String(x.name).slice(0, 30), url: String(x.url) })) : []
         const ids = (a: unknown) => (Array.isArray(a) ? [...new Set(a.filter((x): x is string => typeof x === 'string' && open.includes(x)))].slice(0, 12) : [])
-        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages, min: ids(v.min), ghost: ids(v.ghost) }
+        const num = (x: unknown) => typeof x === 'number' && isFinite(x)
+        const cal = isObj(v.cal) && Array.isArray(v.cal.events) ? { name: String(v.cal.name ?? '').slice(0, 60), at: num(v.cal.at) ? v.cal.at : 0, events: v.cal.events.filter((x) => isObj(x) && typeof x.t === 'string' && num(x.s) && num(x.e)).slice(0, CAL_MAX).map((x, i) => { const r = isObj(x.r) && ['D', 'W', 'M', 'Y'].includes(String(x.r.f)) ? { f: x.r.f, i: Math.max(1, Math.min(52, Number(x.r.i) || 1)), ...(num(x.r.n) ? { n: x.r.n } : {}), ...(num(x.r.u) ? { u: x.r.u } : {}), ...(Array.isArray(x.r.d) ? { d: (x.r.d as unknown[]).filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6).slice(0, 7) } : {}) } : undefined; return { id: String(i), t: String(x.t).slice(0, 120), s: x.s as number, e: x.e as number, ...(x.day === true ? { day: true } : {}), ...(typeof x.loc === 'string' ? { loc: x.loc.slice(0, 100) } : {}), ...(r ? { r: r as CalEvent['r'] } : {}), ...(Array.isArray(x.x) ? { x: x.x.filter(num).slice(0, 200) as number[] } : {}) } as CalEvent }) } : undefined
+        ok = { open, note: typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}) }
       }
     } else if (k === 'achievements') {
       if (isObj(v)) {
@@ -814,6 +821,8 @@ export const useStore = create<AppState>()(
       },
       toggleTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.map((x) => (x.id === id ? { ...x, done: !x.done } : x)) } })),
       removeTodo: (id) => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => x.id !== id) } })),
+      setCalendar: (name, events) => set((s) => ({ widgets: { ...s.widgets, cal: { name: name.slice(0, 60), at: Date.now(), events: events.slice(0, CAL_MAX) } } })),
+      clearCalendar: () => set((s) => { const { cal: _gone, ...rest } = s.widgets; return { widgets: rest } }),
       clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
 
       markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),
