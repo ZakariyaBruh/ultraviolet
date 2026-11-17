@@ -16,7 +16,7 @@ async function setup(c: Client) {
   await c.execute('CREATE TABLE IF NOT EXISTS contact (id INTEGER PRIMARY KEY AUTOINCREMENT, created INTEGER NOT NULL, topic TEXT NOT NULL, name TEXT NOT NULL, reply TEXT NOT NULL, message TEXT NOT NULL, iph TEXT NOT NULL)')
   ready = true
 }
-const TOPICS = ['bug', 'site', 'privacy', 'rights', 'ads', 'other']
+const TOPICS = ['bug', 'site', 'privacy', 'rights', 'press', 'other']
 const same = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y) }
 const clean = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, max) : '')
 const DAY = 86_400_000

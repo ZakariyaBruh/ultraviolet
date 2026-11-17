@@ -1,3 +1,4 @@
+import { isSupporter, openSupport } from '@/lib/supporter'
 import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, GraduationCap, Languages, Map as MapIcon, MessageCircleQuestion, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
@@ -610,6 +611,7 @@ export function Browser() {
               {view.why === 'off' && <>You turned the cloud browser off, so nothing opens in it and no time is used.</>}
             </p>
             <p className="text-[13px] leading-[1.4] text-ink-2">{view.why === 'off' ? 'Turn it back on to open this page.' : 'Meanwhile this page can be opened in your own browser.'}</p>
+            {(view.why === 'limit' || view.why === 'full') && !isSupporter() && <p className="text-[13px] leading-[1.4] text-ink-2">Every cloud browser minute costs real money, and supporters ($2 a month) are who pay for it. <button type="button" onClick={openSupport} className="underline hover:text-ink">See Support</button></p>}
             <div className="flex flex-wrap gap-2">
               {view.why === 'off' && <button onClick={() => { setSetting({ cloudOff: false }); void openCloud(view.url, false) }} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Turn it on</button>}
               {(view.why === 'down' || view.why === 'busy') && <button onClick={() => void openCloud(view.url, false)} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Try again</button>}

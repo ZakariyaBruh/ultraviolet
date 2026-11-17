@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /**
- * The cookie choice. Google Tag Manager (and so anything Google sets for analytics or advertising) is loaded only after Accept; Reject and
+ * The cookie choice. Google Tag Manager (and so anything Google sets for analytics) is loaded only after Accept; Reject and
  * not answering load nothing. The choice is one key in localStorage and can be changed from Settings. index.html reads the same key on load.
  */
 const KEY = 'friction:consent'

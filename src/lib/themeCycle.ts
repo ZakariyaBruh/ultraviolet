@@ -37,7 +37,12 @@ export function startPreview(id: ThemeId) {
 function endPreview(timed: boolean) {
   clearTimeout(previewTimer)
   setTrying(false)
-  if (useUI.getState().previewTheme) { useUI.getState().set({ previewTheme: null }); if (timed) fx_say({ title: 'Back to your theme' }) }
+  const shown = useUI.getState().previewTheme
+  if (shown) {
+    useUI.getState().set({ previewTheme: null })
+    // the two minutes are the moment someone has seen what they would get: say what keeping it costs, once, and let them go
+    if (timed) void import('./supporter').then(({ isSupporter, openSupport }) => fx_say(isSupporter() ? { title: 'Back to your theme' } : { title: `${themeDef(shown).name} is for supporters`, description: 'Keep it for $2 a month, along with the other four and an encrypted backup.', label: 'See Support', undo: openSupport }))
+  }
 }
 export const stopPreview = () => endPreview(false)
 void refuse

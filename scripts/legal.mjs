@@ -1,11 +1,11 @@
-// The pages Google AdSense (and any visitor) expects: About, Contact, Privacy Policy, Cookie Policy, Terms of Use and a Disclaimer.
+// The pages every visitor expects: About, Contact, Privacy Policy, Cookie Policy, Terms of Use and a Disclaimer.
 // Plain HTML outside the app, written into dist/<name>/index.html in the postbuild step (Vercel serves a file before the SPA rewrite),
 // in the same station look as the blog: the stylesheet is lifted from api/blog.ts so the two cannot drift apart.
 // Edit the words here. There is no public email address: the Contact page is a form (api/contact.ts) and `mail` links to it.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://www.frictionx.app'
-const UPDATED = '14 November 2026'
+const UPDATED = '17 November 2026'
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const blog = readFileSync(new URL('../api/blog.ts', import.meta.url), 'utf8')
@@ -43,7 +43,7 @@ const PAGES = {
 <h2>Who makes it</h2>
 <p>Friction is made and run by one independent developer. It has no investors and no sales team. If you have a question, a bug or an idea, use ${mail}.</p>
 <h2>How it is paid for</h2>
-<p>Friction is free to use. The hosting, the database and the cloud browser cost real money, so the site may show advertising from Google AdSense on its public pages, such as the blog. Ads never change the timer, the lessons or your data. How ads and cookies work is explained in the <a href="/privacy">Privacy Policy</a> and the <a href="/cookies">Cookie Policy</a>.</p>
+<p>Friction is free to use. The hosting, the database and the cloud browser cost real money, and supporters pay for them. There is no advertising on Friction, and there will not be. How cookies work is explained in the <a href="/privacy">Privacy Policy</a> and the <a href="/cookies">Cookie Policy</a>.</p>
 <h2>Where AI is used, and where it is not</h2>
 <p>Lessons, their questions and the Debrief are plain rules and computed text, never AI. AI appears in only three labelled places: demos for lesson topics without a built-in one, an optional Ask AI window you open and type into, and a check that helps the Browser window block games and short-form social media. The articles on the <a href="/blogs">blog</a> are written with AI and published automatically, and each one says so.</p>
 <h2>Your data</h2>
@@ -51,7 +51,7 @@ const PAGES = {
   },
   '/contact': {
     title: 'Contact Friction: questions, bugs, privacy requests',
-    description: 'How to reach the person who runs Friction: questions, bug reports, privacy and data requests, advertising and press. One form, read by a human.',
+    description: 'How to reach the person who runs Friction: questions, bug reports, privacy and data requests, press and partnerships. One form, read by a human.',
     h1: 'Contact',
     lead: 'A message form, read by the person who builds Friction.',
     body: `
@@ -59,7 +59,7 @@ const PAGES = {
 <p>There is no public email address: messages go through this form straight to the person who runs Friction. Leave a way to reach you if you want an answer (an email address or a link); without one the message is still read but cannot be answered. A reply usually takes a few days, and there is no support team, so a clear message with what you were doing, the screen you were on, and your device and browser helps most.</p>
 <form id="cf" class="cf" novalidate>
 <label for="cf-topic">What is it about?</label>
-<select id="cf-topic" name="topic"><option value="bug">A bug or something that looks wrong</option><option value="site">A site that does not work in the Browser window</option><option value="privacy">Privacy or my data</option><option value="rights">I am a rights holder asking for something to be hidden</option><option value="ads">Advertising, press or partnerships</option><option value="other">Something else</option></select>
+<select id="cf-topic" name="topic"><option value="bug">A bug or something that looks wrong</option><option value="site">A site that does not work in the Browser window</option><option value="privacy">Privacy or my data</option><option value="rights">I am a rights holder asking for something to be hidden</option><option value="press">Press or partnerships</option><option value="other">Something else</option></select>
 <label for="cf-message">Your message</label>
 <textarea id="cf-message" name="message" rows="7" maxlength="2000" required></textarea>
 <label for="cf-name">Your name (optional)</label>
@@ -91,7 +91,7 @@ const PAGES = {
 <li><strong>A bug or something that looks wrong.</strong> Say what you expected and what happened.</li>
 <li><strong>A site that does not work in the Browser window.</strong> The Browser reads pages only, and the cloud browser is experimental; some sites will not work.</li>
 <li><strong>Privacy and data.</strong> You can erase everything yourself under Settings, then Data, then Erase everything. For anything else, such as a question about this policy, use the form.</li>
-<li><strong>Advertising, press and partnerships.</strong> Pick that topic in the form and say what you have in mind.</li>
+<li><strong>Press and partnerships.</strong> Pick that topic in the form and say what you have in mind.</li>
 <li><strong>Streams, takedowns and copyright.</strong> The radio, TV, podcasts and songs in Friction are published by other people and are publicly available from their sources, not owned or hosted by us (see the list on the <a href="/disclaimer">Disclaimer</a> page). For a problem with a stream itself, contact its source. Rights holders who want something hidden in Friction can use the form, as described under Requests from rights holders on the Disclaimer page; we verify who is asking and do not act on anonymous or bulk requests.</li>
 </ul>
 <h2>Before you write</h2>
@@ -99,7 +99,7 @@ const PAGES = {
   },
   '/privacy': {
     title: 'Privacy Policy: what Friction keeps and what leaves',
-    description: 'What Friction stores in your browser, the few things sent to servers, how Google advertising and analytics cookies work, and how to erase everything.',
+    description: 'What Friction stores in your browser, the few things sent to servers, how Google analytics cookies work, and how to erase everything.',
     h1: 'Privacy Policy',
     lead: `Friction has no accounts and keeps what you make in your own browser. This page lists the exceptions. Last updated ${UPDATED}.`,
     body: `
@@ -107,7 +107,7 @@ const PAGES = {
 <ul>
 <li>There is no account. Your sessions, notes, settings and credits are saved in your browser, not on our servers.</li>
 <li>You can erase everything in Settings, then Data, then Erase everything.</li>
-<li>Third parties, listed below, receive some data when you use a feature that needs them, and Google may set cookies for analytics and advertising.</li>
+<li>Third parties, listed below, receive some data when you use a feature that needs them, and Google may set cookies for analytics.</li>
 </ul>
 <h2>Who is responsible</h2>
 <p>Friction is run by an independent developer. For privacy questions or requests use ${mail}.</p>
@@ -124,7 +124,7 @@ const PAGES = {
 </ul>
 <h2>Third-party services</h2>
 <ul>
-<li><strong>Google (Tag Manager, analytics, AdSense).</strong> The site loads Google Tag Manager, which measures how screens are used, and may show Google AdSense advertising on public pages. Google and its partners may use cookies and similar technologies, including to show personalised or non-personalised ads. Google's use of advertising cookies lets it and its partners serve ads based on visits to this and other sites. You can manage personalised advertising at <a href="https://adssettings.google.com">adssettings.google.com</a> and learn how Google uses data at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. Nothing from Google loads until you press Accept on the cookie notice. Reject (or not answering) loads nothing, and you can change your choice at any time under Settings, then Help, then Cookie choice.</li>
+<li><strong>Google (Tag Manager, analytics).</strong> The site loads Google Tag Manager, which measures how screens are used. Google may use cookies and similar technologies for that. You can learn how Google uses data at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. Nothing from Google loads until you press Accept on the cookie notice. Reject (or not answering) loads nothing, and you can change your choice at any time under Settings, then Help, then Cookie choice.</li>
 <li><strong>Hyperbeam and relay servers (cloud browser).</strong> If you open the cloud browser, a real browser runs on a third party's servers and that party can see what you do in it. A card says so before it starts. No cookies or profile are saved.</li>
 <li><strong>AI services.</strong> Lesson demos send only the topic title to Google Gemini through our server. Ask AI sends what you type to free language-model services (Pollinations and LLM7). The Browser's site check sends an address, title and a short excerpt to the same kind of service. Do not type anything private into Ask AI.</li>
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
@@ -146,12 +146,12 @@ const PAGES = {
   },
   '/cookies': {
     title: 'Cookie Policy: cookies and storage Friction uses',
-    description: 'The cookies, local storage and similar technologies Friction and its advertising and analytics partners use, what each is for, and how to control them.',
+    description: 'The cookies, local storage and similar technologies Friction and its analytics partner use, what each is for, and how to control them.',
     h1: 'Cookie Policy',
     lead: `What is stored on your device when you use Friction, and how to control it. Last updated ${UPDATED}.`,
     body: `
 <h2>What we store ourselves</h2>
-<p>Friction uses your browser's local storage and IndexedDB, not cookies, to remember your settings, sessions, notes and layout, plus small flags such as whether you have seen the tour. These are needed for the app to work and are never sent to advertisers.</p>
+<p>Friction uses your browser's local storage and IndexedDB, not cookies, to remember your settings, sessions, notes and layout, plus small flags such as whether you have seen the tour. These are needed for the app to work.</p>
 <p>So that Friction opens without a connection and starts faster on a repeat visit, your browser also keeps a copy of the app's own public files (its pages, scripts, styles and fonts) in its cache storage. That copy holds nothing about you, is the same for every visitor, and is removed when you clear site data.</p>
 <table>
 <thead><tr><th>Name</th><th>Purpose</th><th>Kept</th></tr></thead>
@@ -162,13 +162,11 @@ const PAGES = {
 <h2>Cookies from partners</h2>
 <ul>
 <li><strong>Google Tag Manager and analytics.</strong> Measure how pages and features are used so they can be improved. Loaded only after you press Accept on the cookie notice.</li>
-<li><strong>Google AdSense and its partners.</strong> If advertising is shown, Google and its partners may set or read cookies to show ads, limit how often you see one, and measure results. These may be personalised.</li>
 </ul>
 <h2>How to control them</h2>
 <ul>
-<li>Use your browser's settings to block or delete cookies for this site. Friction still works, though ads may be less relevant.</li>
+<li>Use your browser's settings to block or delete cookies for this site.</li>
 <li>Change your choice on Friction at any time: Settings, then Help, then Cookie choice.</li>
-<li>Manage Google's personalised ads at <a href="https://adssettings.google.com">adssettings.google.com</a>, or opt out of many third-party vendors at <a href="https://www.aboutads.info">aboutads.info</a>.</li>
 <li>Erase everything in Settings, then Data, removes what Friction itself stores.</li>
 </ul>
 <p>More on how Google uses information from sites that use its services is at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>. For the rest of what we handle, see the <a href="/privacy">Privacy Policy</a>.</p>`,
@@ -195,8 +193,6 @@ ${SOURCES}
 <p>Credits are earned only by focusing and finishing lessons. They have no cash value, cannot be bought with money or won in games, and are stored in your browser. Clearing your data removes them.</p>
 <h2>AI features</h2>
 <p>AI output can contain mistakes. Check it against a reliable source. Do not rely on it for medical, legal or financial decisions.</p>
-<h2>Advertising</h2>
-<p>Public pages may show ads served by Google AdSense. We are not responsible for the ads' content. See the <a href="/privacy">Privacy Policy</a>.</p>
 <h2>Supporting Friction</h2>
 <p>You may support Friction through Whop (see <a href="/support">Support</a>). Supporting is optional, is a gift that adds a few extras in the app (five more themes, an encrypted cloud backup, and a star and a mark next to your name), and does not change what the free app does: what is free is not moved into the extras. Whop is the seller and handles payment, receipts, taxes and refunds under its own terms. We may change or remove the extras, and we will not remove what a supporter has already unlocked without a good reason, such as misuse.</p>
 <h2>Ownership</h2>
@@ -242,8 +238,6 @@ ${SOURCES}
 <h2 id="sources">Streams and external content</h2>
 ${SOURCES}
 <p>We do not control or endorse them, and their availability can change without notice.</p>
-<h2>Advertising</h2>
-<p>Where ads appear they are placed by Google AdSense and are not endorsements by Friction.</p>
 <p>See also the <a href="/terms">Terms of Use</a> and the <a href="/privacy">Privacy Policy</a>.</p>`,
   },
 }
@@ -265,7 +259,7 @@ for (const [path, p] of Object.entries(PAGES)) {
 <link rel="canonical" href="${url}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#05070c">
-${p.noindex ? '<meta name="robots" content="noindex">\n' : ''}<meta name="google-adsense-account" content="ca-pub-4954107433114846">
+${p.noindex ? '<meta name="robots" content="noindex">\n' : ''}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Friction">
 <meta property="og:title" content="${esc(p.title)}">
