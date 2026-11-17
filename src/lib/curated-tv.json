@@ -576,17 +576,6 @@
   "pop": 2
  },
  {
-  "id": "yt-cna",
-  "name": "CNA",
-  "url": "yt:UC83jt4dlz1Gjl58fzQrrKZg",
-  "logo": null,
-  "cc": "SG",
-  "cats": [
-   "news"
-  ],
-  "pop": 2
- },
- {
   "id": "yt-kexp",
   "name": "KEXP",
   "url": "yt:UC3I2GFN_F8WudD_2jUZbojA",
@@ -598,9 +587,20 @@
   "pop": 2
  },
  {
-  "id": "yt-wion",
+  "id": "cna-hls",
+  "name": "CNA",
+  "url": "https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index.m3u8",
+  "logo": null,
+  "cc": "SG",
+  "cats": [
+   "news"
+  ],
+  "pop": 2
+ },
+ {
+  "id": "wion-hls",
   "name": "WION",
-  "url": "yt:UC_gUM8rL-Lrg6O3adPW9K1g",
+  "url": "https://d7x8z4yuq42qn.cloudfront.net/index_7.m3u8",
   "logo": null,
   "cc": "IN",
   "cats": [
@@ -609,14 +609,26 @@
   "pop": 1
  },
  {
-  "id": "yt-ndtv",
+  "id": "ndtv-hls",
   "name": "NDTV 24x7",
-  "url": "yt:UCZFMm1mMw0F81Z37aaEzTUA",
+  "url": "https://ndtv24x7elemarchana.akamaized.net/hls/live/2003678/ndtv24x7/master.m3u8",
   "logo": null,
   "cc": "IN",
   "cats": [
    "news"
   ],
   "pop": 1
+ },
+ {
+  "id": "skyweather-hls",
+  "name": "Sky News Weather",
+  "url": "https://distro001-gb-hls1-prd.delivery.skycdp.com/easel_cdn/ngrp:weather_loop.stream_all/playlist.m3u8",
+  "logo": null,
+  "cc": "GB",
+  "cats": [
+   "weather",
+   "news"
+  ],
+  "pop": 2
  }
 ]

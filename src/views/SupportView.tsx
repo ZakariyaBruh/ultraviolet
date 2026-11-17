@@ -155,7 +155,7 @@ export function SupportView() {
   const perks = (
     <Panel className="flex min-h-[22rem] flex-col gap-3 p-5">
       <p className="hud">What you get for $2 a month</p>
-      <p className="text-[14px] leading-[1.45] text-ink-2">$2 a month. Cheaper than a coffee, and it keeps Friction free and ad-free for everyone else.</p>
+      <p className="text-[14px] leading-[1.45] text-ink-2">Five more themes, an encrypted backup and a star by your name. $2 a month, cancel any time. It pays for the hosting, the cloud browser and the domain, so Friction stays free for everyone else.</p>
       <div className="scroll-y grid min-h-0 flex-1 content-start gap-4" data-no-drag tabIndex={0} aria-label="What you get">
         <GoalBar />
         <section className="grid gap-2" aria-label="Five more themes">
@@ -172,7 +172,7 @@ export function SupportView() {
             </li>
           ))}
         </ul>
-        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free for everyone:</b> the timer, radio, TV, music, lessons, games, widgets, all of Insights, the exports, the five original themes and the leaderboard. Credits are never sold. Nothing that was free has moved behind this. The app has no ads and your $2 keeps it that way. If ads ever run, it's only on the blog and legal pages.</p>
+        <p className="border-l-2 border-signal/60 pl-3 text-[14px] leading-[1.5] text-ink-2"><b className="font-semibold text-ink">Still free for everyone:</b> the timer, radio, TV, music, lessons, games, widgets, all of Insights, the exports, the five original themes and the leaderboard. Credits are never sold. Nothing that was free has moved behind this.</p>
       </div>
       {!wide && !on && <button className="h-11 shrink-0 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => setTab('pay')}>Subscribe, $2 a month</button>}
       <p className="text-[13px] leading-[1.4] text-ink-3">Whop is the seller: it takes the card details and handles receipts, taxes and refunds. Friction keeps no record of who paid. Cancel any time and what you unlocked stays. See the <a className="underline" href="/terms" target="_blank" rel="noopener">Terms</a> and <a className="underline" href="/privacy" target="_blank" rel="noopener">Privacy</a> pages.</p>
@@ -180,7 +180,7 @@ export function SupportView() {
   )
   const pay = (
     <Panel className="flex min-h-[24rem] flex-col gap-2 p-4">
-      <p className="hud">$2 a month</p>
+      <p className="hud">$2 a month · cancel any time</p>
       {on ? (
         <div className="grid content-start gap-2 p-2">
           <Heart className="size-6 text-signal" aria-hidden />
@@ -198,7 +198,7 @@ export function SupportView() {
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <PageHeader kicker="Keep it free" title="Support" sub="No account, no feed, no ads in the app. Support pays for the domain and the hosting.">
+      <PageHeader kicker="Keep it free" title="Support" sub="No account, no feed, no ads. Support pays for the hosting, the cloud browser and the domain.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
         {signin && !on && <button type="button" onClick={signIn} disabled={going} className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Sign in with Whop'}</button>}

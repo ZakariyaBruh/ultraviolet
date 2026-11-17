@@ -25,6 +25,23 @@ export function notify(kind: EventKind, text: string, title = 'Friction') {
 
 const STREAKS = [3, 7, 14, 30, 60, 100]
 
+/**
+ * A plain ask to support, at most three times ever (after the 3rd, 15th and 40th finished session), a few seconds after the card, never
+ * during a session or over the celebration, and never to someone who already supports. What it says is true: it is free, it costs money to run.
+ */
+function supportNudge(finished: number) {
+  const step = [3, 15, 40].filter((n) => finished >= n).pop()
+  if (!step || Number(ls.get('friction:nudge') ?? 0) >= step) return
+  ls.set('friction:nudge', String(step))
+  setTimeout(() => {
+    void import('./supporter').then(async ({ isSupporter, openSupport }) => {
+      if (isSupporter() || useStore.getState().session) return
+      const { useFx } = await import('./fx')
+      useFx.getState().say({ title: 'Friction runs on supporters', description: '$2 a month pays for the hosting and gets you five more themes, an encrypted backup and a star by your name. The rest stays free.', label: 'See Support', undo: openSupport })
+    })
+  }, 9000)
+}
+
 /** Watches finished sessions for the goal and streak moments. */
 export function useMilestones() {
   useEffect(() => {
@@ -40,6 +57,7 @@ export function useMilestones() {
         ls.set('friction:goal-day', today)
         notify('goal', `Daily goal reached: ${Math.round(held)} of ${s.settings.dailyGoalMin} minutes held.`, 'Goal reached')
       }
+      supportNudge(s.sessions.filter((x) => x.completed).length)
       const n = streak(s.focusLog)
       const prev = Number(ls.get('friction:streak-note') ?? 0)
       if (STREAKS.includes(n) && n !== prev) {
