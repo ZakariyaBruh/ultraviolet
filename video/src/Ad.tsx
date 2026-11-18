@@ -260,7 +260,6 @@ const S9 = () => {
           <div style={{ fontFamily: 'Hanken', fontWeight: 900, fontSize: 200, letterSpacing: '-0.04em', textTransform: 'uppercase', lineHeight: 1, color: C.ink, opacity: useT(22, 8), scale: `${1 + (1 - useSlam(22, 14, 170)) * 0.25}` }}>Friction</div>
           <div style={{ fontFamily: 'Hanken', fontSize: 50, color: C.ink, marginTop: 22, opacity: useT(48, 16) }}>Free. No account. Your data stays in your browser.</div>
           <div style={{ marginTop: 38, display: 'inline-block', background: C.signal, color: '#05070c', fontFamily: 'Unbounded', fontWeight: 700, fontSize: 52, padding: '20px 44px', opacity: url, scale: `${0.92 + 0.08 * url}` }}>frictionx.vercel.app</div>
-          <div style={{ marginTop: 30 }}><Kicker size={32} color={C.ice} style={{ opacity: useT(118, 14) }}>Launching on Product Hunt</Kicker></div>
         </Fill>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 66 }}><div style={{ display: 'flex', width: '100%', height: 24 }}>{[...BARS.slice(0, 6), '#ff3b3b'].map((c, i) => <div key={c} style={{ flex: 1, background: c, scale: `${interpolate(bars, [i / 9, i / 9 + 0.4], [0, 1], clamp)} 1`, transformOrigin: 'left' }} />)}</div></div>
       </Fill>

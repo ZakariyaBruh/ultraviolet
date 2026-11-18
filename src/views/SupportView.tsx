@@ -1,7 +1,6 @@
 import { Check, Heart, Lock } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
-import { ProductHuntBadge } from '@/components/app/ProductHuntBadge'
 import { useMedia } from '@/lib/hooks'
 import { useStore } from '@/lib/store'
 import { goTo, isSupporter, markSupporter, SUPPORT_PLAN, useSupporter } from '@/lib/supporter'
@@ -207,7 +206,6 @@ export function SupportView() {
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
         {signin && !on && <button type="button" onClick={signIn} disabled={going} title="Only for people who already support. No account is needed for anything else." className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Supporter? Sign in with Whop'}</button>}
-        <ProductHuntBadge scale={1.3} className="border border-signal/60 bg-ground/60 p-1.5" />
       </PageHeader>
       {wide ? (
         <div className={`grid min-h-0 flex-1 gap-4 ${on ? 'grid-cols-[minmax(0,1fr)_minmax(0,340px)]' : 'grid-cols-[minmax(0,1fr)_minmax(0,520px)]'}`}>{perks}{pay}</div>

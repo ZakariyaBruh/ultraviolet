@@ -11,7 +11,7 @@ const WORD = 'FRICTION'
 export const END_TOTAL = 4.6
 
 /** The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, and v4's stack under it
- *  (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt). Then the picture folds to a line and a dot, as v3's did. */
+ *  (FRICTION with the dial as its O, the address with its underline). Then the picture folds to a line and a dot, as v3's did. */
 export const End = () => {
   const f = useCurrentFrame()
   const now = f / FPS
@@ -64,11 +64,6 @@ export const End = () => {
           <div style={{ display: 'inline-block', position: 'relative', opacity: url, transform: `translateY(${(1 - url) * 16}px)`, fontFamily: 'Hanken', fontWeight: 600, fontSize: 80, letterSpacing: '-0.035em', color: P.ink }}>
             frictionx.app
             <div style={{ position: 'absolute', left: 0, bottom: -12, height: 6, width: `${underline * 100}%`, background: P.signal }} />
-          </div>
-        </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 738, display: 'flex', justifyContent: 'center', opacity: ph, transform: `translateY(${(1 - ph) * 14}px)` }}>
-          <div style={{ position: 'relative', border: `2px solid ${P.signal}`, padding: '16px 34px 13px', background: 'rgba(5,7,12,0.9)', fontFamily: 'Barlow', fontWeight: 700, fontSize: 36, lineHeight: 1, letterSpacing: '0.24em', textTransform: 'uppercase', color: P.signal }}>
-            Launching on Product Hunt
           </div>
         </div>
         <div style={{ position: 'absolute', left: 96, right: 96, bottom: 54, display: 'flex', justifyContent: 'space-between', fontFamily: 'Barlow', fontWeight: 700, fontSize: 24, letterSpacing: '0.22em', textTransform: 'uppercase', color: P.dim, opacity: line }}>

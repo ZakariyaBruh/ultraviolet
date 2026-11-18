@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { HoldButton } from '@/components/app/HoldButton'
 import { LandingSolids } from '@/components/app/LandingSolids'
 import { DotGrid } from '@/components/app/DotGrid'
-import { ProductHuntBadge } from '@/components/app/ProductHuntBadge'
 import { hrefFor, VIEWS, type View } from '@/lib/route'
 
 const BARS = ['#f3f1ea', '#ffd23f', '#3ee0ff', '#4ade80', '#ff5d8f', '#ff3b3b', '#3b5bff']
@@ -96,7 +95,6 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
             ))}
             <a href="/blogs" className="inline-flex min-h-8 items-center hover:text-signal">Blog</a>
           </nav>
-          <ProductHuntBadge />
           <nav aria-label="About this site" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-3">
             {[['/about', 'About'], ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/cookies', 'Cookies'], ['/terms', 'Terms'], ['/support', 'Support']].map(([h, t]) => (
               <a key={h} href={h} className="inline-flex min-h-8 items-center hover:text-signal">{t}</a>

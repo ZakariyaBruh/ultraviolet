@@ -15,7 +15,7 @@ The v4/v5 notes further down are kept for the pieces v6 still uses.
 | 22.0 - 28.0 | The second 3D segment: the app's own ASCII engine turned all the way up, rising on the black glass the camera has just flown over. The ASCII dial clicks through its six stops (Off, Drift, A few, Floor, Stars, World), each click on a beat putting more in: one solid, three, a ridged ground drawn as text, stars, a sun on the horizon, then a flight through it. The colour bars close over it from both edges and open on the next shot. | `src/v6/AsciiWorld.tsx` (the engine in `src/ascii3d.ts`, a voxel-style ground with grid lines, solids composited by depth), `WorldIn` in `Trailer6.tsx`, `BarsWipe` in `App.tsx`. |
 | 28.0 - 37.0 | One screen cut into five strips, a look each, taking turns to be the wide one; the strips turn edge on and behind them is a tablet at an angle beside a counting 16 (the Arcade); static, then half footage of the front page typing itself and half a field of yellow with the words on it, which takes the frame, grows ridges and cuts to the yellow dial. | `App.tsx` (`Slats`, the arcade and front page blocks). |
 | 37.0 - 41.0 | The second photoreal shot: the dial locks in. It clicks round six detents on the beat; each of the first five raises a ring of glowing ridges around it (the opening's friction, now a field that holds it); the camera starts on the knurled edge, backs away and climbs, and ends straight down on a target of rings. The sixth click locks, with a pulse of light. | `blender/lock7.py` (baked from springs, Cycles, 1440 x 810, light linking so the glass does not mirror the dial's lamps), `blender/render_lock7.sh`, `src/v6/LockSegment.tsx`. |
-| 41.0 - 45.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline, Launching on Product Hunt), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
+| 41.0 - 45.6 | The two endings that were liked, one above the other: v3's mark (the ring that draws itself, the square that lands) on top, v4's stack under it (FRICTION with the dial as its O, the address with its underline), then the picture folds to a line and a dot. | `src/v6/End.tsx`. |
 
 ## v10: what changed and why
 
@@ -62,7 +62,7 @@ Stills were looked at for each shot; the long gates (`gate6.py`, `qa.py`) were n
 
 The video speaks in the app's own faces and roles (DESIGN.md): Unbounded for the display lines and the wordmark (its letters arrive thin and gain weight, the way the
 landing animates it), Barlow Condensed in capitals, tracked wide, for labels and idents (the kickers, the tagline that types itself with a block caret, the
-Product Hunt ident window, the station footer), Hanken for reading (the captions, the address). Captions are flat ruled plates with registration ticks, as the app's own
+the station footer), Hanken for reading (the captions, the address). Captions are flat ruled plates with registration ticks, as the app's own
 windows are, not a coloured bar. No text shadows, no monospace outside the ASCII art.
 
 ## Pipeline

@@ -45,7 +45,6 @@ export const Cta = () => {
             frictionx.vercel.app
             <div style={{ position: 'absolute', left: 0, bottom: -12, height: 5, width: `${line * 100}%`, background: P.signal }} />
           </div>
-          <div style={{ marginTop: 58, opacity: ph, fontFamily: 'Barlow', fontWeight: 700, fontSize: 34, letterSpacing: '0.24em', textTransform: 'uppercase', color: P.dim }}>Launching on Product Hunt</div>
         </Fill>
       </Fill>
       <Grain />

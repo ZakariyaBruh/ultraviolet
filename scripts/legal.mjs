@@ -136,7 +136,6 @@ const PAGES = {
 <li><strong>Citation lookups (the Cite window).</strong> If you look up a DOI, an ISBN or a Wikipedia address, your browser asks Crossref, Open Library or Wikipedia for that one item, and they see what you pasted and your network address. Nothing else is sent, and the reference list stays in your browser.</li>
 <li><strong>Code share links.</strong> A share link from the Code window carries the code itself, compressed, after the # in the address. Browsers never send that part to any server, so we never see it, but anyone you give the link to can read the code.</li>
 <li><strong>Read aloud (the Notepad).</strong> Uses your browser's own voices. Some browsers' online voices send the text to their maker to speak it (Chrome's Google voices, for example); your device's offline voices do not.</li>
-<li><strong>Product Hunt badge.</strong> The front page shows a badge image served by Product Hunt, which therefore sees your network address and browser, as any website that loads an image does.</li>
 <li><strong>Video and audio embeds.</strong> YouTube videos open in the privacy-friendly embed.</li>
 </ul>
 <h2>Cookies and local storage</h2>
