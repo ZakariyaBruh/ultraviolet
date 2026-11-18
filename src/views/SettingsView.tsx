@@ -165,7 +165,7 @@ function Dial({ title, hint, value, onChange, stops, labelOf, ends, label, flip 
 const RETRO = [
   { name: 'Future', note: 'Clean and sharp. No filters and no pixel type.' },
   { name: 'Afterglow', note: 'A faint scanline, a little grain and a warm tint.' },
-  { name: 'Kickers', note: 'Pixel kickers on the labels. This is as far as the screen filters go.' },
+  { name: 'Broadcast', note: 'Pixel kickers on the labels. This is as far as the screen filters go.' },
   { name: 'Arcade', note: 'Pixel titles and labels, and hard offset shadows.' },
   { name: 'Terminal', note: 'Dashed panel outlines and a prompt before each page title.' },
   { name: 'Full retro', note: 'Square panels and heavier dashes. Words stay easy to read.' },
