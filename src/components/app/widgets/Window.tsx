@@ -60,7 +60,7 @@ export function WidgetWindow({ id, title, index, wide, large, children }: { id: 
       data-ghost={ghost || undefined}
       onPointerDownCapture={(e) => raiseWidget(e.currentTarget)} // whichever you touch comes to the front (Arrange also lifts the whole layer over the panels)
       className={cn('win-in pointer-events-auto !absolute flex flex-col transition-[opacity,scale,visibility] duration-150 ease-out motion-reduce:transition-none', min && 'invisible !pointer-events-none scale-95 opacity-0', ghost && !min && '!pointer-events-none opacity-[0.38]')}
-      style={wide ? { top: 8 + n * STEP, right: 8 + n * STEP, width: large ? 'min(50rem, calc(100% - 1rem))' : 'min(21rem, calc(100% - 1rem))' } : { top: 6 + n * 26, left: 8, right: 8 }}
+      style={{ maxHeight: 'calc(100cqh - 1rem)', ...(wide ? { top: 8 + n * STEP, right: 8 + n * STEP, width: large ? 'min(50rem, calc(100% - 1rem))' : 'min(21rem, calc(100% - 1rem))' } : { top: 6 + n * 26, left: 8, right: 8 }) }}
     >
       <div className="pointer-events-auto flex shrink-0 items-center justify-between border-b border-ink/15 pl-3">
         <h2 className="hud !text-ink" onDoubleClick={() => minWidget(id, true)}>{title}</h2>

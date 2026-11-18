@@ -1,5 +1,15 @@
 {
- "disk": "msdos4-c.5a1bac008c.img.gz",
- "size": 33030144,
- "irq": 10
+ "irq": 10,
+ "systems": {
+  "freedos": {
+   "disk": "freedos-c.e0b9aae5a4.img.gz",
+   "size": 67092480,
+   "gz": 2076808
+  },
+  "msdos4": {
+   "disk": "msdos4-c.b99a23c10c.img.gz",
+   "size": 33030144,
+   "gz": 1051424
+  }
+ }
 }

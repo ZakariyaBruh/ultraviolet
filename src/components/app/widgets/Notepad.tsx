@@ -1,9 +1,10 @@
-import { BookOpen, Copy, Download, PenLine, Plus, Square, Trash2, Volume2 } from 'lucide-react'
+import { BookOpen, Copy, Download, Link2, PenLine, Plus, Square, Trash2, Volume2 } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { fx_say } from '@/lib/actions'
 import { NOTE_MAX, NOTES_MAX, useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { key } from './Window'
+import { shareItem } from './shareItem'
 
 const titleOf = (t: string, i: number) => t.trim().split('\n')[0].replace(/^#+\s*/, '').trim().slice(0, 24) || `Page ${i + 1}`
 
@@ -165,6 +166,7 @@ export function Notepad() {
         <div className="flex gap-1">
           {canSpeak && <button onClick={speak} disabled={!text.trim()} aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read this page aloud'} title={speaking ? 'Stop' : 'Read aloud'} className={cn(key, 'size-11 disabled:opacity-40 md:size-9', speaking && 'border-signal text-signal')}>{speaking ? <Square className="size-4" /> : <Volume2 className="size-4" />}</button>}
           <button onClick={copy} disabled={!text} aria-label="Copy this page" className={`${key} size-11 disabled:opacity-40 md:size-9`}><Copy className="size-4" /></button>
+          <button onClick={() => void shareItem('note', text)} disabled={!text.trim()} aria-label="Copy a link to this page" title="Share as a link" className={`${key} size-11 disabled:opacity-40 md:size-9`}><Link2 className="size-4" /></button>
           <button onClick={save} disabled={!text} aria-label="Save this page as a file" className={`${key} size-11 disabled:opacity-40 md:size-9`}><Download className="size-4" /></button>
           <button onClick={clear} disabled={!text && !many} aria-label={sure ? (many ? 'Press again to delete this page' : 'Press again to clear the notes') : many ? 'Delete this page' : 'Clear the notes'} className={`${key} h-11 px-3 text-[13px] disabled:opacity-40 md:h-9 ${sure ? 'border-signal text-signal' : ''}`}>{sure ? 'Sure?' : <Trash2 className="size-4" />}</button>
         </div>

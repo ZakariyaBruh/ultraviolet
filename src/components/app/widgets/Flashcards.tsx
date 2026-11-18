@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, Download, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Copy, Download, Link2, Pencil, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { fx_say } from '@/lib/actions'
 import { useStore } from '@/lib/store'
@@ -6,6 +6,7 @@ import { after, CARDS_MAX, DECKS_MAX, dueIn, exportCards, grade, makeCard, NAME_
 import { FitText } from '@/components/app/shared'
 import { cn } from '@/lib/utils'
 import { field, key } from './Window'
+import { shareItem } from './shareItem'
 
 type View =
   | { at: 'decks' }
@@ -177,6 +178,7 @@ function DeckView({ deck, now, full, setView, put, remove }: { deck: Deck; now: 
       <div className="flex flex-wrap items-center gap-1">
         <button onClick={() => setView({ at: 'paste', id: deck.id })} disabled={full} className={cn(key, 'h-11 px-3 text-[13px] disabled:opacity-40 md:h-9')}>Paste a list</button>
         <button onClick={copy} disabled={!deck.cards.length} aria-label="Copy the deck as text" title="Copy as text" className={cn(icon, 'disabled:opacity-40')}><Copy className="size-4" /></button>
+        <button onClick={() => void shareItem('deck', JSON.stringify({ name: deck.name, cards: deck.cards.map((c) => [c.f, c.b]) }))} disabled={!deck.cards.length} aria-label="Copy a link to this deck" title="Share as a link" className={cn(icon, 'disabled:opacity-40')}><Link2 className="size-4" /></button>
         <button onClick={download} disabled={!deck.cards.length} aria-label="Save the deck as a text file" title="Save as a text file" className={cn(icon, 'disabled:opacity-40')}><Download className="size-4" /></button>
         <button onClick={del} aria-label={sure ? 'Press again to delete the deck' : 'Delete the deck'} className={cn(key, 'ml-auto h-11 px-3 text-[13px] md:h-9', sure && 'border-signal text-signal')}>{sure ? 'Sure?' : <Trash2 className="size-4" />}</button>
       </div>

@@ -4,24 +4,45 @@ import { V86, type V86Options } from 'v86'
 import { del, get, set } from 'idb-keyval'
 import DOS from '@/lib/dos.json'
 import RT from '@/lib/rt.json'
-import { floppy, free, list, volumeOf, writeFiles, type Entry } from '@/lib/fat'
-import { verdict } from '@/lib/blocklist'
+import { floppy, free, fsOf, hardDisk, list, read, volumeOf, writeFiles, type Entry } from '@/lib/fat'
+import { guardedFetch } from '@/lib/dosnet'
 import { fx_say } from '@/lib/actions'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { key } from './Window'
 
 /**
- * A PC in the Code window: v86 (copy.sh/v86) running MS-DOS 4.00 from Microsoft's open-source release, built into a hard disk by
- * `scripts/build-dos.mjs`. Nothing runs on a server. The emulated NE2000 card is wired to v86's in-browser fetch adapter: DOS
- * programs speak plain HTTP, the adapter turns each request into a fetch() (HTTPS when this page is HTTPS), and that fetch goes
- * through KillCORS, a public CORS relay, after the same blocklist as Friction's Browser. C: is kept in IndexedDB when you power off.
+ * A PC in the Code window: v86 (copy.sh/v86) in this browser, nothing on a server. Three systems:
+ *   FreeDOS 1.3, the default: its kernel answers programs as DOS 7.10 (the MS-DOS inside Windows 98, which Microsoft never released,
+ *     so it cannot be built in), DOSLFN gives long file names, FDNPKG installs programs from the FreeDOS repositories over HTTP.
+ *   MS-DOS 4.00, Microsoft's open-source release (MIT).
+ *   Your own disks: a hard disk, a floppy and a CD image of your own (Windows 95 or 98, a boot floppy), or a blank hard disk to
+ *     install your own MS-DOS 7 onto with SYS C:.
+ * Both C: drives are built by `scripts/build-dos.mjs`. The NE2000 card is wired to v86's fetch adapter; every request passes
+ * `lib/dosnet.ts` (the blocklist, no private networks, KillCORS). What a system's disks hold is kept in IndexedDB, packed, when
+ * you power off or press Keep.
  */
-const KILLCORS = 'https://proxy.killcors.com?url='
-const SAVE_KEY = 'dos:c:v1'
+type Builtin = 'freedos' | 'msdos4'
+type Sys = Builtin | 'own'
+type Slot = 'hda' | 'fda' | 'cdrom'
+type Disk = { name: string; buf: ArrayBuffer }
+type Own = { hda?: Disk; fda?: Disk; cdrom?: Disk; boot: Slot; mem: number }
+type KeptOwn = { hda?: { name: string; blob: Blob }; fda?: { name: string; blob: Blob }; boot?: Slot; mem?: number }
+const BUILT: Record<Builtin, { name: string; tag: string; key: string; disk: string; size: number; gz: number; blurb: string }> = {
+  freedos: { name: 'FreeDOS 1.3', tag: 'DOS 7.10', key: 'dos:c:freedos:v1', ...DOS.systems.freedos, blurb: 'Answers programs as DOS 7.10, the MS-DOS inside Windows 98. Long file names, and INSTALL adds programs from the FreeDOS collection.' },
+  msdos4: { name: 'MS-DOS 4.00', tag: 'Microsoft', key: 'dos:c:v1', ...DOS.systems.msdos4, blurb: 'Microsoft\'s own MS-DOS, from its open-source release (MIT).' },
+}
+const OWN_KEY = 'dos:own:v1'
+const SYS_KEY = 'friction:dos-system'
+const NO_OWN: Own = { boot: 'fda', mem: 64 }
+const BLANKS = [64, 128, 256, 504] // MB; 504 is the most a BIOS reaches by cylinders, heads and sectors
+const MEMS = [32, 64, 128, 256]
 // v86's boot order: the first device is the lowest hex digit (1 floppy, 2 hard disk, 3 CD)
 const ORDER = (n: number) => n as unknown as V86Options['boot_order']
 const FLOPPY_MAX = 2_949_120 // the largest floppy image (2.88 MB)
+const DISK_MAX = 1024 * 1048576
+const mb = (n: number) => `${(n / 1048576).toFixed(n < 10485760 ? 1 : 0)} MB`
+const readSys = (): Sys => { try { const v = localStorage.getItem(SYS_KEY); return v === 'msdos4' || v === 'own' ? v : 'freedos' } catch { return 'freedos' } }
 
 // PC scancodes (set 1) for KeyboardEvent.code; the extended keys are 0xE0nn
 const SC: Record<string, number> = {
@@ -61,7 +82,6 @@ interface Emu {
   network_adapter?: { fetch: (url: string, opts: RequestInit) => Promise<Response> }
   screen_adapter?: { get_text_screen: () => string[] }
 }
-type Own = { name: string; kind: 'hda' | 'fda' | 'cdrom'; buf: ArrayBuffer }
 type Phase = 'off' | 'loading' | 'on' | 'paused'
 
 async function bytes(url: string): Promise<ArrayBuffer> {
@@ -69,11 +89,16 @@ async function bytes(url: string): Promise<ArrayBuffer> {
   if (!r.ok) throw new Error(`${url}: ${r.status}`)
   return r.arrayBuffer()
 }
-/** a gzipped file, unpacked in the browser (or as it came, if the server already unpacked it) */
+/** a gzipped file, unpacked in the browser (or as it came, if it was not packed, or the server already unpacked it) */
 async function gunzip(buf: ArrayBuffer): Promise<ArrayBuffer> {
-  const b = new Uint8Array(buf, 0, 2)
+  const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength))
   if (b[0] !== 0x1f || b[1] !== 0x8b) return buf
   return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+}
+/** packed for keeping: a disk is mostly empty, so a 64 MB C: keeps in a few MB */
+async function pack(buf: ArrayBuffer): Promise<Blob> {
+  if (typeof CompressionStream === 'undefined') return new Blob([buf])
+  return new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).blob()
 }
 const download = (data: BlobPart, name: string) => {
   const url = URL.createObjectURL(new Blob([data]))
@@ -81,7 +106,11 @@ const download = (data: BlobPart, name: string) => {
   a.href = url; a.download = name; a.click()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
-const isPrivate = (h: string) => !h.includes('.') || /^\d+\.\d+\.\d+\.\d+$/.test(h) || /^\[/.test(h) || /\.(local|internal|lan|home|corp)$/.test(h) || h === 'localhost'
+/** why a disk of your own cannot take files, in words */
+const whyNot = (buf: ArrayBuffer) => {
+  const f = fsOf(new Uint8Array(buf))
+  return f === 'fat32' ? 'It is FAT32, which this cannot write.' : f === 'ntfs' ? 'It is NTFS, which this cannot write.' : 'It has no FAT partition yet: FDISK and FORMAT it in DOS first.'
+}
 
 export function Dos() {
   const [phase, setPhase] = useState<Phase>('off')
@@ -91,18 +120,23 @@ export function Dos() {
   const [net, setNet] = useState(true)
   const [mods, setMods] = useState<{ ctrl: boolean; alt: boolean }>({ ctrl: false, alt: false })
   const [panel, setPanel] = useState<null | 'files' | 'disks' | 'import'>(null)
-  const [own, setOwn] = useState<Own | null>(null)
+  const [sys, setSysState] = useState<Sys>(readSys)
+  const [own, setOwnState] = useState<Own>(NO_OWN)
   const [focused, setFocused] = useState(false)
   const [pending, setPending] = useState<Entry[]>([])
-  const [sure, setSure] = useState(false)
+  const [sure, setSure] = useState<null | 'reset' | 'blank'>(null)
+  const [blankMb, setBlankMb] = useState(128)
+  const [busy, setBusy] = useState(false)
+  const [, redraw] = useState(0) // the drives change in place; this redraws the file lists
   const minimized = useStore((s) => !!s.widgets.min?.includes('code'))
   const screen = useRef<HTMLDivElement>(null)
   const typer = useRef<HTMLTextAreaElement>(null)
   const emu = useRef<V86 | null>(null)
-  const cBuf = useRef<ArrayBuffer | null>(null)
+  const cBufs = useRef<Record<Builtin, ArrayBuffer | null>>({ freedos: null, msdos4: null })
   const aBuf = useRef<ArrayBuffer | null>(null)
-  const ownRef = useRef<Own | null>(null)
   const bootSector = useRef<Uint8Array | null>(null)
+  const sysRef = useRef(sys)
+  const ownRef = useRef(own)
   const netOn = useRef(true)
   const autoPaused = useRef(false)
   const queue = useRef<string>('')
@@ -111,6 +145,8 @@ export function Dos() {
   const fileIn = useRef<HTMLInputElement>(null)
   const diskIn = useRef<HTMLInputElement>(null)
   netOn.current = net
+  const setOwn = (o: Own) => { ownRef.current = o; setOwnState(o) }
+  const setSys = (s: Sys) => { sysRef.current = s; setSysState(s); try { localStorage.setItem(SYS_KEY, s) } catch { /* not kept */ } }
 
   const raw = () => emu.current as unknown as Emu | null
   const sendCodes = (codes: number[]) => emu.current?.keyboard_send_scancodes(codes)
@@ -138,55 +174,87 @@ export function Dos() {
     pump()
   }
 
-  /** the C: drive: the copy kept in this browser, or the original */
-  const loadC = async (): Promise<ArrayBuffer> => {
+  // your own disks from an earlier visit
+  useEffect(() => {
+    let live = true
+    void (async () => {
+      try {
+        const k = await get<KeptOwn>(OWN_KEY)
+        if (!k || !live) return
+        const o: Own = { boot: k.boot === 'hda' || k.boot === 'cdrom' ? k.boot : 'fda', mem: MEMS.includes(k.mem ?? 0) ? k.mem! : 64 }
+        for (const s of ['hda', 'fda'] as const) { const d = k[s]; if (d?.blob) o[s] = { name: String(d.name).slice(0, 80), buf: await gunzip(await d.blob.arrayBuffer()) } }
+        if (live) setOwn(o)
+      } catch { /* storage blocked */ }
+    })()
+    return () => { live = false }
+  }, [])
+  const hasOwn = !!(own.hda || own.fda || own.cdrom)
+
+  /** a built-in system's C:: the copy kept in this browser, or the original */
+  const loadC = async (s: Builtin): Promise<ArrayBuffer> => {
+    const b = BUILT[s]
     try {
-      const saved = await get<Blob>(SAVE_KEY)
-      if (saved && saved.size === DOS.size) return await saved.arrayBuffer()
+      const saved = await get<Blob>(b.key)
+      if (saved) { const buf = await gunzip(await saved.arrayBuffer()); if (buf.byteLength === b.size) return buf }
     } catch { /* storage blocked: start from the original */ }
-    setNote('Fetching MS-DOS (1 MB the first time)')
-    return gunzip(await bytes(`/dos/${DOS.disk}`))
+    setNote(`Fetching ${b.name} (${mb(b.gz)} the first time)`)
+    return gunzip(await bytes(`/dos/${b.disk}`))
   }
-  const saveC = async (quiet = false) => {
-    if (!cBuf.current) return
-    try { await set(SAVE_KEY, new Blob([cBuf.current])); if (!quiet) fx_say({ title: 'C: kept in this browser', variant: 'success' }) }
-    catch { if (!quiet) fx_say({ title: 'Could not keep C:', description: 'This browser refused the storage.', variant: 'warning' }) }
+  /** keep what this system's disks hold now, packed, in this browser */
+  const keep = async (quiet = false) => {
+    const s = sysRef.current
+    try {
+      if (s === 'own') {
+        const o = ownRef.current
+        if (!o.hda && !o.fda) { await del(OWN_KEY); return }
+        const k: KeptOwn = { boot: o.boot, mem: o.mem }
+        if (o.hda) k.hda = { name: o.hda.name, blob: await pack(o.hda.buf) }
+        if (o.fda) k.fda = { name: o.fda.name, blob: await pack(o.fda.buf) }
+        await set(OWN_KEY, k)
+      } else {
+        const b = cBufs.current[s]
+        if (!b) return
+        await set(BUILT[s].key, await pack(b))
+      }
+      if (!quiet) fx_say({ title: s === 'own' ? 'Your disks are kept in this browser' : 'C: kept in this browser', variant: 'success' })
+    } catch { if (!quiet) fx_say({ title: 'Could not keep it', description: 'This browser refused the storage, or it is full.', variant: 'warning' }) }
   }
 
   // every web request from DOS: the blocklist, no private networks, then KillCORS (a page may not read most sites directly)
-  const guarded = async (url: string, opts: RequestInit): Promise<Response> => {
-    const text = (status: number, why: string) => new Response(why + '\n', { status, statusText: why, headers: { 'content-type': 'text/plain' } })
-    if (!netOn.current) return text(503, 'The network is off in this window')
-    const v = verdict(url)
-    if (!v.ok) return text(403, `Friction blocks this kind of site (${v.why})`)
-    if (isPrivate(v.url.hostname)) return text(403, 'Private networks are not reachable from here')
-    const method = (opts.method ?? 'GET').toUpperCase()
-    return fetch(KILLCORS + encodeURIComponent(v.url.toString()), { method, headers: opts.headers, body: /^(GET|HEAD)$/.test(method) ? undefined : opts.body, credentials: 'omit', redirect: 'follow', signal: AbortSignal.timeout(30000) })
-  }
+  const guarded = guardedFetch({ on: () => netOn.current })
+  /** where your own disks start from: the one chosen if it is there, else the first that is */
+  const startFrom = (o: Own): Slot => ([o.boot, 'fda', 'hda', 'cdrom'] as Slot[]).find((x) => !!o[x]) ?? 'fda'
 
-  const start = async (boot: Own | null = ownRef.current) => {
+  const start = async () => {
     if (emu.current || !screen.current) return
+    const s = sysRef.current, o = ownRef.current
+    if (s === 'own' && !o.hda && !o.fda && !o.cdrom) { setPanel('disks'); setNote('Load a disk image or make a blank hard disk first.'); return }
     setPhase('loading'); setNote('Starting')
     try {
       const [bios, vga] = await Promise.all([bytes('/dos/seabios.bin'), bytes('/dos/vgabios.bin')])
       bootSector.current ??= new Uint8Array(await bytes('/dos/boot-floppy.bin'))
-      cBuf.current ??= await loadC()
       aBuf.current ??= floppy([], bootSector.current).slice().buffer
       const cfg: V86Options = {
         wasm_path: `/rt/${RT.v86}`,
         bios: { buffer: bios }, vga_bios: { buffer: vga },
-        memory_size: (boot?.kind === 'hda' ? 64 : 32) << 20, vga_memory_size: 8 << 20,
+        memory_size: (s === 'own' ? o.mem : 32) << 20, vga_memory_size: 8 << 20,
         screen: { container: screen.current, use_graphical_text: true },
         disable_keyboard: true, disable_mouse: true, autostart: true, acpi: false,
         net_device: { type: 'ne2k', relay_url: 'fetch' },
       }
-      if (boot?.kind === 'hda') { cfg.hda = { buffer: boot.buf }; cfg.fda = { buffer: aBuf.current }; cfg.boot_order = ORDER(0x312) }
-      else {
-        cfg.hda = { buffer: cBuf.current }
-        cfg.fda = { buffer: boot?.kind === 'fda' ? boot.buf : aBuf.current }
-        if (boot?.kind === 'cdrom') cfg.cdrom = { buffer: boot.buf }
-        cfg.boot_order = ORDER(boot?.kind === 'fda' ? 0x321 : boot?.kind === 'cdrom' ? 0x123 : 0x312)
+      if (s === 'own') {
+        if (o.hda) cfg.hda = { buffer: o.hda.buf }
+        cfg.fda = { buffer: o.fda?.buf ?? aBuf.current }
+        if (o.cdrom) cfg.cdrom = { buffer: o.cdrom.buf }
+        const from = startFrom(o)
+        cfg.boot_order = ORDER(from === 'hda' ? 0x312 : from === 'cdrom' ? 0x123 : 0x321)
+      } else {
+        cBufs.current[s] ??= await loadC(s)
+        cfg.hda = { buffer: cBufs.current[s]! }
+        cfg.fda = { buffer: aBuf.current }
+        cfg.boot_order = ORDER(0x312)
       }
+      if (sysRef.current !== s) { setPhase('off'); setNote(''); return } // the system changed while it loaded
       const e = new V86(cfg)
       emu.current = e
       e.add_listener('emulator-ready', () => {
@@ -209,21 +277,22 @@ export function Dos() {
       setPhase('off'); setNote(err instanceof Error ? `It did not start: ${err.message}` : 'It did not start.')
     }
   }
-  const stop = async (keep = true) => {
+  const stop = async (keepIt = true) => {
     const e = emu.current
     if (!e) return
     emu.current = null
     clearTimeout(typing.current); queue.current = ''
     try { await e.destroy() } catch { /* already gone */ }
-    if (keep && !ownRef.current) await saveC(true)
     setPhase('off'); setMods({ ctrl: false, alt: false })
+    if (keepIt) await keep(true)
+    redraw((n) => n + 1)
   }
   const pause = () => {
     const e = emu.current
     if (!e) return
     if (e.is_running()) { void e.stop(); setPhase('paused') } else { void e.run(); setPhase('on') }
   }
-  useEffect(() => () => { void stop() }, []) // eslint-disable-line react-hooks/exhaustive-deps -- powered off with the window, C: kept
+  useEffect(() => () => { void stop() }, []) // eslint-disable-line react-hooks/exhaustive-deps -- powered off with the window, disks kept
 
   // put away while it cannot be seen: a hidden tab or a window in the tray uses no processor
   useEffect(() => {
@@ -238,6 +307,17 @@ export function Dos() {
     document.addEventListener('visibilitychange', check)
     return () => document.removeEventListener('visibilitychange', check)
   }, [minimized])
+
+  /** switch systems: the one running is powered off (its disks kept) and the new one started if a system was running */
+  const pickSys = async (s: Sys) => {
+    if (s === sysRef.current || busy) return
+    const running = !!emu.current
+    setBusy(true)
+    await stop()
+    setSys(s); setNote(''); setSure(null)
+    setBusy(false)
+    if (running && (s !== 'own' || ownRef.current.hda || ownRef.current.fda || ownRef.current.cdrom)) void start()
+  }
 
   // the keyboard: only while the screen has the focus, so the rest of the page keeps its keys. A printable character is sent as the
   // US key that types it (DOS has a US keyboard), with Shift added or let go as that character needs, so any layout types what it
@@ -319,9 +399,14 @@ export function Dos() {
   }
   const wheel = (ev: React.WheelEvent<HTMLDivElement>) => { if (mouse && document.pointerLockElement === ev.currentTarget) raw()?.bus.send('mouse-wheel', [Math.sign(ev.deltaY), 0]) }
 
-  // files in: a floppy in A: when they fit, otherwise C:\IMPORT while DOS is off
-  const aEntries = () => (aBuf.current ? list(new Uint8Array(aBuf.current)).filter((e) => !e.dir) : [])
-  const choose = async (ev: ChangeEvent<HTMLInputElement>) => {
+  // files in: a floppy in A: when they fit, otherwise C:\IMPORT of the hard disk the PC has
+  const hdaView = (): Uint8Array | null => {
+    const s = sysRef.current
+    const buf = s === 'own' ? ownRef.current.hda?.buf : cBufs.current[s]
+    return buf ? volumeOf(new Uint8Array(buf)) : null
+  }
+  const aEntries = (): Entry[] => { try { return aBuf.current ? list(new Uint8Array(aBuf.current), false, 2000).filter((e) => !e.dir) : [] } catch { return [] } }
+  const pickFiles = async (ev: ChangeEvent<HTMLInputElement>) => {
     const fs = [...(ev.target.files ?? [])]
     ev.target.value = ''
     if (!fs.length) return
@@ -330,49 +415,80 @@ export function Dos() {
   }
   const toA = async () => {
     try {
-      const next = floppy([...aEntries(), ...pending], bootSector.current ?? undefined).slice().buffer
+      const next = floppy([...(aBuf.current ? list(new Uint8Array(aBuf.current)).filter((e) => !e.dir) : []), ...pending], bootSector.current ?? undefined).slice().buffer
       aBuf.current = next
-      if (emu.current && !ownRef.current?.kind.startsWith('fda')) await emu.current.set_fda({ buffer: next })
+      if (emu.current) await emu.current.set_fda({ buffer: next })
       fx_say({ title: `${pending.length} file${pending.length === 1 ? '' : 's'} on A:`, description: 'COPY A:*.* C:\\ copies them to C:.', variant: 'success' })
       setPending([]); setPanel(null)
-    } catch { fx_say({ title: 'Too big for A:', description: 'A floppy holds 1.4 MB. Put them on C: instead.', variant: 'warning' }) }
+    } catch (err) { fx_say({ title: 'Could not put them on A:', description: err instanceof Error ? `${err.message}. A floppy holds 1.4 MB; use C: instead.` : undefined, variant: 'warning' }) }
   }
   const toC = async () => {
     const running = !!emu.current
     if (running) await stop()
-    cBuf.current ??= await loadC()
-    const vol = volumeOf(new Uint8Array(cBuf.current))
-    if (!vol) { fx_say({ title: 'C: is not a disk this can write', variant: 'warning' }); return }
+    const s = sysRef.current
+    if (s !== 'own') cBufs.current[s] ??= await loadC(s)
+    const buf = s === 'own' ? ownRef.current.hda?.buf : cBufs.current[s]
+    const vol = buf ? volumeOf(new Uint8Array(buf)) : null
+    if (!buf || !vol) { fx_say({ title: 'No drive C: to put them on', description: buf ? whyNot(buf) : 'Load or make a hard disk first.', variant: 'warning' }); if (running) void start(); return }
     try {
       writeFiles(vol, pending.map((e) => ({ ...e, path: `IMPORT/${e.path}` })))
-      await saveC(true)
+      await keep(true)
       fx_say({ title: `${pending.length} file${pending.length === 1 ? '' : 's'} in C:\\IMPORT`, variant: 'success' })
       setPending([]); setPanel(null)
-    } catch { fx_say({ title: 'C: is full', description: `${(free(vol) / 1048576).toFixed(1)} MB free.`, variant: 'warning' }) }
+    } catch (err) { fx_say({ title: 'Could not put them on C:', description: `${err instanceof Error ? err.message : 'Error'}. ${(free(vol) / 1048576).toFixed(1)} MB free.`, variant: 'warning' }) }
     if (running) void start()
   }
 
-  // your own disk images: Windows 95 if you have a licence, a game's boot floppy, a CD
-  const bootOwn = async (ev: ChangeEvent<HTMLInputElement>) => {
+  // your own disks: a Windows 95 or 98 install you have a licence for, a boot floppy with your own MS-DOS 7, a CD, or a blank disk
+  const loadOwn = async (ev: ChangeEvent<HTMLInputElement>) => {
     const f = ev.target.files?.[0]
     ev.target.value = ''
     if (!f) return
+    if (f.size > DISK_MAX) { fx_say({ title: 'Too big', description: 'Up to 1 GB.', variant: 'warning' }); return }
     let buf = await f.arrayBuffer()
     const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
-    if (ext === 'vhd' && buf.byteLength > 512 && new TextDecoder().decode(new Uint8Array(buf, buf.byteLength - 512, 8)) === 'conectix') buf = buf.slice(0, buf.byteLength - 512)
-    const kind: Own['kind'] = ext === 'iso' ? 'cdrom' : buf.byteLength <= FLOPPY_MAX ? 'fda' : 'hda'
+    if (buf.byteLength > 512 && new TextDecoder().decode(new Uint8Array(buf, buf.byteLength - 512, 8)) === 'conectix') buf = buf.slice(0, buf.byteLength - 512) // a .vhd footer
+    const kind: Slot = ext === 'iso' ? 'cdrom' : buf.byteLength <= FLOPPY_MAX ? 'fda' : 'hda'
     await stop()
-    const o = { name: f.name, kind, buf }
-    ownRef.current = o; setOwn(o); setPanel(null)
-    void start(o)
+    const o: Own = { ...ownRef.current, [kind]: { name: f.name.slice(0, 80), buf }, boot: kind }
+    setOwn(o); setSys('own'); setSure(null); setPanel('disks')
+    await keep(true)
+    fx_say({ title: `${f.name} loaded as ${kind === 'hda' ? 'the hard disk' : kind === 'fda' ? 'the floppy' : 'the CD'}`, description: 'Power on to boot it.' })
   }
-  const backToDos = async () => { await stop(false); ownRef.current = null; setOwn(null); setPanel(null); void start(null) }
+  const makeBlank = async () => {
+    if (ownRef.current.hda && sure !== 'blank') { setSure('blank'); setTimeout(() => setSure(null), 3000); return }
+    setSure(null)
+    await stop()
+    try {
+      const mbr = new Uint8Array(await bytes('/dos/mbr.bin'))
+      const { disk } = hardDisk(Math.round((blankMb * 1048576) / (16 * 63 * 512)), mbr, undefined, 'NO NAME')
+      const o: Own = { ...ownRef.current, hda: { name: `blank-${blankMb}MB.img`, buf: disk.buffer as ArrayBuffer }, boot: ownRef.current.fda ? 'fda' : 'hda' }
+      setOwn(o); setSys('own')
+      await keep(true)
+      fx_say({ title: `Blank ${blankMb} MB hard disk made`, description: 'Boot your MS-DOS floppy, then run FDISK, FORMAT C: /S or SYS C:.' })
+    } catch { fx_say({ title: 'Could not make the disk', variant: 'warning' }) }
+  }
+  const drop = async (s: Slot) => {
+    await stop()
+    const o = { ...ownRef.current }
+    delete o[s]
+    if (!o[o.boot]) o.boot = startFrom(o)
+    setOwn(o); await keep(true)
+  }
+  const setBoot = (b: Slot) => { setOwn({ ...ownRef.current, boot: b }); void keep(true) }
+  const setMem = (m: number) => { setOwn({ ...ownRef.current, mem: m }); void keep(true) }
   const resetC = async () => {
-    if (!sure) { setSure(true); setTimeout(() => setSure(false), 3000); return }
-    setSure(false)
+    if (sys === 'own') {
+      if (sure !== 'reset') { setSure('reset'); setTimeout(() => setSure(null), 3000); return }
+      setSure(null); await stop(false); setOwn(NO_OWN)
+      try { await del(OWN_KEY) } catch { /* nothing kept */ }
+      fx_say({ title: 'Your disks are gone' }); return
+    }
+    if (sure !== 'reset') { setSure('reset'); setTimeout(() => setSure(null), 3000); return }
+    setSure(null)
     await stop(false)
-    try { await del(SAVE_KEY) } catch { /* nothing kept */ }
-    cBuf.current = null
+    try { await del(BUILT[sys].key) } catch { /* nothing kept */ }
+    cBufs.current[sys] = null
     fx_say({ title: 'C: is back to how it came' })
   }
 
@@ -383,21 +499,33 @@ export function Dos() {
     void navigator.clipboard?.writeText(t).then(() => fx_say({ title: 'Screen text copied', variant: 'success' }))
   }
   const full = () => { const el = screen.current?.parentElement; if (el && !document.fullscreenElement) void el.requestFullscreen?.() }
+  const saveFile = (v: Uint8Array | null, path: string) => { const d = v && read(v, path); if (d) download(d.slice(), path.split('/').pop()!) }
 
   const on = phase === 'on' || phase === 'paused'
   const btn = cn(key, 'size-11 shrink-0 md:size-9')
-  const cFiles = panel === 'files' && cBuf.current ? (() => { const v = volumeOf(new Uint8Array((ownRef.current?.kind === 'hda' ? ownRef.current.buf : cBuf.current) as ArrayBuffer)); return v ? list(v).filter((e) => !e.dir) : [] })() : []
+  const title = sys === 'own' ? 'your disks' : BUILT[sys].name
+  const hv = panel === 'files' ? hdaView() : null
+  const cList: Entry[] = hv ? list(hv, false, 2000).filter((e) => !e.dir) : []
+  const ownHda = ownRef.current.hda?.buf
+  const seg = 'h-11 border px-3 text-[13px] md:h-9'
 
   return (
     <div className="grid gap-2">
+      <div role="radiogroup" aria-label="System" className="flex flex-wrap">
+        {(['freedos', 'msdos4', 'own'] as Sys[]).map((s, i) => (
+          <button key={s} role="radio" aria-checked={sys === s} disabled={busy} onClick={() => void pickSys(s)} className={cn(seg, i > 0 && '-ml-px', sys === s ? 'border-signal bg-signal text-on-signal' : 'border-ink/25 text-ink-2 hover:text-ink')}>
+            {s === 'own' ? 'Your disks' : BUILT[s].name}{s !== 'own' && <span className="ml-1.5 text-[11px] opacity-70">{BUILT[s].tag}</span>}
+          </button>
+        ))}
+      </div>
       <div className="relative bg-black">
         <div
           ref={screen} tabIndex={0} role="application" aria-roledescription="PC screen"
-          aria-label={on ? 'MS-DOS screen. Type here; Shift and Escape leaves it.' : 'MS-DOS screen, powered off'}
+          aria-label={on ? `${title} screen. Type here; Shift and Escape leaves it.` : `${title} screen, powered off`}
           onKeyDown={down} onKeyUp={up} onPaste={paste} onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); release() }}
           onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={(e) => touch.current.delete(e.pointerId)} onWheel={wheel}
-          onContextMenu={(e) => mouse && e.preventDefault()} data-no-drag data-fill style={{ '--fill': keys ? '13.5rem' : '10.5rem', touchAction: mouse ? 'none' : 'manipulation' } as React.CSSProperties}
-          className={cn('dos-screen mx-auto aspect-[4/3] h-[min(52vh,25rem)] max-w-full outline-none', focused && 'ring-2 ring-signal')}
+          onContextMenu={(e) => mouse && e.preventDefault()} data-no-drag data-fill style={{ '--fill': keys ? '16rem' : '13rem', touchAction: mouse ? 'none' : 'manipulation' } as React.CSSProperties}
+          className={cn('dos-screen mx-auto aspect-[4/3] h-[min(46vh,25rem)] max-w-full outline-none', focused && 'ring-2 ring-signal')}
         >
           <div style={{ whiteSpace: 'pre', font: '14px monospace', lineHeight: '14px' }} />
           <canvas />
@@ -407,8 +535,8 @@ export function Dos() {
             {phase === 'loading'
               ? <p className="hud !text-ink" role="status">{note || 'Starting'}</p>
               : <>
-                  <button onClick={() => void start()} className="inline-flex h-12 items-center gap-2 bg-signal px-6 font-semibold text-on-signal"><Power className="size-4" />{own ? `Boot ${own.name}` : 'Power on MS-DOS 4.00'}</button>
-                  <p className="max-w-[44ch] text-[12px] leading-[1.45] text-ink-3">{note || 'Microsoft\'s open-source MS-DOS in a PC emulator, in this browser. It has a network, a mouse, an editor and a web browser.'}</p>
+                  <button onClick={() => void start()} className="inline-flex h-12 items-center gap-2 bg-signal px-6 font-semibold text-on-signal"><Power className="size-4" />{sys === 'own' ? (hasOwn ? 'Boot your disks' : 'Set up your disks') : `Power on ${BUILT[sys].name}`}</button>
+                  <p className="max-w-[44ch] text-[12px] leading-[1.45] text-ink-3" role="status">{note || (sys === 'own' ? 'A Windows 95 or 98 install, an MS-DOS 7 boot floppy or a CD you have a licence for.' : BUILT[sys].blurb)}</p>
                 </>}
           </div>
         )}
@@ -426,7 +554,7 @@ export function Dos() {
           </div>
           {/* the phone's own keyboard types into this, and what it types goes to DOS */}
           <textarea
-            ref={typer} aria-label="Type to MS-DOS" autoCapitalize="off" autoCorrect="off" spellCheck={false} rows={1}
+            ref={typer} aria-label="Type to the PC" autoCapitalize="off" autoCorrect="off" spellCheck={false} rows={1}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); tap('Enter') } else if (e.key === 'Backspace' && !e.currentTarget.value) { e.preventDefault(); tap('Backspace') } }}
             onInput={(e) => { const v = e.currentTarget.value; if (v) { typeText(v); e.currentTarget.value = '' } }}
             className="h-11 w-full resize-none border border-ink/25 bg-transparent px-2 py-2 font-mono text-[16px] text-ink placeholder:text-ink-3 focus:border-signal" placeholder="Type here and it goes to DOS"
@@ -436,7 +564,7 @@ export function Dos() {
 
       <div className="flex flex-wrap items-center gap-1">
         {on
-          ? <button onClick={() => void stop()} aria-label="Power off (C: is kept)" title="Power off (C: is kept)" className={btn}><Power className="size-4" /></button>
+          ? <button onClick={() => void stop()} aria-label="Power off (disks are kept)" title="Power off (disks are kept)" className={btn}><Power className="size-4" /></button>
           : <button onClick={() => void start()} disabled={phase === 'loading'} aria-label="Power on" title="Power on" className={cn(btn, 'disabled:opacity-40')}><Play className="size-4" /></button>}
         <button onClick={pause} disabled={!on} aria-label={phase === 'paused' ? 'Carry on' : 'Pause'} title={phase === 'paused' ? 'Carry on' : 'Pause'} className={cn(btn, 'disabled:opacity-40')}>{phase === 'paused' ? <Play className="size-4" /> : <Pause className="size-4" />}</button>
         <button onClick={ctrlAltDel} disabled={!on} aria-label="Restart (Ctrl, Alt, Del)" title="Restart (Ctrl+Alt+Del)" className={cn(btn, 'disabled:opacity-40')}><RotateCcw className="size-4" /></button>
@@ -446,20 +574,20 @@ export function Dos() {
         <span className="mx-0.5 h-6 w-px bg-ink/15" aria-hidden />
         <button onClick={() => fileIn.current?.click()} aria-label="Import files to DOS" title="Import files" className={btn}><Upload className="size-4" /></button>
         <button onClick={() => setPanel(panel === 'files' ? null : 'files')} aria-pressed={panel === 'files'} aria-label="Export files from DOS" title="Export files" className={cn(btn, panel === 'files' && 'border-signal')}><Download className="size-4" /></button>
-        <button onClick={() => setPanel(panel === 'disks' ? null : 'disks')} aria-pressed={panel === 'disks'} aria-label="Disks: boot your own image" title="Disks" className={cn(btn, panel === 'disks' && 'border-signal')}><HardDrive className="size-4" /></button>
-        <button onClick={() => void saveC()} disabled={!cBuf.current || !!own} aria-label="Keep C: in this browser now" title="Keep C: now" className={cn(btn, 'disabled:opacity-40')}><Save className="size-4" /></button>
+        <button onClick={() => setPanel(panel === 'disks' ? null : 'disks')} aria-pressed={panel === 'disks'} aria-label="Disks: your own images" title="Disks" className={cn(btn, panel === 'disks' && 'border-signal')}><HardDrive className="size-4" /></button>
+        <button onClick={() => void keep()} disabled={sys === 'own' && !hasOwn} aria-label="Keep the disks in this browser now" title="Keep disks now" className={cn(btn, 'disabled:opacity-40')}><Save className="size-4" /></button>
         <button onClick={copyText} disabled={!on} aria-label="Copy the text on the screen" title="Copy screen text" className={cn(btn, 'disabled:opacity-40')}><ClipboardCopy className="size-4" /></button>
         <button onClick={full} disabled={!on} aria-label="Full screen" title="Full screen" className={cn(btn, 'disabled:opacity-40')}><Maximize2 className="size-4" /></button>
-        <input ref={fileIn} type="file" multiple hidden onChange={(e) => void choose(e)} />
-        <input ref={diskIn} type="file" hidden accept=".img,.ima,.vhd,.iso,.dsk,.bin,.vfd,.flp" onChange={(e) => void bootOwn(e)} />
+        <input ref={fileIn} type="file" multiple hidden onChange={(e) => void pickFiles(e)} />
+        <input ref={diskIn} type="file" hidden accept=".img,.ima,.vhd,.iso,.dsk,.bin,.vfd,.flp,.vmdk" onChange={(e) => void loadOwn(e)} />
       </div>
 
       {panel === 'import' && pending.length > 0 && (
         <div className="grid gap-2 border border-ink/20 p-2">
-          <p className="text-[13px] text-ink">{pending.length} file{pending.length === 1 ? '' : 's'}, {(pending.reduce((n, e) => n + (e.data?.length ?? 0), 0) / 1024).toFixed(0)} KB. Names become 8.3, as DOS wants them.</p>
+          <p className="text-[13px] text-ink">{pending.length} file{pending.length === 1 ? '' : 's'}, {(pending.reduce((n, e) => n + (e.data?.length ?? 0), 0) / 1024).toFixed(0)} KB. {sys === 'freedos' ? 'Long names work.' : 'Long names get 8.3 short names too.'}</p>
           <div className="flex flex-wrap gap-1">
-            <button onClick={() => void toA()} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal md:h-9">Put on A: (floppy)</button>
-            {!own && <button onClick={() => void toC()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9')}>Put in C:\IMPORT{on ? ' (restarts DOS)' : ''}</button>}
+            {!(sys === 'own' && ownRef.current.fda) && <button onClick={() => void toA()} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal md:h-9">Put on A: (floppy)</button>}
+            {(sys !== 'own' || ownRef.current.hda) && <button onClick={() => void toC()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9')}>Put in C:\IMPORT{on ? ' (restarts)' : ''}</button>}
             <button onClick={() => { setPending([]); setPanel(null) }} aria-label="Cancel" className={btn}><X className="size-4" /></button>
           </div>
         </div>
@@ -471,40 +599,63 @@ export function Dos() {
             <p className="hud">Files</p>
             <div className="flex flex-wrap gap-1">
               {aBuf.current && <button onClick={() => download(aBuf.current!.slice(0), 'friction-a.img')} className={cn(key, 'h-11 px-3 text-[12px] md:h-8')}>A: as an image</button>}
-              {(cBuf.current || own?.kind === 'hda') && <button onClick={() => download((own?.kind === 'hda' ? own.buf : cBuf.current!).slice(0), own?.kind === 'hda' ? own.name : 'friction-c.img')} className={cn(key, 'h-11 px-3 text-[12px] md:h-8')}>C: as an image</button>}
+              {(sys === 'own' ? ownHda : cBufs.current[sys]) && <button onClick={() => download(((sys === 'own' ? ownHda : cBufs.current[sys]) as ArrayBuffer).slice(0), sys === 'own' ? ownRef.current.hda!.name : `${sys}-c.img`)} className={cn(key, 'h-11 px-3 text-[12px] md:h-8')}>C: as an image</button>}
             </div>
           </div>
           <div data-no-drag tabIndex={0} role="region" aria-label="Files on A: and C:" className="scroll-y max-h-44">
-            {[['A:', aEntries()], ['C:', cFiles]].map(([drive, es]) => (
-              <section key={drive as string}>
-                <h4 className="hud mt-1">{drive as string}</h4>
-                {(es as Entry[]).length === 0 ? <p className="text-[12px] text-ink-3">Nothing here.</p> : (
-                  <ul className="grid">
-                    {(es as Entry[]).map((e) => (
-                      <li key={e.path}><button onClick={() => download(e.data!.slice(), e.path.split('/').pop()!)} className="flex min-h-9 w-full items-center justify-between gap-2 border-b border-ink/10 px-1 text-left font-mono text-[12.5px] hover:bg-ink/5"><span className="truncate">{(drive as string) + '\\' + e.path.replace(/\//g, '\\')}</span><span className="fig shrink-0 text-ink-3">{e.data!.length.toLocaleString('en-US')}</span></button></li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            ))}
+            <h4 className="hud mt-1">A:</h4>
+            {aEntries().length === 0 ? <p className="text-[12px] text-ink-3">Nothing here.</p> : (
+              <ul className="grid">{aEntries().map((e) => <li key={e.path}><button onClick={() => saveFile(new Uint8Array(aBuf.current!), e.path)} className="flex min-h-9 w-full items-center justify-between gap-2 border-b border-ink/10 px-1 text-left text-[12.5px] hover:bg-ink/5"><span className="truncate">{'A:\\' + e.path.replace(/\//g, '\\')}</span><span className="fig shrink-0 text-ink-3">{(e.size ?? 0).toLocaleString('en-US')}</span></button></li>)}</ul>
+            )}
+            <h4 className="hud mt-1">C:</h4>
+            {!hv ? <p className="text-[12px] text-ink-3">{sys === 'own' ? (ownHda ? whyNot(ownHda) : 'No hard disk loaded.') : 'Power on once to load it.'}</p>
+              : cList.length === 0 ? <p className="text-[12px] text-ink-3">Nothing here.</p> : (
+                <ul className="grid">{cList.map((e) => <li key={e.path}><button onClick={() => saveFile(hv, e.path)} className="flex min-h-9 w-full items-center justify-between gap-2 border-b border-ink/10 px-1 text-left text-[12.5px] hover:bg-ink/5"><span className="truncate">{'C:\\' + e.path.replace(/\//g, '\\')}</span><span className="fig shrink-0 text-ink-3">{(e.size ?? 0).toLocaleString('en-US')}</span></button></li>)}</ul>
+              )}
+            {cList.length >= 2000 && <p className="text-[12px] text-ink-3">The first 2,000 files.</p>}
           </div>
-          <p className="text-[12px] text-ink-3">Tap a file to save it to your device.</p>
+          <p className="text-[12px] text-ink-3">Tap a file to save it to your device. What DOS has open now may not be written yet: Power off first for a whole copy.</p>
         </div>
       )}
 
       {panel === 'disks' && (
         <div className="grid gap-2 border border-ink/20 p-2 text-[13px] leading-[1.45] text-ink-2">
-          <p>Boot a disk image of your own: a hard disk (.img, .vhd) such as a Windows 95 install you have a licence for, a floppy (.img, up to 2.88 MB) or a CD (.iso). It stays in memory only and gets 64 MB of RAM.</p>
+          <p>{sys === 'own' ? 'Your disks stay in this browser, packed, when you power off. Windows 95 or 98 needs a licence you own.' : 'Switch to Your disks to boot an image of your own, or to make a blank hard disk and put your own MS-DOS 7 on it.'}</p>
+          <div className="flex flex-wrap items-center gap-1">
+            <button onClick={() => diskIn.current?.click()} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal md:h-9">Load an image</button>
+            <label className="flex items-center gap-1 text-[12px]">Blank disk
+              <select value={blankMb} onChange={(e) => setBlankMb(Number(e.target.value))} className="h-11 border border-ink/25 bg-transparent px-2 text-[13px] text-ink md:h-9">{BLANKS.map((n) => <option key={n} value={n} className="bg-surface text-ink">{n} MB</option>)}</select>
+            </label>
+            <button onClick={() => void makeBlank()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9', sure === 'blank' && 'border-signal text-signal')}>{sure === 'blank' ? 'Sure? It replaces your disk' : 'Make it'}</button>
+          </div>
+          {sys === 'own' && (
+            <div className="grid gap-1">
+              {(['hda', 'fda', 'cdrom'] as Slot[]).map((s) => ownRef.current[s] && (
+                <div key={s} className="flex items-center gap-2 border-b border-ink/10 pb-1">
+                  <span className="fig w-16 shrink-0 text-ink-3">{s === 'hda' ? 'Hard disk' : s === 'fda' ? 'Floppy' : 'CD'}</span>
+                  <span className="min-w-0 flex-1 truncate text-ink">{ownRef.current[s]!.name} <span className="text-ink-3">{mb(ownRef.current[s]!.buf.byteLength)}</span></span>
+                  <button onClick={() => void drop(s)} aria-label={`Remove ${ownRef.current[s]!.name}`} className="grid size-11 place-items-center text-ink-3 hover:text-ink md:size-9"><X className="size-4" /></button>
+                </div>
+              ))}
+              <div className="flex flex-wrap items-center gap-3 text-[12px]">
+                <label className="flex items-center gap-1">Boot from
+                  <select value={startFrom(own)} onChange={(e) => setBoot(e.target.value as Slot)} className="h-11 border border-ink/25 bg-transparent px-2 text-[13px] text-ink md:h-9">{(['fda', 'hda', 'cdrom'] as Slot[]).filter((s) => own[s]).map((s) => <option key={s} value={s} className="bg-surface text-ink">{s === 'hda' ? 'Hard disk' : s === 'fda' ? 'Floppy' : 'CD'}</option>)}</select>
+                </label>
+                <label className="flex items-center gap-1">Memory
+                  <select value={own.mem} onChange={(e) => setMem(Number(e.target.value))} className="h-11 border border-ink/25 bg-transparent px-2 text-[13px] text-ink md:h-9">{MEMS.map((m) => <option key={m} value={m} className="bg-surface text-ink">{m} MB</option>)}</select>
+                </label>
+              </div>
+              <p className="text-[12px] text-ink-3">MS-DOS 7 from your own floppy: load its image, make a blank disk, boot the floppy, then SYS C: (or FDISK, FORMAT C: /S). A disk bigger than the 504 MB the BIOS reaches is not supported.</p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-1">
-            <button onClick={() => diskIn.current?.click()} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal md:h-9">Boot a disk image</button>
-            {own && <button onClick={() => void backToDos()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9')}>Back to MS-DOS 4.00</button>}
-            <button onClick={() => void resetC()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9', sure && 'border-signal text-signal')}>{sure ? 'Sure? It wipes your C:' : 'Reset C: to how it came'}</button>
+            <button onClick={() => void resetC()} className={cn(key, 'h-11 px-3 text-[13px] md:h-9', sure === 'reset' && 'border-signal text-signal')}>{sure === 'reset' ? 'Sure? It wipes it' : sys === 'own' ? 'Remove all my disks' : 'Reset C: to how it came'}</button>
           </div>
         </div>
       )}
 
       <p className="text-[12px] leading-[1.4] text-ink-3">
-        {own ? `${own.name} in v86, in this browser.` : 'MS-DOS 4.00 from Microsoft\'s open-source release (MIT) in v86, in this browser. Type HELP in DOS.'} Web requests from DOS go through KillCORS, a public relay, and Friction's blocklist. C: is kept here when you power off.{' '}
+        {sys === 'freedos' ? 'FreeDOS 1.3 (GPL), which answers as DOS 7.10, in v86, in this browser. Type HELP in DOS.' : sys === 'msdos4' ? 'MS-DOS 4.00 from Microsoft\'s open-source release (MIT) in v86, in this browser. Type HELP in DOS.' : 'Your disks in v86, in this browser.'} Web requests from DOS go through KillCORS, a public relay, and Friction's blocklist. Disks are kept here when you power off.{' '}
         <a href="/dos/src/" className="underline">Sources</a>
       </p>
     </div>

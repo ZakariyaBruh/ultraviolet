@@ -12,6 +12,8 @@ interface UI {
   widgetsOpen: boolean
   /** code that came in a share link (`#code=` on the address), waiting for the Code window to offer it */
   sharedCode: string | null
+  /** a deck, notepad page or reference list that came in a share link, waiting for the person to take it or not */
+  sharedItem: { lang: string; text: string } | null
   searchOpen: boolean
   profileOpen: boolean
   moreOpen: boolean
@@ -49,6 +51,7 @@ export const useUI = create<UI>((set) => ({
   soundOpen: false,
   widgetsOpen: false,
   sharedCode: null,
+  sharedItem: null,
   searchOpen: false,
   profileOpen: false,
   moreOpen: false,

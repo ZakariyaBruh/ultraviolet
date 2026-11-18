@@ -4,7 +4,7 @@ import { FitView } from '@/components/app/FitView'
 import { Backdrop } from '@/components/app/Backdrop'
 import { Shell } from '@/components/app/Shell'
 import { StaticBurst } from '@/components/app/StaticBurst'
-import { PartBoundary, Waiting } from '@/components/app/Part'
+import { PartBoundary, Waiting, part } from '@/components/app/Part'
 import * as P from '@/components/app/screens'
 import { loadSeo, seoNow, type SeoTable } from '@/lib/seoText'
 import { hrefFor, routeFromLocation, VIEWS, type Route, type View } from '@/lib/route'
@@ -70,6 +70,8 @@ function Over({ when, again, children }: { when: boolean; again?: unknown; child
   return <PartBoundary quiet resetKey={again} onFail={loadFailed}><Suspense fallback={null}>{children}</Suspense></PartBoundary>
 }
 
+const ShareOffer = part(() => import('@/components/app/ShareOffer').then((m) => m.ShareOffer))
+
 export default function App() {
   const [route, setRoute] = useState<Route>(routeFromLocation)
   const view = (route === 'home' ? 'focus' : route) as View
@@ -125,12 +127,17 @@ export default function App() {
   }, [])
   useTheme()
   useEffect(() => { captureRef() }, [])
-  // a Code share link carries the program after #code= (a fragment never reaches a server): open the Code window to offer it
+  // a share link carries what it shares after #code= (a fragment never reaches a server): a program is offered by the Code window, a
+  // deck, a notepad page or a reference list by a sheet of its own
   useEffect(() => {
     if (!location.hash.startsWith('#code=')) return
-    useUI.setState({ sharedCode: location.hash.slice(6, 200_006) })
+    const raw = location.hash.slice(6, 200_006)
     history.replaceState(history.state, '', location.pathname + location.search)
-    useStore.getState().setWidget('code', true)
+    void import('@/lib/codeshare').then(async (c) => {
+      const d = await c.decodeShare(raw)
+      if (d && c.ITEM_KINDS.includes(d.lang)) useUI.setState({ sharedItem: d })
+      else { useUI.setState({ sharedCode: raw }); useStore.getState().setWidget('code', true) }
+    })
   }, [])
   // saved data from before the demo-history button was removed may still carry made-up history; it was taken out on load, so say so once
   useEffect(() => {
@@ -264,6 +271,7 @@ export default function App() {
       </Sheet>
       <Over when={reportOn} again={ui.reportOpen}><P.Report /></Over>
       <ConsentBanner />
+      {ui.sharedItem && <PartBoundary small><Suspense fallback={null}><ShareOffer /></Suspense></PartBoundary>}
       <LockOverlay />
       <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
         <SheetContent side="bottom">

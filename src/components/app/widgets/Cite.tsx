@@ -1,10 +1,11 @@
-import { Check, Copy, Download, Pencil, Search, X } from 'lucide-react'
+import { Check, Copy, Download, Link2, Pencil, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useStore } from '@/lib/store'
 import { cite, html, lookUp, parseNames, plain, recognise, sortKey, type Kind, type Run, type Source, type Style } from '@/lib/cite'
 import { CITES_MAX } from '@/lib/citeData'
 import { cn } from '@/lib/utils'
 import { field, key } from './Window'
+import { shareItem } from './shareItem'
 
 /**
  * References in APA 7, MLA 9, Chicago or Harvard. A DOI is looked up on Crossref, an ISBN on Open Library and a Wikipedia address
@@ -199,6 +200,7 @@ export function Cite() {
           <div className="flex flex-wrap items-center gap-1.5">
             <button onClick={copyAll} className={cn(key, 'h-11 gap-1.5 px-3 text-[13px] md:h-9')}>{copied === 'all' ? <Check className="size-4 text-signal" /> : <Copy className="size-4" />}Copy all</button>
             <button onClick={saveTxt} className={cn(key, 'h-11 gap-1.5 px-3 text-[13px] md:h-9')}><Download className="size-4" />Save .txt</button>
+            <button onClick={() => void shareItem('refs', JSON.stringify(sorted))} className={cn(key, 'h-11 gap-1.5 px-3 text-[13px] md:h-9')}><Link2 className="size-4" />Share link</button>
             <button onClick={() => { if (sure) { setCites([]); setSure(false) } else setSure(true) }} onBlur={() => setSure(false)} className={cn('h-11 px-2 text-[13px] md:h-9', sure ? 'font-semibold text-danger' : 'text-ink-3 hover:text-ink')}>{sure ? 'Press again to clear' : 'Clear list'}</button>
           </div>
         </>

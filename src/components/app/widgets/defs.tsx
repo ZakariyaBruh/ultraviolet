@@ -1,4 +1,4 @@
-import { Atom, GraduationCap, Quote, Calculator as CalcIcon, CalendarDays, ChartSpline, Code2, SquareStack, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
+import { Atom, CalendarClock, ChartColumn, Sigma, GraduationCap, Quote, Calculator as CalcIcon, CalendarDays, ChartSpline, Code2, SquareStack, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { part } from '@/components/app/Part'
 import { useStore } from '@/lib/store'
@@ -16,6 +16,9 @@ const Flashcards = part(() => import('./Flashcards').then((m) => m.Flashcards))
 const Graph = part(() => import('./Graph').then((m) => m.Graph))
 const Elements = part(() => import('./Elements').then((m) => m.Elements))
 const Grades = part(() => import('./Grades').then((m) => m.Grades))
+const Planner = part(() => import('./Planner').then((m) => m.Planner))
+const Formulas = part(() => import('./Formulas').then((m) => m.Formulas))
+const Statistics = part(() => import('./Statistics').then((m) => m.Statistics))
 const Cite = part(() => import('./Cite').then((m) => m.Cite))
 const Todo = part(() => import('./Todo').then((m) => m.Todo))
 const Timer = part(() => import('./Timer').then((m) => m.Timer))
@@ -29,7 +32,7 @@ const Spinner = part(() => import('@/components/app/shop/Toys').then((m) => m.Sp
 const Cannon = part(() => import('@/components/app/shop/Toys').then((m) => m.Cannon))
 
 /** the windows that work with no connection, fetched ahead of time so that they open offline too (the Browser and Ask AI need the network anyway) */
-export const preloadLight = () => Promise.all([Notepad, Calculator, Graph, Calendar, Flashcards, Todo, Timer, Converter, Sketch, Elements, Grades, Cite].map((w) => w.preload())).then(() => undefined)
+export const preloadLight = () => Promise.all([Notepad, Calculator, Graph, Calendar, Flashcards, Todo, Timer, Converter, Sketch, Elements, Grades, Cite, Planner, Formulas, Statistics].map((w) => w.preload())).then(() => undefined)
 
 export interface WidgetDef { id: string; name: string; blurb: string; icon: LucideIcon; Body: ComponentType; /** a Shop item that has to be bought before the window exists */ needs?: ItemId; /** a wide window, for things that need room */ large?: boolean }
 
@@ -48,7 +51,10 @@ export const WIDGETS: WidgetDef[] = [
   { id: 'elements', name: 'Periodic table', blurb: 'All 118 elements with their atomic mass, kind, group and period. Find one by name, symbol or number.', icon: Atom, Body: Elements, large: true },
   { id: 'grades', name: 'Grades', blurb: 'Where a course stands from its marked parts, what the rest needs for your target, and your GPA.', icon: GraduationCap, Body: Grades },
   { id: 'cite', name: 'Cite', blurb: 'References in APA, MLA, Chicago or Harvard. Paste a DOI, ISBN or Wikipedia address to fill it in.', icon: Quote, Body: Cite },
-  { id: 'code', name: 'Code', blurb: 'Write and run Python, JavaScript, TypeScript, HTML, SQL, Bash, C and C++, Ruby, Lua or PHP, with drawing, or start MS-DOS. It all runs in this browser.', icon: Code2, Body: Code, large: true },
+  { id: 'planner', name: 'Planner', blurb: 'Exam dates turned into a spaced daily plan: learn each topic, then review it after 1, 3 and 7 days.', icon: CalendarClock, Body: Planner },
+  { id: 'formulas', name: 'Formulas', blurb: 'Physics, chemistry, maths and money formulas: fill in what you know and solve for the rest.', icon: Sigma, Body: Formulas },
+  { id: 'stats', name: 'Statistics', blurb: 'Paste numbers for the mean, spread, quartiles, a box plot and a histogram, or pairs for a line of best fit.', icon: ChartColumn, Body: Statistics },
+  { id: 'code', name: 'Code', blurb: 'Write and run Python, JavaScript, TypeScript, HTML, SQL, Bash, C and C++, Ruby, Lua or PHP, with drawing, or start a DOS PC (FreeDOS or MS-DOS 4). It all runs in this browser.', icon: Code2, Body: Code, large: true },
   { id: 'timer', name: 'Timer', blurb: 'A countdown that rings when it ends, and a stopwatch. It keeps running if you close the window.', icon: TimerIcon, Body: Timer },
   { id: 'convert', name: 'Converter', blurb: 'Length, mass, volume, speed, time and temperature.', icon: Scale, Body: Converter },
   { id: 'music', name: 'Music', blurb: 'Auto music: Calm, Focus, Night or Retro, made as it goes (bought in the Shop). It stays quiet while a song or station plays.', icon: Music, Body: () => <MusicControls compact />, needs: 'automusic' },

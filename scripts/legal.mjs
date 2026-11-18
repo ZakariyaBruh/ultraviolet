@@ -130,8 +130,9 @@ const PAGES = {
 <li><strong>Content sources.</strong> Radio, TV, podcasts, news, songs, Wikipedia, maps and translation come from public services your browser or our server contacts when you use them; they see your address as any website would.</li>
 <li><strong>Cloud backup (supporters, optional).</strong> If you turn it on, your browser seals a copy of its data with a backup key that never leaves your devices, and we store the sealed copy: one row with an identifier made from the key, a hash of a second value that proves you hold it, the sealed data and the time. We cannot read it. It is deleted when you turn backup off or erase everything, and after about 400 days without a save. If you lose the key, nobody can open the copy.</li>
 <li><strong>Whop (supporters).</strong> If you choose to support Friction, the payment is made on Whop's own pages. Whop collects your payment details and email as the seller; Friction never receives them. When you return, a single flag in your browser records that you are a supporter. If you use Sign in with Whop on another device, you sign in on Whop's own page and Whop sends your browser back with a one-time code; Friction's server exchanges it, asks Whop only whether you have an active Support Friction membership, and then discards and revokes the token. Friction does not see or keep your Whop name, email or id, and the answer is just yes or no.</li>
-<li><strong>jsDelivr (the Code window).</strong> The first time you run Python, SQL, Ruby, Lua or PHP, your browser fetches that language (Pyodide, sql.js, ruby.wasm, wasmoon or php-wasm) from jsDelivr, a public file host, which therefore sees your network address and browser. Bash, C and C++, TypeScript and the MS-DOS PC (the v86 emulator and its disk) come from this site. Your code and what you type into it never leave your browser: they run in a sealed frame that can reach nothing but those files.</li>
+<li><strong>jsDelivr (the Code window).</strong> The first time you run Python, SQL, Ruby, Lua or PHP, your browser fetches that language (Pyodide, sql.js, ruby.wasm, wasmoon or php-wasm) from jsDelivr, a public file host, which therefore sees your network address and browser. Bash, C and C++, TypeScript and the PC (the v86 emulator and its disks) come from this site. Your code and what you type into it never leave your browser: they run in a sealed frame that can reach nothing but those files.</li>
 <li><strong>KillCORS (the Browser window and the MS-DOS PC).</strong> When a page in the Browser window asks for more data, or a program in the MS-DOS PC fetches a web address while its network is on, your browser sends that request through KillCORS (proxy.killcors.com), a free public relay, which therefore sees the address asked for and your network address. No cookies go with it, and addresses the Browser blocks are refused before they are sent.</li>
+<li><strong>FreeDOS packages (the PC).</strong> INSTALL and FDNPKG in the FreeDOS PC download programs from the FreeDOS repository on ibiblio.org, through KillCORS, only when you run them. ibiblio and KillCORS see the address asked for and your network address.</li>
 <li><strong>Citation lookups (the Cite window).</strong> If you look up a DOI, an ISBN or a Wikipedia address, your browser asks Crossref, Open Library or Wikipedia for that one item, and they see what you pasted and your network address. Nothing else is sent, and the reference list stays in your browser.</li>
 <li><strong>Code share links.</strong> A share link from the Code window carries the code itself, compressed, after the # in the address. Browsers never send that part to any server, so we never see it, but anyone you give the link to can read the code.</li>
 <li><strong>Read aloud (the Notepad).</strong> Uses your browser's own voices. Some browsers' online voices send the text to their maker to speak it (Chrome's Google voices, for example); your device's offline voices do not.</li>
@@ -163,7 +164,8 @@ const PAGES = {
 <tbody>
 <tr><td>friction:*</td><td>Your data, settings, layout, private identity key and small flags</td><td>Until you erase it</td></tr>
 <tr><td>learn:demo:*</td><td>A cached lesson demo so it is written once</td><td>Until you erase it</td></tr>
-<tr><td>dos:c:v1</td><td>The MS-DOS PC's drive C:, only if you press Keep C: (about 32 MB)</td><td>Until you reset it or erase everything</td></tr>
+<tr><td>dos:c:*, dos:own:v1</td><td>The PC's drive C: and any disk images you loaded, packed, kept when you power off or press Keep (a few MB each, more for a big disk of your own)</td><td>Until you reset it or erase everything</td></tr>
+<tr><td>friction:dos-system</td><td>Which system the PC starts (FreeDOS, MS-DOS 4.00 or your disks)</td><td>Until you erase it</td></tr>
 </tbody></table>
 <h2>Cookies from partners</h2>
 <ul>
@@ -191,7 +193,7 @@ const PAGES = {
 <li>Do not try to break, overload or probe the service, scrape it at scale, get around its limits (such as the cloud browser's daily time or the Browser's blocklist), or use it to do anything unlawful.</li>
 <li>Do not use Together rooms or the leaderboard to harass anyone or to post unlawful, hateful or sexual content. Aliases and room names may be removed.</li>
 <li>The Browser is built to block games and short-form social media. Do not try to avoid that.</li>
-<li>The MS-DOS PC in the Code window runs what you give it. Load only disk images and programs you have the right to use, such as your own licensed copy of an old system. MS-DOS 4.00 on it is Microsoft's open-source release under the MIT licence; the free programs on its disk keep their own licences, with their sources at <a href="/dos/src/">/dos/src/</a>.</li>
+<li>The MS-DOS PC in the Code window runs what you give it. Load only disk images and programs you have the right to use, such as your own licensed copy of an old system. FreeDOS 1.3 and MS-DOS 4.00 (Microsoft's open-source release, MIT) are on it; the free programs on their disks keep their own licences, with their sources at <a href="/dos/src/">/dos/src/</a>.</li>
 </ul>
 <h2 id="sources">Streams and third-party content</h2>
 ${SOURCES}
@@ -242,6 +244,7 @@ ${SOURCES}
 <table>
 <thead><tr><th>Program</th><th>Licence</th><th>Source</th></tr></thead>
 <tbody>
+<tr><td>FreeDOS 1.3: kernel, FreeCOM, HIMEMX, DOSLFN, FDNPKG and the base tools on its disk (answers programs as DOS 7.10)</td><td>GPL, and others as each package states</td><td><a href="/dos/src/freedos-1.3-sources.zip">freedos-1.3-sources.zip</a> (each package's own source folder), and ${ext('https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/1.3/', 'the FreeDOS 1.3 repository')}</td></tr>
 <tr><td>MS-DOS 4.00 (Microsoft)</td><td>MIT</td><td>${ext('https://github.com/microsoft/MS-DOS', 'github.com/microsoft/MS-DOS')}</td></tr>
 <tr><td>mTCP 2026-10-10 (Michael Brutman): DHCP, HTGET, PING</td><td>GPL 3</td><td><a href="/dos/src/mTCP-src_2026-10-10.zip">mTCP-src_2026-10-10.zip</a></td></tr>
 <tr><td>MicroWeb 2.1 (James Howard)</td><td>GPL 2</td><td><a href="/dos/src/microweb-2.1-source.zip">microweb-2.1-source.zip</a></td></tr>

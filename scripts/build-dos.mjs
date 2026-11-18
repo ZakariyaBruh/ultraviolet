@@ -1,4 +1,6 @@
-// Builds the C: drive of the Code window's DOS: MS-DOS 4.00 (Microsoft's open-source release, MIT licence, as compiled by the
+// Builds the two C: drives of the Code window's PC. FreeDOS 1.3 (GPL; its kernel answers programs as DOS 7.10, the version of
+// MS-DOS inside Windows 98, which Microsoft has never released) from the FreeDOS 1.3 repository packages, with the boot code of the
+// FreeDOS 1.3 Lite image. And MS-DOS 4.00 (Microsoft's open-source release, MIT licence, as compiled by the
 // Internet Archive's "MSDOS 4.00-builds" from github.com/microsoft/MS-DOS with Neozeed's fixes), an NE2000 packet driver and mTCP
 // for the network (HTTP goes out through the browser's own fetch, see components/app/widgets/Dos.tsx), CuteMouse, FreeDOS EDIT,
 // Info-ZIP UnZip and the MicroWeb browser. Everything on it is free to share; the licences are on the disk (C:\LICENSE) and the
@@ -30,6 +32,12 @@ const GET = {
   'mtcp-src.zip': 'http://www.brutman.com/mTCP/download/mTCP-src_2026-10-10.zip',
   'microweb.zip': 'http://www.brutman.com/mTCP/download/MicroWeb_2.1.zip',
   'microweb-src.zip': 'https://github.com/jhhoward/MicroWeb/archive/refs/tags/v2.1.zip',
+  'fd13-lite.zip': 'https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/distributions/1.3/official/FD13-LiteUSB.zip',
+  ...Object.fromEntries(Object.entries({
+    kernel: 'base', freecom: 'base', himemx: 'base', edit: 'base', attrib: 'base', choice: 'base', deltree: 'base', find: 'base', mem: 'base',
+    more: 'base', move: 'base', sort: 'base', tree: 'base', xcopy: 'base', fc: 'base', label: 'base', mode: 'base', format: 'base', fdisk: 'base',
+    debug: 'base', ctmouse: 'base', doslfn: 'drivers', unzip: 'archiver', zip: 'archiver', fdnpkg: 'util', cwsdpmi: 'util',
+  }).map(([pkg, repo]) => [`fd-${pkg}.zip`, `https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/1.3/${repo}/${pkg}.zip`])),
   'seabios.bin': 'https://raw.githubusercontent.com/copy/v86/master/bios/seabios.bin',
   'vgabios.bin': 'https://raw.githubusercontent.com/copy/v86/master/bios/vgabios.bin',
 }
@@ -58,6 +66,7 @@ const mbr = vhd.subarray(0, 512)
 const hddBoot = vhd.subarray(63 * 512, 64 * 512)
 if (String.fromCharCode(...hddBoot.subarray(3, 11)) !== 'MSDOS4.0') throw new Error('unexpected boot sector')
 writeFileSync(join(OUT, 'boot-floppy.bin'), floppyImg.subarray(0, 512)) // the floppy boot sector: the transfer disk A: is made with it
+writeFileSync(join(OUT, 'mbr.bin'), mbr) // the MBR of MS-DOS 4.00 (MIT), for the blank hard disks the window makes
 
 const dosFiles = F.list(floppyImg).filter((e) => !e.dir)
 const fromFloppy = (n) => dosFiles.find((e) => e.path === n).data
@@ -201,19 +210,170 @@ F.writeFiles(volume, [...files, { path: 'FRICTION', attr: 0x08 }]) // the volume
 const check = F.list(volume)
 if (check[0].path !== 'IO.SYS' || check[1].path !== 'MSDOS.SYS') throw new Error('system files are not first')
 
-const gz = gzipSync(disk, { level: 9 })
-const tag = createHash('sha256').update(disk).digest('hex').slice(0, 10)
-for (const f of readdirSync(OUT)) if (/^msdos4-c\..*\.img\.gz$/.test(f)) rmSync(join(OUT, f))
-const name = `msdos4-c.${tag}.img.gz`
-writeFileSync(join(OUT, name), gz)
+// ───────── FreeDOS 1.3 ─────────
+const zipList = (zip) => JSON.parse(execFileSync('python3', ['-c', 'import sys,zipfile,json;print(json.dumps([i.filename for i in zipfile.ZipFile(sys.argv[1]).infolist() if not i.filename.endswith("/")]))', zip]).toString())
+const liteImg = new Uint8Array(unzip(C('fd13-lite.zip'), 'FD13LITE.img'))
+const fdMbr = liteImg.subarray(0, 512)
+const fdBoot = liteImg.subarray(63 * 512, 64 * 512)
+if (String.fromCharCode(...fdBoot.subarray(3, 11)) !== 'FRDOS5.1' || !String.fromCharCode(...fdBoot).includes('KERNEL  SYS')) throw new Error('unexpected FreeDOS boot sector')
+
+const fd = []
+const fdAdd = (path, data, attr) => fd.push({ path, data, attr })
+const PKGS = ['kernel', 'freecom', 'himemx', 'edit', 'attrib', 'choice', 'deltree', 'find', 'mem', 'more', 'move', 'sort', 'tree', 'xcopy', 'fc', 'label', 'mode', 'format', 'fdisk', 'debug', 'ctmouse', 'doslfn', 'unzip', 'zip', 'fdnpkg', 'cwsdpmi']
+const SKIP = /^BIN\/(KERNL86N?\.SYS|FREECOM\/|FDNPKG\.CFG$|KERNL386\.SYS$|COMMAND\.COM$)/i
+const licences = new Map()
+for (const pkg of PKGS) {
+  const zip = C(`fd-${pkg}.zip`)
+  for (const name of zipList(zip)) {
+    if (/^BIN\//i.test(name) && !SKIP.test(name)) fdAdd(`FREEDOS/BIN/${name.slice(4)}`, new Uint8Array(unzip(zip, name)))
+    else if (/^NLS\/[^/]+\.EN$/i.test(name)) fdAdd(`FREEDOS/NLS/${name.slice(4)}`, new Uint8Array(unzip(zip, name)))
+    else if (/^DOC\/[^/]+\/(COPYING|LICENSE|LICENSE\.TXT|GPL\.TXT|COPYING\.TXT)$/i.test(name)) {
+      const text = unzip(zip, name).toString('latin1')
+      const key = text.replace(/\s+/g, ' ').slice(0, 400)
+      if (!licences.has(key)) licences.set(key, { name: pkg, text })
+    }
+  }
+}
+fdAdd('KERNEL.SYS', new Uint8Array(unzip(C('fd-kernel.zip'), 'BIN/KERNL386.SYS')), 0x27)
+fdAdd('COMMAND.COM', new Uint8Array(unzip(C('fd-freecom.zip'), 'BIN/COMMAND.COM')))
+// FDNPKG installs from the FreeDOS 1.3 repositories over HTTP; the games and emulator repositories are left out, as Friction's Browser leaves out games
+const cfg = unzip(C('fd-fdnpkg.zip'), 'BIN/FDNPKG.CFG').toString('latin1').split(/\r?\n/).filter((l) => !/^REPO .*\/(games|emulator)\s*$/i.test(l)).join('\r\n')
+fdAdd('FREEDOS/BIN/FDNPKG.CFG', new TextEncoder().encode(cfg))
+fdAdd('FDCONFIG.SYS', enc(`!COUNTRY=001,437:C:\\FREEDOS\\BIN\\COUNTRY.SYS
+!LASTDRIVE=Z
+!BUFFERS=20
+!FILES=40
+DOS=HIGH
+DEVICE=C:\\FREEDOS\\BIN\\HIMEMX.EXE
+SHELL=C:\\COMMAND.COM C:\\ /E:2048 /P=C:\\AUTOEXEC.BAT
+`))
+fdAdd('AUTOEXEC.BAT', enc(`@ECHO OFF
+SET DOSDIR=C:\\FREEDOS
+SET PATH=C:\\FREEDOS\\BIN;C:\\NET;C:\\WEB;C:\\
+SET NLSPATH=C:\\FREEDOS\\NLS
+SET LANG=EN
+SET TZ=UTC
+SET TEMP=C:\\TEMP
+SET TMP=C:\\TEMP
+SET MTCPCFG=C:\\NET\\MTCP.CFG
+SET WATTCP.CFG=C:\\NET
+SET DIRCMD=/OGN /LFN
+PROMPT $P$G
+ALIAS CURL=HTGET -quiet
+ALIAS INSTALL=FDNPKG INSTALL
+CTMOUSE >NUL
+DOSLFN >NUL
+NE2000 0x60 ${IRQ} 0x300 >NUL
+IF ERRORLEVEL 1 GOTO NONET
+DHCP -timeout 5 -retries 2 >NUL
+IF ERRORLEVEL 1 GOTO NONET
+ECHO Network: on. HTTP goes out through your browser.
+GOTO DONE
+:NONET
+ECHO Network: off.
+:DONE
+ECHO.
+ECHO FreeDOS 1.3. It answers programs as DOS 7.10, with long file names.
+ECHO Type HELP for what is here, INSTALL to add a program.
+ECHO.
+`))
+fdAdd('HELP.BAT', enc(`@ECHO OFF
+ECHO.
+ECHO  DIR, CD, COPY, TYPE, DEL, MD, MOVE, XCOPY, DELTREE, TREE, MEM
+ECHO  VER /R               the DOS version programs are told (7.10)
+ECHO  EDIT FILE.TXT        a text editor
+ECHO  DEBUG                assemble and run machine code
+ECHO  ZIP, UNZIP           pack and unpack zip files
+ECHO  "My long name.txt"   long file names work (DOSLFN is loaded)
+ECHO.
+ECHO  INSTALL name         add a program from the FreeDOS collection
+ECHO  FDNPKG SEARCH word   find one (try: FDNPKG SEARCH editor)
+ECHO  FDNPKG REMOVE name   take one off
+ECHO    Some to try: LYNX, LINKS, DILLO (web browsers), GOPHERUS,
+ECHO    NASM, FBC (FreeBASIC), FPC (Free Pascal), OPENGEM (a desktop)
+ECHO.
+ECHO  HTGET -o PAGE.HTM http://example.com/    fetch a file from the web
+ECHO  CURL http://example.com/                 the same, shown on screen
+ECHO  MICROWEB http://en.wikipedia.org/        a graphical web browser
+ECHO.
+ECHO  A: is the transfer floppy. Import puts files on it or in C:\\IMPORT.
+ECHO  Only HTTP works from DOS (the browser turns it into HTTPS for you).
+ECHO.
+`))
+// CURL and INSTALL are aliases set in AUTOEXEC.BAT: FreeCOM splits a batch file's arguments at "/", which breaks a URL
+fdAdd('README.TXT', enc(`FRICTION DOS: FREEDOS 1.3
+=========================
+
+FreeDOS 1.3 (freedos.org, GNU GPL). Its kernel tells programs it is DOS 7.10,
+the version of MS-DOS inside Windows 98, so programs written for MS-DOS 7 run.
+Microsoft has never released MS-DOS 7, so it cannot be put on this disk. If you
+own a Windows 95 or 98 boot disk, the Disks panel can boot it and give it a
+blank hard disk to install onto.
+
+It runs in your browser in v86 (copy.sh/v86, BSD licence). Nothing runs on a
+server. The network card is an NE2000; its HTTP requests become the browser's
+own fetch() and go out through KillCORS (proxy.killcors.com), a free public
+relay. Blocked kinds of site (games, short video) are refused, as in Friction's
+Browser, and the FreeDOS games and emulator collections are left out of FDNPKG.
+
+What is here, and its licence:
+  C:\\KERNEL.SYS, C:\\COMMAND.COM, C:\\FREEDOS\\BIN   FreeDOS 1.3 packages, GPL
+    (kernel, FreeCOM, HIMEMX, EDIT, DOSLFN, FDNPKG, CWSDPMI and the base tools)
+  C:\\NET\\NE2000.COM   Crynwr packet driver               GPL
+  C:\\NET\\*.EXE        mTCP by Michael Brutman            GPL 3
+  C:\\WEB\\MICROWEB     MicroWeb by James Howard           GPL 2
+  ZIP and UNZIP          Info-ZIP                           Info-ZIP licence
+The licence texts are in C:\\LICENSE. The source code of every program on this
+disk is at https://www.frictionx.app/dos/src/
+`))
+fdAdd('TEMP', undefined); fd[fd.length - 1].dir = true
+fdAdd('IMPORT', undefined); fd[fd.length - 1].dir = true
+for (const f of files.filter((f) => /^(NET|WEB)\//.test(f.path))) fdAdd(f.path, f.data)
+// FDNPKG's own TCP stack (Watt-32) gets no answer from v86's DHCP, so it is given v86's fixed addresses (mTCP's DHCP gets the same)
+fdAdd('NET/WATTCP.CFG', enc(`my_ip = 192.168.86.100
+netmask = 255.255.255.0
+gateway = 192.168.86.1
+nameserver = 192.168.86.1
+hostname = friction
+`))
+for (const f of files.filter((f) => /^LICENSE\/(GPL3|CRYNWR|GPL2|INFOZIP)/.test(f.path))) fdAdd(f.path, f.data)
+let n = 0
+for (const { name, text } of licences.values()) if (!/GNU GENERAL PUBLIC LICENSE\s+Version 2/i.test(text) && !/GNU GENERAL PUBLIC LICENSE\s+Version 3/i.test(text)) fdAdd(`LICENSE/FD-${String(++n).padStart(2, '0')}.TXT`, enc(`From the FreeDOS package ${name}:\n\n${text}`))
+
+// 130 cylinders of 16 heads and 63 sectors: 64 MB, room to install programs; mostly empty, so it downloads small
+const fdDisk = F.hardDisk(130, fdMbr, fdBoot, 'FREEDOS')
+F.writeFiles(fdDisk.volume, [...fd, { path: 'FREEDOS', attr: 0x08 }])
+
+// ───────── write them out ─────────
+const save = (prefix, d) => {
+  const gz = gzipSync(d, { level: 9 })
+  const tag = createHash('sha256').update(d).digest('hex').slice(0, 10)
+  for (const f of readdirSync(OUT)) if (new RegExp(`^${prefix}-c\\..*\\.img\\.gz$`).test(f)) rmSync(join(OUT, f))
+  const name = `${prefix}-c.${tag}.img.gz`
+  writeFileSync(join(OUT, name), gz)
+  console.log(`${prefix}: ${name}, ${(d.length / 1048576).toFixed(1)} MB, ${(gz.length / 1048576).toFixed(2)} MB gzipped, ${(F.free(F.volumeOf(d)) / 1048576).toFixed(1)} MB free`)
+  return { disk: name, size: d.length, gz: gz.length }
+}
+const systems = { freedos: save('freedos', fdDisk.disk), msdos4: save('msdos4', disk) }
 writeFileSync(join(OUT, 'seabios.bin'), readFileSync(C('seabios.bin')))
 writeFileSync(join(OUT, 'vgabios.bin'), readFileSync(C('vgabios.bin')))
-// the sources of the GPL programs on the disk, served next to it
+// the sources of the GPL programs on the disks, served next to them
 writeFileSync(join(OUT, 'src/mTCP-src_2026-10-10.zip'), readFileSync(C('mtcp-src.zip')))
 writeFileSync(join(OUT, 'src/crynwr-sources.zip'), unzip(C('crynwr.zip'), 'SOURCE/CRYNWR/SOURCES.ZIP'))
 writeFileSync(join(OUT, 'src/ctmouse-sources.zip'), unzip(C('ctmouse.zip'), 'SOURCE/CTMOUSE/SOURCES.ZIP'))
 writeFileSync(join(OUT, 'src/edit-sources.zip'), unzip(C('edit.zip'), 'SOURCE/EDIT/SOURCES.ZIP'))
 writeFileSync(join(OUT, 'src/microweb-2.1-source.zip'), readFileSync(C('microweb-src.zip')))
+// FreeDOS: each package's own SOURCE folder (and its description), one zip for all of them
+execFileSync('python3', ['-c', `
+import sys, zipfile
+out = zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_STORED)
+for z in sys.argv[2:]:
+    src = zipfile.ZipFile(z)
+    pkg = z.split('fd-')[-1][:-4]
+    for i in src.infolist():
+        if i.filename.upper().startswith(('SOURCE/', 'APPINFO/')) and not i.filename.endswith('/'):
+            out.writestr(pkg + '/' + i.filename, src.read(i.filename))
+out.close()
+`, join(OUT, 'src/freedos-1.3-sources.zip'), ...PKGS.map((p) => C(`fd-${p}.zip`))])
 // the page that lists them is /dos/src, written with the other site pages by scripts/legal.mjs
-writeFileSync(join(ROOT, 'src/lib/dos.json'), JSON.stringify({ disk: name, size: disk.length, irq: Number(IRQ) }, null, 1) + '\n')
-console.log(`dos disk: ${name}, ${(disk.length / 1048576).toFixed(1)} MB, ${(gz.length / 1048576).toFixed(2)} MB gzipped, ${files.length} files, ${(F.free(volume) / 1048576).toFixed(1)} MB free`)
+writeFileSync(join(ROOT, 'src/lib/dos.json'), JSON.stringify({ irq: Number(IRQ), systems }, null, 1) + '\n')

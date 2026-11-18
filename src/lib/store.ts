@@ -11,6 +11,7 @@ import { CAL_MAX, type CalEvent } from './ical'
 import { PROJECT_MAX, tidyProject } from './projects'
 import { sanitizeDecks, type Deck } from './cards'
 import { sanitizeGrades, type Grades } from './grades'
+import { sanitizeExams, type Exam } from './plan'
 import { sanitizeCites, CITES_MAX, type Source } from './citeData'
 
 export interface Mute {
@@ -241,7 +242,7 @@ export interface SavedPage { name: string; url: string }
 /** `min`: open windows tucked into the tray (kept running, just out of the way); `ghost`: windows you can click through */
 /** an imported calendar: the events as read from the file (see `lib/ical.ts`), kept in this browser only */
 export interface Cal { name: string; at: number; events: CalEvent[] }
-export interface Widgets { open: string[]; /** the first page of the Notepad, kept for older saves */ note: string; /** every Notepad page (the first is `note`) */ notes?: string[]; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window: text for each language, `in:<language>` its Input box, `@lang` the language last used */ code?: Record<string, string>; /** the Flashcards window's decks (lib/cards.ts) */ decks?: Deck[]; /** the Graph window: up to three formulas and the angle unit */ graph?: { f: string[]; deg?: boolean }; /** events and countdowns typed into the Calendar window, kept apart from an imported file */ own?: CalEvent[]; /** the Grades window: a course's parts and target, and courses for a GPA */ grades?: Grades; /** the Cite window's reference list */ cites?: Source[] }
+export interface Widgets { open: string[]; /** the first page of the Notepad, kept for older saves */ note: string; /** every Notepad page (the first is `note`) */ notes?: string[]; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window: text for each language, `in:<language>` its Input box, `@lang` the language last used */ code?: Record<string, string>; /** the Flashcards window's decks (lib/cards.ts) */ decks?: Deck[]; /** the Graph window: up to three formulas and the angle unit */ graph?: { f: string[]; deg?: boolean }; /** events and countdowns typed into the Calendar window, kept apart from an imported file */ own?: CalEvent[]; /** the Grades window: a course's parts and target, and courses for a GPA */ grades?: Grades; /** the Cite window's reference list */ cites?: Source[]; /** the Planner window's exams */ exams?: Exam[] }
 export const NOTE_MAX = 20000
 export const NOTES_MAX = 12
 export const OWN_MAX = 100
@@ -272,6 +273,7 @@ interface Actions {
   setGraph: (g: { f: string[]; deg?: boolean }) => void
   setGrades: (g: Grades) => void
   setCites: (list: Source[]) => void
+  setExams: (list: Exam[]) => void
   addOwnEvent: (ev: CalEvent) => void
   removeOwnEvent: (id: string) => void
   earnCredits: (n: number, why: string) => void
@@ -512,7 +514,8 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const graph = isObj(v.graph) && Array.isArray(v.graph.f) ? { f: (v.graph.f as unknown[]).slice(0, 3).map((x) => (typeof x === 'string' ? x.slice(0, 200) : '')), ...(v.graph.deg === true ? { deg: true } : {}) } : undefined
         const grades = sanitizeGrades(v.grades)
         const cites = sanitizeCites(v.cites)
-        ok = { open, note: notes?.length ? notes[0] : typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', ...(notes && notes.length > 1 ? { notes } : {}), todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}), ...(decks?.length ? { decks } : {}), ...(graph ? { graph } : {}), ...(own?.length ? { own } : {}), ...(grades ? { grades } : {}), ...(cites?.length ? { cites } : {}) }
+        const exams = sanitizeExams(v.exams)
+        ok = { open, note: notes?.length ? notes[0] : typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', ...(notes && notes.length > 1 ? { notes } : {}), todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}), ...(decks?.length ? { decks } : {}), ...(graph ? { graph } : {}), ...(own?.length ? { own } : {}), ...(grades ? { grades } : {}), ...(cites?.length ? { cites } : {}), ...(exams?.length ? { exams } : {}) }
       }
     } else if (k === 'achievements') {
       if (isObj(v)) {
@@ -904,6 +907,7 @@ export const useStore = create<AppState>()(
       removeOwnEvent: (id) => set((s) => ({ widgets: { ...s.widgets, own: (s.widgets.own ?? []).filter((e) => e.id !== id) } })),
       setGraph: (g) => set((s) => ({ widgets: { ...s.widgets, graph: { f: g.f.slice(0, 3).map((x) => String(x).slice(0, 200)), ...(g.deg ? { deg: true } : {}) } } })),
       setGrades: (g) => set((s) => ({ widgets: { ...s.widgets, grades: sanitizeGrades(g) } })),
+      setExams: (list) => set((s) => ({ widgets: { ...s.widgets, exams: sanitizeExams(list) ?? [] } })),
       setCites: (list) => set((s) => ({ widgets: { ...s.widgets, cites: (sanitizeCites(list) ?? []).slice(0, CITES_MAX) } })),
       clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
 

@@ -56,3 +56,11 @@ export async function decodeShare(s: string): Promise<{ lang: string; text: stri
 }
 
 export const shareUrl = (code: string) => `${location.origin}/focus#code=${code}`
+
+/** what else can travel in a link besides a program: a flashcard deck, a notepad page, a reference list */
+export const ITEM_KINDS = ['deck', 'note', 'refs']
+/** a link for one of them; the longer it is, the more likely an app is to cut it */
+export async function itemLink(kind: 'deck' | 'note' | 'refs', text: string): Promise<{ url: string; long: boolean }> {
+  const url = shareUrl(await encodeShare(kind, text))
+  return { url, long: url.length > 8000 }
+}

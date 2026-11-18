@@ -19,7 +19,7 @@
       ]
     },
     {
-      "source": "/dos/msdos4-c.(.*)",
+      "source": "/dos/(msdos4|freedos)-c.(.*)",
       "headers": [
         {
           "key": "Cache-Control",
