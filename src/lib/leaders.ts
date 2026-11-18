@@ -40,7 +40,7 @@ async function digest(text: string) {
 export const roomId = async (me: Me) => (await digest(`room:${me.key}`)).slice(0, 32)
 
 const KEYRE = /^[a-f0-9]{32}$/
-const tidy = (n: unknown) => String(n ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+const tidy = (n: unknown) => String(n ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ').slice(0, 20)
 
 export async function identity(): Promise<Me> {
   try {

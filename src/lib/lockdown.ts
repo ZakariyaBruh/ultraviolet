@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './store'
 import { notify } from './notify'
+import { usePlayer, stop as stopPlayer } from './player'
 
 /**
  * How hard a lock-in holds you, for people who know they will wander. Chosen before a session and kept for it (`session.lock`):
@@ -11,12 +12,14 @@ import { notify } from './notify'
  *   2 High: full screen with the keyboard held where the browser allows it (Escape must be held to leave), a warning before the
  *      tab closes or reloads, switching to another window counts as a drift, the right-click menu and the save, print and
  *      view-source keys are blocked, a second screen is pointed out, the Browser window shuts, and ending early is a long hold.
+ *   High also counts a drift 0.5 s after full screen is left (1.5 s on Medium) and 1.5 s after another window takes the focus, counts
+ *      a split view or a shrunk window (under 80% of the size the session started at) held for two seconds as a drift, and stops TV.
  * A web page cannot stop someone closing the browser or switching off the device, and says so; this is friction, not a cage.
  */
 export const LEVELS = [
   { name: 'Low', line: 'Leaving the tab is a drift.' },
   { name: 'Medium', line: 'Full screen. Leaving it is a drift.' },
-  { name: 'High', line: 'Full screen, keys held, a warning before closing, other windows count as drifts, the Browser shuts, ending early is a 10 second hold.' },
+  { name: 'High', line: 'Full screen, keys held, a warning before closing, other windows and split screen count as drifts at once, TV and the Browser shut, ending early is a 10 second hold.' },
 ]
 
 type KeyboardLock = { lock?: (keys?: string[]) => Promise<void>; unlock?: () => void }
@@ -52,7 +55,7 @@ export function useLockdown(): { waiting: boolean; level: number } {
       if (document.fullscreenElement) { setWaiting(false); return }
       setWaiting(true)
       // leaving full screen is a drift, unless the tab went away too (that one is counted by the engine already)
-      timer = window.setTimeout(() => { if (!document.fullscreenElement && !document.hidden && useStore.getState().session && !useStore.getState().session?.paused) useStore.getState().addLapse() }, 1500)
+      timer = window.setTimeout(() => { if (!document.fullscreenElement && !document.hidden && useStore.getState().session && !useStore.getState().session?.paused) useStore.getState().addLapse() }, level >= 2 ? 500 : 1500)
     }
     const onFs = () => { if (!document.fullscreenElement) check(); else { clearTimeout(timer); setWaiting(false) } }
     // back from a break or a reload without full screen: wait for it, no drift for that
@@ -74,7 +77,7 @@ export function useLockdown(): { waiting: boolean; level: number } {
     let blurAt = 0, hid = false
     const blur = () => { setTimeout(() => { if (!document.hasFocus() && !document.hidden) { blurAt = Date.now(); hid = false } }, 50) }
     const vis = () => { if (document.hidden) hid = true }
-    const focus = () => { if (blurAt && !hid && Date.now() - blurAt > 3000 && useStore.getState().session && !useStore.getState().session?.paused) useStore.getState().addLapse(); blurAt = 0 }
+    const focus = () => { if (blurAt && !hid && Date.now() - blurAt > 1500 && useStore.getState().session && !useStore.getState().session?.paused) useStore.getState().addLapse(); blurAt = 0 }
     addEventListener('beforeunload', before)
     document.addEventListener('contextmenu', menu)
     document.addEventListener('keydown', keys, true)
@@ -88,6 +91,25 @@ export function useLockdown(): { waiting: boolean; level: number } {
       document.removeEventListener('keydown', keys, true)
       removeEventListener('blur', blur); removeEventListener('focus', focus); document.removeEventListener('visibilitychange', vis)
     }
+  }, [live, level])
+
+  // High: a window that shrinks (iPad Split View or Slide Over, a window dragged smaller) lets another app sit beside the work, so
+  // staying under 80% of the starting size for two seconds is a drift, once for each time it happens; TV (the one picture that can
+  // play) is stopped, because a screen of moving pictures is the distraction this level is for
+  useEffect(() => {
+    if (!live || level < 2) return
+    const w0 = innerWidth, h0 = innerHeight
+    let timer = 0, over = false
+    const check = () => {
+      const small = innerWidth < w0 * 0.8 || innerHeight < h0 * 0.8
+      if (small && !timer && !over) timer = window.setTimeout(() => { timer = 0; if (innerWidth < w0 * 0.8 || innerHeight < h0 * 0.8) { over = true; const s = useStore.getState().session; if (s && !s.paused) useStore.getState().addLapse() } }, 2000)
+      if (!small) { clearTimeout(timer); timer = 0; over = false }
+    }
+    const tv = () => { const p = usePlayer.getState(); if (p.current?.kind === 'tv' && p.status !== 'idle') stopPlayer() }
+    tv()
+    const off = usePlayer.subscribe(tv)
+    addEventListener('resize', check)
+    return () => { clearTimeout(timer); removeEventListener('resize', check); off() }
   }, [live, level])
 
   return { waiting, level }

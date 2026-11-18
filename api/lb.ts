@@ -104,7 +104,7 @@ async function isFull() {
 /** The name folded for comparing: letters and digits only, lowercase, accents removed. */
 const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 const RESERVED = new Set(['you', 'me', 'friend', 'afriend', 'afriendoffriction', 'friction', 'anonymous', 'anon', 'admin', 'moderator', 'system', 'unknown', 'guest', 'user', 'player'])
-const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ').slice(0, 20)
 
 /** everyone who played today's challenge, best first. The rarity game is scored here, from what everyone answered, so a name few others gave is worth more. */
 async function dailyRows(today: number) {
