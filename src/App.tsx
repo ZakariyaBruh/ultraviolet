@@ -29,6 +29,7 @@ import { startBackupWatch } from '@/lib/backup'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { ConsentBanner } from '@/components/app/ConsentBanner'
 import { LockOverlay } from '@/components/app/LockOverlay'
+import { navShut, SHUT_NOTE } from '@/lib/lockdown'
 import { useMusicSync } from '@/lib/music'
 import about from '@/lib/about.json'
 
@@ -161,6 +162,7 @@ export default function App() {
   useEffect(() => { settle(3500) }, [route])
 
   const go = (r: Route) => {
+    if (navShut(r)) { fx_say({ title: 'Staying on Focus', description: SHUT_NOTE }); return }
     void P.preloadScreen(r) // start fetching it now; the screen that is leaving takes a moment to go
     const i = VIEWS.indexOf(r as View)
     dir.current = i >= prev.current ? 1 : -1
@@ -177,7 +179,7 @@ export default function App() {
   }, [route === 'home']) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const pop = () => { const r = routeFromLocation(); const i = VIEWS.indexOf(r as View); dir.current = i >= prev.current ? 1 : -1; if (i >= 0) prev.current = i; setRoute(r) }
+    const pop = () => { const r = routeFromLocation(); if (navShut(r)) { history.pushState(null, '', hrefFor('focus')); fx_say({ title: 'Staying on Focus', description: SHUT_NOTE }); return }; const i = VIEWS.indexOf(r as View); dir.current = i >= prev.current ? 1 : -1; if (i >= 0) prev.current = i; setRoute(r) }
     addEventListener('popstate', pop)
     return () => removeEventListener('popstate', pop)
   }, [])

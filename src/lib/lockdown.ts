@@ -95,3 +95,11 @@ export function useLockdown(): { waiting: boolean; level: number } {
 
 /** High: the Browser window shuts while a session runs (not on a paid break) */
 export const useBrowserShut = () => useStore((s) => (s.session?.lock ?? 0) >= 2 && !!s.session && !s.session.paused)
+
+/** High lock-in keeps you on Focus: another screen (Learn, TV, Radio...) is a distraction, so a live session refuses to go there. A paid Break lets go. */
+export const navShut = (to: string) => {
+  const a = useStore.getState().session
+  return !!a && !a.paused && (a.lock ?? 0) >= 2 && to !== 'focus' && to !== 'home'
+}
+export const useNavShut = () => useStore((s) => !!s.session && !s.session.paused && (s.session.lock ?? 0) >= 2)
+export const SHUT_NOTE = 'High lock-in keeps you on Focus. End the session (hold the button ten seconds) or take a Break to go elsewhere.'

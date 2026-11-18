@@ -184,10 +184,18 @@ function LayerTray({ live }: { live: WidgetDef[] }) {
  */
 /** how the deck sorts its cards: the study tools, the web and AI, and what has been bought in the Shop */
 const GROUPS = [
-  { name: 'Study', ids: ['notes', 'calc', 'todo', 'timer', 'convert', 'sketch'] },
+  { name: 'Plan and write', ids: ['notes', 'todo', 'timer', 'calendar', 'planner', 'cards', 'cite'] },
+  { name: 'Maths and science', ids: ['calc', 'graph', 'formulas', 'stats', 'elements', 'grades', 'convert'] },
+  { name: 'Make', ids: ['code', 'sketch'] },
   { name: 'Web and AI', ids: ['browser', 'ask'] },
   { name: 'Yours', ids: ['music', 'sound', 'spinner', 'confetti'] },
 ]
+/** the groups with every window in one: a window nobody listed lands in More, so none can go missing from the deck */
+const groupsFor = (have: WidgetDef[]) => {
+  const listed = new Set(GROUPS.flatMap((g) => g.ids))
+  const rest = have.filter((w) => !listed.has(w.id)).map((w) => w.id)
+  return rest.length ? [...GROUPS, { name: 'More', ids: rest }] : GROUPS
+}
 
 export function WidgetsButton({ className = '' }: { className?: string }) {
   const have = useAvailableWidgets()
@@ -260,7 +268,7 @@ export function WidgetsButton({ className = '' }: { className?: string }) {
             <p className="hud !text-[11px]">{n ? `${n} of ${have.length} open` : `${have.length} windows`}</p>
             {n > 0 && <button type="button" onClick={closeAll} className="h-11 -my-2 shrink-0 px-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-2 underline hover:text-ink">Put all away</button>}
           </div>
-          {GROUPS.map((g) => {
+          {groupsFor(have).map((g) => {
             const list = have.filter((w) => g.ids.includes(w.id))
             if (!list.length) return null
             return (

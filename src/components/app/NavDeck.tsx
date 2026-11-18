@@ -5,6 +5,7 @@ import { useMedia } from '@/lib/hooks'
 import { NAV } from '@/components/app/navItems'
 import { preloadScreen } from '@/components/app/screens'
 import { hrefFor, type View } from '@/lib/route'
+import { useNavShut } from '@/lib/lockdown'
 import { cn } from '@/lib/utils'
 
 /**
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
  * signal block slides to it. Arrow keys, Home and End move between tabs; each tab is a real link.
  */
 export function NavDeck({ view, onChange, className }: { view: View; onChange: (v: View) => void; className?: string }) {
+  const shut = useNavShut()
   const reduced = !!useReducedMotion()
   const list = useRef<HTMLDivElement>(null)
   const narrow = useMedia('(max-width: 639px)')
@@ -51,6 +53,8 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
               href={hrefFor(n.id)}
               aria-current={on ? 'page' : undefined}
               aria-label={n.label}
+              aria-disabled={shut && !on ? true : undefined}
+              title={shut && !on ? 'High lock-in keeps you on Focus' : undefined}
               tabIndex={on ? 0 : -1}
               // pointing at a tab, or a finger landing on it, is enough to start fetching its screen
               onPointerEnter={() => void preloadScreen(n.id)}
@@ -63,7 +67,7 @@ export function NavDeck({ view, onChange, className }: { view: View; onChange: (
               }}
               className={cn(
                 'relative flex min-h-11 min-w-0 items-center overflow-hidden justify-center gap-2 px-3 lg:max-xl:px-1.5 text-[13px] font-semibold uppercase tracking-[0.08em] transition-[flex-grow,color] duration-200 ease-[var(--ease-out)] [font-family:var(--font-cond)] max-sm:px-0',
-                on ? 'grow-[3] basis-0 text-on-signal' : 'grow basis-0 text-ink-2 hover:text-ink',
+                on ? 'grow-[3] basis-0 text-on-signal' : 'grow basis-0 text-ink-2 hover:text-ink', shut && !on && 'opacity-35',
               )}
             >
               {on && (

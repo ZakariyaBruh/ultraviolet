@@ -509,7 +509,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
      * swipe could never carry it: the page moved instead. There, a finger picks a panel up by holding still on it for a moment (it lifts, and a tap of
      * buzz where the device has one); from then on the page is held still (touchmove is cancelled) and the panel follows. A quick swipe still scrolls.
      */
-    const HOLD_MS = 260
+    const HOLD_MS = 140 // short: a hold you notice, not one you wait for
     let hold = 0
     let carrying = false
     const freeze = (e: TouchEvent) => { if (carrying && e.cancelable) e.preventDefault() }
@@ -567,9 +567,15 @@ export function ArrangeLayer({ scope }: { scope: string }) {
       const dx = e.clientX - d.x0
       const dy = e.clientY - d.y0
       if (hold && !carrying) {
-        if (Math.hypot(dx, dy) > 7) { drop(); d = null } // a swipe: it is the page's
-        else { d.lx = e.clientX; d.ly = e.clientY }
-        return
+        // a sideways move cannot scroll the page (it only pans up and down), so it picks the panel up at once; an up or down swipe is the page's
+        if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+          clearTimeout(hold); hold = 0; carrying = true
+          d.o0 = live(d.el); d.x0 = d.lx; d.y0 = d.ly
+          d.el.dataset.dragging = 'true'; lift(d.el); document.documentElement.dataset.dragging = 'true'
+          navigator.vibrate?.(8)
+        } else if (Math.hypot(dx, dy) > 9) { drop(); d = null }
+        else { d.lx = e.clientX; d.ly = e.clientY; return }
+        if (!d) return
       }
       if (!d.began) {
         if (Math.hypot(dx, dy) < 7) return

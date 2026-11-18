@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import about from '@/lib/about.json'
 import { useEffect, useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
+import { LEVELS } from '@/lib/lockdown'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
 import { FAQ } from '@/components/ui/faq'
@@ -57,6 +58,9 @@ function Focus() {
         <div className="mb-1 flex items-baseline justify-between"><h2 className="text-[15px] font-semibold">Session length</h2><span className="fig text-sm text-ink-2">{s.sessionMin} min</span></div>
         <LengthBand value={s.sessionMin} onChange={(v) => set({ sessionMin: v })} min={10} max={90} step={5} className="max-w-none" />
       </div>
+      <Row title="Lock-in strength" hint="How hard a session holds you. Low: leaving the tab is a drift. Medium: full screen, and leaving it is a drift. High: full screen, held keys, a warning before closing, other windows count as drifts, the Browser shuts, Learn, TV and every other screen are closed until the session ends, and ending early is a ten second hold. A paid Break lets go of all of it. A web page cannot stop you closing the browser.">
+        <Seg id="set-lock" value={String(s.lockLevel)} onChange={(v) => set({ lockLevel: Number(v) })} tabs={LEVELS.map((l, i) => ({ id: String(i), label: l.name }))} />
+      </Row>
       <Row title="Lesson demos" hint="Sixteen core topics have built-in demos. Any other lesson asks Gemini (Google) to write one; only the topic title is sent. It runs sealed in a frame with no network, is marked AI generated, and can be wrong. If it does not arrive, the lesson goes on without it.">
         <Seg id="set-aidemos" value={s.aiDemos ? 'on' : 'off'} onChange={(v) => set({ aiDemos: v === 'on' })} tabs={[{ id: 'on', label: 'AI' }, { id: 'off', label: 'Off' }]} />
       </Row>

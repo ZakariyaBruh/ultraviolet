@@ -24,6 +24,8 @@ import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, sum } from '@/lib/stats'
 import { nextUp, type CalEvent } from '@/lib/ical'
+import { cn } from '@/lib/utils'
+import { goTo } from '@/lib/supporter'
 import { LEVELS, canFull, enterLock } from '@/lib/lockdown'
 import { runLine, runOf, nextMark, type DayMark } from '@/lib/run'
 import { itemsOf, useStore } from '@/lib/store'
@@ -195,7 +197,7 @@ function ModeRow() {
   // a select is as wide as its longest choice, so these are kept short: the row has to fit a phone on one line, since it shares
   // it with the project and costs the screen no height of its own
   const box = 'inline-flex h-11 shrink-0 items-center border border-ink/25 text-[13px] text-ink hover:bg-ink/10 focus-within:border-signal'
-  const sel = 'h-full appearance-none bg-transparent pr-6 pl-1 outline-none'
+  const sel = 'h-full appearance-none bg-transparent pr-6 pl-1 !outline-none' // the box round it shows the focus: a second ring on the select doubled it
   const caret = 'pointer-events-none -ml-5 mr-1.5 size-3.5 text-ink-3'
   return (
     <div className="flex max-w-[420px] flex-wrap items-center justify-center gap-1.5">
@@ -208,14 +210,9 @@ function ModeRow() {
         </select>
         <ChevronDown aria-hidden className={caret} />
       </label>
-      <label className={box} title={LEVELS[level]?.line}>
-        <LockIcon aria-hidden className="ml-2 size-3.5 shrink-0 text-ink-3" />
-        <span className="sr-only">How hard the lock-in holds you</span>
-        <select id="lock-level" value={level} onChange={(e) => setSettings({ lockLevel: Number(e.target.value) })} className={sel}>
-          {LEVELS.map((l, i) => <option key={l.name} value={i} className="bg-surface text-ink">{l.name}</option>)}
-        </select>
-        <ChevronDown aria-hidden className={caret} />
-      </label>
+      <button type="button" onClick={() => goTo('/settings')} className={cn(box, 'gap-1.5 px-2.5')} title={`${LEVELS[level]?.line} Change it in Settings.`} aria-label={`Lock-in strength: ${LEVELS[level]?.name}. Change it in Settings`}>
+        <LockIcon aria-hidden className="size-3.5 shrink-0 text-ink-3" />{LEVELS[level]?.name}
+      </button>
       <ProjectPicker />
     </div>
   )
@@ -370,7 +367,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   return (
     <section className={`relative flex h-full min-h-0 flex-col gap-3 lg:gap-4 ${wide ? '' : '[justify-content:safe_center]'}`}>
       {!wide && (
-        <div>
+        <div data-movable="focus-head">
           <div className="hud kicker mb-1 flex items-center gap-2"><span className="inline-block h-px w-5 bg-signal/70" />{session ? 'Session live' : 'Ready'}</div>
           <div className="flex items-center justify-between gap-3"><h1 className="dot text-[1.6rem] font-bold">FOCUS</h1><WidgetsButton /></div>
           <p className="mt-0.5 text-[13px] text-ink-2">{finding}</p>
