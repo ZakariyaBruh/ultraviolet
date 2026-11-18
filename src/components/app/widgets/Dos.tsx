@@ -377,6 +377,12 @@ export function Dos() {
   const buttons = useRef([false, false, false])
   const sendButtons = () => raw()?.bus.send('mouse-click', [...buttons.current])
   const lastTouch = useRef(false)
+  const kbd = useRef<HTMLTextAreaElement>(null) // an invisible box inside the screen: the device keyboard types into it, so nothing scrolls away to reach it
+  const boxProps = {
+    autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false, rows: 1,
+    onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter') { e.preventDefault(); tap('Enter') } else if (e.key === 'Backspace' && !e.currentTarget.value) { e.preventDefault(); tap('Backspace') } },
+    onInput: (e: React.FormEvent<HTMLTextAreaElement>) => { const v = e.currentTarget.value; if (v) { typeText(v); e.currentTarget.value = '' } },
+  } as const
   const pDown = (ev: RPE<HTMLDivElement>) => {
     // a finger or pen on the screen brings up the device's keyboard (the box below takes it; iPadOS says it has a fine pointer, so the
     // keys are not on by default there)
@@ -533,11 +539,12 @@ export function Dos() {
         ))}
       </div>
       <div className="relative bg-black">
+        <textarea ref={kbd} aria-label="Type to the PC" tabIndex={-1} {...boxProps} style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, fontSize: 16, border: 0, padding: 0, resize: 'none', pointerEvents: 'none' }} />
         <div
           ref={screen} tabIndex={0} role="application" aria-roledescription="PC screen"
           aria-label={on ? `${title} screen. Type here; Shift and Escape leaves it.` : `${title} screen, powered off`}
           onKeyDown={down} onKeyUp={up} onPaste={paste} onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); release() }}
-          onClick={() => { if (lastTouch.current) typer.current?.focus({ preventScroll: true }) }} onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={(e) => touch.current.delete(e.pointerId)} onWheel={wheel}
+          onClick={() => { if (lastTouch.current) kbd.current?.focus({ preventScroll: true }) }} onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={(e) => touch.current.delete(e.pointerId)} onWheel={wheel}
           onContextMenu={(e) => mouse && e.preventDefault()} data-no-drag data-fill style={{ '--fill': keys ? '16rem' : '13rem', touchAction: mouse ? 'none' : 'manipulation' } as React.CSSProperties}
           className={cn('dos-screen mx-auto aspect-[4/3] h-[min(46vh,25rem)] max-w-full outline-none', focused && 'ring-2 ring-signal')}
         >
@@ -568,9 +575,7 @@ export function Dos() {
           </div>
           {/* the phone's own keyboard types into this, and what it types goes to DOS */}
           <textarea
-            ref={typer} aria-label="Type to the PC" autoCapitalize="off" autoCorrect="off" spellCheck={false} rows={1}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); tap('Enter') } else if (e.key === 'Backspace' && !e.currentTarget.value) { e.preventDefault(); tap('Backspace') } }}
-            onInput={(e) => { const v = e.currentTarget.value; if (v) { typeText(v); e.currentTarget.value = '' } }}
+            ref={typer} aria-label="Type to the PC" {...boxProps}
             className="h-11 w-full resize-none border border-ink/25 bg-transparent px-2 py-2 font-mono text-[16px] text-ink placeholder:text-ink-3 focus:border-signal" placeholder="Type here and it goes to DOS"
           />
         </div>

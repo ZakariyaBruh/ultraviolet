@@ -46,17 +46,19 @@ function raise(el: HTMLElement) {
   el.style.zIndex = '28'
 }
 const hits = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-function lift(el: HTMLElement) {
+function lift(el: HTMLElement, carry = false) {
   const id = el.dataset.movable ?? ''
   if (id.startsWith('shell-')) return
   if (id.startsWith('widget-')) { setLayer(true); raiseWidget(el); return }
   raise(el)
   const r = el.getBoundingClientRect()
-  if (Array.from(document.querySelectorAll<HTMLElement>('[data-movable^="widget-"]')).some((w) => hits(r, w.getBoundingClientRect()))) setLayer(false)
+  // only a panel you carried, or one told to come forward, goes over the windows; a plain tap (or a stray press on a resize grip) never
+  // takes a window you are using from under your finger
+  if (carry && Array.from(document.querySelectorAll<HTMLElement>('[data-movable^="widget-"]')).some((w) => hits(r, w.getBoundingClientRect()))) setLayer(false)
 }
 
 /** brings a panel over the study windows and the other panels, as a tap on it would */
-export const bringToFront = (el: HTMLElement | null) => { if (el) lift(el) }
+export const bringToFront = (el: HTMLElement | null) => { if (el) lift(el, true) }
 
 const live = (el: HTMLElement): Offset => ({ x: Number(el.dataset.ox) || 0, y: Number(el.dataset.oy) || 0 })
 
@@ -421,9 +423,11 @@ export function ArrangeLayer({ scope }: { scope: string }) {
   useEffect(() => {
     const down = (e: PointerEvent) => { const el = (e.target as Element | null)?.closest?.<HTMLElement>(SEL); if (el) lift(el) }
     const blur = () => setTimeout(() => { const a = document.activeElement; if (a instanceof HTMLIFrameElement) { const el = a.closest<HTMLElement>(SEL); if (el) lift(el) } }, 0)
+    const fin = (e: FocusEvent) => { const el = (e.target as Element | null)?.closest?.<HTMLElement>('[data-movable^="widget-"]'); if (el) lift(el) }
+    document.addEventListener('focusin', fin)
     document.addEventListener('pointerdown', down, true)
     addEventListener('blur', blur)
-    return () => { document.removeEventListener('pointerdown', down, true); removeEventListener('blur', blur) }
+    return () => { document.removeEventListener('focusin', fin); document.removeEventListener('pointerdown', down, true); removeEventListener('blur', blur) }
   }, [])
   const offsets = useLayout((s) => s.offsets[scope])
   const shell = useLayout((s) => s.offsets.shell)
@@ -556,7 +560,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
           carrying = true
           cur.o0 = live(el); cur.x0 = cur.lx; cur.y0 = cur.ly
           el.dataset.dragging = 'true'
-          lift(el)
+          lift(el, true)
           document.documentElement.dataset.dragging = 'true'
           navigator.vibrate?.(8)
         }, HOLD_MS)
@@ -571,7 +575,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
         if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy) * 1.3) {
           clearTimeout(hold); hold = 0; carrying = true
           d.o0 = live(d.el); d.x0 = d.lx; d.y0 = d.ly
-          d.el.dataset.dragging = 'true'; lift(d.el); document.documentElement.dataset.dragging = 'true'
+          d.el.dataset.dragging = 'true'; lift(d.el, true); document.documentElement.dataset.dragging = 'true'
           navigator.vibrate?.(8)
         } else if (Math.hypot(dx, dy) > 9) { drop(); d = null }
         else { d.lx = e.clientX; d.ly = e.clientY; return }
@@ -582,7 +586,7 @@ export function ArrangeLayer({ scope }: { scope: string }) {
         d.began = true
         d.el.setPointerCapture?.(d.pid)
         d.el.dataset.dragging = 'true'
-        lift(d.el) // the one you hold comes to the front
+        lift(d.el, true) // the one you hold comes to the front
         document.documentElement.dataset.dragging = 'true'
       }
       // a little resistance past the edges, so it feels like cloth, not a wall
