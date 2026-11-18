@@ -24,11 +24,11 @@ function Stage() {
       <div className="relative aspect-video w-full shrink-0 overflow-hidden border border-ink/30 bg-black">
         {tv && !theatre ? <VideoSlot className="size-full" /> : (
           <div className="grid size-full place-items-center text-center">
-            {!tv && <div className="flex flex-col items-center gap-2"><AsciiSolid cols={40} rows={18} speed={0.6} className="text-[7px] text-signal" /><p className="hud">Off air. Pick a channel.</p></div>}
+            {!tv && <div className="flex flex-col items-center gap-2"><AsciiSolid cols={40} rows={18} speed={0.6} className="text-[7px] text-signal" /><p className="hud">Pick a channel.</p></div>}
           </div>
         )}
         {tv && status === 'loading' && <div className="absolute inset-0 grid place-items-center bg-black/70"><LoadingBlock label="Tuning" size={56} className="min-h-0 h-auto text-white" /></div>}
-        {tv && status === 'error' && <div className="absolute inset-0 grid place-items-center bg-black/80 p-4 text-center"><div className="grid justify-items-center gap-3"><p className="hud text-white">Off air</p><p className="max-w-[30ch] text-sm text-white/80">This channel is not sending right now. Trying the next one.</p><button onClick={() => step(1)} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Next channel</button></div></div>}
+        {tv && status === 'error' && <div className="absolute inset-0 grid place-items-center bg-black/80 p-4 text-center"><div className="grid justify-items-center gap-3"><p className="hud text-white">Channel down</p><p className="max-w-[30ch] text-sm text-white/80">This channel is not sending right now. Trying the next one.</p><button onClick={() => step(1)} className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal">Next channel</button></div></div>}
         {tv && (
           <button onClick={() => set({ theatre: true })} className="absolute right-2 top-2 inline-flex h-11 items-center gap-2 bg-black/70 px-3 text-sm text-white hover:bg-black">
             <Maximize2 className="size-4" /> Fill screen

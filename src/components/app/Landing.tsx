@@ -68,7 +68,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           className="land-ident crt crt-flicker absolute bottom-5 left-5 w-[min(23rem,calc(100%-2.5rem))] border border-signal bg-ground sm:bottom-8 sm:left-8"
         >
           <div className="flex items-center justify-between border-b border-signal/60 px-3 py-1.5 font-[family-name:var(--font-cond)] text-sm font-semibold uppercase tracking-[0.12em] text-signal">
-            <span>Ch 00 / Friction</span>
+            <span>Friction</span>
             <span aria-hidden data-bars className="flex">{BARS.slice(1).map((c) => <i key={c} className="h-2 w-2.5" style={{ background: c }} />)}</span>
           </div>
           <div className="px-3 py-3"><Ident still={reduced} /></div>
@@ -88,7 +88,7 @@ export function Landing({ onEnter, onGo }: { onEnter: () => void; onGo: (v: View
           <p className="max-w-[44ch] text-[16px] leading-[23px]">
             Scrolling has no friction. That is the whole problem. Stay on one radio station or one live channel and every time you drift away gets counted. This site never scrolls. You hold, drag and tune.
           </p>
-          <HoldButton label="Hold to tune in" onDone={onEnter} still={reduced} autoFocus className="sm:w-[19rem]" />
+          <HoldButton label="Hold to start" onDone={onEnter} still={reduced} autoFocus className="sm:w-[19rem]" />
           <nav aria-label="Go straight to" className="flex flex-wrap gap-x-4 gap-y-1 font-[family-name:var(--font-cond)] text-[15px] font-semibold uppercase tracking-[0.1em] text-ink-2">
             {VIEWS.map((v) => (
               <a key={v} href={hrefFor(v)} onClick={(e) => { e.preventDefault(); onGo(v) }} className="inline-flex min-h-8 items-center hover:text-signal">{SHORT[v]}</a>

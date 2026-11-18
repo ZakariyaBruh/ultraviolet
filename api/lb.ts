@@ -1,4 +1,5 @@
 import { createClient, type Client } from '@libsql/client/web'
+import { dayNumber, gameOn, MAXSCORE, rareAnswers, rarePoints, letterOn, type GameId } from './_daily.js'
 
 /**
  * The leaderboard, ranked by how long people have focused. The one place this app talks to a server, because the database key must not live in the browser.
@@ -52,6 +53,11 @@ const init = () =>
     }
     // a supporter shows a star by their alias. The browser says so with each report; it is a mark, not a privilege, so it is not checked
     if (!cols.rows.some((r) => r.name === 'sup')) await c.execute('ALTER TABLE board ADD COLUMN sup INTEGER NOT NULL DEFAULT 0')
+    // lessons finished (`les`, with `lbase` the client's total at the last report) and today's daily challenge on the same row:
+    // the day it was played (`dd`), its score (`ds`) and, for the rarity game, the answers (`da`, proper names joined by |)
+    for (const [col, def] of [['les', 'INTEGER NOT NULL DEFAULT 0'], ['lbase', 'INTEGER NOT NULL DEFAULT -1'], ['dd', 'INTEGER NOT NULL DEFAULT 0'], ['ds', 'INTEGER NOT NULL DEFAULT 0'], ['da', 'TEXT']] as const) {
+      if (!cols.rows.some((r) => r.name === col)) await c.execute(`ALTER TABLE board ADD COLUMN ${col} ${def}`)
+    }
   })())
 
 const json = (body: unknown, status = 200, cache = 'no-store') => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': cache } })
@@ -100,15 +106,42 @@ const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').
 const RESERVED = new Set(['you', 'me', 'friend', 'afriend', 'afriendoffriction', 'friction', 'anonymous', 'anon', 'admin', 'moderator', 'system', 'unknown', 'guest', 'user', 'player'])
 const clean = (s: unknown) => String(s ?? '').replace(/[\u0000-\u001f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
 
+/** everyone who played today's challenge, best first. The rarity game is scored here, from what everyone answered, so a name few others gave is worth more. */
+async function dailyRows(today: number) {
+  const g = gameOn(today)
+  const r = await client().execute({ sql: 'SELECT code, name, ds, da, sup, t FROM board WHERE dd = ? LIMIT 2000', args: [today] })
+  const answers = r.rows.map((x) => String(x.da ?? '').split('|').filter(Boolean))
+  const shared = new Map<string, number>()
+  if (g === 'rare') for (const a of answers) for (const n of a) shared.set(n, (shared.get(n) ?? 0) + 1)
+  const rows = r.rows.map((x, i) => ({
+    code: String(x.code),
+    name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`,
+    n: g === 'rare' ? answers[i].reduce((t, n) => t + rarePoints(shared.get(n) ?? 1), 0) : Number(x.ds),
+    star: Number(x.sup) === 1,
+    t: Number(x.t),
+  }))
+  rows.sort((p, q) => q.n - p.n || p.t - q.t)
+  return rows
+}
+
 async function mine(code: string) {
   const c = client()
-  const b = await c.execute({ sql: 'SELECT name, n, sup FROM board WHERE code = ?', args: [code] })
+  const b = await c.execute({ sql: 'SELECT name, n, sup, les, dd FROM board WHERE code = ?', args: [code] })
+  const today = dayNumber()
+  const daily = { game: gameOn(today), done: false, score: 0, rank: 0 }
   if (b.rows[0]) {
     const n = Number(b.rows[0].n)
+    const les = Number(b.rows[0].les)
     const r = await c.execute({ sql: 'SELECT COUNT(*) AS k FROM board WHERE n > ?', args: [n] })
-    return { listed: n > 0, n, name: (b.rows[0].name as string | null) ?? '', rank: Number(r.rows[0].k) + 1, star: Number(b.rows[0].sup) === 1 }
+    const l = await c.execute({ sql: 'SELECT COUNT(*) AS k FROM board WHERE les > ?', args: [les] })
+    if (Number(b.rows[0].dd) === today) {
+      const all = await dailyRows(today)
+      const i = all.findIndex((x) => x.code === code)
+      if (i >= 0) { daily.done = true; daily.score = all[i].n; daily.rank = i + 1 }
+    }
+    return { listed: n > 0, n, name: (b.rows[0].name as string | null) ?? '', rank: Number(r.rows[0].k) + 1, star: Number(b.rows[0].sup) === 1, les, lesListed: les > 0, lesRank: Number(l.rows[0].k) + 1, daily }
   }
-  return { listed: false, n: 0, name: '', rank: 0, star: false }
+  return { listed: false, n: 0, name: '', rank: 0, star: false, les: 0, lesListed: false, lesRank: 0, daily }
 }
 
 export default {
@@ -123,6 +156,17 @@ export default {
       if (request.method === 'GET') {
         const a = url.searchParams.get('a')
         if (a === 'board') {
+          const kind = url.searchParams.get('b')
+          if (kind === 'daily') {
+            const today = dayNumber()
+            const rows = (await dailyRows(today)).slice(0, BOARD_SIZE).map((x, i) => ({ rank: i + 1, name: x.name, n: x.n, star: x.star }))
+            return json({ day: today, game: gameOn(today), letter: letterOn(today), rows }, 200, 'public, s-maxage=30, stale-while-revalidate=120')
+          }
+          if (kind === 'les') {
+            const r = await c.execute({ sql: 'SELECT code, name, les, sup FROM board WHERE les > 0 ORDER BY les DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
+            const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`, n: Number(x.les), star: Number(x.sup) === 1 }))
+            return json({ min: 0, rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
+          }
           const r = await c.execute({ sql: 'SELECT code, name, n, sup FROM board WHERE n > 0 ORDER BY n DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
           const rows = r.rows.map((x, i) => ({ rank: i + 1, name: (x.name as string | null) || `Friend ${String(x.code).slice(-4).toUpperCase()}`, n: Number(x.n), star: Number(x.sup) === 1 }))
           return json({ min: 0, rows }, 200, 'public, s-maxage=60, stale-while-revalidate=300')
@@ -256,8 +300,47 @@ export default {
             credit = Math.min(total - base, room, 600)
             nb = base + credit
           }
-          await c.execute({ sql: 'UPDATE board SET n = n + ?, base = ?, t = ?, sup = ? WHERE code = ?', args: [credit, nb, now, star, code] })
+          // lessons finished: the same rule, a baseline first and then no more than the clock allows (one every two minutes, and 30 at most a report)
+          const lesTotal = Math.floor(Number((body as { les?: number }).les))
+          let lc = 0
+          let lb = -1
+          const lr = await c.execute({ sql: 'SELECT lbase FROM board WHERE code = ?', args: [code] })
+          const lbase = Number(lr.rows[0]?.lbase ?? -1)
+          if (Number.isFinite(lesTotal) && lesTotal >= 0 && lesTotal <= 100_000) {
+            if (lbase < 0 || lesTotal < lbase) lb = lesTotal
+            else { lc = Math.min(lesTotal - lbase, Math.floor((now - last) / 120_000) + 1, 30); lb = lbase + lc }
+          } else lb = lbase
+          await c.execute({ sql: 'UPDATE board SET n = n + ?, base = ?, les = les + ?, lbase = ?, t = ?, sup = ? WHERE code = ?', args: [credit, nb, lc, lb, now, star, code] })
           return json({ ok: true, n: n + credit })
+        }
+
+        // The daily challenge: one attempt a day for each person, on a game the server picks from the day. The score is the browser's own
+        // (reaction times and sums cannot be checked here), so it is held to what the game can give; the rarity game is scored from the answers.
+        if (body.a === 'daily') {
+          const key = String(body.key ?? '')
+          if (!KEY.test(key)) return json({ error: 'bad key' }, 400)
+          if (limited(`daily:${ip}`, 40)) return json({ error: 'slow down' }, 429)
+          const today = dayNumber()
+          const game: GameId = gameOn(today)
+          const code = await sha(key)
+          const r = await c.execute({ sql: 'SELECT dd FROM board WHERE code = ?', args: [code] })
+          if (!r.rows[0]) return json({ ok: false, reason: 'no alias' })
+          if (Number(r.rows[0].dd) === today) return json({ ok: false, reason: 'done' })
+          let score = 0
+          let answers = ''
+          if (game === 'rare') {
+            const names = rareAnswers((body as { answers?: unknown }).answers, letterOn(today))
+            answers = names.join('|')
+            score = 0 // worked out from everyone's answers when the board is read
+          } else {
+            score = Math.floor(Number((body as { score?: number }).score))
+            if (!Number.isFinite(score) || score < 0 || score > MAXSCORE[game]) return json({ ok: false, reason: 'bad score' }, 400)
+          }
+          const u = await c.execute({ sql: 'UPDATE board SET dd = ?, ds = ?, da = ? WHERE code = ? AND dd != ?', args: [today, score, answers || null, code, today] })
+          if (!u.rowsAffected) return json({ ok: false, reason: 'done' })
+          const all = await dailyRows(today)
+          const i = all.findIndex((x) => x.code === code)
+          return json({ ok: true, game, score: i >= 0 ? all[i].n : score, rank: i + 1, of: all.length })
         }
 
         if (body.a === 'name') {

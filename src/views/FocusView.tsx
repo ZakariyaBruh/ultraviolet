@@ -385,7 +385,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
               <Readout label="Held today" value={<AnimatedNumber value={Math.round(held)} />} unit="min" note={`of ${goal} min goal`} />
               <div className="h-px bg-ink/10" />
               <div className="grid gap-2">
-                <Readout label="Days on air" value={<AnimatedNumber value={days} />} unit={days === 1 ? 'day' : 'days'} note={run.doneToday ? (nextMark(days) ? `${nextMark(days)!.days - days} to ${nextMark(days)!.days}` : 'held today') : days > 0 ? '10 min keeps it' : '10+ min a day'} />
+                <Readout label="Day streak" value={<AnimatedNumber value={days} />} unit={days === 1 ? 'day' : 'days'} note={run.doneToday ? (nextMark(days) ? `${nextMark(days)!.days - days} to ${nextMark(days)!.days}` : 'held today') : days > 0 ? '10 min keeps it' : '10+ min a day'} />
                 <WeekStrip week={run.week} rest={run.restReady || !run.alive} />
               </div>
             </Panel>
@@ -504,7 +504,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
       )}
       {!wide && (
         <div className="grid grid-cols-3 gap-2">
-          {[{ l: 'Drifts', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'On air', v: days, u: days === 1 ? 'day' : 'days' }].map((r) => (
+          {[{ l: 'Drifts', v: blocked, u: '' }, { l: 'Held', v: Math.round(held), u: 'min' }, { l: 'Streak', v: days, u: days === 1 ? 'day' : 'days' }].map((r) => (
             <Panel key={r.l} className="px-3 py-2.5">
               <div className="hud">{r.l}</div>
               <div className="fig mt-0.5 text-2xl text-ink"><AnimatedNumber value={r.v} />{r.u && <span className="ml-1 text-sm text-ink-2">{r.u}</span>}</div>

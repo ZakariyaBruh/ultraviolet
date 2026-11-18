@@ -726,8 +726,8 @@ export const useStore = create<AppState>()(
           const dayKey = dateKey()
           const bonus = r.doneToday && r.days >= 2 && memo.get('friction:run-day') !== dayKey ? Math.min(r.days, STREAK_BONUS_MAX) : 0
           if (r.doneToday) memo.set('friction:run-day', dayKey)
-          if (bonus > 0) get().earnCredits(bonus, `Day ${r.days} on air`)
-          const runNote = r.doneToday ? ` Day ${r.days} on air${bonus > 0 ? `, +${bonus} credits` : ''}. Back tomorrow for ${r.days + 1}.` : ''
+          if (bonus > 0) get().earnCredits(bonus, `Day ${r.days} streak`)
+          const runNote = r.doneToday ? ` Day ${r.days}${bonus > 0 ? `, +${bonus} credits` : ''}. Back tomorrow for ${r.days + 1}.` : ''
           const base = `${note ? `“${note}” ` : ''}${a.goalMin} minutes held, ${a.urges} drift${a.urges === 1 ? '' : 's'}.${credit > 0 ? ` +${credit} credits${a.lapses === 0 ? ', clean bonus included' : ''}.` : ''}`
           useUI.getState().set({ celebrate: newMark && mark ? { title: mark.title, detail: `${mark.line}${bonus > 0 ? ` +${bonus} credits.` : ''} ${base}` } : { title: note ? 'A note from past you' : 'Session complete', detail: `${base}${runNote}` } })
         }
@@ -778,7 +778,7 @@ export const useStore = create<AppState>()(
           setFrozen(get().credits.items?.frozen ?? [])
           done.push(r.lost.key)
         }
-        if (done.length) { const r = runOf(get().focusLog); useFx.getState().say({ title: 'Streak freeze used', description: `${done.length === 1 ? 'A missed day was' : `${done.length} missed days were`} covered. Day ${r.days}${r.doneToday ? '' : ' so far'} on air.` }) }
+        if (done.length) { const r = runOf(get().focusLog); useFx.getState().say({ title: 'Streak freeze used', description: `${done.length === 1 ? 'A missed day was' : `${done.length} missed days were`} covered. Day ${r.days}${r.doneToday ? '' : ' so far'}.` }) }
         return done
       },
       /** Seal a note to yourself. It opens, once, after your next finished session. */

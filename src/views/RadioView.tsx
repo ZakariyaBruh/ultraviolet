@@ -20,7 +20,7 @@ function OnAir({ items }: { items: MediaItem[] }) {
           <div className="flex items-center gap-4">
             <Logo item={radio} size={72} />
             <div className="min-w-0">
-              <div className="hud flex items-center gap-2">{status === 'playing' && <Eq playing />}{status === 'loading' ? 'Tuning' : status === 'error' ? 'Stream down' : 'On air'}</div>
+              <div className="hud flex items-center gap-2">{status === 'playing' && <Eq playing />}{status === 'loading' ? 'Loading' : status === 'error' ? 'Stream down' : 'Playing'}</div>
               <h2 className="truncate text-[20px] font-semibold leading-6">{radio.name}</h2>
               <p className="truncate text-[13px] text-ink-2">{radio.meta}</p>
             </div>
@@ -32,7 +32,7 @@ function OnAir({ items }: { items: MediaItem[] }) {
           </div>
         </>
       ) : (
-        <div><div className="hud">Off air</div><h2 className="text-[20px] font-semibold leading-6">Pick a station</h2><p className="text-[13px] text-ink-2">Press any listing. The player keeps going while you move around.</p></div>
+        <div><div className="hud">Idle</div><h2 className="text-[20px] font-semibold leading-6">Pick a station</h2><p className="text-[13px] text-ink-2">Press any listing. The player keeps going while you move around.</p></div>
       )}
       {more.length > 0 && (
         <div className="min-h-0 border-t border-ink/15 pt-3">

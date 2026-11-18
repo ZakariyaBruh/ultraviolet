@@ -17,7 +17,10 @@ const ERASE = 'friction:erase'
 
 export interface Me { key: string; code: string; name: string }
 export interface Row { rank: number; name: string; n: number; star?: boolean }
-export interface Standing { min: number; listed: boolean; n: number; name: string; rank: number; star?: boolean }
+export interface DailyStanding { game: string; done: boolean; score: number; rank: number }
+export interface Standing { min: number; listed: boolean; n: number; name: string; rank: number; star?: boolean; les: number; lesListed: boolean; lesRank: number; daily: DailyStanding }
+export type BoardKind = 'min' | 'les' | 'daily'
+export interface DailyBoard { day: number; game: string; letter: string; rows: Row[] }
 
 const ls = {
   get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } },
@@ -81,10 +84,19 @@ export async function countRecommend() {
   } catch { /* offline: the recommend is simply not counted */ }
 }
 
-export async function loadBoard(): Promise<{ min: number; rows: Row[] }> {
-  const r = await fetch('/api/lb?a=board')
+export async function loadBoard(kind: BoardKind = 'min'): Promise<{ min: number; rows: Row[] } & Partial<DailyBoard>> {
+  const r = await fetch(`/api/lb?a=board&b=${kind}`)
   if (!r.ok) throw new Error('board')
   return r.json()
+}
+export type DailySend = { ok: true; score: number; rank: number; of: number } | { ok: false; reason: string }
+/** Hands in today's result. One attempt a day: the server refuses a second. The rarity game sends the answers and is scored there. */
+export async function sendDaily(me: Me, body: { score?: number; answers?: string[] }): Promise<DailySend> {
+  try {
+    const r = await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'daily', key: me.key, ...body }) })
+    const j = (await r.json()) as { ok?: boolean; reason?: string; score?: number; rank?: number; of?: number }
+    return j.ok ? { ok: true, score: j.score ?? 0, rank: j.rank ?? 0, of: j.of ?? 0 } : { ok: false, reason: j.reason ?? 'error' }
+  } catch { return { ok: false, reason: 'error' } }
 }
 export async function loadStanding(me: Me): Promise<Standing> {
   // the secret key goes in the body of a POST, never in an address that a log could keep
@@ -127,7 +139,7 @@ export async function eraseMe(): Promise<boolean> {
   try { key = (JSON.parse(ls.get(ME) ?? 'null') as { key?: string } | null)?.key ?? '' } catch { /* nothing saved */ }
   const pending = ls.get(ERASE)
   const k = KEYRE.test(key) ? key : pending && KEYRE.test(pending) ? pending : ''
-  for (const x of [ME, FROM, COUNTED, 'friction:board-seen']) { try { localStorage.removeItem(x) } catch { /* storage blocked */ } }
+  for (const x of [ME, FROM, COUNTED, 'friction:board-seen', 'friction:daily']) { try { localStorage.removeItem(x) } catch { /* storage blocked */ } }
   if (!k) return true
   ls.set(ERASE, k)
   return retryErase()
@@ -149,6 +161,6 @@ export async function reportFocus(me: Me): Promise<void> {
   if (!hasAlias(me)) return
   const st = useStore.getState()
   try {
-    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)), s: isSupporter() ? 1 : 0 }) })
+    await fetch('/api/lb', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: 'report', key: me.key, total: Math.floor(dayTotalAll(st.focusLog)), les: Object.keys(st.learn.done).length, s: isSupporter() ? 1 : 0 }) })
   } catch { /* offline: it is reported next time */ }
 }

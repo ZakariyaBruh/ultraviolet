@@ -85,14 +85,14 @@ export function runOf(log: HourLog, minMin = 10, today: Date = new Date(), froze
 
 /** Run lengths that get a card of their own. */
 export const MARKS: { days: number; title: string; line: string }[] = [
-  { days: 3, title: 'Three days on air', line: 'It takes three to be a pattern.' },
-  { days: 7, title: 'A week on air', line: 'Seven days. The hard part was day two.' },
-  { days: 14, title: 'Two weeks on air', line: 'Fourteen days. This is just what you do now.' },
-  { days: 30, title: 'A month on air', line: 'Thirty days. Most people stop long before this.' },
-  { days: 60, title: 'Sixty days on air', line: 'Sixty days. Nobody is making you.' },
-  { days: 100, title: 'A hundred days on air', line: 'One hundred. Remember day one?' },
-  { days: 200, title: 'Two hundred days on air', line: 'Two hundred. Still here.' },
-  { days: 365, title: 'A year on air', line: 'A year of days. That is the whole thing.' },
+  { days: 3, title: 'Three days', line: 'It takes three to be a pattern.' },
+  { days: 7, title: 'A week', line: 'Seven days. The hard part was day two.' },
+  { days: 14, title: 'Two weeks', line: 'Fourteen days. This is just what you do now.' },
+  { days: 30, title: 'A month', line: 'Thirty days. Most people stop long before this.' },
+  { days: 60, title: 'Sixty days', line: 'Sixty days. Nobody is making you.' },
+  { days: 100, title: 'A hundred days', line: 'One hundred. Remember day one?' },
+  { days: 200, title: 'Two hundred days', line: 'Two hundred. Still here.' },
+  { days: 365, title: 'A year', line: 'A year of days. That is the whole thing.' },
 ]
 
 export const markAt = (days: number) => MARKS.find((m) => m.days === days)
@@ -104,8 +104,8 @@ export function runLine(r: Run, heldMin: number, minMin = 10): string {
   if (r.doneToday) {
     const m = nextMark(r.days)
     const gap = m ? m.days - r.days : 0
-    if (r.days <= 1) return 'Day 1 on air. Back tomorrow for 2.'
-    return gap > 0 && gap <= 3 ? `Day ${r.days} on air. ${gap} more for ${m!.days}.` : `Day ${r.days} on air. Back tomorrow for ${r.days + 1}.`
+    if (r.days <= 1) return 'Day 1. Back tomorrow for 2.'
+    return gap > 0 && gap <= 3 ? `Day ${r.days}. ${gap} more for ${m!.days}.` : `Day ${r.days}. Back tomorrow for ${r.days + 1}.`
   }
   if (r.alive) return `Day ${r.days + 1} is open. ${need} more minute${need === 1 ? '' : 's'} counts it.`
   if (r.best > 0) return 'Back after a gap. Today starts a new run.'
