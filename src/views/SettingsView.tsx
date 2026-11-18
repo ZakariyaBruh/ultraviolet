@@ -1,7 +1,7 @@
 import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import about from '@/lib/about.json'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader, Panel, Seg } from '@/components/app/shared'
 import { DragToConfirm } from '@/components/ui/drag-to-confirm'
 import { DrawCheckbox } from '@/components/ui/draw-checkbox'
@@ -339,6 +339,7 @@ function Help() {
         {!isSupporter() && (
           <div className="mt-2 flex flex-wrap gap-2">
             <button onClick={openSupport} className="inline-flex h-11 flex-1 items-center justify-center bg-signal px-3 text-sm font-semibold text-on-signal">See Support, $2 a month</button>
+            <WhopClaim />
           </div>
         )}
       </div>
@@ -379,4 +380,12 @@ function ReminderRow() {
       <button className="h-11 border border-ink/30 px-4 text-sm text-ink hover:bg-ink/10" onClick={() => downloadReminder(t)}>Add to calendar (.ics)</button>
     </div>
   )
+}
+
+/** Supporters on a new device: Sign in with Whop turns the extras on here. Shown only once the site has a Whop app; nobody needs an account for anything else. */
+function WhopClaim() {
+  const [ready, setReady] = useState(false)
+  useEffect(() => { let live = true; void import('@/lib/whopSignin').then((m) => m.whopSigninReady()).then((c) => { if (live) setReady(!!c) }); return () => { live = false } }, [])
+  if (!ready) return null
+  return <button onClick={() => void import('@/lib/whopSignin').then((m) => m.startWhopSignin())} title="Only for people who already support. No account is needed for anything else." className="inline-flex h-11 flex-1 items-center justify-center border border-ink/30 px-3 text-sm text-ink hover:bg-ink/10">Supporter? Sign in with Whop</button>
 }

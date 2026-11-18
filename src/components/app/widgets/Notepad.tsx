@@ -1,4 +1,4 @@
-import { BookOpen, Copy, Download, PenLine, Plus, Trash2 } from 'lucide-react'
+import { BookOpen, Copy, Download, PenLine, Plus, Square, Trash2, Volume2 } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { fx_say } from '@/lib/actions'
 import { NOTE_MAX, NOTES_MAX, useStore } from '@/lib/store'
@@ -6,6 +6,28 @@ import { cn } from '@/lib/utils'
 import { key } from './Window'
 
 const titleOf = (t: string, i: number) => t.trim().split('\n')[0].replace(/^#+\s*/, '').trim().slice(0, 24) || `Page ${i + 1}`
+
+/** the page as plain sentences for the browser's own voice: Markdown marks and addresses left out, cut into pieces short
+ * enough that Chrome does not stop part way through a long one */
+function spoken(text: string): string[] {
+  const plain = text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^\s)]+\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/^#{1,6}\s+/gm, '').replace(/^>\s?/gm, '').replace(/^\s*([-*+]|\d+[.)])\s+(\[[ x]\]\s+)?/gim, '')
+    .replace(/[*_`~]+/g, '')
+    // each line is its own thought (a heading, an item), so it gets a stop the voice can pause on
+    .split('\n').map((l) => l.trim()).filter(Boolean).map((l) => (/[.!?:;]$/.test(l) ? l : `${l}.`)).join(' ')
+    .replace(/\s+/g, ' ').trim()
+  const out: string[] = []
+  for (const s of plain.match(/[^.!?]+[.!?]*\s*/g) ?? []) {
+    const t = s.trim()
+    if (!t) continue
+    if (out.length && (out[out.length - 1] + ' ' + t).length <= 220) out[out.length - 1] += ' ' + t
+    else for (let i = 0; i < t.length; i += 220) out.push(t.slice(i, i + 220))
+  }
+  return out
+}
 
 /** **bold**, *italic*, `code`, [links](https://...) and bare https links, as React nodes: nothing from the note is ever read as HTML */
 function inline(text: string): ReactNode[] {
@@ -82,6 +104,27 @@ export function Notepad() {
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
   const words = text.trim() ? text.trim().split(/\s+/).length : 0
+  // about 238 words a minute, the average for silent reading in English
+  const mins = words ? Math.max(1, Math.round(words / 238)) : 0
+  const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const [speaking, setSpeaking] = useState(false)
+  const talking = useRef(false)
+  const hush = () => { if (talking.current) speechSynthesis.cancel(); talking.current = false; setSpeaking(false) }
+  useEffect(() => hush, [page]) // a new page, or the window closing, stops the voice
+  const speak = () => {
+    if (!canSpeak) return
+    if (talking.current) { hush(); return }
+    const parts = spoken(text)
+    if (!parts.length) return
+    speechSynthesis.cancel()
+    parts.forEach((t, i) => {
+      const u = new SpeechSynthesisUtterance(t)
+      if (i === parts.length - 1) u.onend = () => { talking.current = false; setSpeaking(false) }
+      u.onerror = () => { talking.current = false; setSpeaking(false) }
+      speechSynthesis.speak(u)
+    })
+    talking.current = true; setSpeaking(true)
+  }
   const write = (t: string) => setNotes(pages.map((p, i) => (i === page ? t : p)))
   const add = () => { if (pages.length >= NOTES_MAX) return; setNotes([...pages, '']); setAt(pages.length); setRead(false) }
   const copy = () => { void navigator.clipboard?.writeText(text).then(() => fx_say({ title: 'Copied', variant: 'success' }), () => fx_say({ title: 'Could not copy', variant: 'warning' })) }
@@ -118,8 +161,9 @@ export function Notepad() {
         <textarea key={page} data-fill style={{ '--fill': '9.75rem' } as React.CSSProperties} value={text} onChange={(e) => write(e.target.value)} maxLength={NOTE_MAX} aria-label={`Notes, ${titleOf(text, page)}`} placeholder={many ? 'The first line names the page.' : 'Write anything. It stays here. # headings, **bold** and - lists show in Read.'} spellCheck className="h-44 w-full resize-none border border-ink/25 bg-transparent p-2 text-[15px] leading-[1.45] text-ink placeholder:text-ink-3 focus:border-signal" />
       )}
       <div className="flex items-center justify-between gap-2">
-        <p className="fig text-[12px] text-ink-2" aria-live="off">{words} {words === 1 ? 'word' : 'words'} · {text.length.toLocaleString('en-US')} characters{many ? ` · page ${page + 1} of ${pages.length}` : ''}</p>
+        <p className="fig text-[12px] text-ink-2" aria-live="off">{words} {words === 1 ? 'word' : 'words'} · {text.length.toLocaleString('en-US')} characters{mins ? ` · ${mins} min read` : ''}{many ? ` · page ${page + 1} of ${pages.length}` : ''}</p>
         <div className="flex gap-1">
+          {canSpeak && <button onClick={speak} disabled={!text.trim()} aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read this page aloud'} title={speaking ? 'Stop' : 'Read aloud'} className={cn(key, 'size-11 disabled:opacity-40 md:size-9', speaking && 'border-signal text-signal')}>{speaking ? <Square className="size-4" /> : <Volume2 className="size-4" />}</button>}
           <button onClick={copy} disabled={!text} aria-label="Copy this page" className={`${key} size-11 disabled:opacity-40 md:size-9`}><Copy className="size-4" /></button>
           <button onClick={save} disabled={!text} aria-label="Save this page as a file" className={`${key} size-11 disabled:opacity-40 md:size-9`}><Download className="size-4" /></button>
           <button onClick={clear} disabled={!text && !many} aria-label={sure ? (many ? 'Press again to delete this page' : 'Press again to clear the notes') : many ? 'Delete this page' : 'Clear the notes'} className={`${key} h-11 px-3 text-[13px] disabled:opacity-40 md:h-9 ${sure ? 'border-signal text-signal' : ''}`}>{sure ? 'Sure?' : <Trash2 className="size-4" />}</button>

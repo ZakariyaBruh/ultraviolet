@@ -1,4 +1,5 @@
 import { isSupporter, openSupport } from '@/lib/supporter'
+import { useBrowserShut } from '@/lib/lockdown'
 import { ArrowLeft, BookOpen, Cloud, CloudOff, Power, CircleHelp, ExternalLink, GraduationCap, Languages, Map as MapIcon, MessageCircleQuestion, Pencil, Play, Plus, RotateCw, Search, Sparkles, X, Zap } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { useUI } from '@/lib/ui'
@@ -168,7 +169,19 @@ function AddPage({ onSave, onBack }: { onSave: (name: string, url: string) => vo
   )
 }
 
+/** High lock-in shuts the Browser while a session runs (a paid Break opens it again) */
 export function Browser() {
+  const shut = useBrowserShut()
+  if (shut) return (
+    <div className="grid min-h-[10rem] place-content-center justify-items-center gap-2 p-6 text-center">
+      <p className="hud">High lock-in</p>
+      <p className="max-w-[36ch] text-[14px] leading-[1.45] text-ink-2">The Browser is shut until the session ends or you take a Break.</p>
+    </div>
+  )
+  return <BrowserBody />
+}
+
+function BrowserBody() {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [stack, setStack] = useState<View[]>([])
   // the first time the Browser is opened, a short tour of it (once the main tour is done or skipped)

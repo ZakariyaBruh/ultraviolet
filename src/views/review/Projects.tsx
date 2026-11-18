@@ -29,7 +29,7 @@ export function Projects() {
         <div className="grid min-h-0 flex-1 content-center justify-items-start gap-3 p-2">
           <Tag className="size-6 text-signal" aria-hidden />
           <h2 className="text-lg font-semibold">{rows.length ? 'No labelled sessions in this period' : 'No sessions in this period'}</h2>
-          <p className="max-w-[52ch] text-[14px] leading-[1.45] text-ink-2">Choose Add a project under Lock in on the Focus screen, name it (Maths, Thesis, a client) and lock in as usual. Each session then counts toward its project here, and in the CSV and calendar exports.</p>
+          <p className="max-w-[52ch] text-[14px] leading-[1.45] text-ink-2">Press Project under Lock in on the Focus screen, name it (Maths, Thesis, a client) and lock in as usual. Each session then counts toward its project here, and in the CSV and calendar exports.</p>
           <button className="h-11 bg-signal px-5 text-sm font-semibold text-on-signal" onClick={() => goTo('/focus')}>Go to Focus</button>
         </div>
       ) : (

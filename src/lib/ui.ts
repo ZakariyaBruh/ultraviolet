@@ -10,6 +10,8 @@ interface UI {
   reportOpen: boolean
   soundOpen: boolean
   widgetsOpen: boolean
+  /** code that came in a share link (`#code=` on the address), waiting for the Code window to offer it */
+  sharedCode: string | null
   searchOpen: boolean
   profileOpen: boolean
   moreOpen: boolean
@@ -46,6 +48,7 @@ export const useUI = create<UI>((set) => ({
   reportOpen: false,
   soundOpen: false,
   widgetsOpen: false,
+  sharedCode: null,
   searchOpen: false,
   profileOpen: false,
   moreOpen: false,

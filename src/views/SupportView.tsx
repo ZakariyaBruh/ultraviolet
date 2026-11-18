@@ -190,8 +190,13 @@ export function SupportView() {
       ) : (
         <div className="scroll-y min-h-0 flex-1" data-no-drag tabIndex={0} role="region" aria-label="Checkout"><Checkout onDone={() => setDone(true)} /></div>
       )}
-      {!on && signin && (
-        <p className="text-[13px] leading-[1.4] text-ink-3">Already supporting from another device? <button type="button" onClick={signIn} disabled={going} className="underline">Sign in with Whop</button> to turn your extras on here. We only learn whether the membership is active.</p>
+      {!on && (
+        <p className="text-[13px] leading-[1.4] text-ink-3">
+          No account needed: everything free works without one.{' '}
+          {signin
+            ? <>Already supporting? <button type="button" onClick={signIn} disabled={going} className="underline">Sign in with Whop</button> to turn your extras on here. We learn yes or no, nothing else.</>
+            : <>Already supporting on another device? Your backup key brings the extras with your data (Settings, Data, Bring data here).</>}
+        </p>
       )}
     </Panel>
   )
@@ -201,7 +206,7 @@ export function SupportView() {
       <PageHeader kicker="Keep it free" title="Support" sub="No account, no feed, no ads. Support pays for the hosting, the cloud browser and the domain.">
         {!wide && <Seg id="sup" value={tab} onChange={setTab} tabs={[{ id: 'get', label: 'What you get' }, { id: 'pay', label: 'Subscribe' }]} />}
         {/* in the header, so it is in view on every visit: this page never scrolls to find it */}
-        {signin && !on && <button type="button" onClick={signIn} disabled={going} className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Sign in with Whop'}</button>}
+        {signin && !on && <button type="button" onClick={signIn} disabled={going} title="Only for people who already support. No account is needed for anything else." className="h-11 border border-ink/30 px-4 text-sm font-semibold text-ink hover:bg-ink/10 disabled:opacity-60">{going ? 'Opening Whop…' : 'Supporter? Sign in with Whop'}</button>}
         <ProductHuntBadge scale={1.3} className="border border-signal/60 bg-ground/60 p-1.5" />
       </PageHeader>
       {wide ? (

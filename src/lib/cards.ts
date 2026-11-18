@@ -77,6 +77,25 @@ export const exportCards = (d: Deck) => d.cards.map((c) => `${c.f.replace(/[\t\n
 
 let n = 0
 export const newId = () => `${Date.now().toString(36)}${(n++).toString(36)}${Math.random().toString(36).slice(2, 6)}`
+/**
+ * A practice round of multiple choice: a card's front, with its back among up to three other backs from the same deck (or the
+ * other way round). It moves no card between boxes: the boxes are for Study.
+ */
+export interface Question { id: string; q: string; choices: string[]; answer: number }
+const shuffle = <T,>(a: T[], rand: () => number) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] } return a }
+export function quizOf(cards: Card[], n = 10, reverse = false, rand: () => number = Math.random): Question[] {
+  const ask = (c: Card) => (reverse ? c.b : c.f).trim()
+  const ans = (c: Card) => (reverse ? c.f : c.b).trim()
+  const pool = [...new Set(cards.map(ans))]
+  if (pool.length < 2) return []
+  return shuffle(cards.slice(), rand).slice(0, n).map((c) => {
+    const right = ans(c)
+    // another card with the same question would make its answer right as well, so it is never offered as a wrong one
+    const alsoRight = new Set(cards.filter((o) => ask(o) === ask(c)).map(ans))
+    const choices = shuffle([right, ...shuffle(pool.filter((x) => !alsoRight.has(x)), rand).slice(0, 3)], rand)
+    return { id: c.id, q: ask(c), choices, answer: choices.indexOf(right) }
+  })
+}
 export const total = (decks: Deck[]) => decks.reduce((s, d) => s + d.cards.length, 0)
 export const makeCard = (f: string, b: string, now: number): Card => ({ id: newId(), f: f.trim().slice(0, SIDE_MAX), b: b.trim().slice(0, SIDE_MAX), box: 0, due: now })
 

@@ -1,5 +1,6 @@
 {
- "bash": "bash-3.6.1.js",
+ "bash": "bash-3.6.1.b.js",
  "cpp": "jscpp-2.0.9.js",
- "ts": "sucrase-3.35.1.js"
+ "ts": "sucrase-3.35.1.js",
+ "v86": "v86-0.5.473.wasm"
 }

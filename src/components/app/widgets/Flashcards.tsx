@@ -2,7 +2,7 @@ import { ArrowLeft, Copy, Download, Pencil, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { fx_say } from '@/lib/actions'
 import { useStore } from '@/lib/store'
-import { after, CARDS_MAX, DECKS_MAX, dueIn, exportCards, grade, makeCard, NAME_MAX, newId, nextDue, parseCards, queueOf, SAMPLE, SIDE_MAX, total, type Deck, type Grade } from '@/lib/cards'
+import { after, CARDS_MAX, DECKS_MAX, dueIn, exportCards, grade, makeCard, NAME_MAX, newId, nextDue, parseCards, queueOf, quizOf, SAMPLE, SIDE_MAX, total, type Deck, type Grade, type Question } from '@/lib/cards'
 import { FitText } from '@/components/app/shared'
 import { cn } from '@/lib/utils'
 import { field, key } from './Window'
@@ -12,6 +12,7 @@ type View =
   | { at: 'deck'; id: string }
   | { at: 'paste'; id: string }
   | { at: 'study'; id: string; queue: string[]; done: number; flipped: boolean }
+  | { at: 'quiz'; id: string; qs: Question[]; i: number; picked: number | null; right: number; reverse: boolean }
 
 const GRADES: { g: Grade; label: string; k: string }[] = [{ g: 'again', label: 'Again', k: '1' }, { g: 'good', label: 'Good', k: '2' }, { g: 'easy', label: 'Easy', k: '3' }]
 const plural = (n: number, w: string) => `${n.toLocaleString('en-US')} ${w}${n === 1 ? '' : 's'}`
@@ -33,6 +34,7 @@ export function Flashcards() {
   if (view.at === 'decks' || !deck) return <Decks decks={decks} now={now} full={full} open={(id) => setView({ at: 'deck', id })} setDecks={setDecks} />
   if (view.at === 'paste') return <Paste deck={deck} room={CARDS_MAX - total(decks)} back={() => setView({ at: 'deck', id: deck.id })} put={put} />
   if (view.at === 'study') return <Study deck={deck} view={view} setView={setView} put={put} />
+  if (view.at === 'quiz') return <Quiz deck={deck} view={view} setView={setView} />
   return <DeckView deck={deck} now={now} full={full} setView={setView} put={put} remove={() => { setDecks(decks.filter((d) => d.id !== deck.id)); setView({ at: 'decks' }) }} />
 }
 
@@ -104,6 +106,7 @@ function DeckView({ deck, now, full, setView, put, remove }: { deck: Deck; now: 
   }
   const edit = (id: string) => { const c = deck.cards.find((x) => x.id === id); if (!c) return; setEditing(id); setF(c.f); setB(c.b); front.current?.focus() }
   const study = (all: boolean) => { const queue = queueOf(deck.cards, Date.now(), all); if (queue.length) setView({ at: 'study', id: deck.id, queue, done: 0, flipped: false }) }
+  const canQuiz = new Set(deck.cards.map((c) => c.b.trim())).size >= 2
   const copy = () => { void navigator.clipboard?.writeText(exportCards(deck)).then(() => fx_say({ title: 'Deck copied', description: 'One card a line, a tab between the sides.', variant: 'success' }), () => fx_say({ title: 'Could not copy', variant: 'warning' })) }
   const download = () => {
     const url = URL.createObjectURL(new Blob([exportCards(deck)], { type: 'text/plain' }))
@@ -144,6 +147,7 @@ function DeckView({ deck, now, full, setView, put, remove }: { deck: Deck; now: 
             {deck.cards.length > 0 && <button onClick={() => study(true)} className={cn(key, 'h-11 px-3 text-[13px] md:h-9')}>Go through all</button>}
           </>
         )}
+        {canQuiz && <button onClick={() => setView(newQuiz(deck, false))} title="Multiple choice. It does not change when cards come back." className={cn(key, 'h-11 px-3 text-[13px] md:h-9')}>Quiz</button>}
       </div>
 
       <form onSubmit={save} className="grid gap-1.5 sm:grid-cols-[1fr_1fr_auto]">
@@ -271,6 +275,67 @@ function Study({ deck, view, setView, put }: { deck: Deck; view: Extract<View, {
       ) : (
         <button onClick={flip} className="h-12 bg-signal text-sm font-semibold text-on-signal">Show answer</button>
       )}
+    </div>
+  )
+}
+
+const newQuiz = (deck: Deck, reverse: boolean): View => ({ at: 'quiz', id: deck.id, qs: quizOf(deck.cards, 10, reverse), i: 0, picked: null, right: 0, reverse })
+
+/** a practice round: four answers to choose from, the score at the end, and no card moved between boxes */
+function Quiz({ deck, view, setView }: { deck: Deck; view: Extract<View, { at: 'quiz' }>; setView: (v: View) => void }) {
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => { box.current?.focus({ preventScroll: true }) }, [view.i])
+  const q = view.qs[view.i]
+  const back = () => setView({ at: 'deck', id: deck.id })
+  const pick = (n: number) => { if (view.picked === null && q) setView({ ...view, picked: n, right: view.right + (n === q.answer ? 1 : 0) }) }
+  const next = () => setView({ ...view, i: view.i + 1, picked: null })
+  const keys = (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLButtonElement && (e.key === ' ' || e.key === 'Enter')) return
+    if (e.key === 'Escape') { e.preventDefault(); back(); return }
+    if (!q) return
+    if (view.picked === null) { const n = Number(e.key) - 1; if (Number.isInteger(n) && n >= 0 && n < q.choices.length) { e.preventDefault(); pick(n) } }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next() }
+  }
+  if (!q) {
+    const all = view.qs.length
+    return (
+      <div className="grid justify-items-center gap-3 py-6 text-center">
+        <p className="hud">Score</p>
+        <p className="text-[15px] text-ink"><b className="fig text-[22px]">{view.right}</b> of {all} right.{view.right === all ? ' Clean sheet.' : ''}</p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          <button onClick={() => setView(newQuiz(deck, view.reverse))} className="h-11 bg-signal px-4 text-sm font-semibold text-on-signal">Another round</button>
+          <button onClick={back} className={cn(key, 'h-11 px-3 text-[13px]')}>Back to {deck.name}</button>
+        </div>
+      </div>
+    )
+  }
+  const answered = view.picked !== null
+  return (
+    <div ref={box} tabIndex={-1} onKeyDown={keys} className="grid gap-2 outline-none" aria-label={`Quiz on ${deck.name}`}>
+      <div className="flex items-center gap-2">
+        <button onClick={back} aria-label={`Stop and go back to ${deck.name}`} className={cn(key, 'size-11 shrink-0 md:size-9')}><ArrowLeft className="size-4" /></button>
+        <p className="fig min-w-0 flex-1 truncate text-[12px] text-ink-2" role="status">{view.i + 1} of {view.qs.length} · {view.right} right</p>
+        <button onClick={() => setView(newQuiz(deck, !view.reverse))} title="Start again with the sides swapped" className={cn(key, 'h-11 shrink-0 px-2.5 text-[12px] md:h-9')}>{view.reverse ? 'Front to back' : 'Back to front'}</button>
+      </div>
+      <div className="h-1 bg-ink/10" aria-hidden><div className="h-full bg-signal" style={{ width: `${(view.i / view.qs.length) * 100}%` }} /></div>
+      <div className="flex h-28 min-h-[5rem] flex-col border border-ink/25 p-3 text-center">
+        <FitText max={22} min={13} className="grid min-h-full place-content-center font-semibold break-words text-ink">{q.q}</FitText>
+      </div>
+      <div className="grid gap-1" role="group" aria-label="Answers">
+        {q.choices.map((c, n) => {
+          const right = answered && n === q.answer
+          const wrong = answered && n === view.picked && n !== q.answer
+          return (
+            <button key={n} onClick={() => pick(n)} aria-disabled={answered} className={cn('flex min-h-11 items-center gap-2 border px-2.5 py-1.5 text-left text-[14px] leading-snug', right ? 'border-ok text-ok' : wrong ? 'border-danger text-danger line-through' : answered ? 'border-ink/15 text-ink-3' : 'border-ink/25 text-ink hover:bg-ink/10')}>
+              <span className="fig w-4 shrink-0 text-[11px] text-ink-3">{n + 1}</span>
+              <span className="min-w-0 flex-1 break-words">{c}</span>
+              {right && <span className="shrink-0 text-[11px] font-semibold">Right</span>}
+            </button>
+          )
+        })}
+      </div>
+      {answered && <p className="sr-only" aria-live="assertive">{view.picked === q.answer ? 'Right.' : `Wrong. It was ${q.choices[q.answer]}.`}</p>}
+      {answered && <button onClick={next} className="h-11 bg-signal text-sm font-semibold text-on-signal">{view.i + 1 < view.qs.length ? 'Next' : 'See the score'}</button>}
     </div>
   )
 }

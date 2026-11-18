@@ -10,6 +10,8 @@ import { markAt, memo, runOf, setFrozen } from './run'
 import { CAL_MAX, type CalEvent } from './ical'
 import { PROJECT_MAX, tidyProject } from './projects'
 import { sanitizeDecks, type Deck } from './cards'
+import { sanitizeGrades, type Grades } from './grades'
+import { sanitizeCites, CITES_MAX, type Source } from './citeData'
 
 export interface Mute {
   id: string
@@ -70,6 +72,9 @@ export interface SessionRec {
   project?: string
   /** seconds into the session at each drift, kept from now on so the coach can say when you tend to drift */
   lapseAt?: number[]
+  /** Pomodoro rests taken, and the lock-in level */
+  rests?: number
+  lock?: number
 }
 
 export interface ActiveSession {
@@ -97,6 +102,14 @@ export interface ActiveSession {
   shielded?: number
   project?: string
   lapseAt?: number[]
+  /** Pomodoro: the plan and the round it is on */
+  pomo?: { work: number; rest: number; rounds: number; round: number }
+  /** a Pomodoro rest runs until this time: no focus counts and no credits, and the tab must stay in front */
+  restUntil?: number
+  rests?: number
+  restSec?: number
+  /** the lock-in level the session started with (it cannot be lowered while it runs) */
+  lock?: number
 }
 
 export type EventKind = 'blocked' | 'wander' | 'session' | 'tune' | 'system' | 'goal' | 'learn' | 'board' | 'together'
@@ -150,6 +163,13 @@ export interface Settings {
   project: string
   projects: string[]
   weeklyGoalMin: number
+  /** Pomodoro: the session is rounds of work with rests between; a rest is part of the session (leaving the tab then is a drift, no credits) */
+  pomo: boolean
+  pomoWork: number
+  pomoRest: number
+  pomoRounds: number
+  /** how hard a lock-in holds you: 0 low (as always), 1 medium (full screen), 2 high (full screen and everything else, lib/lockdown.ts) */
+  lockLevel: number
 }
 
 /** Credits are earned by real work (focused minutes, finished sessions, lessons, sharp trivia) and spent on arcade rounds. */
@@ -221,7 +241,7 @@ export interface SavedPage { name: string; url: string }
 /** `min`: open windows tucked into the tray (kept running, just out of the way); `ghost`: windows you can click through */
 /** an imported calendar: the events as read from the file (see `lib/ical.ts`), kept in this browser only */
 export interface Cal { name: string; at: number; events: CalEvent[] }
-export interface Widgets { open: string[]; /** the first page of the Notepad, kept for older saves */ note: string; /** every Notepad page (the first is `note`) */ notes?: string[]; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window: text for each language, `in:<language>` its Input box, `@lang` the language last used */ code?: Record<string, string>; /** the Flashcards window's decks (lib/cards.ts) */ decks?: Deck[]; /** the Graph window: up to three formulas and the angle unit */ graph?: { f: string[]; deg?: boolean }; /** events and countdowns typed into the Calendar window, kept apart from an imported file */ own?: CalEvent[] }
+export interface Widgets { open: string[]; /** the first page of the Notepad, kept for older saves */ note: string; /** every Notepad page (the first is `note`) */ notes?: string[]; todos: Todo[]; pages?: SavedPage[]; min?: string[]; ghost?: string[]; cal?: Cal; /** the Code window: text for each language, `in:<language>` its Input box, `@lang` the language last used */ code?: Record<string, string>; /** the Flashcards window's decks (lib/cards.ts) */ decks?: Deck[]; /** the Graph window: up to three formulas and the angle unit */ graph?: { f: string[]; deg?: boolean }; /** events and countdowns typed into the Calendar window, kept apart from an imported file */ own?: CalEvent[]; /** the Grades window: a course's parts and target, and courses for a GPA */ grades?: Grades; /** the Cite window's reference list */ cites?: Source[] }
 export const NOTE_MAX = 20000
 export const NOTES_MAX = 12
 export const OWN_MAX = 100
@@ -250,6 +270,8 @@ interface Actions {
   clearCalendar: () => void
   setDecks: (decks: Deck[]) => void
   setGraph: (g: { f: string[]; deg?: boolean }) => void
+  setGrades: (g: Grades) => void
+  setCites: (list: Source[]) => void
   addOwnEvent: (ev: CalEvent) => void
   removeOwnEvent: (id: string) => void
   earnCredits: (n: number, why: string) => void
@@ -264,6 +286,8 @@ interface Actions {
   setMix: (layer: string, level: number) => void
   addSpins: (n: number) => void
   endBreak: () => void
+  /** a Pomodoro rest ends: on time, or early when you are back sooner */
+  endRest: () => void
   startTrip: (min: number) => void
   cancelTrip: () => void
   endTrip: (awaySec: number) => void
@@ -322,6 +346,11 @@ export const DEFAULT_SETTINGS: Settings = {
   project: '',
   projects: [],
   weeklyGoalMin: 300,
+  pomo: false,
+  pomoWork: 25,
+  pomoRest: 5,
+  pomoRounds: 4,
+  lockLevel: 0,
 }
 
 const emptyData = (): Data => ({
@@ -438,6 +467,9 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         st.project = (st.projects as string[]).includes(tidyProject(v.project)) ? tidyProject(v.project) : ''
         const wg = Number(st.weeklyGoalMin)
         st.weeklyGoalMin = Number.isFinite(wg) ? Math.min(4800, Math.max(0, Math.round(wg / 30) * 30)) : 300
+        const clamp = (x: unknown, lo: number, hi: number, d: number) => (Number.isFinite(Number(x)) ? Math.min(hi, Math.max(lo, Math.round(Number(x)))) : d)
+        st.pomoWork = clamp(st.pomoWork, 5, 90, 25); st.pomoRest = clamp(st.pomoRest, 1, 30, 5); st.pomoRounds = clamp(st.pomoRounds, 1, 12, 4)
+        st.lockLevel = clamp(st.lockLevel, 0, 2, 0)
         ok = st
       }
     } else if (k === 'focusLog' || k === 'urgeLog') ok = hourLog(v) ?? undefined
@@ -471,14 +503,16 @@ export function sanitizeData(raw: unknown): { data: Data; matched: number } {
         const cal = isObj(v.cal) && Array.isArray(v.cal.events) ? { name: String(v.cal.name ?? '').slice(0, 60), at: num(v.cal.at) ? v.cal.at : 0, events: v.cal.events.filter((x) => isObj(x) && typeof x.t === 'string' && num(x.s) && num(x.e)).slice(0, CAL_MAX).map((x, i) => { const r = isObj(x.r) && ['D', 'W', 'M', 'Y'].includes(String(x.r.f)) ? { f: x.r.f, i: Math.max(1, Math.min(52, Number(x.r.i) || 1)), ...(num(x.r.n) ? { n: x.r.n } : {}), ...(num(x.r.u) ? { u: x.r.u } : {}), ...(Array.isArray(x.r.d) ? { d: (x.r.d as unknown[]).filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6).slice(0, 7) } : {}) } : undefined; return { id: String(i), t: String(x.t).slice(0, 120), s: x.s as number, e: x.e as number, ...(x.day === true ? { day: true } : {}), ...(typeof x.loc === 'string' ? { loc: x.loc.slice(0, 100) } : {}), ...(r ? { r: r as CalEvent['r'] } : {}), ...(Array.isArray(x.x) ? { x: x.x.filter(num).slice(0, 200) as number[] } : {}) } as CalEvent }) } : undefined
         const code: Record<string, string> = {}
         // the Code window: text and input for each language (the ids of LANGS in lib/codelangs.ts, kept here so the start file stays small) and the last language
-        const LANG_IDS = ['python', 'javascript', 'typescript', 'html', 'sql', 'bash', 'cpp', 'ruby', 'lua', 'php']
+        const LANG_IDS = ['python', 'javascript', 'typescript', 'html', 'sql', 'bash', 'cpp', 'ruby', 'lua', 'php', 'dos']
         if (isObj(v.code)) for (const [l, t] of Object.entries(v.code)) if (typeof t === 'string' && (LANG_IDS.includes(l) || LANG_IDS.includes(l.replace(/^in:/, '')) || (l === '@lang' && LANG_IDS.includes(t)))) code[l] = t.slice(0, NOTE_MAX)
         const decks = sanitizeDecks(v.decks)
         // a date of your own is let go a month after it
         const own = Array.isArray(v.own) ? (v.own as unknown[]).filter((x): x is Record<string, unknown> => isObj(x) && typeof x.id === 'string' && typeof x.t === 'string' && num(x.s) && num(x.e)).filter((x) => (x.e as number) > Date.now() - 30 * 864e5).slice(-OWN_MAX).map((x) => ({ id: String(x.id).slice(0, 24), t: String(x.t).slice(0, 120), s: x.s as number, e: Math.max(x.s as number, x.e as number), ...(x.day === true ? { day: true } : {}) })) : undefined
         const notes = Array.isArray(v.notes) ? (v.notes as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, NOTES_MAX).map((t) => t.slice(0, NOTE_MAX)) : undefined
         const graph = isObj(v.graph) && Array.isArray(v.graph.f) ? { f: (v.graph.f as unknown[]).slice(0, 3).map((x) => (typeof x === 'string' ? x.slice(0, 200) : '')), ...(v.graph.deg === true ? { deg: true } : {}) } : undefined
-        ok = { open, note: notes?.length ? notes[0] : typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', ...(notes && notes.length > 1 ? { notes } : {}), todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}), ...(decks?.length ? { decks } : {}), ...(graph ? { graph } : {}), ...(own?.length ? { own } : {}) }
+        const grades = sanitizeGrades(v.grades)
+        const cites = sanitizeCites(v.cites)
+        ok = { open, note: notes?.length ? notes[0] : typeof v.note === 'string' ? v.note.slice(0, NOTE_MAX) : '', ...(notes && notes.length > 1 ? { notes } : {}), todos, pages, min: ids(v.min), ghost: ids(v.ghost), ...(cal ? { cal } : {}), ...(Object.keys(code).length ? { code } : {}), ...(decks?.length ? { decks } : {}), ...(graph ? { graph } : {}), ...(own?.length ? { own } : {}), ...(grades ? { grades } : {}), ...(cites?.length ? { cites } : {}) }
       }
     } else if (k === 'achievements') {
       if (isObj(v)) {
@@ -571,8 +605,12 @@ export const useStore = create<AppState>()(
       setProject: (name) => set((s) => ({ settings: { ...s.settings, project: s.settings.projects.includes(name) ? name : '' } })),
       removeProject: (name) => set((s) => ({ settings: { ...s.settings, projects: s.settings.projects.filter((m) => m !== name), project: s.settings.project === name ? '' : s.settings.project } })),
 
-      startSession: (goalMin, source, title) => {
+      startSession: (asked, source, title) => {
         if (isTrying()) { refuse(); return }
+        const st = get().settings
+        // Pomodoro: the session is the sum of its rounds of work
+        const pomo = st.pomo ? { work: st.pomoWork, rest: st.pomoRest, rounds: st.pomoRounds, round: 1 } : undefined
+        const goalMin = pomo ? pomo.work * pomo.rounds : asked
         set({
           session: {
             id: uid(),
@@ -588,6 +626,8 @@ export const useStore = create<AppState>()(
             credit: 0,
             breaks: 0,
             project: get().settings.project || undefined,
+            ...(pomo ? { pomo, rests: 0, restSec: 0 } : {}),
+            ...(get().settings.lockLevel ? { lock: get().settings.lockLevel } : {}),
           },
         })
       },
@@ -598,7 +638,7 @@ export const useStore = create<AppState>()(
       tick: (sec = 1) => {
         const s = get()
         const a = s.session
-        if (!a || a.paused) return
+        if (!a || a.paused || a.restUntil) return
         const now = new Date()
         const key = dateKey(now)
         const row = hours(s.focusLog, key)
@@ -613,7 +653,13 @@ export const useStore = create<AppState>()(
           sourceSecs: { ...s.sourceSecs, [a.source]: s.sourceSecs[a.source] + sec },
           session: { ...a, elapsedSec: elapsed, cleanSec: (a.cleanSec ?? 0) + sec, credit: (a.credit ?? 0) + (sec / 60) * rateAt(a.cleanSec ?? 0, a.goalMin) },
         })
-        if (elapsed >= a.goalMin * 60) get().endSession(true)
+        if (elapsed >= a.goalMin * 60) { get().endSession(true); return }
+        // the end of a round of work: a rest (a long one after every fourth), away from the screen but not away from the tab
+        const p = a.pomo
+        if (p && p.round < p.rounds && elapsed >= p.round * p.work * 60) {
+          const len = p.round % 4 === 0 ? p.rest * 3 : p.rest
+          set((x) => (x.session ? { session: { ...x.session, restUntil: Date.now() + len * 60e3, rests: (x.session.rests ?? 0) + 1 } } : x))
+        }
       },
 
       addLapse: () => {
@@ -655,6 +701,8 @@ export const useStore = create<AppState>()(
           tripSec: a.tripSec || undefined,
           project: a.project || undefined,
           lapseAt: a.lapseAt?.length ? a.lapseAt : undefined,
+          rests: a.rests || undefined,
+          lock: a.lock || undefined,
         }
         set({
           session: null,
@@ -749,6 +797,14 @@ export const useStore = create<AppState>()(
         get().log('session', `Took a ${min} minute break during ${a.title}`)
       },
       endBreak: () => set((s) => (s.session?.breakUntil ? { session: { ...s.session, paused: false, breakUntil: undefined } } : s)),
+      endRest: () => set((s) => {
+        const a = s.session
+        if (!a?.restUntil || !a.pomo) return s
+        const p = a.pomo
+        const len = (p.round % 4 === 0 ? p.rest * 3 : p.rest) * 60
+        const used = Math.max(0, Math.min(len, len - (a.restUntil - Date.now()) / 1000))
+        return { session: { ...a, restUntil: undefined, restSec: (a.restSec ?? 0) + used, pomo: { ...p, round: Math.min(p.rounds, p.round + 1) } } }
+      }),
 
       /**
        * Step out to work somewhere else: declared first, a few minutes at a time, so leaving the tab for it is recorded as a step-out, not a drift.
@@ -847,6 +903,8 @@ export const useStore = create<AppState>()(
       addOwnEvent: (ev) => set((s) => ({ widgets: { ...s.widgets, own: [...(s.widgets.own ?? []), { id: ev.id.slice(0, 24), t: ev.t.slice(0, 120), s: ev.s, e: Math.max(ev.s, ev.e), ...(ev.day ? { day: true } : {}) }].sort((a, b) => a.s - b.s).slice(-OWN_MAX) } })),
       removeOwnEvent: (id) => set((s) => ({ widgets: { ...s.widgets, own: (s.widgets.own ?? []).filter((e) => e.id !== id) } })),
       setGraph: (g) => set((s) => ({ widgets: { ...s.widgets, graph: { f: g.f.slice(0, 3).map((x) => String(x).slice(0, 200)), ...(g.deg ? { deg: true } : {}) } } })),
+      setGrades: (g) => set((s) => ({ widgets: { ...s.widgets, grades: sanitizeGrades(g) } })),
+      setCites: (list) => set((s) => ({ widgets: { ...s.widgets, cites: (sanitizeCites(list) ?? []).slice(0, CITES_MAX) } })),
       clearDoneTodos: () => set((s) => ({ widgets: { ...s.widgets, todos: s.widgets.todos.filter((x) => !x.done) } })),
 
       markEventsRead: () => set((s) => ({ events: s.events.map((e) => (e.read ? e : { ...e, read: true })) })),

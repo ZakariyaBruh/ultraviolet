@@ -36,6 +36,23 @@ export function useSessionEngine() {
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', check) }
   }, [breakUntil])
 
+  // a Pomodoro rest: it starts when a round of work ends and ends by itself; leaving the tab during it is a drift like any other
+  const restUntil = useStore((s) => s.session?.restUntil)
+  useEffect(() => {
+    if (!restUntil) return
+    const s0 = useStore.getState().session
+    if (s0?.pomo) notify('session', `Round ${s0.pomo.round} of ${s0.pomo.rounds} done. Rest away from the screen; leaving this tab still counts as a drift.`, 'Rest')
+    const check = () => {
+      if (Date.now() < restUntil) return
+      const p = useStore.getState().session?.pomo
+      useStore.getState().endRest()
+      if (p) notify('session', `Round ${Math.min(p.rounds, p.round + 1)} of ${p.rounds}. The timer is running.`, 'Rest over')
+    }
+    const t = setInterval(check, 1000)
+    document.addEventListener('visibilitychange', check)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', check) }
+  }, [restUntil])
+
   // a declared step-out: dropped quietly if you never left, and when its time is up while you are away you are told once
   const tripUntil = useStore((s) => s.session?.tripUntil)
   useEffect(() => {

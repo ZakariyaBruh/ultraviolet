@@ -42,3 +42,4 @@ demo/shots
 
 # code runtimes built by scripts/runtimes.mjs at prebuild
 public/rt/
+.cache/

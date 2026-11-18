@@ -1,4 +1,4 @@
-import { Calculator as CalcIcon, CalendarDays, ChartSpline, Code2, SquareStack, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
+import { Atom, GraduationCap, Quote, Calculator as CalcIcon, CalendarDays, ChartSpline, Code2, SquareStack, CloudRain, Globe, Sparkles, ListChecks, Music, PartyPopper, RotateCw, NotebookPen, PencilRuler, Scale, Timer as TimerIcon, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { part } from '@/components/app/Part'
 import { useStore } from '@/lib/store'
@@ -14,6 +14,9 @@ const Code = part(() => import('./Code').then((m) => m.Code))
 const Calendar = part(() => import('./Calendar').then((m) => m.Calendar))
 const Flashcards = part(() => import('./Flashcards').then((m) => m.Flashcards))
 const Graph = part(() => import('./Graph').then((m) => m.Graph))
+const Elements = part(() => import('./Elements').then((m) => m.Elements))
+const Grades = part(() => import('./Grades').then((m) => m.Grades))
+const Cite = part(() => import('./Cite').then((m) => m.Cite))
 const Todo = part(() => import('./Todo').then((m) => m.Todo))
 const Timer = part(() => import('./Timer').then((m) => m.Timer))
 const Converter = part(() => import('./Converter').then((m) => m.Converter))
@@ -26,7 +29,7 @@ const Spinner = part(() => import('@/components/app/shop/Toys').then((m) => m.Sp
 const Cannon = part(() => import('@/components/app/shop/Toys').then((m) => m.Cannon))
 
 /** the windows that work with no connection, fetched ahead of time so that they open offline too (the Browser and Ask AI need the network anyway) */
-export const preloadLight = () => Promise.all([Notepad, Calculator, Graph, Calendar, Flashcards, Todo, Timer, Converter, Sketch].map((w) => w.preload())).then(() => undefined)
+export const preloadLight = () => Promise.all([Notepad, Calculator, Graph, Calendar, Flashcards, Todo, Timer, Converter, Sketch, Elements, Grades, Cite].map((w) => w.preload())).then(() => undefined)
 
 export interface WidgetDef { id: string; name: string; blurb: string; icon: LucideIcon; Body: ComponentType; /** a Shop item that has to be bought before the window exists */ needs?: ItemId; /** a wide window, for things that need room */ large?: boolean }
 
@@ -42,7 +45,10 @@ export const WIDGETS: WidgetDef[] = [
   { id: 'todo', name: 'To-do list', blurb: 'A short list of what to finish before you stop.', icon: ListChecks, Body: Todo },
   { id: 'calendar', name: 'Calendar', blurb: 'Import a calendar file and see what is coming up. It stays in this browser.', icon: CalendarDays, Body: Calendar },
   { id: 'cards', name: 'Flashcards', blurb: 'Make decks and learn them by spaced repetition: cards you know come back less often. Paste in Quizlet or Anki lists.', icon: SquareStack, Body: Flashcards },
-  { id: 'code', name: 'Code', blurb: 'Write and run Python, JavaScript, TypeScript, HTML, SQL, Bash, C and C++, Ruby, Lua or PHP. It runs in this browser; nothing goes to a server.', icon: Code2, Body: Code, large: true },
+  { id: 'elements', name: 'Periodic table', blurb: 'All 118 elements with their atomic mass, kind, group and period. Find one by name, symbol or number.', icon: Atom, Body: Elements, large: true },
+  { id: 'grades', name: 'Grades', blurb: 'Where a course stands from its marked parts, what the rest needs for your target, and your GPA.', icon: GraduationCap, Body: Grades },
+  { id: 'cite', name: 'Cite', blurb: 'References in APA, MLA, Chicago or Harvard. Paste a DOI, ISBN or Wikipedia address to fill it in.', icon: Quote, Body: Cite },
+  { id: 'code', name: 'Code', blurb: 'Write and run Python, JavaScript, TypeScript, HTML, SQL, Bash, C and C++, Ruby, Lua or PHP, with drawing, or start MS-DOS. It all runs in this browser.', icon: Code2, Body: Code, large: true },
   { id: 'timer', name: 'Timer', blurb: 'A countdown that rings when it ends, and a stopwatch. It keeps running if you close the window.', icon: TimerIcon, Body: Timer },
   { id: 'convert', name: 'Converter', blurb: 'Length, mass, volume, speed, time and temperature.', icon: Scale, Body: Converter },
   { id: 'music', name: 'Music', blurb: 'Auto music: Calm, Focus, Night or Retro, made as it goes (bought in the Shop). It stays quiet while a song or station plays.', icon: Music, Body: () => <MusicControls compact />, needs: 'automusic' },

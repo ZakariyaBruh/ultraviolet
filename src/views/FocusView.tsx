@@ -1,5 +1,5 @@
-import { Coffee, ExternalLink, Hourglass, Play, Radio, Volume2 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ChevronDown, Coffee, ExternalLink, Hourglass, Lock as LockIcon, Play, Radio, Timer as TimerIcon, Volume2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Glass } from '@/components/app/glass'
 import { LengthBand } from '@/components/app/LengthBand'
@@ -24,6 +24,7 @@ import { useMedia } from '@/lib/hooks'
 import { play, usePlayer } from '@/lib/player'
 import { dayTotal, sum } from '@/lib/stats'
 import { nextUp, type CalEvent } from '@/lib/ical'
+import { LEVELS, canFull, enterLock } from '@/lib/lockdown'
 import { runLine, runOf, nextMark, type DayMark } from '@/lib/run'
 import { itemsOf, useStore } from '@/lib/store'
 import { useUI } from '@/lib/ui'
@@ -154,7 +155,8 @@ function CreditMeter() {
 
 /** Before a session: the same ladder, so it is known what staying is worth. */
 function CreditHint() {
-  const goalMin = useStore((x) => x.settings.sessionMin)
+  // the length the next session will have: the Pomodoro's rounds of work, or the timer's length
+  const goalMin = useStore((x) => (x.settings.pomo ? x.settings.pomoWork * x.settings.pomoRounds : x.settings.sessionMin))
   return (
     <div className="hud grid w-[min(100%,19rem)] justify-items-center gap-1.5 text-center !text-[12px] leading-[1.4] ![text-shadow:0_0_5px_var(--ground),0_0_5px_var(--ground),0_0_2px_var(--ground)]">
       <p className="text-ink-2">The longer you stay clean, the more you earn</p>
@@ -170,6 +172,99 @@ function SoundsButton() {
     <Glass radius={999} clear as="button" onClick={() => useUI.getState().set({ soundOpen: true })} aria-label={on ? 'Sound machine, playing' : 'Sound machine'} className="inline-flex h-12 items-center gap-2 px-5 text-[15px] font-medium text-ink">
       <Volume2 className="size-4" />Sounds{on && <span className="live-dot" aria-hidden />}
     </Glass>
+  )
+}
+
+/** A Pomodoro rest: away from the screen, but the tab stays (leaving it is a drift), and no credits come in. */
+function RestClock({ until, round, rounds }: { until: number; round: number; rounds: number }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t) }, [])
+  return (
+    <p className="hud flex flex-col items-center text-center !text-[12px] leading-[1.5]" role="status">
+      <span>Rest · <span className="fig text-ink">{fmtClock(Math.max(0, Math.ceil((until - now) / 1000)))}</span> · round {round} of {rounds} done</span>
+      <span className="max-w-[30ch] text-ink-2 normal-case">Stand up, look far away, drink water. Stay on this tab.</span>
+    </p>
+  )
+}
+
+/** Timer or Pomodoro, and how hard the lock-in holds you. Both are chosen before a session and kept for it. */
+function ModeRow() {
+  const pomo = useStore((s) => s.settings.pomo)
+  const level = useStore((s) => s.settings.lockLevel)
+  const setSettings = useStore((s) => s.setSettings)
+  // a select is as wide as its longest choice, so these are kept short: the row has to fit a phone on one line, since it shares
+  // it with the project and costs the screen no height of its own
+  const box = 'inline-flex h-11 shrink-0 items-center border border-ink/25 text-[13px] text-ink hover:bg-ink/10 focus-within:border-signal'
+  const sel = 'h-full appearance-none bg-transparent pr-6 pl-1 outline-none'
+  const caret = 'pointer-events-none -ml-5 mr-1.5 size-3.5 text-ink-3'
+  return (
+    <div className="flex max-w-[420px] flex-wrap items-center justify-center gap-1.5">
+      <label className={box} title="Timer: one stretch. Pomodoro: rounds with rests away from the screen.">
+        <TimerIcon aria-hidden className="ml-2 size-3.5 shrink-0 text-ink-3" />
+        <span className="sr-only">Kind of session</span>
+        <select value={pomo ? 'pomo' : 'timer'} onChange={(e) => setSettings({ pomo: e.target.value === 'pomo' })} className={sel}>
+          <option value="timer" className="bg-surface text-ink">Timer</option>
+          <option value="pomo" className="bg-surface text-ink">Pomodoro</option>
+        </select>
+        <ChevronDown aria-hidden className={caret} />
+      </label>
+      <label className={box} title={LEVELS[level]?.line}>
+        <LockIcon aria-hidden className="ml-2 size-3.5 shrink-0 text-ink-3" />
+        <span className="sr-only">How hard the lock-in holds you</span>
+        <select id="lock-level" value={level} onChange={(e) => setSettings({ lockLevel: Number(e.target.value) })} className={sel}>
+          {LEVELS.map((l, i) => <option key={l.name} value={i} className="bg-surface text-ink">{l.name}</option>)}
+        </select>
+        <ChevronDown aria-hidden className={caret} />
+      </label>
+      <ProjectPicker />
+    </div>
+  )
+}
+
+/** The Pomodoro plan: rounds of work with rests between, a long rest after every fourth. */
+function PomoPlan() {
+  const st = useStore((s) => s.settings)
+  const setSettings = useStore((s) => s.setSettings)
+  const sel = 'h-11 border border-ink/25 bg-transparent px-2 text-[13px] text-ink md:h-9'
+  const pick = (label: string, value: number, opts: number[], on: (n: number) => void, unit = 'min') => (
+    <label className="flex items-center gap-1 text-[12px] text-ink-2">{label}
+      <select value={value} onChange={(e) => on(Number(e.target.value))} className={sel}>{opts.map((o) => <option key={o} value={o} className="bg-surface text-ink">{o}{unit ? ` ${unit}` : ''}</option>)}</select>
+    </label>
+  )
+  return (
+    <div className="grid max-w-[420px] justify-items-center gap-1">
+      <div className="flex flex-wrap justify-center gap-2">
+        {pick('Work', st.pomoWork, [15, 20, 25, 30, 40, 45, 50, 60], (n) => setSettings({ pomoWork: n }))}
+        {pick('Rest', st.pomoRest, [3, 5, 10, 15], (n) => setSettings({ pomoRest: n }))}
+        {pick('Rounds', st.pomoRounds, [1, 2, 3, 4, 5, 6, 8], (n) => setSettings({ pomoRounds: n }), '')}
+      </div>
+      <p className="text-center text-[12px] leading-[1.4] text-ink-2">{st.pomoRounds * st.pomoWork} min of work. Rests: tab open, eyes off screens, no credits.{st.pomoRounds > 4 ? ` A ${st.pomoRest * 3} min rest after the fourth.` : ''}</p>
+    </div>
+  )
+}
+
+/** High lock-in: ending early is a ten-second hold, not a slide */
+function HoldToEnd({ onDone }: { onDone: () => void }) {
+  const [p, setP] = useState(0)
+  const raf = useRef(0)
+  const go = () => {
+    cancelAnimationFrame(raf.current)
+    const t0 = performance.now()
+    const step = () => { const v = Math.min(1, (performance.now() - t0) / 10000); setP(v); if (v >= 1) { onDone(); return } raf.current = requestAnimationFrame(step) }
+    raf.current = requestAnimationFrame(step)
+  }
+  const stop = () => { cancelAnimationFrame(raf.current); setP(0) }
+  useEffect(() => () => cancelAnimationFrame(raf.current), [])
+  return (
+    <button
+      onPointerDown={go} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}
+      onKeyDown={(e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); go() } }} onKeyUp={stop}
+      aria-label="Hold for ten seconds to end the session"
+      className="relative mx-auto block h-12 w-full max-w-[19rem] overflow-hidden border border-ink/40 font-[family-name:var(--font-cond)] text-[14px] font-semibold uppercase tracking-[0.08em] text-ink select-none"
+    >
+      <span aria-hidden className="absolute inset-y-0 left-0 border-r border-signal bg-signal/25" style={{ width: `${p * 100}%` }} />
+      <span className="relative">{p ? `Keep holding · ${Math.ceil(10 - p * 10)} s` : 'Hold 10 s to end'}</span>
+    </button>
   )
 }
 
@@ -232,7 +327,8 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const wide = useMedia('(min-width: 1024px)')
   const today = dateKey()
 
-  const total = (session?.goalMin ?? sessionMin) * 60
+  const nextMin = useStore((s) => (s.settings.pomo ? s.settings.pomoWork * s.settings.pomoRounds : s.settings.sessionMin))
+  const total = (session?.goalMin ?? nextMin) * 60
   const left = session ? Math.max(0, total - session.elapsedSec) : total
   const progress = session ? Math.min(1, session.elapsedSec / total) : 0
   const running = !!session && !session.paused
@@ -253,7 +349,10 @@ export function FocusView({ go }: { go: (v: View) => void }) {
   const count = !up ? (own ?? []).map((e) => ({ e, n: Math.round((new Date(e.s).setHours(0, 0, 0, 0) - new Date(minute * 6e4).setHours(0, 0, 0, 0)) / 864e5) })).find((x) => x.n >= 1 && x.n <= 60) : undefined
   const calLine = up ? (up.s <= minute * 6e4 ? `On now: ${up.t}.` : `Next: ${up.t} at ${new Date(up.s).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`) : count ? `${count.e.t} ${count.n === 1 ? 'is tomorrow' : `in ${count.n} days`}.` : ''
 
+  const lockLevel = useStore((s) => s.settings.lockLevel)
+  const pomoOn = useStore((s) => s.settings.pomo)
   const start = () => {
+    void enterLock(lockLevel) // full screen needs this very press
     useStore.getState().startSession(sessionMin, current ? current.kind : 'silent', current?.name ?? 'Silent focus')
     if (current && status === 'paused') play(current)
   }
@@ -297,7 +396,7 @@ export function FocusView({ go }: { go: (v: View) => void }) {
         )}
 
         <div data-movable="timer" className="flex min-w-0 flex-col items-center gap-4 justify-self-center">
-          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : session.tripUntil ? <TripClock until={session.tripUntil} /> : <CreditMeter />) : <CreditHint />} />
+          <FrictionDial progress={progress} left={left} running={running} paused={!!session?.paused} live={!!session} shape={dial} note={session ? (session.restUntil && session.pomo ? <RestClock until={session.restUntil} round={session.pomo.round} rounds={session.pomo.rounds} /> : session.breakUntil ? <BreakClock until={session.breakUntil} kit={hasKit} /> : session.tripUntil ? <TripClock until={session.tripUntil} /> : <CreditMeter />) : <CreditHint />} />
 
           <AnimatePresence mode="wait" initial={false}>
             {!session ? (
@@ -305,9 +404,10 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                 <div className="flex items-center gap-2">
                   <button onClick={start} className="h-14 w-full min-w-[17rem] max-w-[420px] bg-signal px-7 font-[family-name:var(--font-cond)] text-[19px] font-bold uppercase tracking-[0.1em] text-on-signal hover:brightness-110 sm:w-[19rem]">Lock in</button>
                 </div>
-                <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />
-                <NextStep sessionMin={sessionMin} minute={minute} events={events} />
-                <ProjectPicker />
+                {pomoOn ? <PomoPlan /> : <LengthBand value={sessionMin} onChange={(m) => setSettings({ sessionMin: m })} />}
+                <NextStep sessionMin={pomoOn ? useStore.getState().settings.pomoWork : sessionMin} minute={minute} events={events} />
+                <ModeRow />
+                {lockLevel > 0 && !canFull() && <p className="max-w-[40ch] text-center text-[12px] text-ink-3">No full screen in this browser, so the lock works as Low.</p>}
                 {hasSound && <SoundsButton />}
               </motion.div>
             ) : (
@@ -336,8 +436,15 @@ export function FocusView({ go }: { go: (v: View) => void }) {
                   </div>
                 )}
                 {!session.breakUntil && <StepOut trips={session.trips ?? 0} until={session.tripUntil} />}
+                {session.pomo && (
+                  session.restUntil
+                    ? <button onClick={() => useStore.getState().endRest()} className="h-11 border border-ink/30 px-4 text-[13px] text-ink hover:bg-ink/10">Back early: start round {Math.min(session.pomo.rounds, session.pomo.round + 1)}</button>
+                    : <p className="hud" role="status">Round {session.pomo.round} of {session.pomo.rounds} · <span className="fig text-ink">{fmtClock(Math.max(0, session.pomo.round * session.pomo.work * 60 - session.elapsedSec))}</span> to the rest</p>
+                )}
                 <div className="w-full">
-                  <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />
+                  {(session.lock ?? 0) >= 2
+                    ? <HoldToEnd onDone={() => useStore.getState().endSession(false)} />
+                    : <DragToConfirm className="slide-end" label="Slide to end session" confirmedLabel="Ended" size="md" onConfirm={() => useStore.getState().endSession(false)} />}
                 </div>
               </motion.div>
             )}

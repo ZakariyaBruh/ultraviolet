@@ -25,9 +25,9 @@ export function ProjectPicker() {
   const chip = 'inline-flex h-11 max-w-full items-center gap-2 border px-4 text-sm'
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tour="project" aria-label={project ? `Project: ${project}. Change it` : 'Label this session with a project'} className={cn('inline-flex h-11 max-w-[420px] items-center gap-2 border px-4 text-[13px] hover:bg-ink/10', project ? 'border-signal/60 text-ink' : 'border-ink/25 text-ink-2')}>
+      <button onClick={() => setOpen(true)} data-tour="project" aria-label={project ? `Project: ${project}. Change it` : 'Label this session with a project'} className={cn('inline-flex h-11 min-w-0 max-w-[420px] items-center gap-1.5 border px-3 text-[13px] hover:bg-ink/10', project ? 'border-signal/60 text-ink' : 'border-ink/25 text-ink-2')}>
         <Tag className={cn('size-3.5 shrink-0', project && 'text-signal')} aria-hidden />
-        <span className="truncate">{project || 'Add a project'}</span>
+        <span className="truncate">{project || 'Project'}</span>
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom">

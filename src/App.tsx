@@ -28,6 +28,7 @@ import { useBoardWatch } from '@/lib/watch'
 import { startBackupWatch } from '@/lib/backup'
 import { pendingInvite, useTogether } from '@/lib/together'
 import { ConsentBanner } from '@/components/app/ConsentBanner'
+import { LockOverlay } from '@/components/app/LockOverlay'
 import { useMusicSync } from '@/lib/music'
 import about from '@/lib/about.json'
 
@@ -124,6 +125,13 @@ export default function App() {
   }, [])
   useTheme()
   useEffect(() => { captureRef() }, [])
+  // a Code share link carries the program after #code= (a fragment never reaches a server): open the Code window to offer it
+  useEffect(() => {
+    if (!location.hash.startsWith('#code=')) return
+    useUI.setState({ sharedCode: location.hash.slice(6, 200_006) })
+    history.replaceState(history.state, '', location.pathname + location.search)
+    useStore.getState().setWidget('code', true)
+  }, [])
   // saved data from before the demo-history button was removed may still carry made-up history; it was taken out on load, so say so once
   useEffect(() => {
     if (!demoRemoved.pending) return
@@ -256,6 +264,7 @@ export default function App() {
       </Sheet>
       <Over when={reportOn} again={ui.reportOpen}><P.Report /></Over>
       <ConsentBanner />
+      <LockOverlay />
       <Sheet open={ui.soundOpen} onOpenChange={(o) => ui.set({ soundOpen: o })}>
         <SheetContent side="bottom">
           <SheetHeader>
