@@ -46,7 +46,7 @@ function DailyPanel({ me, st, meta, onSent }: { me: Me; st: Standing | null; met
           <p className="text-sm text-ink-2">{finished.rank ? `Number ${finished.rank} today.` : ''} One attempt a day. A new challenge starts at midnight UTC.</p>
         </div>
       ) : phase === 'play' && meta.day ? (
-        <DailyGame game={game} day={day} letter={meta.letter ?? 'A'} done={send} />
+        <DailyGame game={game} day={day} cat={meta.cat} done={send} />
       ) : phase === 'send' ? (
         <p role="status" className="text-sm text-ink-2">Sending your score…</p>
       ) : phase === 'fail' ? (
@@ -98,7 +98,7 @@ export function LeadersView() {
 
   useEffect(() => {
     let dead = false
-    loadBoard(tab).then((b) => { if (!dead) { setRows(b.rows); setLoaded(tab); setMeta({ day: b.day, game: b.game, letter: b.letter }) } }).catch(() => !dead && setErr(true))
+    loadBoard(tab).then((b) => { if (!dead) { setRows(b.rows); setLoaded(tab); setMeta({ day: b.day, game: b.game, cat: b.cat }) } }).catch(() => !dead && setErr(true))
     return () => { dead = true }
   }, [tab, nonce, tick])
 

@@ -1,5 +1,5 @@
 import { createClient, type Client } from '@libsql/client/web'
-import { dayNumber, gameOn, MAXSCORE, rareAnswers, rarePoints, letterOn, type GameId } from './_daily.js'
+import { dayNumber, gameOn, MAXSCORE, rareAnswers, rarePoints, categoryOn, type GameId } from './_daily.js'
 
 /**
  * The leaderboard, ranked by how long people have focused. The one place this app talks to a server, because the database key must not live in the browser.
@@ -160,7 +160,7 @@ export default {
           if (kind === 'daily') {
             const today = dayNumber()
             const rows = (await dailyRows(today)).slice(0, BOARD_SIZE).map((x, i) => ({ rank: i + 1, name: x.name, n: x.n, star: x.star }))
-            return json({ day: today, game: gameOn(today), letter: letterOn(today), rows }, 200, 'public, s-maxage=30, stale-while-revalidate=120')
+            return json({ day: today, game: gameOn(today), cat: { id: categoryOn(today).id, name: categoryOn(today).name, title: categoryOn(today).title }, rows }, 200, 'public, s-maxage=30, stale-while-revalidate=120')
           }
           if (kind === 'les') {
             const r = await c.execute({ sql: 'SELECT code, name, les, sup FROM board WHERE les > 0 ORDER BY les DESC, t ASC LIMIT ?', args: [BOARD_SIZE] })
@@ -329,7 +329,7 @@ export default {
           let score = 0
           let answers = ''
           if (game === 'rare') {
-            const names = rareAnswers((body as { answers?: unknown }).answers, letterOn(today))
+            const names = rareAnswers((body as { answers?: unknown }).answers, categoryOn(today).id)
             answers = names.join('|')
             score = 0 // worked out from everyone's answers when the board is read
           } else {

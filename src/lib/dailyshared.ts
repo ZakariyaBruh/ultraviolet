@@ -3,6 +3,8 @@
  * that count in the rarity game and how an answer is scored. `scripts/sync-api.mjs` copies this file to `api/_daily.ts`; edit this one.
  * Days are UTC day numbers, so everyone on Earth plays the same challenge, and the server decides which day it is.
  */
+import { LISTS, type Category } from './rarelists'
+export type { Category }
 export const dayNumber = (t = Date.now()) => Math.floor(t / 86_400_000)
 export const GAMES = ['sums', 'reflex', 'rare', 'memory', 'guess'] as const
 export type GameId = (typeof GAMES)[number]
@@ -31,23 +33,47 @@ const C: string[][] = [
   ['Uganda'], ['Ukraine'], ['United Arab Emirates', 'UAE'], ['United Kingdom', 'UK', 'Britain', 'Great Britain'], ['United States', 'USA', 'United States of America', 'America'], ['Uruguay'], ['Uzbekistan'],
   ['Vanuatu'], ['Vatican City', 'Vatican'], ['Venezuela'], ['Vietnam'], ['Yemen'], ['Zambia'], ['Zimbabwe'],
 ]
-const INDEX = new Map<string, string>()
-for (const [name, ...alias] of C) for (const n of [name, ...alias]) INDEX.set(fold(n), name)
-/** the country a typed name means (its proper name), or null */
-export const countryOf = (typed: string): string | null => INDEX.get(fold(typed)) ?? INDEX.get(fold(typed.replace(/^the\s+/i, ''))) ?? null
-export const LETTERS = 'ABCGIMNST'
-export const letterOn = (day: number) => LETTERS[(((day * 7) % LETTERS.length) + LETTERS.length) % LETTERS.length]
-/** the proper names that start with a letter, for the screen's own check */
-export const startsWith = (name: string, letter: string) => fold(name.replace(/^the\s+/i, '')).startsWith(letter.toLowerCase())
+const COUNTRIES = C.map((a) => a.join('|')).join(';')
+/** every category, the countries first from the list above; `items` is what counts as an answer */
+export const CATEGORIES: Category[] = LISTS.map((c) => (c.id === 'countries' ? { ...c, items: COUNTRIES } : c))
+/** the category a day asks about: each time the rarity game comes round (every fifth day) it is the next one in a fixed shuffle, so nothing repeats until all have been asked */
+const ORDER = (() => {
+  const idx = CATEGORIES.map((_, i) => i)
+  let a = 0x9e3779b9
+  const next = () => { a = (Math.imul(a ^ (a >>> 15), 0x2c1b3c6d) + 0x7f4a7c15) >>> 0; return a / 4294967296 }
+  for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]] }
+  return idx
+})()
+export const categoryOn = (day: number): Category => CATEGORIES[ORDER[((Math.floor(day / GAMES.length) % ORDER.length) + ORDER.length) % ORDER.length]]
+/** like fold, but C++, C# and F# stay different from C and F */
+const keyOf = (s: string) => fold(s.replace(/\+\+/g, 'pp').replace(/#/g, 'sharp').replace(/\+/g, 'plus'))
+const INDEX = new Map<string, Map<string, string>>()
+function indexOf(cat: string): Map<string, string> {
+  let m = INDEX.get(cat)
+  if (m) return m
+  m = new Map()
+  for (const entry of CATEGORIES.find((c) => c.id === cat)?.items.split(';') ?? []) {
+    const [name, ...alias] = entry.split('|')
+    for (const n of [name, ...alias]) { m.set(keyOf(n), name); if (/[a-z]s$/i.test(n)) m.set(keyOf(n) + 'es', name); m.set(keyOf(n) + 's', name) }
+  }
+  INDEX.set(cat, m)
+  return m
+}
+/** the proper name a typed answer means in this category, or null */
+export const answerIn = (cat: string, typed: string): string | null => {
+  const m = indexOf(cat)
+  const f = keyOf(typed.replace(/^(the|a|an)\s+/i, ''))
+  return m.get(f) ?? m.get(f.replace(/s$/, '')) ?? null
+}
 /** the points one answer is worth: shared with n players, 100 / n, so a name nobody else gave is worth the most */
 export const rarePoints = (sharedWith: number) => Math.round(100 / Math.max(1, sharedWith))
-/** the proper names a list of typed answers comes to: valid for the letter, distinct, at most RARE_MAX */
-export function rareAnswers(typed: unknown, letter: string): string[] {
+/** the proper names a list of typed answers comes to: valid for the category, distinct, at most RARE_MAX */
+export function rareAnswers(typed: unknown, cat: string): string[] {
   if (!Array.isArray(typed)) return []
   const out: string[] = []
   for (const t of typed.slice(0, 12)) {
-    const c = typeof t === 'string' ? countryOf(t.slice(0, 40)) : null
-    if (c && startsWith(c, letter) && !out.includes(c)) out.push(c)
+    const c = typeof t === 'string' ? answerIn(cat, t.slice(0, 40)) : null
+    if (c && !out.includes(c)) out.push(c)
     if (out.length === RARE_MAX) break
   }
   return out

@@ -17,11 +17,11 @@ export function rng(seed: number) {
 const pick = (r: () => number, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1))
 
 export const INFO: Record<GameId, { name: string; line: string; rules: string }> = {
-  sums: { name: 'Quick sums', line: 'Ten sums, sixty seconds.', rules: 'Type the answer and press Enter. Right answers score 100, and finishing early adds a bonus.' },
-  reflex: { name: 'Reflex', line: 'Five taps, as fast as you can.', rules: 'Wait for the screen to change, then tap. Tapping early costs the round. The sooner you tap, the more it scores.' },
-  rare: { name: 'Rare answers', line: 'Name five countries, thirty seconds.', rules: 'Everyone gets the same letter. An answer scores 100 divided by the number of players who gave it, so the name nobody else thinks of is worth the most.' },
-  memory: { name: 'Digit span', line: 'Remember the digits, in order.', rules: 'Digits flash one at a time. Type them back. Each round adds one. The first slip ends it.' },
-  guess: { name: 'Close enough', line: 'Five estimates.', rules: 'Guess each number or year. The nearer you are, the more it scores.' },
+  sums: { name: 'Mental maths', line: 'Ten sums, sixty seconds.', rules: 'Type the answer and press Enter. Right answers score 100, and finishing early adds a bonus.' },
+  reflex: { name: 'Reaction', line: 'Five taps, as fast as you can.', rules: 'Wait for the screen to change, then tap. Tapping early costs the round. The sooner you tap, the more it scores.' },
+  rare: { name: 'Nobody else', line: 'Name five, thirty seconds.', rules: 'Everyone gets the same category. An answer scores 100 divided by the number of players who gave it, so the one nobody else thinks of is worth the most.' },
+  memory: { name: 'Recall', line: 'Remember the digits, in order.', rules: 'Digits flash one at a time. Type them back. Each round adds one. The first slip ends it.' },
+  guess: { name: 'Ballpark', line: 'Five estimates.', rules: 'Guess each number or year. The nearer you are, the more it scores.' },
 }
 
 // ---- sums

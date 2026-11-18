@@ -20,7 +20,7 @@ export interface Row { rank: number; name: string; n: number; star?: boolean }
 export interface DailyStanding { game: string; done: boolean; score: number; rank: number }
 export interface Standing { min: number; listed: boolean; n: number; name: string; rank: number; star?: boolean; les: number; lesListed: boolean; lesRank: number; daily: DailyStanding }
 export type BoardKind = 'min' | 'les' | 'daily'
-export interface DailyBoard { day: number; game: string; letter: string; rows: Row[] }
+export interface DailyBoard { day: number; game: string; cat: { id: string; name: string; title: string }; rows: Row[] }
 
 const ls = {
   get: (k: string) => { try { return localStorage.getItem(k) } catch { return null } },

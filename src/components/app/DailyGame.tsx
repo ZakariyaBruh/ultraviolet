@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { INFO, MEMORY_MAX, SUMS_SECONDS, digitsOn, factsOn, reflexDelays, scoreGuess, scoreMemory, scoreReflex, scoreSums, sumsOn, type GameId } from '@/lib/daily'
-import { RARE_MAX, countryOf, startsWith } from '@/lib/dailyshared'
+import { RARE_MAX, answerIn } from '@/lib/dailyshared'
 import { cn } from '@/lib/utils'
 
 /** What a game hands back: a score, or for the rarity game the answers (the server scores those against everyone else's). */
@@ -100,7 +100,7 @@ function Reflex({ day, done }: { day: number; done: (r: Result) => void }) {
   )
 }
 
-function Rare({ letter, done }: { letter: string; done: (r: Result) => void }) {
+function Rare({ cat, done }: { cat: { id: string; name: string; title: string }; done: (r: Result) => void }) {
   const [got, setGot] = useState<string[]>([])
   const [v, setV] = useState('')
   const [msg, setMsg] = useState('')
@@ -110,8 +110,8 @@ function Rare({ letter, done }: { letter: string; done: (r: Result) => void }) {
   const left = useClock(30, true, end)
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const c = countryOf(v)
-    if (!c || !startsWith(c, letter)) { setMsg(`Not a country that starts with ${letter}.`); return }
+    const c = answerIn(cat.id, v)
+    if (!c) { setMsg(`That is not on my list of ${cat.name}.`); return }
     if (gotRef.current.includes(c)) { setMsg('You gave that one.'); return }
     gotRef.current = [...gotRef.current, c]; setGot(gotRef.current); setV(''); setMsg('')
     if (gotRef.current.length >= RARE_MAX) end()
@@ -119,9 +119,9 @@ function Rare({ letter, done }: { letter: string; done: (r: Result) => void }) {
   return (
     <div className="grid content-start gap-3">
       <div className="flex items-center justify-between"><span className="hud">{got.length} of {RARE_MAX}</span><span className="fig text-[15px]">{Math.ceil(left)} s</span></div>
-      <div className="dot text-[clamp(1.4rem,4vw,2rem)] font-bold leading-tight">Countries starting with <span className="text-signal">{letter}</span></div>
+      <div className="dot text-[clamp(1.4rem,4vw,2rem)] font-bold leading-tight">Name five <span className="text-signal">{cat.name}</span></div>
       <form onSubmit={submit} className="flex gap-2">
-        <input autoFocus value={v} onChange={(e) => { setV(e.target.value); setMsg('') }} aria-label="A country" autoComplete="off" autoCapitalize="words" className={input} />
+        <input autoFocus value={v} onChange={(e) => { setV(e.target.value); setMsg('') }} aria-label={cat.title} autoComplete="off" autoCapitalize="words" className={input} />
         <button type="submit" className={primary}>Add</button>
       </form>
       <p role="status" className="min-h-5 text-[13px] text-ink-2">{msg}</p>
@@ -202,7 +202,7 @@ function Guess({ day, done }: { day: number; done: (r: Result) => void }) {
   )
 }
 
-export function DailyGame({ game, day, letter, done }: { game: GameId; day: number; letter: string; done: (r: Result) => void }) {
-  return game === 'sums' ? <Sums day={day} done={done} /> : game === 'reflex' ? <Reflex day={day} done={done} /> : game === 'rare' ? <Rare letter={letter} done={done} /> : game === 'memory' ? <Memory day={day} done={done} /> : <Guess day={day} done={done} />
+export function DailyGame({ game, day, cat, done }: { game: GameId; day: number; cat?: { id: string; name: string; title: string }; done: (r: Result) => void }) {
+  return game === 'sums' ? <Sums day={day} done={done} /> : game === 'reflex' ? <Reflex day={day} done={done} /> : game === 'rare' ? <Rare cat={cat ?? { id: 'countries', name: 'countries', title: 'Country' }} done={done} /> : game === 'memory' ? <Memory day={day} done={done} /> : <Guess day={day} done={done} />
 }
 export { INFO }
