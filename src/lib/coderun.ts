@@ -100,6 +100,10 @@ onmessage = async (e) => {
     }
     py.runPython("import sys\nsys.modules.pop('turtle', None)") // each run draws on its own canvas
     await py.loadPackagesFromImports(d.code, { messageCallback: (m) => status(m), errorCallback: (m) => status(m) })
+    if (/\b(requests|urllib|urllib3|http\.client)\b/.test(d.code)) {
+      status('Loading the network layer')
+      try { await py.loadPackage('pyodide-http'); await py.runPythonAsync('import pyodide_http\npyodide_http.patch_all()') } catch (_) {}
+    }
     status('Running')
     const r = await py.runPythonAsync(d.code)
     if (r !== undefined && r !== null) { out(String(r) + '\n'); if (r.destroy) r.destroy() }
@@ -338,7 +342,7 @@ const FRESH: Engine[] = ['js'] // a fresh worker for every run
 
 /** the runner page: it only passes messages between the window and the workers. `origin` is this site, for its own /rt/ engines. */
 export function runnerDoc(origin: string): string {
-  const csp = `default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' ${CDN} ${origin} blob:; worker-src blob:; connect-src ${CDN}; style-src 'unsafe-inline'`
+  const csp = `default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' ${CDN} ${origin} blob:; worker-src blob:; connect-src ${CDN} https:; style-src 'unsafe-inline'`
   return `<!doctype html><meta http-equiv="Content-Security-Policy" content="${csp}"><script>
 const SRC = ${JSON.stringify(SOURCES)}
 const FRESH = ${JSON.stringify(FRESH)}

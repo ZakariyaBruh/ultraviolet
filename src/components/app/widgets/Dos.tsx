@@ -168,7 +168,17 @@ export function Dos() {
     const pump = () => {
       const chunk = queue.current.slice(0, 6)
       queue.current = queue.current.slice(6)
-      if (chunk) emu.current?.keyboard_send_text(chunk)
+      // v86's own text sender needs its keyboard adapter, which is off here, so each character becomes the US key that types it
+      const codes: number[] = []
+      for (const ch of chunk) {
+        const k = ch === '\n' ? ['Enter', false] as [string, boolean] : ch === '\t' ? ['Tab', false] as [string, boolean] : US[ch]
+        const c = k && SC[k[0]]
+        if (!c) continue
+        if (k[1]) codes.push(0x2a)
+        codes.push(...make(c), ...brk(c))
+        if (k[1]) codes.push(0xaa)
+      }
+      if (codes.length) sendCodes(codes)
       typing.current = queue.current ? window.setTimeout(pump, 90) : 0
     }
     pump()
@@ -366,7 +376,11 @@ export function Dos() {
   // the mouse: a pointer lock on a computer, the screen as a trackpad on a touch screen
   const buttons = useRef([false, false, false])
   const sendButtons = () => raw()?.bus.send('mouse-click', [...buttons.current])
+  const lastTouch = useRef(false)
   const pDown = (ev: RPE<HTMLDivElement>) => {
+    // a finger or pen on the screen brings up the device's keyboard (the box below takes it; iPadOS says it has a fine pointer, so the
+    // keys are not on by default there)
+    if (ev.pointerType !== 'mouse' && !mouse && emu.current) { setKeys(true); lastTouch.current = true } else lastTouch.current = false
     if (!mouse || !emu.current) return
     if (ev.pointerType === 'mouse') {
       if (document.pointerLockElement !== ev.currentTarget) { void ev.currentTarget.requestPointerLock?.(); return }
@@ -523,7 +537,7 @@ export function Dos() {
           ref={screen} tabIndex={0} role="application" aria-roledescription="PC screen"
           aria-label={on ? `${title} screen. Type here; Shift and Escape leaves it.` : `${title} screen, powered off`}
           onKeyDown={down} onKeyUp={up} onPaste={paste} onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); release() }}
-          onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={(e) => touch.current.delete(e.pointerId)} onWheel={wheel}
+          onClick={() => { if (lastTouch.current) typer.current?.focus({ preventScroll: true }) }} onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={(e) => touch.current.delete(e.pointerId)} onWheel={wheel}
           onContextMenu={(e) => mouse && e.preventDefault()} data-no-drag data-fill style={{ '--fill': keys ? '16rem' : '13rem', touchAction: mouse ? 'none' : 'manipulation' } as React.CSSProperties}
           className={cn('dos-screen mx-auto aspect-[4/3] h-[min(46vh,25rem)] max-w-full outline-none', focused && 'ring-2 ring-signal')}
         >
@@ -543,8 +557,8 @@ export function Dos() {
         {on && !focused && !mouse && <p className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/70 px-2 py-0.5 text-[11px] text-ink-2">Tap or click the screen to type</p>}
       </div>
 
-      {keys && on && (
-        <div className="grid gap-1">
+      {on && (
+        <div className={keys ? 'grid gap-1' : 'sr-only'}>
           <div data-no-drag tabIndex={0} role="region" aria-label="DOS keys" className="scroll-x flex gap-1">
             <button onClick={() => typer.current?.focus()} className={cn(key, 'h-11 shrink-0 gap-1.5 px-3 text-[13px]')}><Keyboard className="size-4" />Type</button>
             {PAD.map((p) => (
